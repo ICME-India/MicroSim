@@ -1,0 +1,69 @@
+##Geometrical dimensions of the simulation domain
+DIMENSION = 3;
+MESH_X = 64;
+MESH_Y = 64;
+MESH_Z = 64;
+##Discretization, space and time
+DELTA_X = 1.0;
+DELTA_Y = 1.0;
+DELTA_Z = 1.0;
+DELTA_t = 1.000e-01;
+##Number of phases and components
+NUMPHASES = 2;
+NUMCOMPONENTS = 2;
+#Running and saving information
+NUMSTEPS = 1000;
+NSMOOTH = 10;
+SAVET = 200;
+##Component and Phase names
+#COMPONENTS = {Al, Cu}
+COMPONENTS = {Al, Cu};
+PHASES = {alpha, beta};
+#Materials Properties
+#Interfacial Energy GAMMA={12, 13, 14, 23, 24...}
+GAMMA = {8.00e-01};
+# Diffusivity = {Diagonal:0/1, phase, 11,22,33, 12, 13, 23...};
+DIFFUSIVITY = {1, 0, 1};
+DIFFUSIVITY = {1, 1, 1};
+##Molar volume
+V = 1.0e+00;
+##Elasticity related parameters
+ELAST_INT = 1;
+VOIGT_CUBIC = {0, 2700.00, 2000.00, 1200.00};
+VOIGT_CUBIC = {1, 2700.00, 2000.00, 1200.00};
+#VOIGT_ISOTROPIC = {phase, c11, c12, c44};
+#VOIGT_TETRAGONAL = {phase, c11, c12, c13, c33, c44, c66};
+EIGEN_STRAIN = {0, 0.01, 0.01, 0.00, 0.00, 0.00, 0.00};
+EIGEN_STRAIN = {1, 0.01, 0.01, 0.00, 0.00, 0.00, 0.00};
+##FILEWRITING and OUTPUTTING TO SCREEN
+##TRACK_PROGRESS: interval of writing out the progress of the simulation to stdout.
+WRITEFORMAT = BINARY;
+TRACK_PROGRESS = 50;
+#Noise
+Noise_phasefield = 0;
+Amp_Noise_Phase = 0.001;
+ceq = {0, 0, 0.0};
+ceq = {0, 1, 1.0};
+ceq = {1, 0, 0.0};
+ceq = {1, 1, 1.0};
+##Model-specific parameters
+relax_coeff = 1.615e+00;
+c0 = 9.000e-02;
+f0 = {0, 7.50e-01};
+f0 = {1, 7.50e-01};
+alpha = 2.94;
+lambda = 8.000e+00;
+##Boundary conditions
+#0: Free, 1: Neumann, 2: Dirichlet, 3: Periodic, 4: Complex
+#Boundary = {phase, X+, X-, Y+, Y-, Z+, Z-}
+BOUNDARY = {phi, 3, 3, 3, 3, 0, 0};
+BOUNDARY = {mu, 3, 3, 3, 3, 0, 0};
+BOUNDARY = {c, 3, 3, 3, 3, 0, 0};
+BOUNDARY = {T, 3, 3, 3, 3, 0, 0};
+# Boundary = {phi, 1, 1, 0};
+# Boundary = {"u", 3, 3, 2, 2};
+#Boundary_value = {Value X+, Value X-, Value Y+, Value Y-, Value Z+, Value Z-}
+BOUNDARY_VALUE = {phi, 0, 0, 0, 0, 0, 0};
+BOUNDARY_VALUE = {mu, 0, 0, 0, 0, 0, 0};
+BOUNDARY_VALUE = {c, 0, 0, 0, 0, 0, 0};
+BOUNDARY_VALUE = {T, 0, 0, 0, 0, 0, 0};

@@ -1,0 +1,23 @@
+This code solves the problem of precipitate growth using a multiphase field solver on the GPU.
+The code is tested on Tesla P100 and Tesla V100.
+For Tesla K80, one needs to comment "CudaMemPrefetchAsync" in solverloop/evolve.h
+
+To run the code use 
+1. "make" to create executable microsim_kks_cufft
+2. Execute "./microsim_kks_cufft Input.in Filling.in Output"
+
+The code uses CUDA version 11, CUFFT and CUDA-CUB libraries. 
+nvcc version 11.2 is used for compilation of the codes.
+Input.in contains all numerical and physical parameters used in the simulations. 
+Makefile creates a  DATA folder where the datafiles (in the form of VTK files) are stored.
+VTK files can be viewed using Paraview.
+
+This is the alpha version of code. We will continue to add more features in future release.
+
+
+- GPU Phase-Field Developer Team @ IITH
+  (Pankaj, Saurav Shenoy, Saswata Bhattacharya)
+
+The following contributers are acknowledged
+1. Tushar Jogi
+2. Hemanth Kumar Sandireddy
