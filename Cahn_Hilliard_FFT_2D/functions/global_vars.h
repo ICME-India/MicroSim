@@ -50,6 +50,17 @@ int ASCII=0;
 long time_output;
 int max_length;
 
+struct max_min {
+  double *phi_max;
+  double *phi_min;
+  double *com_max;
+  double *com_min;
+  double *rel_change_phi;
+  double *rel_change_com;
+};
+
+struct max_min global_max_min;
+
 struct fill_cube {
   long x_start;
   long x_end;
