@@ -1,0 +1,56 @@
+##Geometrical dimensions of the simulation domain
+DIMENSION = 2;
+MESH_X = 256;
+MESH_Y = 256;
+MESH_Z = 1;
+##Discretization, space and time
+DELTA_X = 0.4;
+DELTA_Y = 0.4;
+DELTA_Z = 0.0;
+DELTA_t = 0.2;
+##Number of phases and composition
+NUMPHASES = 2;
+NUMCOMPONENTS = 2;
+#Running and saving information
+NTIMESTEPS = 1000;
+NSMOOTH = 10;
+SAVET = 100;
+## Component and Phase names
+# COMPONENTS = {Al,Cu,B};
+COMPONENTS = {Al, Cu};
+PHASES = {alpha, beta};
+##Gas constant and molar volume
+R = 1.0;
+V = 1.0;
+##FILEWRITING and OUTPUTTING TO SCREEN
+## WRITEFORMAT ASCII/BINARY
+##TRACK_PROGRESS: interval of writing out the progress of the simulation to stdout. 
+WRITEFORMAT = ASCII;
+TRACK_PROGRESS = 10;
+##Model-specific parameters: Preipitate growth (FFT)
+#AtomicMobility = {Diagonal:0/1, phase, 11,22,33, 12, 13, 23...};
+AtomicMobility = {1, 0, 1};
+AtomicMobility = {1, 1, 1};
+##L={12, 13, 14, 23, 24...}
+L_phi = {1.0};
+##K={12, 13, 14, 23, 24...}
+Kappa_phi = {1.0};
+##K={12, 13, 14, 23, 24...}
+Kappa_c = {1.0};
+##A from free energy expression
+A_fm  = {1.0};
+##B from free energy expression 
+B_fp  = {1.0};
+ceq = {0, 0, 1.0};
+ceq = {0, 1, 1.0};
+ceq = {1, 1, 0.4};
+ceq = {1, 0, 0.4};
+cfill = {0, 0, 1.0};
+cfill = {0, 1, 1.0};
+cfill = {1, 1, 0.4};
+cfill = {1, 0, 0.4};
+
+
+
+
+
