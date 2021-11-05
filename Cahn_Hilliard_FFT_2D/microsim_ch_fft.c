@@ -47,6 +47,16 @@ int main(int argc, char * argv[]) {
         writetofile_serial2D(gridinfo, argv, t);
       }
     }
+    if (t%time_output == 0) {
+      fprintf(stdout, "Time=%le\n", t*deltat);
+      for (b=0; b<NUMPHASES-1; b++) {
+        fprintf(stdout, "%*s, Max = %le, Min = %le, Relative_Change=%le\n", max_length, Phases[b], global_max_min.phi_max[b], global_max_min.phi_min[b], sqrt(global_max_min.rel_change_phi[b]));
+      }
+      for (k=0; k<NUMCOMPONENTS-1; k++) {
+        fprintf(stdout, "%*s, Max = %le, Min = %le, Relative_Change=%le\n", max_length, Components[k], global_max_min.com_max[k], global_max_min.com_min[k], sqrt(global_max_min.rel_change_com[k]));
+      }
+      fprintf(stdout, "\n");
+    }
 
   }
   free_variables();
