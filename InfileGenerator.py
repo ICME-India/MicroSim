@@ -3159,19 +3159,19 @@ class StartScreen(QDialog):
 
 		if self.radio_GP.isChecked():
             
-			commandLine ="cd finite_difference_2D_grand_potential-main/ ;make; cp microsim_gp ../; cd ../; ./microsim_gp " +self.infile.text()+" "+self.filling.text()+" "+self.output.text()
+			commandLine ="cd Grand_potential_Finite_difference_2D_serial/ ;make; cp microsim_gp ../; cd ../; ./microsim_gp " +self.infile.text()+" "+self.filling.text()+" "+self.output.text()
 			os.system("gnome-terminal -e 'bash -c \""+commandLine+";bash\"'")
         
 		elif self.radio_KKR.isChecked():
-			commandLine ="cd GPU_FFT_2D_KKS_Precipitation-main/;make; cp microsim_kks_cufft ../; cd ../; ./microsim_kks_cufft " +self.infile.text()+" "+self.filling.text()+" "+self.output.text()
+			commandLine ="cd KKS_CuFFT/;make; cp microsim_kks_cufft ../; cd ../; ./microsim_kks_cufft " +self.infile.text()+" "+self.filling.text()+" "+self.output.text()
 			os.system("gnome-terminal -e 'bash -c \""+commandLine+";bash\"'")
 
 		elif self.radio_KKS2.isChecked():
-			commandLine ="cd OpenCL_2D_Kim_Solidification-main/;make; cp microsim_kks_opencl ../; cd ../; ./microsim_kks_opencl " +self.infile.text()+" "+self.filling.text()+" "+self.output.text()
+			commandLine ="cd KKS_OpenCl/;make; cp microsim_kks_opencl ../; cd ../; ./microsim_kks_opencl " +self.infile.text()+" "+self.filling.text()+" "+self.output.text()
 			os.system("gnome-terminal -e 'bash -c \""+commandLine+";bash\"'")
 			
 		elif self.radio_CH.isChecked():
-			commandLine ="cd Cahn_Hilliard_2D_precipitation-main/ ;make; cp microsim_ch_fft ../; cd ../; ./microsim_ch_fft " +self.infile.text()+" "+self.filling.text()+" "+self.output.text()
+			commandLine ="cd Cahn_Hilliard_FFT_2D/ ;make; cp microsim_ch_fft ../; cd ../; ./microsim_ch_fft " +self.infile.text()+" "+self.filling.text()+" "+self.output.text()
 			os.system("gnome-terminal -e 'bash -c \""+commandLine+";bash\"'")
             
         

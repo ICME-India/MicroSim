@@ -113,17 +113,38 @@ void Fouriertoreal() {
 
   inv_denom = 1.0 / (MESH_X*MESH_Y);
 
+  for (b=0; b < NUMPHASES-1; b++) {
+    global_max_min.rel_change_phi[b] = 0.0;
+  }
+  for (a=0; a < NUMCOMPONENTS-1; a++) {
+    global_max_min.rel_change_com[a] = 0.0;
+  }
+
   for (x=0;x < rows_x; x++) {
     for (z=0; z < rows_z; z++) {
       for (y=0; y < rows_y; y++) {
         index = x*layer_size + z*rows_y + y;
         for (a=0; a < NUMCOMPONENTS-1; a++) {
           com[a][index] = creal(com[a][index])*inv_denom + 0.0*_Complex_I;
+          global_max_min.rel_change_com[a] += (creal(com[a][index])-gridinfo[index].compi[a])*(creal(com[a][index])-gridinfo[index].compi[a]);
           gridinfo[index].compi[a] = creal(com[a][index]);
+          if (gridinfo[index].compi[a] > global_max_min.com_max[a]) { 
+            global_max_min.com_max[a] = gridinfo[index].compi[a];
+          }
+          if (gridinfo[index].compi[a] < global_max_min.com_min[a]) {
+            global_max_min.com_min[a] = gridinfo[index].compi[a];
+          }
         }
         for (b=0; b < NUMPHASES-1; b++) {
           phi[b][index] = creal(phi[b][index])*inv_denom + 0.0*_Complex_I;
+          global_max_min.rel_change_phi[b] += (creal(phi[b][index])-gridinfo[index].phia[b])*(creal(phi[b][index])-gridinfo[index].phia[b]);
           gridinfo[index].phia[b] = creal(phi[b][index]);
+          if (gridinfo[index].phia[b] > global_max_min.phi_max[b]) { 
+            global_max_min.phi_max[b] = gridinfo[index].phia[b];
+          }
+          if (gridinfo[index].phia[b] < global_max_min.phi_min[b]) { 
+            global_max_min.phi_min[b] = gridinfo[index].phia[b];
+          }
         }
       }
     }

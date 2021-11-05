@@ -42,6 +42,56 @@ void CL_DeviceToHost() {
 
 }
 
+void CL_Global_Max_Min() { 
+
+  int x, y, z;
+  long index;
+
+  CL_DeviceToHost();
+
+  ret = clEnqueueReadBuffer(cmdQ, d_gridOld, CL_TRUE, 0, nxny*sizeof(struct grid), gridOld, 0, NULL, NULL);
+  if (ret != CL_SUCCESS) {
+    printf("Error: Failed to read d_gridOld \n%d\n", ret);
+    exit(1);
+  }
+
+  global_max_min.rel_change_phi[0] = 0.0;
+  global_max_min.rel_change_com[0] = 0.0;
+
+  for (x=0; x<rows_x; x++) {
+    for(z=0; z<rows_z; z++) {
+      for (y=0; y<rows_y; y++) {
+
+        index = x*layer_size + z*rows_y + y;
+
+        gridinfoO[index].compi[0] = gridOld[index].c1;
+
+        gridinfoO[index].phia[0] = gridOld[index].phi;
+
+        global_max_min.rel_change_phi[0] += (gridinfo[index].phia[0]-gridinfoO[index].phia[0])*(gridinfo[index].phia[0]-gridinfoO[index].phia[0]);
+
+        if (gridinfo[index].phia[0] > global_max_min.phi_max[0]) { 
+          global_max_min.phi_max[0] = gridinfo[index].phia[0];
+        }
+        if (gridinfo[index].phia[0] < global_max_min.phi_min[0]) { 
+          global_max_min.phi_min[0] = gridinfo[index].phia[0];
+        }
+
+        global_max_min.rel_change_com[0] += (gridinfo[index].compi[0]-gridinfoO[index].compi[0])*(gridinfo[index].compi[0]-gridinfoO[index].compi[0]);
+
+        if (gridinfo[index].compi[0] > global_max_min.com_max[0]) { 
+          global_max_min.com_max[0] = gridinfo[index].compi[0];
+        }
+        if (gridinfo[index].compi[0] < global_max_min.com_min[0]) { 
+          global_max_min.com_min[0] = gridinfo[index].compi[0];
+        }
+
+      }
+    }
+  }
+
+}
+
 /*
 void savetimestep(struct grid *gridNew, struct pfmval *pfmdat, struct pfmpar *pfmvar, double *temp, int t) {
 

@@ -43,6 +43,7 @@ struct pfmpar {
     double deltay;
     double deltat;
     double dx;
+    double dy;
     double dt;
     double eesqrt;
     double Er;

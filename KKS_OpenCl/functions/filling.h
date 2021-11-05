@@ -232,7 +232,7 @@ void fill_composition_cube(struct fields* gridinfo) {
         for (b=0; b < NUMPHASES-1; b++) {
           if (gridinfo[index].phia[b] == 1.0) {
             //for (k=0; k < NUMCOMPONENTS-1; k++) {
-              c[0] = cfill[1][1][0];
+              c[0] = cfill[0][0][0];
             //}
             //init_propertymatrices(Teq);
   //        chemical_potential = 2.0*ceq[NUMPHASES-1][NUMPHASES-1][0];
@@ -248,7 +248,7 @@ void fill_composition_cube(struct fields* gridinfo) {
         if (!PHASE_FILLED) {
           //Fill with liquid
           //for (k=0; k < NUMCOMPONENTS-1; k++) {
-            c[0] = cfill[0][0][0];
+            c[0] = cfill[1][1][0];
           //}
   //         c[0] = 0.160413;
   //         c[1] = 0.245857;
