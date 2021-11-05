@@ -219,6 +219,9 @@ void reading_input_parameters(char *argv[]) {
       else if (strcmp(tmpstr1, "CLdeviceID") == 0) {
         devicenumber = atoi(tmpstr2);
       }
+      else if (strcmp(tmpstr1,"tdbfname")==0) {
+        strcpy(tdbfname,tmpstr2);
+      }
       else {
         printf("Unrecongized parameter : \"%s\"\n", tmpstr1);
       }
@@ -249,6 +252,22 @@ void reading_input_parameters(char *argv[]) {
   strcpy(key, "MESH_Z");
   
   PRINT_LONG(key, MESH_Z, fr);
+  
+  strcpy(key,"DELTA_X");
+  
+  PRINT_DOUBLE(key, deltax, fr);
+  
+  strcpy(key,"DELTA_Y");
+  
+  PRINT_DOUBLE(key, deltay, fr);
+  
+  strcpy(key,"DELTA_Z");
+  
+  PRINT_DOUBLE(key, deltaz, fr);
+  
+  strcpy(key,"DELTA_t");
+  
+  PRINT_DOUBLE(key, deltat, fr);
   
   strcpy(key, "NUMPHASES");
   
@@ -281,6 +300,14 @@ void reading_input_parameters(char *argv[]) {
   strcpy(key,"V");
   
   PRINT_DOUBLE(key, V, fr);
+
+  strcpy(key,"T");
+  
+  PRINT_DOUBLE(key, T, fr);
+
+  strcpy(key,"epsilon");
+  
+  PRINT_DOUBLE(key, epsilon, fr);
   
   strcpy(key, "GAMMA");
   
@@ -325,6 +352,26 @@ void reading_input_parameters(char *argv[]) {
     PRINT_VECTOR(key, cfill[i][NUMPHASES-1], NUMCOMPONENTS-1, fr);
   }
 
+  /*******/
+
+  for (i=0; i<NUMPHASES; i++) {
+    sprintf(key, "ceq[%le,%s]",T,Phases[i]);
+    PRINT_VECTOR(key, ceq[i][i], NUMCOMPONENTS-1, fr);
+  }
+  for (i=0; i<NUMPHASES; i++) {
+    sprintf(key, "ceq[%le,%s]",T,Phases[i]);
+    PRINT_VECTOR(key, ceq[i][NUMPHASES-1], NUMCOMPONENTS-1, fr);
+  }
+  
+  for (i=0; i<NUMPHASES; i++) {
+    sprintf(key, "cfill[%le,%s]",TLiquidus, Phases[i]);
+    PRINT_VECTOR(key, cfill[i][i], NUMCOMPONENTS-1, fr);
+  }
+  for (i=0; i<NUMPHASES; i++) {
+    sprintf(key, "cfill[%le,%s]",TLiquidus, Phases[i]);
+    PRINT_VECTOR(key, cfill[i][NUMPHASES-1], NUMCOMPONENTS-1, fr);
+  }
+
   max_length = strlen(Phases[0]); 
   for (a=1; a<NUMPHASES; a++) {
     length = strlen(Phases[a]);
@@ -338,7 +385,36 @@ void reading_input_parameters(char *argv[]) {
       max_length = length;
     }
   }
+
+  strcpy(key, "tNoiseStart");
   
+  PRINT_INT(key, tNoiseStart, fr);
+
+  strcpy(key,"TLiquidus");
+  
+  PRINT_DOUBLE(key, TLiquidus, fr);
+  
+  strcpy(key, "atr");
+  
+  PRINT_INT(key, atr, fr);
+  
+  strcpy(key, "CLplatformID");
+  
+  PRINT_INT(key, platformnumber, fr);
+  
+  strcpy(key, "CLdeviceID");
+  
+  PRINT_INT(key, devicenumber, fr);
+
+  fprintf(fr, "tdbfname = %s\n\n",tdbfname);
+
+  fprintf(fr, "Time step (Dimensional) = %le s\n", deltat*(Gamma[0][1]*V/(TLiquidus*R))*(Gamma[0][1]*V/(TLiquidus*R))/Diffusivity[1][0][0]); 
+
+  fprintf(fr, "Grid size (x) (Dimensional) = %le m\n", deltax*Gamma[0][1]*V/(TLiquidus*R));
+
+  fprintf(fr, "Grid size (y) (Dimensional) = %le m\n", deltay*Gamma[0][1]*V/(TLiquidus*R));
+
+
 //   PRINT_BOUNDARY_CONDITIONS(fr);
   
   fclose(fr);

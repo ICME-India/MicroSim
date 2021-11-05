@@ -5,6 +5,7 @@
 #include <time.h>
 #include <stddef.h>
 
+#define CL_USE_DEPRECATED_OPENCL_1_2_APIS
 #ifdef __APPLE__           
 #include <OpenCL/opencl.h>           
 #else          
@@ -31,6 +32,7 @@ struct pfmpar {
   double deltay;
   double deltat;
   double dx;
+  double dy;
   double dt;
   double eesqrt;
   double Er;
@@ -178,6 +180,7 @@ void CL_kernel_init_temperature();
 void CL_Update_Temperature();
 void CL_Solve_phi_com();
 void CL_DeviceToHost();
+void CL_Global_Max_Min();
 
 void initialize_domain(struct grid *, struct grid *, struct csle *, struct pfmval *, struct pfmpar *, double *);
 void savetimestep(struct grid *, struct pfmval *, struct pfmpar *, double *, int);

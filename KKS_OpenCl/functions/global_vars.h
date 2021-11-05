@@ -90,10 +90,10 @@ int BOUNDARY_BOTTOM;
 struct max_min {
   double *phi_max;
   double *phi_min;
-  double *mu_max;
-  double *mu_min;
+  double *com_max;
+  double *com_min;
   double *rel_change_phi;
-  double *rel_change_mu;
+  double *rel_change_com;
 };
 
 struct max_min global_max_min;
@@ -199,6 +199,7 @@ struct fields {
 };
 
 struct fields *gridinfo;
+struct fields *gridinfoO;
 
 long tNoiseStart;
 double TLiquidus;
@@ -209,6 +210,7 @@ int PositionOffset=20;
 double T_Offset=1696.0;
 double *RotAngles;
 int atr=1;
+char tdbfname[100];
 
 #define X 0
 #define Y 1

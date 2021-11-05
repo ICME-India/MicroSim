@@ -8,18 +8,18 @@ void CL_initialize_variables() {
   pfmdat.Tr                 = TLiquidus;
   pfmdat.sigma              = Gamma[0][1];
   pfmdat.Vm                 = V;
-  pfmdat.D11l               = Diffusivity[0][0][0];
-  pfmdat.D11s               = Diffusivity[1][0][0];
+  pfmdat.D11s               = Diffusivity[0][0][0];
+  pfmdat.D11l               = Diffusivity[1][0][0];
 
   pfmdat.phisolid           = 1.0;
   pfmdat.philiquid          = 0.0;
   pfmdat.Rg                 = R;
   pfmdat.T0                 = T;
   pfmdat.lrep               = (pfmdat.sigma*pfmdat.Vm)/(TLiquidus*R);//1.0;//CharLength*1e2;
-  pfmdat.c1l_Initial        = cfill[0][0][0];
-  pfmdat.c1s_Initial        = cfill[1][0][0];
-  pfmdat.c1l_1stguess       = ceq[0][0][0];
-  pfmdat.c1s_1stguess       = ceq[1][0][0];
+  pfmdat.c1s_Initial        = cfill[0][0][0];
+  pfmdat.c1l_Initial        = cfill[1][0][0];
+  pfmdat.c1s_1stguess       = ceq[0][0][0];
+  pfmdat.c1l_1stguess       = ceq[1][0][0];
 
   pfmdat.a2                 = 47.0/60.0;
   pfmdat.rad                = fill_cylinder_parameters.radius;
@@ -41,10 +41,11 @@ void CL_initialize_variables() {
 
   pfmvar.E0                 = 8.314*pfmdat.Tr/pfmdat.Vm;
   pfmvar.deltax             = deltax; 
-  pfmvar.deltay             = pfmvar.deltax;
+  pfmvar.deltay             = deltay;
   pfmvar.deltat             = deltat; 
   pfmvar.Er                 = 8.314*pfmdat.Tr;
   pfmvar.dx                 = pfmvar.deltax*pfmdat.lrep; // m
+  pfmvar.dy                 = pfmvar.deltay*pfmdat.lrep; // m
   pfmvar.dt                 = pfmvar.deltat*pfmdat.lrep*pfmdat.lrep/(pfmdat.RefD);
 
   printf("deltax = %le, deltat = %le \n", pfmvar.deltax, pfmvar.deltat);
