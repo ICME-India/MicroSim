@@ -1,4 +1,4 @@
-# MicroSim LAB
+# MicroSim
 MicroSim is a software stack that consists of phase-field codes that offer flexibility with discretization, models as 
 well as the high-performance computing hardware(CPU/GPU) that they can execute on. Along with this the stack also consists of Multi-physics solver modules 
 that are based on OpenFoam and AMRex libraries(will be added soon). The stack has an integrator interface that is built 
