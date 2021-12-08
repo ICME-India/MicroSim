@@ -177,7 +177,7 @@ To Install PIP3(For Python 3+):
      sudo apt install python3-pip 
 
 ### Upgrading Pip version in linux
-     pip install --upgrade pip
+     sudo -H pip3 install --upgrade pip
 
 
 ### Installing pyqt5 using pip
