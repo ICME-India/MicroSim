@@ -57,14 +57,13 @@ void solverloop_concentration(long *start, long *end) {
     if (x > 1) {
       calculate_fluxes_concentration(    x-1, gradient);
       calculate_divergence_concentration(x-1, gradient);
-/***********************************************************************************
-// #ifdef SHIFT
-//       //Check condition for the shift only for the lowest level
-//       INTERFACE_POS = check_SHIFT(x-1);
-//       if (INTERFACE_POS > MAX_INTERFACE_POS) {
-//         MAX_INTERFACE_POS = INTERFACE_POS;
-//       }
-// #endif
+/***********************************************************************************/
+      if (SHIFT) {
+        INTERFACE_POS = check_SHIFT(x-1);
+        if (INTERFACE_POS > MAX_INTERFACE_POS) {
+          MAX_INTERFACE_POS = INTERFACE_POS;
+        }
+      }
 /*********************************************************************************/
     }
     swaplayers();

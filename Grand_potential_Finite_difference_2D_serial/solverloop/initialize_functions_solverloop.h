@@ -42,6 +42,7 @@ void initialize_functions_solverloop(){
   if (FOLD == 4) {
     dAdq        = anisotropy_01_dAdq;
     function_ac = anisotropy_01_function_ac;
+//     printf("Fold=%d\n",FOLD);
   }
   if (DIMENSION==2) {
     calculate_gradients                                     = calculate_gradients_2D;
