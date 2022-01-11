@@ -20,6 +20,8 @@ int t;
 long ntimesteps;
 long saveT;
 long nsmooth;
+long STARTTIME=0;
+long RESTART=0;
 
 double Teq;
 double Tfill;
@@ -150,7 +152,7 @@ struct bc_scalars *boundary[6];
 long rows_x, rows_y, rows_z;
 long *start, *end;
 long *averow, *rows, *offset, *extra;
-long MAX_INTERFACE_POS=0;
+// long MAX_INTERFACE_POS=0;
 
 
 //Variables for mpi........................................................
@@ -212,7 +214,9 @@ struct Tempgrad {
  double GRADIENT;
 };
 struct Tempgrad temperature_gradientY;
-
+double BASE_POS=0;
+double GRADIENT;
+double temp_bottom;
 
 
 struct fill_cube {
@@ -257,6 +261,14 @@ struct fill_sphere fill_sphere_parameters;
 
 long shift_OFFSET=0;
 long shift_OFFSET_GLOBAL=0;
+int shift_ON=0;
+long shift_position=0;
+long position;
+long time_file;
+long file_iter;
+
+long INTERFACE_POS_GLOBAL=0;
+long MAX_INTERFACE_POS=0;
   
 struct filling_type {
   long NUMCUBES;
@@ -407,6 +419,6 @@ void (*calculate_divergence_phasefield_smooth)(long x, struct gradlayer **gradie
 // #define T   2
 
 char *Scalars[] = {"PHI", "MU", "T"}; 
-
+FILE *fp;
 
 #endif

@@ -24,6 +24,8 @@
 #include "functions/initialize_variables.h"
 #include "functions/free_variables.h"
 #include "functions/fill_domain.h"
+#include "functions/shift.h"
+#include "functions/Temperature_gradient.h"
 #include "solverloop/serialinfo_xy.h"
 #include "solverloop/gradients.h"
 #include "solverloop/simplex_projection.h"
@@ -37,23 +39,52 @@
 #include "solverloop/file_writer.h"
 
 int main(int argc, char * argv[]) {
+  mkdir("DATA",0777);
   reading_input_parameters(argv);
   initialize_variables();
   serialinfo_xy();
   initialize_functions_solverloop();
   read_boundary_conditions(argv);
-  fill_domain(argv);
-  mkdir("DATA",0777);
-  
+  if ((STARTTIME == 0) && (RESTART ==0)) {
+    fill_domain(argv);
+  } else {
+    if (ASCII) {
+      readfromfile_serial2D(gridinfo, argv, STARTTIME);
+      init_propertymatrices(T);
+      if (SHIFT) {
+        FILE *fp;
+        fp = fopen("DATA/shift.dat","r");
+        
+        for(file_iter=0; file_iter <= STARTTIME/saveT; file_iter++) {
+          fscanf(fp,"%ld %ld\n",&time_file, &position);
+        }
+        fclose(fp);
+        shift_position = position;
+      }
+      if (!ISOTHERMAL) {
+        if (SHIFT) {
+          temperature_gradientY.gradient_OFFSET = (temperature_gradientY.gradient_OFFSET) + floor((temperature_gradientY.velocity)*(STARTTIME*deltat)) - shift_position*deltay;
+        } else {
+          temperature_gradientY.gradient_OFFSET = (temperature_gradientY.gradient_OFFSET) + floor((temperature_gradientY.velocity)*(STARTTIME*deltat));
+        }
+      }
+    } else {
+      readfromfile_serial2D_binary(gridinfo, argv, STARTTIME);
+      init_propertymatrices(T);
+    }
+  }
   apply_boundary_conditions(0);
 
-  if (ASCII == 0) {
-    writetofile_serial2D_binary(gridinfo, argv, 0);
-  } else {
-    writetofile_serial2D(gridinfo, argv, 0);
-  }
-
-  
+  if((RESTART == 0) || (STARTTIME ==0)) {
+    if (ASCII == 0) {
+      writetofile_serial2D_binary(gridinfo, argv, 0);
+    } else {
+      writetofile_serial2D(gridinfo, argv, 0);
+    }
+  } 
+//   else {
+//     writetofile_serial2D_binary(gridinfo, argv, STARTTIME +1);
+//   }
   //Preconditioning
   for(t=1; t<nsmooth; t++) {
     smooth(start, end);
@@ -65,12 +96,37 @@ int main(int argc, char * argv[]) {
     apply_boundary_conditions(0);
     solverloop_concentration(start,end);
     apply_boundary_conditions(0);
+    
+    if (TEMPGRADY) {
+      BASE_POS    = (temperature_gradientY.gradient_OFFSET/deltay) - shift_OFFSET + ((temperature_gradientY.velocity/deltay)*(t*deltat));
+      GRADIENT    = (temperature_gradientY.DeltaT)*deltay/(temperature_gradientY.Distance);
+      temp_bottom = temperature_gradientY.base_temp - BASE_POS*GRADIENT;
+      apply_temperature_gradientY(gridinfo, shift_OFFSET, t);
+    }
+  
+    if (t%100 == 0) {
+      if(SHIFT) {
+        if(MAX_INTERFACE_POS > shiftj) {
+          shift_ON = 1;
+        }
+        if (shift_ON) {
+          apply_shiftY(gridinfo, MAX_INTERFACE_POS); 
+          shift_OFFSET += (MAX_INTERFACE_POS - shiftj);
+          shift_ON=0;
+        }
+      }
+    }
+    
+    
     if(t%saveT == 0) {
       if (ASCII == 0) {
-        writetofile_serial2D_binary(gridinfo, argv, t);
+        writetofile_serial2D_binary(gridinfo, argv, t + STARTTIME);
       } else {
-        writetofile_serial2D(gridinfo, argv, t);
+        writetofile_serial2D(gridinfo, argv, t + STARTTIME);
       }
+      fp=fopen("DATA/shift.dat","a");
+      fprintf(fp,"%ld %ld\n",t + STARTTIME, shift_OFFSET + shift_position);
+      fclose(fp);
     }
     if (t%time_output == 0) {
       fprintf(stdout, "Time=%le\n", t*deltat);

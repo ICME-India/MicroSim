@@ -12,9 +12,11 @@ DELTA_t = 0.08;
 NUMPHASES = 2;
 NUMCOMPONENTS = 2;
 #Running and saving information
-NTIMESTEPS = 1000;
+NTIMESTEPS = 20000;
 NSMOOTH = 10;
 SAVET = 1000;
+STARTTIME = 6000;
+RESTART = 1;
 ## Component and Phase names
 # COMPONENTS = {Al,Cu,B};
 COMPONENTS = {Al, Cu};
@@ -58,7 +60,7 @@ T = 0.96;
 ##FILEWRITING and OUTPUTTING TO SCREEN
 ## WRITEFORMAT ASCII/BINARY
 ##TRACK_PROGRESS: interval of writing out the progress of the simulation to stdout. 
-WRITEFORMAT = ASCII;
+WRITEFORMAT = BINARY;
 TRACK_PROGRESS = 10;
 ##Model-specific parameters: Grand-potential model
 ##Phase-field parameters; epsilon:interface width; it is not the gradient energy coefficient
@@ -76,8 +78,8 @@ Rotation_matrix = {0, 1, 0, 0, 0};
 Function_W = 1;
 Gamma_abc = {};
 #Shifting of domain for infinite domain simulations
-Shift = 0;
-Shiftj = 50;
+Shift = 1;
+Shiftj = 30;
 #Writing of composition fields along with the chemical potential fields
 Writecomposition = 0;
 #Noise

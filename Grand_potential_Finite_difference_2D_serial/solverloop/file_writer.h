@@ -12,6 +12,7 @@ double swap_bytes(double value) {
   double  src_num = value;
   int64_t tmp_num = htobe64(le64toh(*(int64_t*)&src_num));
   double  dst_num = *(double*)&tmp_num;
+  return dst_num;
 }
 
 void writetofile_serial2D(struct fields* gridinfo, char *argv[], long t);
@@ -43,7 +44,30 @@ void writetofile_serial2D_binary(struct fields* gridinfo, char *argv[], long t) 
   write_cells_vtk_2D_binary(fp, gridinfo);
   fclose(fp);
 }
-
+void readfromfile_serial2D(struct fields* gridinfo, char *argv[], long t) {
+  long x,y,z;
+  long gidy;
+  FILE *fp;
+  char name[1000];
+  double composition;
+  long b, k;
+  sprintf(name,"DATA/%s_%ld.vtk",argv[3], t);
+  fp=fopen(name,"r");
+  read_cells_vtk_2D(fp, gridinfo);
+  fclose(fp);
+}
+void readfromfile_serial2D_binary(struct fields* gridinfo, char *argv[], long t) {
+  long x,y,z;
+  long gidy;
+  FILE *fp;
+  char name[1000];
+  double composition;
+  long b, k;
+  sprintf(name,"DATA/%s_%ld.vtk",argv[3], t);
+  fp=fopen(name,"rb");
+  read_cells_vtk_2D_binary(fp, gridinfo);
+  fclose(fp);
+}
 void write_cells_vtk_2D(FILE *fp, struct fields *gridinfo) {
   long x, y, z, index;
   long a, b;
@@ -93,7 +117,6 @@ void write_cells_vtk_2D(FILE *fp, struct fields *gridinfo) {
         for (z=start[Z]; z <= end[Z]; z++) {
           for (y=start[Y]; y <= end[Y]; y++) {
             index = x*layer_size + z*rows_y + y;
-            fprintf(fp, "%le\n",gridinfo[index].compi[k]);
             composition=0.0;
             if(ISOTHERMAL) {
               for (b=0; b < NUMPHASES; b++) {
@@ -159,7 +182,6 @@ void write_cells_vtk_2D_binary(FILE *fp, struct fields *gridinfo) {
         }
       }
     }
-    fprintf(fp,"\n");
   }
   for (k=0; k < NUMCOMPONENTS-1; k++) {
     fprintf(fp,"SCALARS Mu_%s double 1\n",Components[k]);
@@ -177,7 +199,6 @@ void write_cells_vtk_2D_binary(FILE *fp, struct fields *gridinfo) {
         }
       }
     }
-   fprintf(fp,"\n");
   }
   if(WRITECOMPOSITION) {
     for (k=0; k < NUMCOMPONENTS-1; k++) {
@@ -187,7 +208,6 @@ void write_cells_vtk_2D_binary(FILE *fp, struct fields *gridinfo) {
         for (z=start[Z]; z <= end[Z]; z++) {
           for (y=start[Y]; y <= end[Y]; y++) {
             index = x*layer_size + z*rows_y + y;
-            fprintf(fp, "%le\n",gridinfo[index].compi[k]);
             composition=0.0;
             if(ISOTHERMAL) {
               for (b=0; b < NUMPHASES; b++) {
@@ -213,7 +233,6 @@ void write_cells_vtk_2D_binary(FILE *fp, struct fields *gridinfo) {
           }
         }
       }
-      fprintf(fp,"\n");
     }
   }
   if (!ISOTHERMAL) {
@@ -229,6 +248,167 @@ void write_cells_vtk_2D_binary(FILE *fp, struct fields *gridinfo) {
             value = gridinfo[index].temperature;
           }
           fwrite(&value, sizeof(double), 1, fp);
+        }
+      }
+    }
+  }
+}
+void read_cells_vtk_2D(FILE *fp, struct fields *gridinfo) {
+  long x, y, z, index;
+  long a, b;
+  long k;
+  char name[1000];
+  long mesh_x, mesh_y, mesh_z;
+  long ox, oy, oz;
+  long total_points;
+  double dx, dy, dz;
+  double composition;
+  long size;
+    
+  fscanf(fp,"%*[^\n]\n");
+  fscanf(fp,"%*[^\n]\n");
+  fscanf(fp,"%*[^\n]\n");
+  fscanf(fp,"%*[^\n]\n");
+  fscanf(fp,"%*[^\n]\n");
+  fscanf(fp,"%*[^\n]\n");
+  fscanf(fp,"%*[^\n]\n");
+  fscanf(fp,"%*[^\n]\n");
+
+  for (a=0; a < NUMPHASES; a++) {
+    fscanf(fp,"%*[^\n]\n");
+    fscanf(fp,"%*[^\n]\n");
+    for (x=start[X]; x<=end[X]; x++) {
+      for (z=start[Z]; z <= end[Z]; z++) {
+        for (y=start[Y]; y <= end[Y]; y++) {
+          index = x*layer_size + z*rows_y + y;
+          fscanf(fp, "%le \n",&gridinfo[index].phia[a]);
+        }
+      }
+    }
+  }
+  for (k=0; k < NUMCOMPONENTS-1; k++) {
+    fscanf(fp,"%*[^\n]\n");
+    fscanf(fp,"%*[^\n]\n");
+    for (x=start[X]; x<=end[X]; x++) {
+      for (z=start[Z]; z <= end[Z]; z++) {
+        for (y=start[Y]; y <= end[Y]; y++) {
+          index = x*layer_size + z*rows_y + y;
+          fscanf(fp, "%le \n",&gridinfo[index].compi[k]);
+        }
+      }
+    }
+  }
+  if(WRITECOMPOSITION) {
+    for (k=0; k < NUMCOMPONENTS-1; k++) {
+      fscanf(fp,"%*[^\n]\n");
+      fscanf(fp,"%*[^\n]\n");
+      for (x=start[X]; x<=end[X]; x++) {
+        for (z=start[Z]; z <= end[Z]; z++) {
+          for (y=start[Y]; y <= end[Y]; y++) {
+            index = x*layer_size + z*rows_y + y;
+            fscanf(fp,"%le \n",&composition);
+          }
+        }
+      }
+    }
+  }
+  if (!ISOTHERMAL) {
+    fscanf(fp,"%*[^\n]\n");
+    fscanf(fp,"%*[^\n]\n");
+    for (x=start[X]; x<=end[X]; x++) {
+      for (z=start[Z]; z <= end[Z]; z++) {
+        for (y=start[Y]; y <= end[Y]; y++) {
+          index = x*layer_size + z*rows_y + y;
+          fscanf(fp, "%le \n",&gridinfo[index].temperature);
+        }
+      }
+    }
+  }
+}
+void read_cells_vtk_2D_binary(FILE *fp, struct fields *gridinfo) {
+  long x, y, z, index;
+  long a, b;
+  long k;
+  char name[1000];
+  long mesh_x, mesh_y, mesh_z;
+  long ox, oy, oz;
+  long total_points;
+  double dx, dy, dz;
+  double composition;
+  long size;
+  double value;
+  
+  fscanf(fp,"%*[^\n]\n");
+  fscanf(fp,"%*[^\n]\n");
+  fscanf(fp,"%*[^\n]\n");
+  fscanf(fp,"%*[^\n]\n");
+  fscanf(fp,"%*[^\n]\n");
+  fscanf(fp,"%*[^\n]\n");
+  fscanf(fp,"%*[^\n]\n");
+  fscanf(fp,"%*[^\n]\n");
+  
+  
+  for (a=0; a < NUMPHASES; a++) {
+    fscanf(fp,"%*[^\n]\n");
+    fscanf(fp,"%*[^\n]\n");
+    for (x=start[X]; x<=end[X]; x++) {
+      for (z=start[Z]; z <= end[Z]; z++) {
+        for (y=start[Y]; y <= end[Y]; y++) {
+          index = x*layer_size + z*rows_y + y;
+          fread(&value, sizeof(double), 1, fp);
+          if (IS_LITTLE_ENDIAN) {
+            gridinfo[index].phia[a] = swap_bytes(value);
+          } else {
+            gridinfo[index].phia[a] = value;
+          }
+        }
+      }
+    }
+  }
+  for (k=0; k < NUMCOMPONENTS-1; k++) {
+    fscanf(fp,"%*[^\n]\n");
+    fscanf(fp,"%*[^\n]\n");
+    for (x=start[X]; x<=end[X]; x++) {
+      for (z=start[Z]; z <= end[Z]; z++) {
+        for (y=start[Y]; y <= end[Y]; y++) {
+          index = x*layer_size + z*rows_y + y;
+          fread(&value, sizeof(double), 1, fp);
+          if (IS_LITTLE_ENDIAN) {
+            gridinfo[index].compi[k] = swap_bytes(value);
+          } else {
+            gridinfo[index].compi[k] = value;
+          }
+        }
+      }
+    }
+  }
+  if(WRITECOMPOSITION) {
+    for (k=0; k < NUMCOMPONENTS-1; k++) {
+     fscanf(fp,"%*[^\n]\n");
+     fscanf(fp,"%*[^\n]\n");
+     for (x=start[X]; x<=end[X]; x++) {
+       for (z=start[Z]; z <= end[Z]; z++) {
+          for (y=start[Y]; y <= end[Y]; y++) {
+            index = x*layer_size + z*rows_y + y;
+            fread(&value, sizeof(double), 1, fp);
+          }
+        }
+      }
+    }
+  }
+  if (!ISOTHERMAL) {
+    fscanf(fp,"%*[^\n]\n");
+    fscanf(fp,"%*[^\n]\n");
+    for (x=start[X]; x<=end[X]; x++) {
+      for (z=start[Z]; z <= end[Z]; z++) {
+        for (y=start[Y]; y <= end[Y]; y++) {
+          index = x*layer_size + z*rows_y + y;
+          fread(&value, sizeof(double), 1, fp);
+          if (IS_LITTLE_ENDIAN) {
+            gridinfo[index].temperature = swap_bytes(value);
+          } else {
+            gridinfo[index].temperature = value;
+          }
         }
       }
     }
