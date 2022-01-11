@@ -170,12 +170,12 @@ void init_propertymatrices(double T) {
   //Initialize property matrices
   long a, b, i, j, k;
     
-  for (a=0; a < NUMPHASES; a++) {
-    for (i=0; i < NUMCOMPONENTS-1; i++) {
-      B[a][i] = function_B(T, i, a);
-    }
-    C[a] = function_C(T,a);
-  }  
+//   for (a=0; a < NUMPHASES; a++) {
+//     for (i=0; i < NUMCOMPONENTS-1; i++) {
+//       B[a][i] = function_B(T, i, a);
+//     }
+//     C[a] = function_C(T,a);
+//   }  
 #ifndef PHASE_DIAGRAM_PROP
 #define PHASE_DIAGRAM_PROP
   for (a=0;a<NUMPHASES;a++) {

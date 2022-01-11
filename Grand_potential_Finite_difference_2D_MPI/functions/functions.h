@@ -50,6 +50,14 @@ void q_divy (struct gradlayer *grad1, struct gradlayer *grad1_right, long a, lon
 void q_dadphi (double *phi, struct gradlayer *grad1, long a,  long b , double *qab);
 void fill_composition_cube(struct fields* gridinfo);
 void reading_input_parameters(char *argv[]);
+void read_cells_hdf5_2D_mpi(hid_t file_id, struct fields* gridinfo_w);
+void readfromfile_mpi2D_hdf5(struct fields* gridinfo, char *argv[], long numworkers, long t);
+void readfromfile_mpi2D(struct fields* gridinfo, char *argv[], long t);
+void readfromfile_mpi2D_binary(struct fields* gridinfo, char *argv[], long t);
+void read_cells_vtk_2D_mpi(FILE *fp, struct fields* gridinfo_w);
+void read_cells_vtk_2D_mpibinary(FILE *fp, struct fields* gridinfo_w);
+void apply_shiftY(struct fields* gridinfo, long INTERFACE_POS_GLOBAL);
+void apply_temperature_gradientY(struct fields* gridinfo, long shift_OFFSET, long t);
 void free_variables();
 void Build_derived_type(struct fields* myNode, MPI_Datatype* MPI_gridinfo) {
   int block_lengths[4];

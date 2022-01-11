@@ -36,13 +36,16 @@ void serialinfo_xy() {
   
 //   printf("taskid=%d, size=%ld\n",taskid, sizeof(double));
   
-  global_max_min.phi_max        = (double*)malloc(NUMPHASES*sizeof(double));
-  global_max_min.phi_min        = (double*)malloc(NUMPHASES*sizeof(double));
-  global_max_min.mu_max         = (double*)malloc((NUMCOMPONENTS-1)*sizeof(double));
-  global_max_min.mu_min         = (double*)malloc((NUMCOMPONENTS-1)*sizeof(double));
-  global_max_min.rel_change_phi = (double*)malloc((NUMPHASES)*sizeof(double));
-  global_max_min.rel_change_mu  = (double*)malloc((NUMCOMPONENTS-1)*sizeof(double));
+  global_max_min.phi_max            = (double*)malloc(NUMPHASES*sizeof(double));
+  global_max_min.phi_min            = (double*)malloc(NUMPHASES*sizeof(double));
+  global_max_min.mu_max             = (double*)malloc((NUMCOMPONENTS-1)*sizeof(double));
+  global_max_min.mu_min             = (double*)malloc((NUMCOMPONENTS-1)*sizeof(double));
+  global_max_min.rel_change_phi     = (double*)malloc((NUMPHASES)*sizeof(double));
+  global_max_min.rel_change_mu      = (double*)malloc((NUMCOMPONENTS-1)*sizeof(double));
   
+  global_max_min.INTERFACE_POS_MAX  = 0;
+  global_max_min.INTERFACE_POS_MIN  = 0;
+
   for (a=0; a<NUMPHASES; a++) {
     global_max_min.phi_max[a] = 1.0;
     global_max_min.phi_min[a] = 0.0;

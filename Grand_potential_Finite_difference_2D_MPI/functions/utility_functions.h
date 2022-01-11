@@ -1070,7 +1070,7 @@ void PRINT_BOUNDARY_CONDITIONS(FILE *fp) {
       }
       if (var[i] == 2) {
         PRINT_STRING(key[i], "DIRICHLET", fp);
-        fprintf(fp, "DIRICHLET and FREE boundary conditions have not yet been implemented. Please wait for next release. Will default to PERIODIC\n");
+        fprintf(stdout, "DIRICHLET and FREE boundary conditions have not yet been implemented. Please wait for next release. Will default to PERIODIC\n");
       }
       if (var[i] == 3) {
         PRINT_STRING(key[i], "PERIODIC", fp);

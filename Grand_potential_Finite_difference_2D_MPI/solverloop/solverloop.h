@@ -39,7 +39,7 @@ void solverloop_concentration(long *start, long *end) {
   long b,k;
   long x;
   long INTERFACE_POS;
-  MAX_INTERFACE_POS = 0;
+  workers_max_min.INTERFACE_POS_MAX = 0;
   
   for (b=0; b < NUMPHASES; b++) {
     workers_max_min.rel_change_phi[b] = 0.0;
@@ -60,14 +60,14 @@ void solverloop_concentration(long *start, long *end) {
     if (x > 1) {
       calculate_fluxes_concentration(    x-1, gradient);
       calculate_divergence_concentration(x-1, gradient);
-/***********************************************************************************
-// #ifdef SHIFT
-//       //Check condition for the shift only for the lowest level
-//       INTERFACE_POS = check_SHIFT(x-1);
-//       if (INTERFACE_POS > MAX_INTERFACE_POS) {
-//         MAX_INTERFACE_POS = INTERFACE_POS;
-//       }
-// #endif
+/***********************************************************************************/
+      if(SHIFT) {
+        //Check condition for the shift only for the lowest level
+        INTERFACE_POS = check_SHIFT(x-1);
+        if (INTERFACE_POS > workers_max_min.INTERFACE_POS_MAX) {
+          workers_max_min.INTERFACE_POS_MAX = INTERFACE_POS;
+        }
+      }
 /*********************************************************************************/
     }
     swaplayers();

@@ -1,7 +1,7 @@
 void print_boundary_conditions(char *argv[]) {
-  char outfile[100];  
-  char tmpstr1[100];
-  char tmpstr2[100];
+  char outfile[1000];  
+  char tmpstr1[1000];
+  char tmpstr2[1000];
   
   FILE *fr;
   

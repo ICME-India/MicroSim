@@ -20,6 +20,8 @@ int t;
 long ntimesteps;
 long saveT;
 long nsmooth;
+long STARTTIME=0;
+long RESTART=0;
 
 double Teq;
 double Tfill;
@@ -132,6 +134,8 @@ struct max_min {
   double *mu_min;
   double *rel_change_phi;
   double *rel_change_mu;
+  long INTERFACE_POS_MAX;
+  long INTERFACE_POS_MIN;
 };
 
 struct max_min global_max_min;
@@ -151,8 +155,6 @@ struct bc_scalars *boundary[6];
 long rows_x, rows_y, rows_z;
 int *start, *end;
 long *averow, *rows, *offset, *extra;
-long MAX_INTERFACE_POS=0;
-
 
 //Variables for mpi........................................................
 int     taskid,                                                                  /* this task's unique id */
@@ -237,8 +239,9 @@ struct Tempgrad {
  double GRADIENT;
 };
 struct Tempgrad temperature_gradientY;
-
-
+double BASE_POS=0;
+double GRADIENT;
+double temp_bottom;
 
 struct fill_cube {
   long x_start;
@@ -282,6 +285,12 @@ struct fill_sphere fill_sphere_parameters;
 
 long shift_OFFSET=0;
 long shift_OFFSET_GLOBAL=0;
+int shift_ON=0;
+long shift_position=0;
+
+long INTERFACE_POS_GLOBAL=0;
+long MAX_INTERFACE_POS=0;
+
   
 struct filling_type {
   long NUMCUBES;
@@ -447,4 +456,7 @@ char *Scalars[] = {"PHI", "MU", "T"};
 char dirname[1000];
 char **coordNames;
 long size_fields;
+FILE *fp;
+long position,file_iter;
+long time_file;
 #endif

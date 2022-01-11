@@ -15,8 +15,9 @@ void calculate_divergence_concentration_2D(long x, struct gradlayer **gradient) 
     grad_back     =  &gradient[-1][gidy];
     
     if (!ISOTHERMAL) {
+      //gridinfo_w[center].temperature  = temp_bottom + gidy*GRADIENT;
       T = gridinfo_w[center].temperature;
-      init_propertymatrices(T);
+//       init_propertymatrices(T);
     }
     
     double sum_dcbdT[NUMCOMPONENTS-1];

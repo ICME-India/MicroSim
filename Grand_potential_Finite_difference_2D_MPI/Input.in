@@ -1,6 +1,6 @@
 ##Geometrical dimensions of the simulation domain
 DIMENSION = 2;
-MESH_X = 100;
+MESH_X = 50;
 MESH_Y = 100;
 MESH_Z = 1;
 ##Discretization, space and time
@@ -12,9 +12,11 @@ DELTA_t = 0.08;
 NUMPHASES = 2;
 NUMCOMPONENTS = 2;
 #Running and saving information
-NTIMESTEPS = 1000;
+NTIMESTEPS = 100000;
 NSMOOTH = 10;
-SAVET = 100;
+SAVET = 10000;
+STARTTIME = 4000;
+RESTART = 1;
 ## Component and Phase names
 # COMPONENTS = {Al,Cu,B};
 COMPONENTS = {Al, Cu};
@@ -23,7 +25,7 @@ PHASES = {alpha, beta};
 ##GAMMA={12, 13, 14, 23, 24...}
 GAMMA = {1.0};
 # Diffusivity = {Diagonal:0/1, phase, 11,22,33, 12, 13, 23...};
-DIFFUSIVITY = {1, 0, 1};
+DIFFUSIVITY = {1, 0, 0};
 DIFFUSIVITY = {1, 1, 1};
 ##Gas constant and molar volume
 R = 1.0;
@@ -54,7 +56,7 @@ ISOTHERMAL = 1;
 BINARY = 1;
 #TERNARY
 DILUTE = 0;
-T = 0.96;
+T = 0.97;
 ##FILEWRITING and OUTPUTTING TO SCREEN
 ## WRITEFORMAT ASCII/BINARY/HDF5(Only for MPI)
 ##TRACK_PROGRESS: interval of writing out the progress of the simulation to stdout. 
@@ -70,15 +72,15 @@ Tau = {0.28};
 ##Anisotropy mode, FUNCTION_ANISOTROPY=0 is isotropic
 Function_anisotropy = 1;
 Anisotropy_type = 4; 
-dab = {0.04};
+dab = {0.02};
 #Rotation_matrix = {0, 1, Euler_x(ang), Euler_y(ang), Euler_z(ang)};
 Rotation_matrix = {0, 1, 0, 0, 0};
 ##Potential function
 Function_W = 1;
 Gamma_abc = {};
 #Shifting of domain for infinite domain simulations
-Shift = 0;
-Shiftj = 50;
+Shift = 1;
+Shiftj = 30;
 #Writing of composition fields along with the chemical potential fields
 Writecomposition = 0;
 #Noise
