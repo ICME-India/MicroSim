@@ -2,7 +2,7 @@
 #define FUNCTION_Q_H_
 
 void q_divx (struct gradlayer *grad1, struct gradlayer *grad1_front, long a, long b, double *qab) {
-  qab[X] =     (grad1->phistagg[X][a]*grad1->gradphi[X][b]    - grad1->phistagg[X][b]*grad1->gradphi[X][a]);
+  qab[X] =       (grad1->phistagg[X][a]*grad1->gradphi[X][b]    - grad1->phistagg[X][b]*grad1->gradphi[X][a]);
   qab[Y] =   0.5*(grad1->phistagg[X][a]*(grad1->gradphi_c[Y][b] + grad1_front->gradphi_c[Y][b]) - grad1->phistagg[X][b]*(grad1->gradphi_c[Y][a] + grad1_front->gradphi_c[Y][a]));
   if (DIMENSION != 2) {
     qab[Z] = 0.5*(grad1->phistagg[X][a]*(grad1->gradphi_c[Z][b] + grad1_front->gradphi_c[Z][b]) - grad1->phistagg[X][b]*(grad1->gradphi_c[Z][a] + grad1_front->gradphi_c[Z][a]));
@@ -39,7 +39,7 @@ void q_divy (struct gradlayer *grad1, struct gradlayer *grad1_right, long a, lon
   }
 }
 void q_divz (struct gradlayer *grad1, struct gradlayer *grad1_top, long a, long b, double *qab) {
-  qab[X]  =   0.5*(grad1->phistagg[Z][a]*(grad1->gradphi_c[Z][b] + grad1_top->gradphi_c[X][b]) - grad1->phistagg[Z][b]*(grad1->gradphi_c[Z][a] + grad1_top->gradphi_c[Z][a]));
+  qab[X]  =   0.5*(grad1->phistagg[Z][a]*(grad1->gradphi_c[X][b] + grad1_top->gradphi_c[X][b]) - grad1->phistagg[Z][b]*(grad1->gradphi_c[X][a] + grad1_top->gradphi_c[X][a]));
   qab[Y]  =   0.5*(grad1->phistagg[Z][a]*(grad1->gradphi_c[Y][b] + grad1_top->gradphi_c[Y][b]) - grad1->phistagg[Z][b]*(grad1->gradphi_c[Y][a] + grad1_top->gradphi_c[Y][a]));
   
   qab[Z]  =  (grad1->phistagg[Z][a]*grad1->gradphi[Z][b]    - grad1->phistagg[Z][b]*grad1->gradphi[Z][a]);

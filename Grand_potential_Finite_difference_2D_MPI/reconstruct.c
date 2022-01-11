@@ -24,6 +24,7 @@ double swap_bytes(double value) {
   double  src_num = value;
   int64_t tmp_num = htobe64(le64toh(*(int64_t*)&src_num));
   double  dst_num = *(double*)&tmp_num;
+  return dst_num;
 }
 
 void write_to_file_2D_ascii(FILE *fp, double **buffer);
@@ -58,7 +59,7 @@ int main (int argc, char * argv[]) {
   
   long t_start;
   long t_end;
-  long size_fields;
+//   long size_fields;
   
   
   reading_input_parameters(argv);
@@ -176,13 +177,13 @@ int main (int argc, char * argv[]) {
         if (ASCII) {
           for (num_lines=0; num_lines < (workers_rows[X]*workers_rows[Y]); num_lines++) {
             fscanf(fp,"%ld %le", &global_index, &value);
-            buffer[global_index][NUMPHASES+2*(NUMCOMPONENTS-1)] = value;
+            buffer[global_index][size_fields-1] = value;
           }
         } else {
           for (num_lines=0; num_lines < (workers_rows[X]*workers_rows[Y]); num_lines++) {
             fread(&value_bin, sizeof(double), 1, fp);
             global_index = get_global_index(num_lines, workers_rows, workers_offset);
-            buffer[global_index][NUMPHASES+2*(NUMCOMPONENTS-1)] = value_bin;
+            buffer[global_index][size_fields-1] = value_bin;
           }
         }
       }
@@ -204,6 +205,7 @@ int main (int argc, char * argv[]) {
   for (index=0; index < index_count; index++) {
    free(buffer[index]);
   }
+  free(buffer);
   Free3M(Diffusivity, NUMPHASES, NUMCOMPONENTS-1);
   Free3M(ceq,         NUMPHASES, NUMPHASES);
   Free3M(cfill,       NUMPHASES, NUMPHASES);
@@ -232,12 +234,14 @@ int main (int argc, char * argv[]) {
 void write_to_file_2D_ascii(FILE *fp, double **buffer) {
   long x, y, z, index;
   long a, k;
+//   long size_fields;
+  
   
   fprintf(fp,"# vtk DataFile Version 3.0\n");
   fprintf(fp,"Microsim_fields\n");
   fprintf(fp,"ASCII\n");
   fprintf(fp,"DATASET STRUCTURED_POINTS\n");
-  fprintf(fp,"DIMENSIONS %ld %ld %ld\n",MESH_X, MESH_Y, (long)1);
+  fprintf(fp,"DIMENSIONS %ld %ld %ld\n",MESH_Y, MESH_X, (long)1);
   fprintf(fp,"ORIGIN 0 0 0\n");
   fprintf(fp,"SPACING %le %le %le\n",deltax, deltay, deltaz);
   fprintf(fp,"POINT_DATA %ld\n",(long)MESH_X*(long)MESH_Y);
@@ -290,7 +294,7 @@ void write_to_file_2D_ascii(FILE *fp, double **buffer) {
       for (z=start[Z]; z <= end[Z]; z++) {
         for (y=start[Y]; y <= end[Y]; y++) {
           index = x*layer_size + z*rows_y + y;
-          fprintf(fp, "%le \n",buffer[index][NUMPHASES+2*(NUMCOMPONENTS-1)]);
+          fprintf(fp, "%le \n",buffer[index][size_fields-1]);
         }
       }
     }
@@ -305,7 +309,7 @@ void write_to_file_2D_binary(FILE *fp, double **buffer) {
   fprintf(fp,"Microsim_fields\n");
   fprintf(fp,"BINARY\n");
   fprintf(fp,"DATASET STRUCTURED_POINTS\n");
-  fprintf(fp,"DIMENSIONS %ld %ld %ld\n",MESH_X, MESH_Y, (long)1);
+  fprintf(fp,"DIMENSIONS %ld %ld %ld\n",MESH_Y, MESH_X, (long)1);
   fprintf(fp,"ORIGIN 0 0 0\n");
   fprintf(fp,"SPACING %le %le %le\n",deltax, deltay, deltaz);
   fprintf(fp,"POINT_DATA %ld\n",(long)MESH_X*(long)MESH_Y);
@@ -374,9 +378,9 @@ void write_to_file_2D_binary(FILE *fp, double **buffer) {
         for (y=start[Y]; y <= end[Y]; y++) {
           index = x*layer_size + z*rows_y + y;
           if (IS_LITTLE_ENDIAN) {
-            value = swap_bytes(buffer[index][NUMPHASES+2*(NUMCOMPONENTS-1)]);
+            value = swap_bytes(buffer[index][size_fields-1]);
           } else {
-            value = buffer[index][NUMPHASES+2*(NUMCOMPONENTS-1)];
+            value = buffer[index][size_fields-1];
           }
           fwrite(&value, sizeof(double), 1, fp);
         }

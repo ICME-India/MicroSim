@@ -217,20 +217,22 @@ void Mpiinfo(long taskid) {
         
         gradient = gradient1+1;
         
-        for (x=0; x < rows[X]; x++) {
-          for (y=0; y < rows[Y]; y++) {
-            index_w             = (x+workers_mpi.offset_x)*workers_mpi.layer_size + (y+workers_mpi.offset_y);
-            index               = (x+offset[X])*layer_size + (y+offset[Y]);
-            for (a=0; a<NUMPHASES; a++) {
-              gridinfo_w[index_w].phia[a]     = gridinfo[index].phia[a];
+        if (RESTART == 0) {
+          for (x=0; x < rows[X]; x++) {
+            for (y=0; y < rows[Y]; y++) {
+              index_w             = (x+workers_mpi.offset_x)*workers_mpi.layer_size + (y+workers_mpi.offset_y);
+              index               = (x+offset[X])*layer_size + (y+offset[Y]);
+              for (a=0; a<NUMPHASES; a++) {
+                gridinfo_w[index_w].phia[a]     = gridinfo[index].phia[a];
+              }
+              for (k=0; k<(NUMCOMPONENTS-1);k++) {
+                gridinfo_w[index_w].compi[k]    = gridinfo[index].compi[k];
+              }
+              for (a=0; a<(NUMPHASES);a++) {
+                gridinfo_w[index_w].deltaphi[a] = gridinfo[index].deltaphi[a];
+              }
+              gridinfo_w[index_w].temperature   = gridinfo[index].temperature;
             }
-            for (k=0; k<(NUMCOMPONENTS-1);k++) {
-              gridinfo_w[index_w].compi[k]    = gridinfo[index].compi[k];
-            }
-            for (a=0; a<(NUMPHASES);a++) {
-              gridinfo_w[index_w].deltaphi[a] = gridinfo[index].deltaphi[a];
-            }
-            gridinfo_w[index_w].temperature   = gridinfo[index].temperature;
           }
         }
         printf("taskid=%ld, rows_x=%ld, rows_y=%ld, firstx=%d, firsty=%d, lastx=%d, lasty=%d,offset[X]=%ld, offset[Y]=%ld, offset_x=%ld, offset_y=%ld\n",
@@ -243,12 +245,15 @@ void Mpiinfo(long taskid) {
         MPI_Type_vector(workers_mpi.rows_x, 3*SIZE_STRUCT_FIELDS, 12*SIZE_STRUCT_FIELDS, MPI_DOUBLE, &MPI_gridinfo_vector_b);
         MPI_Type_commit(&MPI_gridinfo_vector_b);
         
-        workers_max_min.phi_max        = (double*)malloc(NUMPHASES*sizeof(double));
-        workers_max_min.phi_min        = (double*)malloc(NUMPHASES*sizeof(double));
-        workers_max_min.mu_max         = (double*)malloc((NUMCOMPONENTS-1)*sizeof(double));
-        workers_max_min.mu_min         = (double*)malloc((NUMCOMPONENTS-1)*sizeof(double));
-        workers_max_min.rel_change_phi = (double*)malloc((NUMPHASES)*sizeof(double));
-        workers_max_min.rel_change_mu  = (double*)malloc((NUMCOMPONENTS-1)*sizeof(double));
+        workers_max_min.phi_max           = (double*)malloc(NUMPHASES*sizeof(double));
+        workers_max_min.phi_min           = (double*)malloc(NUMPHASES*sizeof(double));
+        workers_max_min.mu_max            = (double*)malloc((NUMCOMPONENTS-1)*sizeof(double));
+        workers_max_min.mu_min            = (double*)malloc((NUMCOMPONENTS-1)*sizeof(double));
+        workers_max_min.rel_change_phi    = (double*)malloc((NUMPHASES)*sizeof(double));
+        workers_max_min.rel_change_mu     = (double*)malloc((NUMCOMPONENTS-1)*sizeof(double));
+        
+        workers_max_min.INTERFACE_POS_MAX = 0;
+        workers_max_min.INTERFACE_POS_MIN = 0;
         
         for (a=0; a<NUMPHASES; a++) {
           workers_max_min.phi_max[a] = gridinfo_w[3*workers_mpi.rows_y + workers_mpi.rows[Y]].phia[a];
@@ -384,35 +389,37 @@ void Mpiinfo(long taskid) {
     printf("Received data, status=%d,taskid=%ld, test=%d, workers_mpi.offset_x=%ld, workers_mpi.offset_y=%ld, workers_mpi.rows[X]=%ld,workers_mpi.rows_y=%ld,index_count=%ld,workers_mpi.layer_size=%ld\n",status.MPI_ERROR,taskid, MPI_SUCCESS, workers_mpi.offset_x, workers_mpi.offset_y, workers_mpi.rows[X],workers_mpi.rows_y,index_count,workers_mpi.layer_size);
     
     
-    for (index=0; index < index_count; index++) {
-      for (a=0; a<NUMPHASES; a++) {
-        gridinfo_w[index].phia[a] = 0.0;
+    if (RESTART == 0) {
+      for (index=0; index < index_count; index++) {
+        for (a=0; a<NUMPHASES; a++) {
+          gridinfo_w[index].phia[a] = 0.0;
+        }
+        for (k=0; k<(NUMCOMPONENTS-1); k++) {
+          gridinfo_w[index].compi[k] = 0.0;
+        }
+        for (a=0; a<NUMPHASES; a++) {
+          gridinfo_w[index].deltaphi[a] = 0.0;
+        }
+        gridinfo_w[index].temperature = 0.0;
       }
-      for (k=0; k<(NUMCOMPONENTS-1); k++) {
-        gridinfo_w[index].compi[k] = 0.0;
-      }
-      for (a=0; a<NUMPHASES; a++) {
-        gridinfo_w[index].deltaphi[a] = 0.0;
-      }
-      gridinfo_w[index].temperature = 0.0;
-    }
-    j=0;
-    for (i=0; i < workers_mpi.rows[X]*workers_mpi.rows[Y]; i++) {
-      index = (i/workers_mpi.rows[Y] + workers_mpi.offset_x)*workers_mpi.layer_size + (i%workers_mpi.rows[Y] + workers_mpi.offset_y);
-      for (a=0; a<NUMPHASES; a++) {
-        gridinfo_w[index].phia[a] = buffer[j];
+      j=0;
+      for (i=0; i < workers_mpi.rows[X]*workers_mpi.rows[Y]; i++) {
+        index = (i/workers_mpi.rows[Y] + workers_mpi.offset_x)*workers_mpi.layer_size + (i%workers_mpi.rows[Y] + workers_mpi.offset_y);
+        for (a=0; a<NUMPHASES; a++) {
+          gridinfo_w[index].phia[a] = buffer[j];
+          j++;
+        }
+        for (k=0; k<(NUMCOMPONENTS-1); k++) {
+          gridinfo_w[index].compi[k] = buffer[j];
+          j++;
+        }
+        for (a=0; a<NUMPHASES; a++) {
+          gridinfo_w[index].deltaphi[a] = buffer[j];
+          j++;
+        }
+        gridinfo_w[index].temperature = buffer[j];
         j++;
       }
-      for (k=0; k<(NUMCOMPONENTS-1); k++) {
-        gridinfo_w[index].compi[k] = buffer[j];
-        j++;
-      }
-      for (a=0; a<NUMPHASES; a++) {
-        gridinfo_w[index].deltaphi[a] = buffer[j];
-        j++;
-      }
-      gridinfo_w[index].temperature = buffer[j];
-      j++;
     }
     free(buffer);
     
@@ -454,29 +461,29 @@ void Mpiinfo(long taskid) {
            taskid, workers_mpi.rows_x, workers_mpi.rows_y, workers_mpi.firstx, workers_mpi.firsty, workers_mpi.lastx, workers_mpi.lasty, workers_mpi.offset[X], workers_mpi.offset[Y], workers_mpi.offset_x, workers_mpi.offset_y);
   }
 }
-void sendtomaster() {
-  long i;
-  MPI_Send(workers_mpi.offset, 2, MPI_INT, MASTER, DONE, MPI_COMM_WORLD);
-  MPI_Send(workers_mpi.rows,   2, MPI_INT, MASTER, DONE, MPI_COMM_WORLD);
-    
-  for (i=0; i < workers_mpi.rows[X]; i++) {
-    MPI_Send(gridinfo_w + (i+workers_mpi.offset_x)*workers_mpi.rows_y + workers_mpi.offset_y, workers_mpi.rows[Y], MPI_gridinfo, MASTER, DONE, MPI_COMM_WORLD);
-  }
-}
-void receivefrmworker() {
-  int rank;
-  long i;
-  for (rank=1; rank <numworkers; rank++) {
-    source = rank;
-    msgtype = DONE;
-    MPI_Recv(offset, 2, MPI_INT, source, msgtype, MPI_COMM_WORLD, &status);
-    MPI_Recv(rows,   2, MPI_INT, source, msgtype, MPI_COMM_WORLD, &status);
-    
-    for (i=0; i < rows[X]; i++) {
-      MPI_Recv(gridinfo + offset[X]*rows_y + offset[Y] + i*rows_y,  rows[Y], MPI_gridinfo, source, msgtype, MPI_COMM_WORLD, &status);
-    }
-  }
-}
+// void sendtomaster() {
+//   long i;
+//   MPI_Send(workers_mpi.offset, 2, MPI_INT, MASTER, DONE, MPI_COMM_WORLD);
+//   MPI_Send(workers_mpi.rows,   2, MPI_INT, MASTER, DONE, MPI_COMM_WORLD);
+//     
+//   for (i=0; i < workers_mpi.rows[X]; i++) {
+//     MPI_Send(gridinfo_w + (i+workers_mpi.offset_x)*workers_mpi.rows_y + workers_mpi.offset_y, workers_mpi.rows[Y], MPI_gridinfo, MASTER, DONE, MPI_COMM_WORLD);
+//   }
+// }
+// void receivefrmworker() {
+//   int rank;
+//   long i;
+//   for (rank=1; rank <numworkers; rank++) {
+//     source = rank;
+//     msgtype = DONE;
+//     MPI_Recv(offset, 2, MPI_INT, source, msgtype, MPI_COMM_WORLD, &status);
+//     MPI_Recv(rows,   2, MPI_INT, source, msgtype, MPI_COMM_WORLD, &status);
+//     
+//     for (i=0; i < rows[X]; i++) {
+//       MPI_Recv(gridinfo + offset[X]*rows_y + offset[Y] + i*rows_y,  rows[Y], MPI_gridinfo, source, msgtype, MPI_COMM_WORLD, &status);
+//     }
+//   }
+// }
 void mpiexchange_left_right(long taskid) {
  if (workers_mpi.rank_x%2) {
     if (workers_mpi.firstx ==0) {

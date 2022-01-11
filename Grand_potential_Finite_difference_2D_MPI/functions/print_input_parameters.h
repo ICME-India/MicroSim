@@ -2,8 +2,8 @@ void print_input_parameters(char *argv[]){
   int i,j;
   char tempbuff[1000];
   
-  char tmpstr1[100];
-  char tmpstr2[100];
+  char tmpstr1[1000];
+  char tmpstr2[1000];
   long length;
   
   FILE *fr;
@@ -19,7 +19,7 @@ void print_input_parameters(char *argv[]){
 //   long length;
 //   long phase;
   
-  char outfile[100];
+  char outfile[1000];
   
   strcpy(tmpstr2, argv[1]);
 //   sscanf(argv[1], "%100s.%100[^;]", tmpstr1, tmpstr2);

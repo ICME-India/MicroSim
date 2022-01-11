@@ -1,7 +1,10 @@
 #FILLCUBE = {0, 10, 10, 0,  20, 20, 0};
 #FILLCUBE = {0, 10, 10, 0,  20, 20, 0};
 ##FILLCYLINDER = {phase, x_centre, y_centre, z_start, z_end, radius}
-FILLCYLINDER = {0, 50, 50, 0, 0, 20};
+#FILLCYLINDER = {0, 25, 50, 0, 0, 20};
+FILLCUBE = {0, 0, 0, 0, 100, 25, 0};
+#FILLCUBE = {1, 16, 0, 0, 33, 10,0};
+#FILLCUBE = {2, 33, 0, 0, 50, 10,0};
 ###FILLELLIPSE = {phase, x_center, y_center, major_axis, eccentricity, rotation_angle_deg}
 #FILLELLIPSE = {0, 50, 50, 0, 10, 0.1, 10};
 #FILLSPHERE = {0, 50, 50, 0, 10};

@@ -29,6 +29,8 @@
 #include "functions/initialize_variables.h"
 #include "functions/free_variables.h"
 #include "functions/fill_domain.h"
+#include "functions/shift.h"
+#include "functions/Temperature_gradient.h"
 #include "solverloop/serialinfo_xy.h"
 #include "solverloop/gradients.h"
 #include "solverloop/simplex_projection.h"
@@ -44,6 +46,7 @@
 
 // void writetofile_worker();
 
+MPI_Request request;
 int main(int argc, char * argv[]) {
   
   MPI_Init(&argc,&argv);
@@ -59,19 +62,6 @@ int main(int argc, char * argv[]) {
   
   Build_derived_type(gridinfo_instance, &MPI_gridinfo);
   
-  if(taskid==MASTER) {
-    print_input_parameters(argv);
-    print_boundary_conditions(argv);
-    serialinfo_xy();
-    fill_domain(argv);
-    mkdir("DATA",0777);
-  }
-  populate_table_names();
-  
-  sprintf(dirname,"DATA/Processor_%d",taskid);
-  
-  mkdir(dirname, 0777);
-  
   numworkers_x = atol(argv[4]);
   numworkers_y = atol(argv[5]);
   
@@ -79,25 +69,79 @@ int main(int argc, char * argv[]) {
     fprintf(stdin,"The domain decomposition does not correspond to the number of spawned tasks!!\n: number of processes=numworkers_x*numworkers_y");
     exit(0);
   }
-  
+
+  if(taskid==MASTER) {
+    mkdir("DATA",0777);
+    if (!WRITEHDF5){
+     for (n=0; n < numtasks; n++) {
+       sprintf(dirname,"DATA/Processor_%d",n);
+       mkdir(dirname, 0777);
+     }
+    }
+    print_input_parameters(argv);
+    print_boundary_conditions(argv);
+    serialinfo_xy();
+    if ((STARTTIME == 0) && (RESTART ==0)) {
+      fill_domain(argv);
+    }
+  }
+  populate_table_names();
+    
   Mpiinfo(taskid);
+  
+  if ((STARTTIME !=0) || (RESTART !=0)) {
+    if (WRITEHDF5){
+      readfromfile_mpi2D_hdf5(gridinfo_w, argv, numworkers, STARTTIME);
+    } else {
+      if (ASCII) {
+        readfromfile_mpi2D(gridinfo_w, argv, STARTTIME);
+      } else {
+        readfromfile_mpi2D_binary(gridinfo_w, argv, STARTTIME);
+      }
+    }
+    if (SHIFT) {
+      FILE *fp;
+      fp = fopen("DATA/shift.dat","r");
+      
+      for(file_iter=0; file_iter <= STARTTIME/saveT; file_iter++) {
+        fscanf(fp,"%ld %ld\n",&time_file, &position);
+      }
+      fclose(fp);
+      shift_position = position;
+    }
+    if (!ISOTHERMAL) {
+      if (SHIFT) {
+         temperature_gradientY.gradient_OFFSET = (temperature_gradientY.gradient_OFFSET) + floor((temperature_gradientY.velocity)*(STARTTIME*deltat)) - shift_position*deltay;
+      } else {
+        temperature_gradientY.gradient_OFFSET  = (temperature_gradientY.gradient_OFFSET) + floor((temperature_gradientY.velocity)*(STARTTIME*deltat));
+      }
+    }
+  }
     
   mpiexchange_left_right(taskid);
   mpiexchange_top_bottom(taskid);
- 
- if(boundary_worker) {
+   
+  if (TEMPGRADY) {
+    BASE_POS    = (temperature_gradientY.gradient_OFFSET/deltay) - shift_OFFSET;
+    GRADIENT    = (temperature_gradientY.DeltaT)*deltay/(temperature_gradientY.Distance);
+    temp_bottom = temperature_gradientY.base_temp - BASE_POS*GRADIENT + (workers_mpi.offset[Y]-workers_mpi.offset_y)*GRADIENT;
+    apply_temperature_gradientY(gridinfo_w, shift_OFFSET, 0);
+  }
+  
+  if(boundary_worker) {
    apply_boundary_conditions(taskid);
- }
+  }
+  
+
   if (!WRITEHDF5) {
       if ((ASCII == 0)) {
-        writetofile_mpi2D_binary(gridinfo_w, argv, 0);
+        writetofile_mpi2D_binary(gridinfo_w, argv, 0 + STARTTIME);
       } else {
-        writetofile_mpi2D(gridinfo_w, argv, 0);
+        writetofile_mpi2D(gridinfo_w, argv, 0 + STARTTIME);
       }
   } else {
-    writetofile_mpi2D_hdf5(gridinfo_w, argv, 0);
+    writetofile_mpi2D_hdf5(gridinfo_w, argv, 0 + STARTTIME);
   }
-
 //   writetofile_worker();
   
   //Preconditioning
@@ -125,6 +169,31 @@ int main(int argc, char * argv[]) {
     
     solverloop_concentration(workers_mpi.start,workers_mpi.end);
     
+    if (TEMPGRADY) {
+      BASE_POS    = (temperature_gradientY.gradient_OFFSET/deltay) - shift_OFFSET + ((temperature_gradientY.velocity/deltay)*(t*deltat));
+      GRADIENT    = (temperature_gradientY.DeltaT)*deltay/(temperature_gradientY.Distance);
+      temp_bottom = temperature_gradientY.base_temp - BASE_POS*GRADIENT + (workers_mpi.offset[Y]-workers_mpi.offset_y)*GRADIENT;
+      apply_temperature_gradientY(gridinfo_w, shift_OFFSET, t);
+    }
+  
+    if (t%100 == 0) {
+      if(SHIFT) {
+        MPI_Iallreduce(&workers_max_min.INTERFACE_POS_MAX,  &INTERFACE_POS_GLOBAL,  1, MPI_LONG, MPI_MAX, MPI_COMM_WORLD, &request);
+        shift_ON = 0;
+        MPI_Wait(&request, MPI_STATUS_IGNORE);
+        if(INTERFACE_POS_GLOBAL > shiftj) {
+          shift_ON = 1;
+        }
+        if (shift_ON) {
+          apply_shiftY(gridinfo_w, INTERFACE_POS_GLOBAL); 
+//           if (taskid == MASTER) {
+          shift_OFFSET += (INTERFACE_POS_GLOBAL - shiftj);
+//           }
+          mpiexchange_top_bottom(taskid);
+        }
+      }
+    }
+    
     if(boundary_worker) {
       apply_boundary_conditions(taskid);
     }
@@ -132,12 +201,19 @@ int main(int argc, char * argv[]) {
     if(t%saveT == 0) {
       if (!WRITEHDF5) {
         if ((ASCII == 0)) {
-          writetofile_mpi2D_binary(gridinfo_w, argv, t);
+          writetofile_mpi2D_binary(gridinfo_w, argv, t + STARTTIME);
         } else {
-          writetofile_mpi2D(gridinfo_w, argv, t);
+          writetofile_mpi2D(gridinfo_w, argv, t + STARTTIME);
         }
       } else {
-        writetofile_mpi2D_hdf5(gridinfo_w, argv, t);
+        writetofile_mpi2D_hdf5(gridinfo_w, argv, t + STARTTIME);
+      }
+      if(SHIFT) {
+        if (taskid == MASTER) {
+          fp=fopen("DATA/shift.dat","a");
+          fprintf(fp,"%ld %ld\n",t + STARTTIME, shift_OFFSET + shift_position);
+          fclose(fp);
+        }
       }
     }
     //printf("Iteration=%d\n",t);

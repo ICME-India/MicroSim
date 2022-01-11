@@ -123,6 +123,15 @@ void reading_input_parameters(char *argv[]) {
       else if (strcmp(tmpstr1,"NSMOOTH")==0) {
         nsmooth = atol(tmpstr2);
       }
+      else if (strcmp(tmpstr1,"STARTTIME")==0) {
+        STARTTIME = atol(tmpstr2);
+      }
+      else if (strcmp(tmpstr1,"RESTART")==0) {
+        RESTART = atol(tmpstr2);
+      }
+      else if ((strcmp(tmpstr1,"numworkers")==0) && RESTART) {
+        numworkers = atol(tmpstr2);
+      }
       else if (strcmp(tmpstr1,"R")==0) {
         R = atof(tmpstr2);
       }
@@ -134,8 +143,8 @@ void reading_input_parameters(char *argv[]) {
           ASCII = 1;
         }
         else if (strcmp(tmpstr2,"BINARY") == 0) {
-          fprintf(stdout, "ERROR: H5PCC compiler has issues with BINARY file writing. Please use the hdf5 file format using the WRITEHDF5 key. Will revert to ASCII mode.\n");
-          ASCII = 1;
+//           fprintf(stdout, "ERROR: H5PCC compiler has issues with BINARY file writing. Please use the hdf5 file format using the WRITEHDF5 key. Will revert to ASCII mode.\n");
+          ASCII = 0;
         }
       }
       else if (strcmp(tmpstr1,"WRITEHDF5")==0) {

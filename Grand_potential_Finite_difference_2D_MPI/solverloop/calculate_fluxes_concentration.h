@@ -16,8 +16,9 @@ void calculate_fluxes_concentration_2D(long x, struct gradlayer **gradient) {
     left          =  center - 1;
     
     if(!ISOTHERMAL) {
+      //gridinfo_w[center].temperature  = temp_bottom + gidy*GRADIENT;
       T = gridinfo_w[center].temperature;
-      init_propertymatrices(T);
+//       init_propertymatrices(T);
     }
     
     //For multi-phase antitrapping. The last phase is by default the liquid phase.

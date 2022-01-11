@@ -19,13 +19,16 @@ void calculate_divergence_phasefield_2D(long x, struct gradlayer **gradient) {
   //Check if divergence of the phase-field exists.
     //For the free energy description
     if (!ISOTHERMAL) {
+//       gridinfo_w[center].temperature  = temp_bottom + gidy*GRADIENT;
       T = gridinfo_w[center].temperature;
-      init_propertymatrices(T);
     }
     sum_lambdaphi=0.0;
     active_phases=0.0;
     for (a=0; a < NUMPHASES; a++) {
       if (fabs(divphi[a]) > 0.0) {      
+        if (!ISOTHERMAL) {
+          init_propertymatrices(T);
+        }
         lambda_phi[a] =  epsilon*(-dAdphi(gridinfo_w[center].phia, gradient, gidy, a) + 
         divdAdgradphi(gradient, center, gidy, a)/*- 0.0*d2gradphi(gridinfo_w[center].phia, gradient, center, gidy, a)*/) - (1.0/epsilon)*dwdphi(gridinfo_w[center].phia, divphi,gradient, gidy, a) - dpsi(gridinfo_w[center].compi,T, gridinfo_w[center].phia,a);
         
