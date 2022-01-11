@@ -1,5 +1,11 @@
-# MicroSim LAB
-
+# MicroSim
+MicroSim is a software stack that consists of phase-field codes that offer flexibility with discretization, models as 
+well as the high-performance computing hardware(CPU/GPU) that they can execute on. Along with this the stack also consists of Multi-physics solver modules 
+that are based on OpenFoam and AMRex libraries(will be added soon). The stack has an integrator interface that is built 
+using python that allows one to create the input and filling files required for the solvers as well as provides 
+a consolidated framework to choose the solver, compile, execute and visualize simulation results.
+The project is a consortium between (IISc Bangalore, IIT Hyderabad, IIT Bombay, IIT Madras, Savitribai Phule Pune University, C-DAC Pune).
+Following is a brief description of the different software modules and details on how to independently execute them.
 
 ## Grand-Potential Model(SERIAL)
 This is multiphase multi-component phase-field solver based on the 
