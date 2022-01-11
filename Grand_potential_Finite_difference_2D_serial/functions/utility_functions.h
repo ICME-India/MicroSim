@@ -181,7 +181,7 @@ void populate_diffusivity_matrix(double ***Mat, char *tmpstr, long NUMCOMPONENTS
     strcpy(tmp[i],token);
   }
   if (strcmp(tmp[0],"1")==0) {
-    //printf("The matrix is diagonal\n");
+//     printf("The matrix is diagonal\n");
     //Read only the diagonal components of the diffusivity matrix
     l=1;
     for(i=0; i < NUMCOMPONENTS-1; i++) {
@@ -394,7 +394,7 @@ void initialize_boundary_conditions(char *tmpstr) {
         break;
     strcpy(tmp[i],token);
   }
- // printf("Scalar=%s\n",tmp[0]);
+//   printf("Scalar=%s\n",tmp[0]);
 //   DIM = atoi(tmp[0]);
   BOUNDARY_LEFT   = atoi(tmp[2]);
   BOUNDARY_RIGHT  = atoi(tmp[1]);
@@ -443,7 +443,7 @@ void initialize_boundary_points_values(char *tmpstr) {
   }
 //   DIM = atoi(tmp[0]);
 
-//  printf("Scalar=%s\n",tmp[0]);
+//   printf("Scalar=%s\n",tmp[0]);
   
   val[0] = atof(tmp[1]);
   val[1] = atof(tmp[2]);

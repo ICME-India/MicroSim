@@ -20,12 +20,13 @@ void calculate_divergence_phasefield_2D(long x, struct gradlayer **gradient) {
     //For the free energy description
     if (!ISOTHERMAL) {
       T = gridinfo[center].temperature;
-      init_propertymatrices(T);
+//       init_propertymatrices(T);
     }
     sum_lambdaphi=0.0;
     active_phases=0.0;
     for (a=0; a < NUMPHASES; a++) {
       if (fabs(divphi[a]) > 0.0) {      
+        init_propertymatrices(T);
         lambda_phi[a] =  epsilon*(-dAdphi(gridinfo[center].phia, gradient, gidy, a) + 
         divdAdgradphi(gradient, center, gidy, a)/*- 0.0*d2gradphi(gridinfo[center].phia, gradient, center, gidy, a)*/) - (1.0/epsilon)*dwdphi(gridinfo[center].phia, divphi,gradient, gidy, a) - dpsi(gridinfo[center].compi,T, gridinfo[center].phia,a);
         

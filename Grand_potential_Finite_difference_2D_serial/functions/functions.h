@@ -50,6 +50,10 @@ void q_dadphi (double *phi, struct gradlayer *grad1, long a,  long b , double *q
 void fill_composition_cube(struct fields* gridinfo);
 void reading_input_parameters(char *argv[]);
 void free_variables();
+void read_cells_vtk_2D(FILE *fp, struct fields *gridinfo);
+void readfromfile_serial2D(struct fields* gridinfo, char *argv[], long t);
+void read_cells_vtk_2D_binary(FILE *fp, struct fields *gridinfo);
+void readfromfile_serial2D_binary(struct fields* gridinfo, char *argv[], long t);
 #endif
 
 

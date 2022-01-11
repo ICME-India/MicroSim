@@ -118,6 +118,12 @@ void reading_input_parameters(char *argv[]) {
       else if (strcmp(tmpstr1,"NSMOOTH")==0) {
         nsmooth = atol(tmpstr2);
       }
+      else if (strcmp(tmpstr1,"STARTTIME")==0) {
+        STARTTIME = atol(tmpstr2);
+      }
+      else if (strcmp(tmpstr1,"RESTART")==0) {
+        RESTART = atol(tmpstr2);
+      }
       else if (strcmp(tmpstr1,"R")==0) {
         R = atof(tmpstr2);
       }
@@ -360,6 +366,14 @@ void reading_input_parameters(char *argv[]) {
   strcpy(key, "NSMOOTH");
   
   PRINT_LONG(key, nsmooth, fr);
+  
+  strcpy(key, "STARTTIME");
+  
+  PRINT_LONG(key, STARTTIME, fr);
+  
+  strcpy(key, "RESTART");
+  
+  PRINT_LONG(key, RESTART, fr);
 
   strcpy(key,"R");
   
