@@ -15,8 +15,9 @@ NUMCOMPONENTS = 2;
 NTIMESTEPS = 100000;
 NSMOOTH = 10;
 SAVET = 10000;
-STARTTIME = 4000;
-RESTART = 1;
+STARTTIME = 0;
+RESTART = 0;
+numworkers = 4;
 ## Component and Phase names
 # COMPONENTS = {Al,Cu,B};
 COMPONENTS = {Al, Cu};
