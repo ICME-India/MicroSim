@@ -1,0 +1,177 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  4.0                                   |
+|   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      blockMeshDict;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+convertToMeters 2;
+x_min 0;
+x_max0 120;
+x_max1 160;
+x_max2 200; //3 blocks in direction of growth
+y_min 0;
+y_max 92;
+z_min 0;
+z_max 92;
+
+// should all be integers
+lx #calc "$x_max0 - $x_min";
+ly #calc "$y_max - $y_min";
+lz #calc "$z_max - $z_min"; // should all be integers
+vertices
+(
+	($x_min $y_min $z_min)
+    ($x_max0 $y_min $z_min)
+    ($x_max0 $y_max $z_min)
+    ($x_min $y_max $z_min)
+    ($x_min $y_min $z_max)
+    ($x_max0 $y_min $z_max)
+    ($x_max0 $y_max $z_max)
+    ($x_min $y_max $z_max)
+    
+    ($x_max0 $y_min $z_min)
+    ($x_max1 $y_min $z_min)
+    ($x_max1 $y_max $z_min)
+    ($x_max0 $y_max $z_min)
+    ($x_max0 $y_min $z_max)
+    ($x_max1 $y_min $z_max)
+    ($x_max1 $y_max $z_max)
+    ($x_max0 $y_max $z_max)
+    
+    ($x_max1 $y_min $z_min)
+    ($x_max2 $y_min $z_min)
+    ($x_max2 $y_max $z_min)
+    ($x_max1 $y_max $z_min)
+    ($x_max1 $y_min $z_max)
+    ($x_max2 $y_min $z_max)
+    ($x_max2 $y_max $z_max)
+    ($x_max1 $y_max $z_max)
+);
+
+blocks
+(
+    hex (0 1 2 3 4 5 6 7) ($lx $ly $lz) simpleGrading (1 1 1)
+    hex (8 9 10 11 12 13 14 15) (20 46 46) simpleGrading (1 1 1)
+    hex (16 17 18 19 20 21 22 23) (10 23 23) simpleGrading (1 1 1)
+// for dx = 0.5: simpleGrading (2 2 2) or convertToMeters = 0.5
+);
+
+edges
+(
+);
+
+//================ FOR ZERO-FLUX BOUNDARY CONDITIONS ============
+boundary
+(
+    floor
+    {
+         type cyclic;
+         neighbourPatch ceiling;
+        faces
+        (
+		(0 1 5 4)
+        (8 9 13 12)
+        (16 17 21 20)
+        );
+    }
+    
+    ceiling
+    {
+        type cyclic;
+        neighbourPatch floor;
+        faces
+        (
+		(2 3 7 6)
+        (10 11 15 14)
+        (18 19 23 22)
+        );
+    }
+
+    front
+    {
+         type cyclic;
+         neighbourPatch back;
+        faces
+        (
+		(4 5 6 7)
+        (12 13 14 15)
+        (20 21 22 23)
+        );
+    }
+    
+    back
+    {
+        type cyclic;
+        neighbourPatch front;
+        faces
+        (
+		(0 3 2 1)
+        (8 11 10 9)
+        (16 19 18 17)
+        );
+    }
+    
+    sideSolid
+    {
+        type wall;
+        faces
+        (
+        (0 4 7 3)
+        (17 18 22 21)
+        );
+    }
+    
+    wall_merge0
+    {
+        type wall;
+        faces
+        (
+            (1 2 6 5)
+        );
+    }
+    
+    wall_merge1
+    {
+        type wall;
+        faces
+        (
+            (8 12 15 11)
+        );
+    }
+    
+    wall_merge2
+    {
+        type wall;
+        faces
+        (
+            (9 10 14 13)
+        );
+    }
+    
+    wall_merge3
+    {
+        type wall;
+        faces
+        (
+            (16 20 23 19)
+        );
+    }
+    
+);
+
+mergePatchPairs
+(
+    (wall_merge0 wall_merge1)
+    (wall_merge2 wall_merge3)
+);
+
+// ************************************************************************* //
