@@ -60,7 +60,9 @@ This is a multi-phase multicomponent phase-field solver based on a
 regular-grid finite-difference discretization, with a
 simple Euler forward time marching scheme. It is based on the 
 phase-field model presented in \textit{Phys. Rev. E 85, 021602 (2012)}.
-This is a 2D serial CPU version of the code.
+The solver is parallelized using a simple domain-decomposition in 
+one direction using MPI interface. Before, you run the solver there
+are certain basic operations one needs to carry out.
 
 \section{Infile}
 The input parameters required for the solver are derived from an 
@@ -72,7 +74,7 @@ flags related to the running of the solver. The following is a basic
 description of the keys in the infile. \textbf{Each key must end with 
 a semicolon}. Additionally, all lines beginning with "\#" will be treated
 as comments in the infile.
-\lstinputlisting{Input.in}
+\lstinputlisting{../Input.in}
 
 \subsection{Simulation geometry, spatial and temporal discretization}
 
@@ -169,12 +171,18 @@ BOUNDARY_VALUE = {T, 0, 0, 0, 0, 0, 0};
 NTIMESTEPS = 10000;
 NSMOOTH = 10;
 SAVET = 1000;
+STARTTIME = 6000;
+RESTART = 1;
 \end{lstlisting}
 
 \begin{itemize}
  \item NTIMESTEPS: Total number of iterations that you wish the solver to run. This is not the total time
  \item NSMOOTH: The number of pre-conditioning steps for smoothening sharp phase-field profiles that are initialised at the start of the simulation
  \item SAVET: Writing interval, i.e, frequency of writing files of the respective fields
+ \item STARTTIME: The iteration number from which the simulation will start.
+ \item RESTART : This key tells the solver to restart by reading in the files corresponding to STARTTIME. If either of the keys STARTTIME/RESTART are non-zero
+ the code will restart after reading in the files corresponding to the value STARTTIME. If STARTTIME = 0 and RESTART = 1, it gives the possibility to start from 
+ an already initialized file. This is useful when the filling operations for initialization are time-consuming.
 \end{itemize}
 
 \subsection{Material parameters}
@@ -776,7 +784,7 @@ T = 0.96;
  in a particular direction at a perscribed velocity V. This mimics directional solidification conditions. By default the gradient 
  has been defined in the y-direction.
  \item The tuple Tempgrady=\{BASETEMP, DELTAT, DISTANCE, OFFSET, VELOCITY\} is read in for setting the properties of thermal gradient. 
- The first value sets the BASETEMP which is the value at a given location, DELTAT is the value at a distance given by DISTANCE from the given location(where the 
+ The first value sets the BASETEMP which is the value at a given location, DELTAT is the temperature increment at a distance given by DISTANCE from the given location(where the 
  temperature was BASETEMP), which sets the magnitude of the thermal gradient. Typically, the BASETEMP is given for the location at y=0. If this is not the 
  case, y=OFFSET is utilized to mention the value of BASETEMP corresponding to y=OFFSET. VELOCITY sets the rate of advance of the linear isotherms in the 
  y-direction corresponding to the imposed value of the directional solidification velocity.
@@ -811,7 +819,7 @@ Amp_Noise_Phase = 0.001;
 \section{Filling}
 
 The instructions about filling the domain with phases present in the file "filling.in", which 
-is detailed in \lstinputlisting{Filling.in}. In the following, the possible filling routines 
+is detailed in \lstinputlisting{../Filling.in}. In the following, the possible filling routines 
 are described. The filling instructions may be repeated, that allows for the filling of 
 complicated shapes with overlapping. 
 
