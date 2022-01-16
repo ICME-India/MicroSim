@@ -41,7 +41,13 @@ void reading_input_parameters(char *argv[]){
             else if (strcmp(tmpstr1, "DELTA_t") == 0) {
                 DELTA_t = atof(tmpstr2);
             }
-            else if (strcmp(tmpstr1, "NUMSTEPS") == 0) {
+            else if (strcmp(tmpstr1, "RESTART") == 0) {
+                restart = atol(tmpstr2);
+            }
+            else if (strcmp(tmpstr1, "STARTTIME") == 0) {
+                initcount = atof(tmpstr2);
+            }
+            else if (strcmp(tmpstr1, "NTIMESTEPS") == 0) {
                 numsteps = atol(tmpstr2);
             }
             else if (strcmp(tmpstr1, "NSMOOTH") == 0) {
@@ -111,8 +117,13 @@ void reading_input_parameters(char *argv[]){
             else if (strcmp(tmpstr1, "V") == 0) {
                 Vm = atof(tmpstr2);
             }
-            else if(strcmp(tmpstr2, "ASCII") == 0) {
-                ASCII = 0;
+            else if(strcmp(tmpstr1, "WRITEFORMAT") == 0) {
+                if (strcmp(tmpstr2, "ASCII") == 0)
+                    ASCII = 1;
+                else if (strcmp(tmpstr2, "BINARY") == 0)
+                    ASCII = 0;
+                else
+                    ASCII = 1;
             }
             else if (strcmp(tmpstr1,"TRACK_PROGRESS")==0) {
                 time_output = atol(tmpstr2);
@@ -122,18 +133,6 @@ void reading_input_parameters(char *argv[]){
             }
             else if (strcmp(tmpstr1, "c0") == 0) {
                 c0 = atof(tmpstr2);
-            }
-            else if (strcmp(tmpstr1, "PPT_RADIUS") == 0) {
-                ppt_radius = atof(tmpstr2);
-            }
-            else if (strcmp(tmpstr1, "VF") == 0) {
-                vf = atof(tmpstr2);
-            }
-            else if (strcmp(tmpstr1, "INITFLAG") == 0){
-                initflag = atoi(tmpstr2);
-            }
-            else if (strcmp(tmpstr1, "INITCOUNT") == 0){
-                initcount = atoi(tmpstr2);
             }
             else if((strcmp(tmpstr1, "GAMMA") == 0) && (NUMPHASES > 0)) {
                 Gamma = MallocM(NUMPHASES, NUMPHASES);
@@ -156,6 +155,18 @@ void reading_input_parameters(char *argv[]){
             }
             else if ((strcmp(tmpstr1, "VOIGT_CUBIC") == 0) && (NUMPHASES > 0)) {
                 populate_cubic_stiffness(Stiffness_c, tmpstr2);
+            }
+            else if (strcmp(tmpstr1, "seed") == 0) {
+                SEED = atol(tmpstr2);
+            }
+            else if (strcmp(tmpstr1, "solvertype") == 0) {
+                solvertype = atoi(tmpstr2);
+            }
+            else if (strcmp(tmpstr1, "temperature") == 0) {
+                temperature = atof(tmpstr2);
+            }
+            else if (strcmp(tmpstr1, "thermo_writer") == 0) {
+                thermo_writer = atoi(tmpstr2);
             }
             else {
                 printf("Unrecognized parameter : \"%s\"\n", tmpstr1);
@@ -279,6 +290,12 @@ void reading_input_parameters(char *argv[]){
 
     strcpy(key, "lambda");
     PRINT_DOUBLE(key, Ln, fr);
+
+    strcpy(key, "seed");
+    PRINT_LONG(key, SEED, fr);
+
+    strcpy(key, "TEMPERATURE");
+    PRINT_DOUBLE(key, temperature, fr);
 
     fclose(fr);
 }

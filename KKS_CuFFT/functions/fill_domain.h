@@ -21,8 +21,6 @@ void fill_domain(char *argv[])
     else
         printf("\nFile %s not found\n", argv[2]);
 
-    cudaMemPrefetchAsync(gridinfo, gridinfo_size, cudaCpuDeviceId);
-
     while (fgets(tempbuff, 100, fr))
     {
         sscanf(tempbuff, "%100s = %100[^;];", tmpstr1, tmpstr2);
@@ -51,7 +49,7 @@ void fill_domain(char *argv[])
                 fill_cylinder_parameters.z_end    = atol(tmp[4]) + start[Z];
                 fill_cylinder_parameters.radius   = atof(tmp[5]);
 
-                fill_phase_cylinder_cuda<<<Gridsize, Blocksize>>>(fill_cylinder_parameters, PhiBuff, dfdphi, phase, MESH_X, MESH_Y, MESH_Z, NUMPHASES, NUMCOMPONENTS);
+                fill_phase_cylinder_cuda<<<Gridsize, Blocksize>>>(phiDev, dfdphiDev, fill_cylinder_parameters, phase, MESH_X, MESH_Y, MESH_Z, NUMPHASES, NUMCOMPONENTS);
 
                 for (i = 0; i < 6; i++)
                 {
@@ -82,7 +80,8 @@ void fill_domain(char *argv[])
                 fill_sphere_parameters.z_center = atol(tmp[3]) + start[Z];
                 fill_sphere_parameters.radius   = atof(tmp[4]);
 
-                fill_phase_sphere_cuda<<<Gridsize, Blocksize>>>(fill_sphere_parameters, PhiBuff, dfdphi, phase, MESH_X, MESH_Y, MESH_Z, NUMPHASES, NUMCOMPONENTS);
+                fill_phase_sphere_cuda<<<Gridsize, Blocksize>>>(phiDev, dfdphiDev, fill_sphere_parameters, phase, MESH_X, MESH_Y, MESH_Z, NUMPHASES, NUMCOMPONENTS);
+
                 for (i = 0; i < 5; i++)
                 {
                     free(tmp[i]);
@@ -106,17 +105,17 @@ void fill_domain(char *argv[])
                     strcpy(tmp[i],token);
                 }
 
-                phase           = atol(tmp[0]);
-                ppt_radius      = atol(tmp[1]);
-                volume_fraction = atof(tmp[2]);
-                shield_dist     = atol(tmp[3]);
+                phase                   = atol(tmp[0]);
+                long ppt_radius         = atol(tmp[1]);
+                double volume_fraction  = atof(tmp[2]);
+                long shield_dist        = atol(tmp[3]);
 
                 if (shield_dist > 8)
                     shield_dist = 8;
                 else if (shield_dist == 1)
                     shield_dist = 2;
 
-                fill_phase_cylinder_random(phase);
+                fill_phase_cylinder_random(phase, ppt_radius, volume_fraction, shield_dist);
 
                 for (i = 0; i < 4; i++)
                 {
@@ -141,17 +140,17 @@ void fill_domain(char *argv[])
                     strcpy(tmp[i],token);
                 }
 
-                phase           = atol(tmp[0]);
-                ppt_radius      = atol(tmp[1]);
-                volume_fraction = atof(tmp[2]);
-                shield_dist     = atol(tmp[3]);
+                phase                   = atol(tmp[0]);
+                long ppt_radius         = atol(tmp[1]);
+                double volume_fraction  = atof(tmp[2]);
+                long shield_dist        = atol(tmp[3]);
 
                 if (shield_dist > 8)
                     shield_dist = 8;
                 else if (shield_dist == 1)
                     shield_dist = 2;
 
-                fill_phase_sphere_random(phase);
+                fill_phase_sphere_random(phase, ppt_radius, volume_fraction, shield_dist);
 
                 for (i = 0; i < 4; i++)
                 {
@@ -165,7 +164,9 @@ void fill_domain(char *argv[])
 
     fclose(fr);
     printf("Filling composition\n");
-    fill_composition_cuda<<<Gridsize, Blocksize>>>(PhiBuff, CompBuff, MESH_X, MESH_Y, MESH_Z, NUMPHASES, NUMCOMPONENTS, c0, ceq[1][1][0]);
+
+    fill_composition_cuda<<<Gridsize, Blocksize>>>(compDev, phiDev, MESH_X, MESH_Y, MESH_Z, NUMPHASES, NUMCOMPONENTS, c0, ceq[1][1][0]);
+
     printf("Filled composition\n");
 }
 #endif

@@ -3,10 +3,21 @@ The code is tested on Tesla P100 and Tesla V100.
 For Tesla K80, one needs to comment "CudaMemPrefetchAsync" in solverloop/evolve.h
 
 To run the code use 
-1. "make" to create executable microsim_kks_cufft
-2. Execute "./microsim_kks_cufft Input.in Filling.in Output"
+1. "make" to create executable kks.out
+2. Execute "./kks.out Input.in Filling.in Output"
 
 The code uses CUDA version 11, CUFFT and CUDA-CUB libraries. 
+
+CUB may throw an error depending on the CUB version that is installed on your system.
+This can be fixed simply by replacing the cub folder that is packaged with MicroSim,
+with your system's copy of the installation.
+This can be found either in /opt/cuda/targets/x86-64-linux/include or in
+/usr/local/cuda/include, depending on your Linux distro.
+However, CUB distributions for CUDA versions 11.2, 11.4, and 11.5 have been included
+for convenience in the cub/ directory. They are numbered in order of release, and
+can be switched simply by replacing the directory name in the cub include statement
+in KKS_cuFFT.cuh
+
 nvcc version 11.2 is used for compilation of the codes.
 Input.in contains all numerical and physical parameters used in the simulations. 
 Makefile creates a  DATA folder where the datafiles (in the form of VTK files) are stored.
