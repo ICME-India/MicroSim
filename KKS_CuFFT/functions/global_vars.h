@@ -9,24 +9,18 @@
 #define Y 1
 #define Z 2
 
-cudaDeviceProp devProp;
-
-int UMFlag = 1;
-
 int NUM_THREADS_X, NUM_THREADS_Y, NUM_THREADS_Z;
 int Blocks_X, Blocks_Y, Blocks_Z;
 
 int DIMENSION;
 
 // Variables : composition field, derivative of bulk free energy w.r.t. composition
-cufftDoubleComplex **dfdc, **CompBuff;
+cufftDoubleComplex **dfdcDev, **compDev;
+cufftDoubleComplex **dfdcHost, **compHost;
 
 // Variables : structural order parameter field, derivative of bulk free energy w.r.t. order parameter
-cufftDoubleComplex **dfdphi, **PhiBuff;
-
-//Variables : 
-cufftDoubleComplex *varmobx, *varmoby, *varmobz;
-cufftDoubleComplex *gradphix, *gradphiy, *gradphiz;
+cufftDoubleComplex **dfdphiDev, **phiDev;
+cufftDoubleComplex **dfdphiHost, **phiHost;
 
 //FFT Handle
 cufftHandle plan;
@@ -44,7 +38,7 @@ char **PHASES;
 int WRITECOMPOSITION = 0;
 int ASCII = 0;
 //Configuration to be initialized or to be read
-int  initflag, initcount = 0;
+int  restart, initcount = 0;
 
 // Alloy composition, amplitude of white noise to be added to the system
 double  alloycomp, Noise_phasefield, Amp_Noise_Phase; 
@@ -53,7 +47,7 @@ double  alloycomp, Noise_phasefield, Amp_Noise_Phase;
 double  DELTA_X, DELTA_Y, DELTA_Z, DELTA_t;
 
 //Total simulation time (nondimensional)
-double     sim_time, total_time;
+double     sim_time = 0.0, total_time;
 
 //System dimensions along x and y
 long        MESH_X, MESH_Y, MESH_Z, nx_half, ny_half, nz_half;
@@ -77,15 +71,13 @@ long       SEED;
 FILE       *fpout;
 double     dkx, dky, dkz;
 double     *kx, *ky, *kz;
+double     *kx_h, *ky_h, *kz_h;
 double     sizescale;
-double     volume_fraction;
-long       ppt_radius;
-long       shield_dist;
+double     temperature;
 
 //Elasticity-related variables
-double* B;
+double     *B;
 double     mubar = 800, nubar = 0.3333333, Aniso = 3.0;
-double     eps_b11 = 0.01, eps_b22 = 0.01, eps_b33 = 0.0, eps_b12 = 0.0, eps_b13 = 0.0, eps_b23 = 0.0;
 double     eigen_strn1[3][3], stress1[3][3];
 int        elast_int = 0;
 
@@ -123,8 +115,10 @@ long *start, *end;
 
 struct fields
 {
-    cufftDoubleComplex *phia;
-    cufftDoubleComplex *comp;
+    double *phia;
+    double *compi;
+    double *deltaphi;
+    double temperature;
 };
 
 struct fields *gridinfo;
@@ -152,6 +146,16 @@ struct fill_sphere fill_sphere_parameters;
 
 size_t double_size;
 size_t complex_size;
-size_t gridinfo_size;
+
+// Function pointers
+short solvertype = 0;
+void (*evolve)(char *argv[]);
+
+// Thermo-writer vars
+short thermo_writer;
+
+// mGPU vars
+int nGPUs, *whichGPUs;
+int GPU_ID, GPU_width;
 
 #endif
