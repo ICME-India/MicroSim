@@ -51,26 +51,26 @@ int main(int argc, char * argv[]) {
     if (ASCII) {
       readfromfile_serial2D(gridinfo, argv, STARTTIME);
       init_propertymatrices(T);
-      if (SHIFT) {
-        FILE *fp;
-        fp = fopen("DATA/shift.dat","r");
-        
-        for(file_iter=0; file_iter <= STARTTIME/saveT; file_iter++) {
-          fscanf(fp,"%ld %ld\n",&time_file, &position);
-        }
-        fclose(fp);
-        shift_position = position;
-      }
-      if (!ISOTHERMAL) {
-        if (SHIFT) {
-          temperature_gradientY.gradient_OFFSET = (temperature_gradientY.gradient_OFFSET) + floor((temperature_gradientY.velocity)*(STARTTIME*deltat)) - shift_position*deltay;
-        } else {
-          temperature_gradientY.gradient_OFFSET = (temperature_gradientY.gradient_OFFSET) + floor((temperature_gradientY.velocity)*(STARTTIME*deltat));
-        }
-      }
     } else {
       readfromfile_serial2D_binary(gridinfo, argv, STARTTIME);
       init_propertymatrices(T);
+    }
+    if (SHIFT) {
+      FILE *fp;
+      fp = fopen("DATA/shift.dat","r");
+      
+      for(file_iter=0; file_iter <= STARTTIME/saveT; file_iter++) {
+        fscanf(fp,"%ld %ld\n",&time_file, &position);
+      }
+      fclose(fp);
+      shift_position = position;
+    }
+    if (!ISOTHERMAL) {
+      if (SHIFT) {
+        temperature_gradientY.gradient_OFFSET = (temperature_gradientY.gradient_OFFSET) + floor((temperature_gradientY.velocity)*(STARTTIME*deltat)) - shift_position*deltay;
+      } else {
+        temperature_gradientY.gradient_OFFSET = (temperature_gradientY.gradient_OFFSET) + floor((temperature_gradientY.velocity)*(STARTTIME*deltat));
+      }
     }
   }
   apply_boundary_conditions(0);
