@@ -181,6 +181,7 @@ NSMOOTH = 10;
 SAVET = 1000;
 STARTTIME = 6000;
 RESTART = 1;
+numworkers = 4;
 \end{lstlisting}
 
 \begin{itemize}
@@ -191,6 +192,7 @@ RESTART = 1;
  \item RESTART : This key tells the solver to restart by reading in the files corresponding to STARTTIME. If either of the keys STARTTIME/RESTART are non-zero
  the code will restart after reading in the files corresponding to the value STARTTIME. If STARTTIME = 0 and RESTART = 1, it gives the possibility to start from 
  an already initialized file. This is useful when the filling operations for initialization are time-consuming.
+ \item Number of workers with which the simulation was executed previously. This is required only for the Grand-potential based MPI solvers.
 \end{itemize}
 
 \subsection{Material parameters}
