@@ -1,6 +1,5 @@
 This code solves the problem of precipitate growth using a multiphase field solver on the GPU.
 The code is tested on Tesla P100 and Tesla V100.
-For Tesla K80, one needs to comment "CudaMemPrefetchAsync" in solverloop/evolve.h
 
 To run the code use 
 1. "make" to create executable kks.out

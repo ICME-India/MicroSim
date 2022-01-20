@@ -32,6 +32,10 @@ void initialize_variables()
             Stiffness_c[1].C11 = (Stiffness_c[0].C11 + Stiffness_c[1].C11) / 2;
             Stiffness_c[1].C12 = (Stiffness_c[0].C12 + Stiffness_c[1].C12) / 2;
             Stiffness_c[1].C44 = (Stiffness_c[0].C44 + Stiffness_c[1].C44) / 2;
+
+            Stiffness_c[0].C11 = Stiffness_c[1].C11;
+            Stiffness_c[0].C12 = Stiffness_c[1].C12;
+            Stiffness_c[0].C44 = Stiffness_c[1].C44;
         }
 
         double *B_h = (double*)malloc(sizeof(double)*MESH_X*MESH_Y*MESH_Z);
@@ -42,7 +46,8 @@ void initialize_variables()
                   eigen_strain[1].xy, eigen_strain[1].xz, eigen_strain[1].yz);
         calculate_Bn(B_h, eigen_strn1, eigen_strn1, stress1, stress1);
         printf("Done calculating eigenstrain\n");
-        checkCudaErrors(cudaMemcpy(B, B_h, double_size, cudaMemcpyHostToDevice));
+
+        checkCudaErrors(cudaMemcpy(B, B_h, sizeof(double)*MESH_X*MESH_Y*MESH_Z, cudaMemcpyHostToDevice));
         free(B_h);
     }
 

@@ -49,7 +49,7 @@ __global__ void ComputeDrivForce_FD(cufftDoubleComplex *comp, cufftDoubleComplex
         dfdc[idx].x  = 0.0;
         dfdc[idx].y  = diffuse * interp_prime * (calpha - cbeta);
 
-        dfdphi[idx].x = interp_prime * (f_beta - f_alpha + (calpha - cbeta) * 2.0 * f0BVminv * (calpha - c_alpha_eq)) + w * g_prime;
+        dfdphi[idx].x = interp_prime * (f_beta - f_alpha + (calpha - cbeta) * 2.0 * f0AVminv * (calpha - c_alpha_eq)) + w * g_prime;
         dfdphi[idx].y = 0.0;
     }
     __syncthreads();
@@ -170,140 +170,140 @@ __global__ void ComputeDrivForce_FD(cufftDoubleComplex *comp, cufftDoubleComplex
 //     __syncthreads();
 // }
 
-__global__ void ComputeGradphi_FD(double *tempPhi,
-                                  double *gradPhi_x, double *gradPhi_y, double *gradPhi_z,
-                                  long MESH_X, long MESH_Y, long MESH_Z,
-                                  double DELTA_X, double DELTA_Y, double DELTA_Z, int DIMENSION)
-{
-    long idx;
-
-    long i = threadIdx.x + blockIdx.x * blockDim.x;
-    long j = threadIdx.y + blockIdx.y * blockDim.y;
-    long k = threadIdx.z + blockIdx.z * blockDim.z;
-
-    long xp[2], xm[2], yp[2], ym[2], zp[2], zm[2];
-
-    if (i < MESH_X && j < MESH_Y && k < MESH_Z)
-    {
-        idx = (j + i*MESH_Y)*MESH_Z + k;
-
-        if (i == 0)
-        {
-            xp[0] = (j + (i+1)*MESH_Y)*MESH_Z + k;
-            xp[1] = (j + (i+2)*MESH_Y)*MESH_Z + k;
-            xm[0] = (j + (MESH_X-1)*MESH_Y)*MESH_Z + k;
-            xm[1] = (j + (MESH_X-2)*MESH_Y)*MESH_Z + k;
-        }
-        else if (i == 1)
-        {
-            xp[0] = (j + (i+1)*MESH_Y)*MESH_Z + k;
-            xp[1] = (j + (i+2)*MESH_Y)*MESH_Z + k;
-            xm[0] = j*MESH_Z + k;
-            xm[1] = (j + (MESH_X-1)*MESH_Y)*MESH_Z + k;
-        }
-        else if (i == MESH_X - 2)
-        {
-            xp[0] = (j + (i+1)*MESH_Y)*MESH_Z + k;
-            xp[1] = j*MESH_Z + k;
-            xm[0] = (j + (i-1)*MESH_Y)*MESH_Z + k;
-            xm[1] = (j + (i-2)*MESH_Y)*MESH_Z + k;
-        }
-        else if (i == MESH_X - 1)
-        {
-            xp[0] = j*MESH_Z + k;
-            xp[1] = (j + MESH_Y)*MESH_Z + k;
-            xm[0] = (j + (i-1)*MESH_Y)*MESH_Z + k;
-            xm[1] = (j + (i-2)*MESH_Y)*MESH_Z + k;
-        }
-        else
-        {
-            xp[0] = (j + (i+1)*MESH_Y)*MESH_Z + k;
-            xp[1] = (j + (i+2)*MESH_Y)*MESH_Z + k;
-            xm[0] = (j + (i-1)*MESH_Y)*MESH_Z + k;
-            xm[1] = (j + (i-2)*MESH_Y)*MESH_Z + k;
-        }
-
-        if (j == 0)
-        {
-            yp[0] = (j+1 + i*MESH_Y)*MESH_Z + k;
-            yp[1] = (j+2 + i*MESH_Y)*MESH_Z + k;
-            ym[0] = (MESH_Y-1 + i*MESH_Y)*MESH_Z + k;
-            ym[1] = (MESH_Y-2 + i*MESH_Y)*MESH_Z + k;
-        }
-        else if (j == 1)
-        {
-            yp[0] = (j+1 + i*MESH_Y)*MESH_Z + k;
-            yp[1] = (j+2 + i*MESH_Y)*MESH_Z + k;
-            ym[0] = i*MESH_Y*MESH_Z + k;
-            ym[1] = (MESH_Y-1 + i*MESH_Y)*MESH_Z + k;
-        }
-        else if (j == MESH_Y - 2)
-        {
-            yp[0] = (j+1 + i*MESH_Y)*MESH_Z + k;
-            yp[1] = i*MESH_Y*MESH_Z + k;
-            ym[0] = (j-1 + i*MESH_Y)*MESH_Z + k;
-            ym[1] = (j-2 + i*MESH_Y)*MESH_Z + k;
-        }
-        else if (j == MESH_Y - 1)
-        {
-            yp[0] = i*MESH_Y*MESH_Z + k;
-            yp[1] = (1 + i*MESH_Y)*MESH_Z + k;
-            ym[0] = (j-1 + i*MESH_Y)*MESH_Z + k;
-            ym[1] = (j-2 + i*MESH_Y)*MESH_Z + k;
-        }
-        else
-        {
-            yp[0] = (j+1 + i*MESH_Y)*MESH_Z + k;
-            yp[1] = (j+2 + i*MESH_Y)*MESH_Z + k;
-            ym[0] = (j-1 + i*MESH_Y)*MESH_Z + k;
-            ym[1] = (j-2 + i*MESH_Y)*MESH_Z + k;
-        }
-
-        if (k == 0)
-        {
-            zp[0] = (j + i*MESH_Y)*MESH_Z + k+1;
-            zp[1] = (j + i*MESH_Y)*MESH_Z + k+2;
-            zm[0] = (j + i*MESH_Y)*MESH_Z + MESH_Z-1;
-            zm[1] = (j + i*MESH_Y)*MESH_Z + MESH_Z-2;
-        }
-        else if (k == 1)
-        {
-            zp[0] = (j + i*MESH_Y)*MESH_Z + k+1;
-            zp[1] = (j + i*MESH_Y)*MESH_Z + k+2;
-            zm[0] = (j + i*MESH_Y)*MESH_Z;
-            zm[1] = (j + i*MESH_Y)*MESH_Z + MESH_Z-1;
-        }
-        else if (k == MESH_Z - 2)
-        {
-            zp[0] = (j + i*MESH_Y)*MESH_Z + k+1;
-            zp[1] = (j + i*MESH_Y)*MESH_Z;
-            zm[0] = (j + i*MESH_Y)*MESH_Z + k-1;
-            zm[1] = (j + i*MESH_Y)*MESH_Z + k-2;
-        }
-        else if (k == MESH_Z - 1)
-        {
-            zp[0] = (j + i*MESH_Y)*MESH_Z;
-            zp[1] = (j + i*MESH_Y)*MESH_Z + 1;
-            zm[0] = (j + i*MESH_Y)*MESH_Z + k-1;
-            zm[1] = (j + i*MESH_Y)*MESH_Z + k-2;
-        }
-        else
-        {
-            zp[0] = (j + i*MESH_Y)*MESH_Z + k+1;
-            zp[1] = (j + i*MESH_Y)*MESH_Z + k+2;
-            zm[0] = (j + i*MESH_Y)*MESH_Z + k-1;
-            zm[1] = (j + i*MESH_Y)*MESH_Z + k-2;
-        }
-
-        gradPhi_x[idx] = (-1*tempPhi[xp[1]] + 8*tempPhi[xp[0]] - 8*tempPhi[xm[0]] + tempPhi[xm[1]])/(12*DELTA_X);
-        gradPhi_y[idx] = (-1*tempPhi[yp[1]] + 8*tempPhi[yp[0]] - 8*tempPhi[ym[0]] + tempPhi[ym[1]])/(12*DELTA_Y);
-        if (DIMENSION == 3)
-            gradPhi_z[idx] = (-1*tempPhi[zp[1]] + 8*tempPhi[zp[0]] - 8*tempPhi[zm[0]] + tempPhi[zm[1]])/(12*DELTA_Z);
-        else
-            gradPhi_z[idx] = 0.0;
-    }
-    __syncthreads();
-}
+// __global__ void ComputeGradphi_FD(double *tempPhi,
+//                                   double *gradPhi_x, double *gradPhi_y, double *gradPhi_z,
+//                                   long MESH_X, long MESH_Y, long MESH_Z,
+//                                   double DELTA_X, double DELTA_Y, double DELTA_Z, int DIMENSION)
+// {
+//     long idx;
+//
+//     long i = threadIdx.x + blockIdx.x * blockDim.x;
+//     long j = threadIdx.y + blockIdx.y * blockDim.y;
+//     long k = threadIdx.z + blockIdx.z * blockDim.z;
+//
+//     long xp[2], xm[2], yp[2], ym[2], zp[2], zm[2];
+//
+//     if (i < MESH_X && j < MESH_Y && k < MESH_Z)
+//     {
+//         idx = (j + i*MESH_Y)*MESH_Z + k;
+//
+//         if (i == 0)
+//         {
+//             xp[0] = (j + (i+1)*MESH_Y)*MESH_Z + k;
+//             xp[1] = (j + (i+2)*MESH_Y)*MESH_Z + k;
+//             xm[0] = (j + (MESH_X-1)*MESH_Y)*MESH_Z + k;
+//             xm[1] = (j + (MESH_X-2)*MESH_Y)*MESH_Z + k;
+//         }
+//         else if (i == 1)
+//         {
+//             xp[0] = (j + (i+1)*MESH_Y)*MESH_Z + k;
+//             xp[1] = (j + (i+2)*MESH_Y)*MESH_Z + k;
+//             xm[0] = j*MESH_Z + k;
+//             xm[1] = (j + (MESH_X-1)*MESH_Y)*MESH_Z + k;
+//         }
+//         else if (i == MESH_X - 2)
+//         {
+//             xp[0] = (j + (i+1)*MESH_Y)*MESH_Z + k;
+//             xp[1] = j*MESH_Z + k;
+//             xm[0] = (j + (i-1)*MESH_Y)*MESH_Z + k;
+//             xm[1] = (j + (i-2)*MESH_Y)*MESH_Z + k;
+//         }
+//         else if (i == MESH_X - 1)
+//         {
+//             xp[0] = j*MESH_Z + k;
+//             xp[1] = (j + MESH_Y)*MESH_Z + k;
+//             xm[0] = (j + (i-1)*MESH_Y)*MESH_Z + k;
+//             xm[1] = (j + (i-2)*MESH_Y)*MESH_Z + k;
+//         }
+//         else
+//         {
+//             xp[0] = (j + (i+1)*MESH_Y)*MESH_Z + k;
+//             xp[1] = (j + (i+2)*MESH_Y)*MESH_Z + k;
+//             xm[0] = (j + (i-1)*MESH_Y)*MESH_Z + k;
+//             xm[1] = (j + (i-2)*MESH_Y)*MESH_Z + k;
+//         }
+//
+//         if (j == 0)
+//         {
+//             yp[0] = (j+1 + i*MESH_Y)*MESH_Z + k;
+//             yp[1] = (j+2 + i*MESH_Y)*MESH_Z + k;
+//             ym[0] = (MESH_Y-1 + i*MESH_Y)*MESH_Z + k;
+//             ym[1] = (MESH_Y-2 + i*MESH_Y)*MESH_Z + k;
+//         }
+//         else if (j == 1)
+//         {
+//             yp[0] = (j+1 + i*MESH_Y)*MESH_Z + k;
+//             yp[1] = (j+2 + i*MESH_Y)*MESH_Z + k;
+//             ym[0] = i*MESH_Y*MESH_Z + k;
+//             ym[1] = (MESH_Y-1 + i*MESH_Y)*MESH_Z + k;
+//         }
+//         else if (j == MESH_Y - 2)
+//         {
+//             yp[0] = (j+1 + i*MESH_Y)*MESH_Z + k;
+//             yp[1] = i*MESH_Y*MESH_Z + k;
+//             ym[0] = (j-1 + i*MESH_Y)*MESH_Z + k;
+//             ym[1] = (j-2 + i*MESH_Y)*MESH_Z + k;
+//         }
+//         else if (j == MESH_Y - 1)
+//         {
+//             yp[0] = i*MESH_Y*MESH_Z + k;
+//             yp[1] = (1 + i*MESH_Y)*MESH_Z + k;
+//             ym[0] = (j-1 + i*MESH_Y)*MESH_Z + k;
+//             ym[1] = (j-2 + i*MESH_Y)*MESH_Z + k;
+//         }
+//         else
+//         {
+//             yp[0] = (j+1 + i*MESH_Y)*MESH_Z + k;
+//             yp[1] = (j+2 + i*MESH_Y)*MESH_Z + k;
+//             ym[0] = (j-1 + i*MESH_Y)*MESH_Z + k;
+//             ym[1] = (j-2 + i*MESH_Y)*MESH_Z + k;
+//         }
+//
+//         if (k == 0)
+//         {
+//             zp[0] = (j + i*MESH_Y)*MESH_Z + k+1;
+//             zp[1] = (j + i*MESH_Y)*MESH_Z + k+2;
+//             zm[0] = (j + i*MESH_Y)*MESH_Z + MESH_Z-1;
+//             zm[1] = (j + i*MESH_Y)*MESH_Z + MESH_Z-2;
+//         }
+//         else if (k == 1)
+//         {
+//             zp[0] = (j + i*MESH_Y)*MESH_Z + k+1;
+//             zp[1] = (j + i*MESH_Y)*MESH_Z + k+2;
+//             zm[0] = (j + i*MESH_Y)*MESH_Z;
+//             zm[1] = (j + i*MESH_Y)*MESH_Z + MESH_Z-1;
+//         }
+//         else if (k == MESH_Z - 2)
+//         {
+//             zp[0] = (j + i*MESH_Y)*MESH_Z + k+1;
+//             zp[1] = (j + i*MESH_Y)*MESH_Z;
+//             zm[0] = (j + i*MESH_Y)*MESH_Z + k-1;
+//             zm[1] = (j + i*MESH_Y)*MESH_Z + k-2;
+//         }
+//         else if (k == MESH_Z - 1)
+//         {
+//             zp[0] = (j + i*MESH_Y)*MESH_Z;
+//             zp[1] = (j + i*MESH_Y)*MESH_Z + 1;
+//             zm[0] = (j + i*MESH_Y)*MESH_Z + k-1;
+//             zm[1] = (j + i*MESH_Y)*MESH_Z + k-2;
+//         }
+//         else
+//         {
+//             zp[0] = (j + i*MESH_Y)*MESH_Z + k+1;
+//             zp[1] = (j + i*MESH_Y)*MESH_Z + k+2;
+//             zm[0] = (j + i*MESH_Y)*MESH_Z + k-1;
+//             zm[1] = (j + i*MESH_Y)*MESH_Z + k-2;
+//         }
+//
+//         gradPhi_x[idx] = (-1*tempPhi[xp[1]] + 8*tempPhi[xp[0]] - 8*tempPhi[xm[0]] + tempPhi[xm[1]])/(12*DELTA_X);
+//         gradPhi_y[idx] = (-1*tempPhi[yp[1]] + 8*tempPhi[yp[0]] - 8*tempPhi[ym[0]] + tempPhi[ym[1]])/(12*DELTA_Y);
+//         if (DIMENSION == 3)
+//             gradPhi_z[idx] = (-1*tempPhi[zp[1]] + 8*tempPhi[zp[0]] - 8*tempPhi[zm[0]] + tempPhi[zm[1]])/(12*DELTA_Z);
+//         else
+//             gradPhi_z[idx] = 0.0;
+//     }
+//     __syncthreads();
+// }
 
 __global__ void ComputeGradphi_x(double *tempPhi,
                                  double *gradPhi_x,
@@ -495,136 +495,136 @@ __global__ void ComputeGradphi_z(double *tempPhi,
     __syncthreads();
 }
 
-__global__ void  ComputeDfdc_FD(cufftDoubleComplex *dfdc, double *gradPhi_x, double *gradPhi_y, double *gradPhi_z,
-                                long MESH_X, long MESH_Y, long MESH_Z,
-                                double DELTA_X, double DELTA_Y, double DELTA_Z, int DIMENSION)
-{
-    long i = threadIdx.x + blockIdx.x * blockDim.x;
-    long j = threadIdx.y + blockIdx.y * blockDim.y;
-    long k = threadIdx.z + blockIdx.z * blockDim.z;
-
-    long idx = (j + i * MESH_Y)*MESH_Z + k;
-
-    long xp[2] = {0}, xm[2] = {0}, yp[2] = {0}, ym[2] = {0}, zp[2] = {0}, zm[2] = {0};
-
-    if (i < MESH_X && j < MESH_Y && k < MESH_Z)
-    {
-        if (i == 0)
-        {
-            xp[0] = (j + (i+1)*MESH_Y)*MESH_Z + k;
-            xp[1] = (j + (i+2)*MESH_Y)*MESH_Z + k;
-            xm[0] = (j + (MESH_X-1)*MESH_Y)*MESH_Z + k;
-            xm[1] = (j + (MESH_X-2)*MESH_Y)*MESH_Z + k;
-        }
-        else if (i == 1)
-        {
-            xp[0] = (j + (i+1)*MESH_Y)*MESH_Z + k;
-            xp[1] = (j + (i+2)*MESH_Y)*MESH_Z + k;
-            xm[0] = j*MESH_Z + k;
-            xm[1] = (j + (MESH_X-1)*MESH_Y)*MESH_Z + k;
-        }
-        else if (i == MESH_X - 2)
-        {
-            xp[0] = (j + (i+1)*MESH_Y)*MESH_Z + k;
-            xp[1] = j*MESH_Z + k;
-            xm[0] = (j + (i-1)*MESH_Y)*MESH_Z + k;
-            xm[1] = (j + (i-2)*MESH_Y)*MESH_Z + k;
-        }
-        else if (i == MESH_X - 1)
-        {
-            xp[0] = j*MESH_Z + k;
-            xp[1] = (j + MESH_Y)*MESH_Z + k;
-            xm[0] = (j + (i-1)*MESH_Y)*MESH_Z + k;
-            xm[1] = (j + (i-2)*MESH_Y)*MESH_Z + k;
-        }
-        else
-        {
-            xp[0] = (j + (i+1)*MESH_Y)*MESH_Z + k;
-            xp[1] = (j + (i+2)*MESH_Y)*MESH_Z + k;
-            xm[0] = (j + (i-1)*MESH_Y)*MESH_Z + k;
-            xm[1] = (j + (i-2)*MESH_Y)*MESH_Z + k;
-        }
-
-        if (j == 0)
-        {
-            yp[0] = (j+1 + i*MESH_Y)*MESH_Z + k;
-            yp[1] = (j+2 + i*MESH_Y)*MESH_Z + k;
-            ym[0] = (MESH_Y-1 + i*MESH_Y)*MESH_Z + k;
-            ym[1] = (MESH_Y-2 + i*MESH_Y)*MESH_Z + k;
-        }
-        else if (j == 1)
-        {
-            yp[0] = (j+1 + i*MESH_Y)*MESH_Z + k;
-            yp[1] = (j+2 + i*MESH_Y)*MESH_Z + k;
-            ym[0] = i*MESH_Y*MESH_Z + k;
-            ym[1] = (MESH_Y-1 + i*MESH_Y)*MESH_Z + k;
-        }
-        else if (j == MESH_Y - 2)
-        {
-            yp[0] = (j+1 + i*MESH_Y)*MESH_Z + k;
-            yp[1] = i*MESH_Y*MESH_Z + k;
-            ym[0] = (j-1 + i*MESH_Y)*MESH_Z + k;
-            ym[1] = (j-2 + i*MESH_Y)*MESH_Z + k;
-        }
-        else if (j == MESH_Y - 1)
-        {
-            yp[0] = i*MESH_Y*MESH_Z + k;
-            yp[1] = (1 + i*MESH_Y)*MESH_Z + k;
-            ym[0] = (j-1 + i*MESH_Y)*MESH_Z + k;
-            ym[1] = (j-2 + i*MESH_Y)*MESH_Z + k;
-        }
-        else
-        {
-            yp[0] = (j+1 + i*MESH_Y)*MESH_Z + k;
-            yp[1] = (j+2 + i*MESH_Y)*MESH_Z + k;
-            ym[0] = (j-1 + i*MESH_Y)*MESH_Z + k;
-            ym[1] = (j-2 + i*MESH_Y)*MESH_Z + k;
-        }
-
-        if (DIMENSION == 3)
-            if (k == 0)
-            {
-                zp[0] = (j + i*MESH_Y)*MESH_Z + k+1;
-                zp[1] = (j + i*MESH_Y)*MESH_Z + k+2;
-                zm[0] = (j + i*MESH_Y)*MESH_Z + MESH_Z-1;
-                zm[1] = (j + i*MESH_Y)*MESH_Z + MESH_Z-2;
-            }
-            else if (k == 1)
-            {
-                zp[0] = (j + i*MESH_Y)*MESH_Z + k+1;
-                zp[1] = (j + i*MESH_Y)*MESH_Z + k+2;
-                zm[0] = (j + i*MESH_Y)*MESH_Z;
-                zm[1] = (j + i*MESH_Y)*MESH_Z + MESH_Z-1;
-            }
-            else if (k == MESH_Z - 2)
-            {
-                zp[0] = (j + i*MESH_Y)*MESH_Z + k+1;
-                zp[1] = (j + i*MESH_Y)*MESH_Z;
-                zm[0] = (j + i*MESH_Y)*MESH_Z + k-1;
-                zm[1] = (j + i*MESH_Y)*MESH_Z + k-2;
-            }
-            else if (k == MESH_Z - 1)
-            {
-                zp[0] = (j + i*MESH_Y)*MESH_Z;
-                zp[1] = (j + i*MESH_Y)*MESH_Z + 1;
-                zm[0] = (j + i*MESH_Y)*MESH_Z + k-1;
-                zm[1] = (j + i*MESH_Y)*MESH_Z + k-2;
-            }
-            else
-            {
-                zp[0] = (j + i*MESH_Y)*MESH_Z + k+1;
-                zp[1] = (j + i*MESH_Y)*MESH_Z + k+2;
-                zm[0] = (j + i*MESH_Y)*MESH_Z + k-1;
-                zm[1] = (j + i*MESH_Y)*MESH_Z + k-2;
-            }
-    }
-
-    dfdc[idx].x = ((-1*gradPhi_x[xp[1]] + 8*gradPhi_x[xp[0]] - 8*gradPhi_x[xm[0]] + gradPhi_x[xm[1]])/DELTA_X
-    + (-1*gradPhi_y[yp[1]] + 8*gradPhi_y[yp[0]] - 8*gradPhi_y[ym[0]] + gradPhi_y[ym[1]])/DELTA_Y
-    + (-1*gradPhi_z[zp[1]] + 8*gradPhi_z[zp[0]] - 8*gradPhi_z[zm[0]] + gradPhi_z[zm[1]])/DELTA_Z)/12.0;
-    dfdc[idx].y = 0.0;
-    __syncthreads();
-}
+// __global__ void  ComputeDfdc_FD(cufftDoubleComplex *dfdc, double *gradPhi_x, double *gradPhi_y, double *gradPhi_z,
+//                                 long MESH_X, long MESH_Y, long MESH_Z,
+//                                 double DELTA_X, double DELTA_Y, double DELTA_Z, int DIMENSION)
+// {
+//     long i = threadIdx.x + blockIdx.x * blockDim.x;
+//     long j = threadIdx.y + blockIdx.y * blockDim.y;
+//     long k = threadIdx.z + blockIdx.z * blockDim.z;
+//
+//     long idx = (j + i * MESH_Y)*MESH_Z + k;
+//
+//     long xp[2] = {0}, xm[2] = {0}, yp[2] = {0}, ym[2] = {0}, zp[2] = {0}, zm[2] = {0};
+//
+//     if (i < MESH_X && j < MESH_Y && k < MESH_Z)
+//     {
+//         if (i == 0)
+//         {
+//             xp[0] = (j + (i+1)*MESH_Y)*MESH_Z + k;
+//             xp[1] = (j + (i+2)*MESH_Y)*MESH_Z + k;
+//             xm[0] = (j + (MESH_X-1)*MESH_Y)*MESH_Z + k;
+//             xm[1] = (j + (MESH_X-2)*MESH_Y)*MESH_Z + k;
+//         }
+//         else if (i == 1)
+//         {
+//             xp[0] = (j + (i+1)*MESH_Y)*MESH_Z + k;
+//             xp[1] = (j + (i+2)*MESH_Y)*MESH_Z + k;
+//             xm[0] = j*MESH_Z + k;
+//             xm[1] = (j + (MESH_X-1)*MESH_Y)*MESH_Z + k;
+//         }
+//         else if (i == MESH_X - 2)
+//         {
+//             xp[0] = (j + (i+1)*MESH_Y)*MESH_Z + k;
+//             xp[1] = j*MESH_Z + k;
+//             xm[0] = (j + (i-1)*MESH_Y)*MESH_Z + k;
+//             xm[1] = (j + (i-2)*MESH_Y)*MESH_Z + k;
+//         }
+//         else if (i == MESH_X - 1)
+//         {
+//             xp[0] = j*MESH_Z + k;
+//             xp[1] = (j + MESH_Y)*MESH_Z + k;
+//             xm[0] = (j + (i-1)*MESH_Y)*MESH_Z + k;
+//             xm[1] = (j + (i-2)*MESH_Y)*MESH_Z + k;
+//         }
+//         else
+//         {
+//             xp[0] = (j + (i+1)*MESH_Y)*MESH_Z + k;
+//             xp[1] = (j + (i+2)*MESH_Y)*MESH_Z + k;
+//             xm[0] = (j + (i-1)*MESH_Y)*MESH_Z + k;
+//             xm[1] = (j + (i-2)*MESH_Y)*MESH_Z + k;
+//         }
+//
+//         if (j == 0)
+//         {
+//             yp[0] = (j+1 + i*MESH_Y)*MESH_Z + k;
+//             yp[1] = (j+2 + i*MESH_Y)*MESH_Z + k;
+//             ym[0] = (MESH_Y-1 + i*MESH_Y)*MESH_Z + k;
+//             ym[1] = (MESH_Y-2 + i*MESH_Y)*MESH_Z + k;
+//         }
+//         else if (j == 1)
+//         {
+//             yp[0] = (j+1 + i*MESH_Y)*MESH_Z + k;
+//             yp[1] = (j+2 + i*MESH_Y)*MESH_Z + k;
+//             ym[0] = i*MESH_Y*MESH_Z + k;
+//             ym[1] = (MESH_Y-1 + i*MESH_Y)*MESH_Z + k;
+//         }
+//         else if (j == MESH_Y - 2)
+//         {
+//             yp[0] = (j+1 + i*MESH_Y)*MESH_Z + k;
+//             yp[1] = i*MESH_Y*MESH_Z + k;
+//             ym[0] = (j-1 + i*MESH_Y)*MESH_Z + k;
+//             ym[1] = (j-2 + i*MESH_Y)*MESH_Z + k;
+//         }
+//         else if (j == MESH_Y - 1)
+//         {
+//             yp[0] = i*MESH_Y*MESH_Z + k;
+//             yp[1] = (1 + i*MESH_Y)*MESH_Z + k;
+//             ym[0] = (j-1 + i*MESH_Y)*MESH_Z + k;
+//             ym[1] = (j-2 + i*MESH_Y)*MESH_Z + k;
+//         }
+//         else
+//         {
+//             yp[0] = (j+1 + i*MESH_Y)*MESH_Z + k;
+//             yp[1] = (j+2 + i*MESH_Y)*MESH_Z + k;
+//             ym[0] = (j-1 + i*MESH_Y)*MESH_Z + k;
+//             ym[1] = (j-2 + i*MESH_Y)*MESH_Z + k;
+//         }
+//
+//         if (DIMENSION == 3)
+//             if (k == 0)
+//             {
+//                 zp[0] = (j + i*MESH_Y)*MESH_Z + k+1;
+//                 zp[1] = (j + i*MESH_Y)*MESH_Z + k+2;
+//                 zm[0] = (j + i*MESH_Y)*MESH_Z + MESH_Z-1;
+//                 zm[1] = (j + i*MESH_Y)*MESH_Z + MESH_Z-2;
+//             }
+//             else if (k == 1)
+//             {
+//                 zp[0] = (j + i*MESH_Y)*MESH_Z + k+1;
+//                 zp[1] = (j + i*MESH_Y)*MESH_Z + k+2;
+//                 zm[0] = (j + i*MESH_Y)*MESH_Z;
+//                 zm[1] = (j + i*MESH_Y)*MESH_Z + MESH_Z-1;
+//             }
+//             else if (k == MESH_Z - 2)
+//             {
+//                 zp[0] = (j + i*MESH_Y)*MESH_Z + k+1;
+//                 zp[1] = (j + i*MESH_Y)*MESH_Z;
+//                 zm[0] = (j + i*MESH_Y)*MESH_Z + k-1;
+//                 zm[1] = (j + i*MESH_Y)*MESH_Z + k-2;
+//             }
+//             else if (k == MESH_Z - 1)
+//             {
+//                 zp[0] = (j + i*MESH_Y)*MESH_Z;
+//                 zp[1] = (j + i*MESH_Y)*MESH_Z + 1;
+//                 zm[0] = (j + i*MESH_Y)*MESH_Z + k-1;
+//                 zm[1] = (j + i*MESH_Y)*MESH_Z + k-2;
+//             }
+//             else
+//             {
+//                 zp[0] = (j + i*MESH_Y)*MESH_Z + k+1;
+//                 zp[1] = (j + i*MESH_Y)*MESH_Z + k+2;
+//                 zm[0] = (j + i*MESH_Y)*MESH_Z + k-1;
+//                 zm[1] = (j + i*MESH_Y)*MESH_Z + k-2;
+//             }
+//     }
+//
+//     dfdc[idx].x = ((-1*gradPhi_x[xp[1]] + 8*gradPhi_x[xp[0]] - 8*gradPhi_x[xm[0]] + gradPhi_x[xm[1]])/DELTA_X
+//     + (-1*gradPhi_y[yp[1]] + 8*gradPhi_y[yp[0]] - 8*gradPhi_y[ym[0]] + gradPhi_y[ym[1]])/DELTA_Y
+//     + (-1*gradPhi_z[zp[1]] + 8*gradPhi_z[zp[0]] - 8*gradPhi_z[zm[0]] + gradPhi_z[zm[1]])/DELTA_Z)/12.0;
+//     dfdc[idx].y = 0.0;
+//     __syncthreads();
+// }
 
 __global__ void  ComputeDfdc_x(cufftDoubleComplex *dfdc, double *gradPhi_x, long MESH_X, long MESH_Y, long MESH_Z, double DELTA_X)
 {

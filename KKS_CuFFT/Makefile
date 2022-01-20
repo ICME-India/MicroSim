@@ -22,7 +22,7 @@ clear:
 	-\rm $(BINDIR)/*.*
 
 clean:
-	-\rm *.out
+	-\rm *microsim_kks_cufft
 	-\rm -r $(BINDIR)
 #	@\rm -f job.*.*
 ## End of the makefile

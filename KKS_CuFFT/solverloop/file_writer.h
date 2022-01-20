@@ -9,14 +9,6 @@ void writetofile_serial2D(struct fields* gridinfo, char *argv[], long t)
     fp = fopen(name, "w");
     write_cells_vtk_2D(fp, gridinfo);
     fclose(fp);
-
-    sprintf(name, "DATA/last_write.out");
-    fp = fopen(name, "w");
-    fprintf(fp, "%ld\n", t);
-    fprintf(fp, "DATA/%s_%07ld.vtk\n", argv[3], t);
-    fprintf(fp, "ASCII\n");
-    fprintf(fp, "%lf\n", t*DELTA_t);
-    fclose(fp);
 }
 
 void writetofile_serial2D_binary(struct fields* gridinfo, char *argv[], long t)
@@ -26,14 +18,6 @@ void writetofile_serial2D_binary(struct fields* gridinfo, char *argv[], long t)
     sprintf(name,"DATA/%s_%07ld.vtk", argv[3], t);
     fp = fopen(name, "wb");
     write_cells_vtk_2D_binary(fp, gridinfo);
-    fclose(fp);
-
-    sprintf(name, "DATA/last_write.out");
-    fp = fopen(name, "w");
-    fprintf(fp, "%ld\n", t);
-    fprintf(fp, "DATA/%s_%07ld.vtk\n", argv[3], t);
-    fprintf(fp, "BINARY\n");
-    fprintf(fp, "%lf\n", t*DELTA_t);
     fclose(fp);
 }
 

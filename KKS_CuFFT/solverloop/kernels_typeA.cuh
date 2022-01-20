@@ -86,7 +86,7 @@ __global__ void ComputeDrivForce_FFT(cufftDoubleComplex *comp, cufftDoubleComple
         gradphiz[idx].x = diffuse * interp_prime * (calpha - cbeta) * gradphiz[idx].x;
         gradphiz[idx].y = diffuse * interp_prime * (calpha - cbeta) * gradphiz[idx].y;
 
-        mubar = 2.0 * f0BVminv * (calpha - cAlphaEq);
+        mubar = 2.0 * f0AVminv * (calpha - cAlphaEq);
 
         dfdphi[idx].x = interp_prime * (f_beta - f_alpha + (calpha - cbeta) * mubar) + w * g_prime;
         dfdphi[idx].y = 0.0;

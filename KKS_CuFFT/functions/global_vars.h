@@ -53,7 +53,7 @@ double     sim_time = 0.0, total_time;
 long        MESH_X, MESH_Y, MESH_Z, nx_half, ny_half, nz_half;
 
 //Bulk free energy coefficients
-double     f0A, f0B, Vm, sigma, width, alpha, w, vf;
+double     f0A, f0B, Vm, R, sigma, width, alpha, w, vf;
 
 //Gradient energy coefficients associated with composition and structural
 //order parameter fields

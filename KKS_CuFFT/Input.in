@@ -1,57 +1,58 @@
 ##Geometrical dimensions of the simulation domain
-DIMENSION = 3;
-MESH_X = 64;
-MESH_Y = 64;
-MESH_Z = 64;
+DIMENSION = 2;
+MESH_X = 128;
+MESH_Y = 128;
+MESH_Z = 1;
 ##Discretization, space and time
-DELTA_X = 1.000e+00;
-DELTA_Y = 1.000e+00;
-DELTA_Z = 1.000e+00;
-DELTA_t = 1.000e-01;
-##Number of phases and components
+DELTA_X = 1;
+DELTA_Y = 1;
+DELTA_Z = 1;
+DELTA_t = 0.1;
+##Number of phases and composition
 NUMPHASES = 2;
 NUMCOMPONENTS = 2;
 #Running and saving information
-NTIMESTEPS = 2000;
+NTIMESTEPS = 1000;
+NSMOOTH = 10;
 SAVET = 100;
-STARTTIME = 4000;
 RESTART = 0;
-##Component and Phase names
-#COMPONENTS = {Al, Zn}
-COMPONENTS = {Al, Zn};
-PHASES = {alpha, beta};
-#Materials Properties
-#Interfacial Energy GAMMA={12, 13, 14, 23, 24...}
-GAMMA = {8.00e-01};
-# Diffusivity = {Diagonal:0/1, phase, 11,22,33, 12, 13, 23...};
-DIFFUSIVITY = {1, 0, 1};
-DIFFUSIVITY = {1, 1, 1};
-##Molar volume
-V = 1.0e+00;
-##Elasticity related parameters
-ELAST_INT = 0;
-VOIGT_CUBIC = {0, 2700.00, 2000.00, 1200.00};
-VOIGT_CUBIC = {1, 2700.00, 2000.00, 1200.00};
-#VOIGT_ISOTROPIC = {phase, c11, c12, c44};
-#VOIGT_TETRAGONAL = {phase, c11, c12, c13, c33, c44, c66};
-EIGEN_STRAIN = {0, 0.01, 0.01, 0.00, 0.00, 0.00, 0.00};
-EIGEN_STRAIN = {1, 0.01, 0.01, 0.00, 0.00, 0.00, 0.00};
-##FILEWRITING and OUTPUTTING TO SCREEN
-##TRACK_PROGRESS: interval of writing out the progress of the simulation to stdout.
-WRITEFORMAT = BINARY;
+STARTTIME = 0;
+numworkers = 0;
+## Component and Phase names
+COMPONENTS = {C1,C2};
+PHASES = {alpha,beta};
+##Material properties
+GAMMA = {0.8};
+R = 1.0;
+V = 1.0;
+DIFFUSIVITY = {1,0,1};
+DIFFUSIVITY = {1,1,1};
+EIGEN_STRAIN = {0,0.01,0.01,0.0,0.0,0.0,0.0};
+EIGEN_STRAIN = {1,0.01,0.01,0.0,0.0,0.0,0.0};
+VOIGT_CUBIC = {0,2700,2000,1200};
+VOIGT_CUBIC = {1,2700,2000,1200};
+##Boundary conditions
+BOUNDARY = {phi,3,3,3,3,0,0};
+BOUNDARY = {mu,3,3,3,3,0,0};
+BOUNDARY = {c,3,3,3,3,0,0};
+BOUNDARY = {T,3,3,3,3,0,0};
+BOUNDARY_VALUE = {phi,0,0,0,0,0,0};
+BOUNDARY_VALUE = {mu,0,0,0,0,0,0};
+BOUNDARY_VALUE = {c,0,0,0,0,0,0};
+BOUNDARY_VALUE = {T,0,0,0,0,0,0};
+##Model-specific parameters: KKS FFT GPU 
+WRITEFORMAT = ASCII;
 TRACK_PROGRESS = 100;
-#Noise
 Noise_phasefield = 0;
-Amp_Noise_Phase = 0.001;
-ceq = {0, 0, 0.0};
-ceq = {0, 1, 0.0};
-ceq = {1, 0, 1.0};
-ceq = {1, 1, 1.0};
-##Model-specific parameters
-relax_coeff = 1.615e-00;
-c0 = 1.200e-01;
-f0 = {0, 7.50e-01};
-f0 = {1, 7.50e-01};
-alpha = 2.94;
-lambda = 8.000e-00;
-seed = 0;
+Amp_Noise_Phase = 0;
+relax_coeff = 1.5;
+c0 = 0.12;
+alpha = 3.0;
+lambda = 8.0;
+ELAST_INT = 0;
+f0 = {0,0.75};
+f0 = {1,0.75};
+ceq = {0,0,0};
+ceq = {0,1,0};
+ceq = {1,0,1};
+ceq = {1,1,1};
