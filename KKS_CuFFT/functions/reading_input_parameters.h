@@ -117,6 +117,10 @@ void reading_input_parameters(char *argv[]){
             else if (strcmp(tmpstr1, "V") == 0) {
                 Vm = atof(tmpstr2);
             }
+            else if (strcmp(tmpstr1, "R") == 0) {
+                R = atof(tmpstr2);
+            }
+            else if (strcmp(tmpstr1, "numworkers") == 0);
             else if(strcmp(tmpstr1, "WRITEFORMAT") == 0) {
                 if (strcmp(tmpstr2, "ASCII") == 0)
                     ASCII = 1;
@@ -168,6 +172,8 @@ void reading_input_parameters(char *argv[]){
             else if (strcmp(tmpstr1, "thermo_writer") == 0) {
                 thermo_writer = atoi(tmpstr2);
             }
+            else if ((strcmp(tmpstr1, "BOUNDARY") == 0) && (NUMPHASES > 0));
+            else if ((strcmp(tmpstr1, "BOUNDARY_VALUE") == 0) && (NUMPHASES > 0));
             else {
                 printf("Unrecognized parameter : \"%s\"\n", tmpstr1);
             }
