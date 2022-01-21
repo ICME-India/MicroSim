@@ -169,4 +169,5 @@ void CL_Solve_phi_com() {
     printf("kernel7i enq problem  %d\n",ret);
     exit(1);
   }
+  
 }

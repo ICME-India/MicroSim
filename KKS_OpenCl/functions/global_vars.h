@@ -14,16 +14,19 @@ double deltat=1;
 
 int NUMPHASES;
 int NUMCOMPONENTS;
-int t;
+long t;
 
 
 long ntimesteps;
 long saveT;
 long nsmooth;
+long STARTTIME=0;
+long RESTART=0;
 
 double Teq;
 double Tfill;
-double T;
+double T=-1.0;
+double temperature=-1.0;
 int TEMPGRADY=0;
 int ISOTHERMAL=1;
 double TEMPERATURE_SCALE;
@@ -112,10 +115,9 @@ struct bc_scalars *boundary[6];
 long rows_x, rows_y, rows_z;
 long *start, *end;
 long *averow, *rows, *offset, *extra;
-long MAX_INTERFACE_POS=0;
 
 
-int t, to, n, starttime;
+int to, n, starttime;
 long a,b;
 double sum_lambdaphi, sum_dhphi;
 long active_phases, count_phases;
@@ -137,6 +139,9 @@ struct Tempgrad {
  double GRADIENT;
 };
 struct Tempgrad temperature_gradientY;
+double BASE_POS=0;
+double GRADIENT;
+double temp_bottom;
 
 
 
@@ -182,6 +187,14 @@ struct fill_sphere fill_sphere_parameters;
 
 long shift_OFFSET=0;
 long shift_OFFSET_GLOBAL=0;
+int shift_ON=0;
+long shift_position=0;
+long position;
+long time_file;
+long file_iter;
+
+long INTERFACE_POS_GLOBAL=0;
+long MAX_INTERFACE_POS=0;
   
 struct filling_type {
   long NUMCUBES;
@@ -222,6 +235,7 @@ char tdbfname[100];
 // #define T   2
 
 char *Scalars[] = {"PHI", "MU", "T"}; 
+FILE *fp;
 
 
 #endif

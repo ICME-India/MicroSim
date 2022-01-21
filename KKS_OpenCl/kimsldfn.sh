@@ -10,5 +10,7 @@ then
 else
 	python3 GEdata_writer.py $1
 
-	./kim_soldfn.out $1 $2 $3
+	make
+
+	./microsim_kks_opencl $1 $2 $3
 fi

@@ -40,6 +40,12 @@ void init_propertymatrices();
 void fill_composition_cube(struct fields* gridinfo);
 void reading_input_parameters(char *argv[]);
 void free_variables();
+void read_cells_vtk_2D(FILE *fp, struct fields *gridinfo);
+void readfromfile_serial2D(struct fields* gridinfo, char *argv[], long t);
+void read_cells_vtk_2D_binary(FILE *fp, struct fields *gridinfo);
+void readfromfile_serial2D_binary(struct fields* gridinfo, char *argv[], long t);
+void apply_temperature_gradientY(struct fields* gridinfo, long shift_OFFSET, long t);
+void apply_shiftY_cscl(struct csle *cscl, long INTERFACE_POS_GLOBAL);
 #endif
 
 

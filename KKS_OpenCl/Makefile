@@ -9,7 +9,7 @@ LDIR =-L/usr/local/cuda/lib64/
 
 _FUNCTION_DEPS = global_vars.h functions.h matrix.h utility_functions.h  \
                  filling.h reading_input_parameters.h read_boundary_conditions.h  \
-                 free_variables.h fill_domain.h
+                 free_variables.h fill_domain.h CL_DeviceToHost.h Temperature_gradient.h shift.h CL_Shift.h
                  
 DEPS = $(patsubst %,$(FDIR)/%,$(_FUNCTION_DEPS))
 
@@ -28,5 +28,4 @@ microsim_kks_opencl.o : $(DEPS)
 
 clean :
 
-	rm -f microsim_kks_opencl.o microsim_kks_opencl *.out *.o  *.dat *.gz *.vtk *.txt *.mv *.log *.err *.epsc *.eps *.mat  *.png *.op *.jpg *.jpeg \
-	rm -rf DATA
+	rm -f microsim_kks_opencl.o microsim_kks_opencl *.out *.o  *.dat *.gz *.vtk *.txt *.mv *.log *.err *.epsc *.eps *.mat  *.png *.op *.jpg *.jpeg

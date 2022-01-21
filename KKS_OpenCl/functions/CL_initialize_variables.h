@@ -1,8 +1,8 @@
 void CL_initialize_variables() {
 
   pfmdat.nproc              = 1;
-  pfmdat.jDimX              = MESH_X;
-  pfmdat.iDimY              = MESH_Y;
+  pfmdat.jDimX              = MESH_Y;
+  pfmdat.iDimY              = MESH_X;
   pfmdat.ntimesteps         = ntimesteps;
   pfmdat.savetime           = saveT;
   pfmdat.Tr                 = TLiquidus;
@@ -14,8 +14,14 @@ void CL_initialize_variables() {
   pfmdat.phisolid           = 1.0;
   pfmdat.philiquid          = 0.0;
   pfmdat.Rg                 = R;
-  pfmdat.T0                 = T;
-  pfmdat.lrep               = (pfmdat.sigma*pfmdat.Vm)/(TLiquidus*R);//1.0;//CharLength*1e2;
+  if (temperature > T) {
+    pfmdat.T0                 = temperature;
+  }
+  else {
+    pfmdat.T0                 = T;
+  }
+  
+  pfmdat.lrep               = 1.0;//(pfmdat.sigma*pfmdat.Vm)/(TLiquidus*R);//1.0;//CharLength*1e2;
   pfmdat.c1s_Initial        = cfill[0][0][0];
   pfmdat.c1l_Initial        = cfill[1][0][0];
   pfmdat.c1s_1stguess       = ceq[0][0][0];
@@ -30,37 +36,41 @@ void CL_initialize_variables() {
   pfmdat.InterfaceMobility  = -1.0;
   pfmdat.epsm               = 0.0;
   pfmdat.TLiquidus          = TLiquidus;
-  pfmdat.Toffset            = T_Offset;
-  pfmdat.PosOffset          = PositionOffset;
-  pfmdat.TG                 = TemperatureGradient;
-  pfmdat.Vp                 = PullingVelocity;
+  pfmdat.Toffset            = temperature_gradientY.base_temp;
+  //pfmdat.PosOffset          = PositionOffset;
+  pfmdat.TPosOffset         = temperature_gradientY.gradient_OFFSET/deltay;
+  //pfmdat.TG                 = TemperatureGradient;
+  pfmdat.TGRADIENT          = temperature_gradientY.DeltaT/temperature_gradientY.Distance;
+  //pfmdat.Vp                 = PullingVelocity;
+  pfmdat.velocity           = temperature_gradientY.velocity;
   pfmdat.NoiseFac           = AMP_NOISE_PHASE;
   pfmdat.angle              = RotAngles[0]*M_PI/180.0;
+  pfmdat.shift_OFFSET       = shift_OFFSET; /* */
 
   pfmdat.RefD = pfmdat.D11l;
 
-  pfmvar.E0                 = 8.314*pfmdat.Tr/pfmdat.Vm;
+  pfmvar.E0                 = 1.0;//8.314*pfmdat.Tr/pfmdat.Vm;
   pfmvar.deltax             = deltax; 
   pfmvar.deltay             = deltay;
   pfmvar.deltat             = deltat; 
   pfmvar.Er                 = 8.314*pfmdat.Tr;
-  pfmvar.dx                 = pfmvar.deltax*pfmdat.lrep; // m
-  pfmvar.dy                 = pfmvar.deltay*pfmdat.lrep; // m
-  pfmvar.dt                 = pfmvar.deltat*pfmdat.lrep*pfmdat.lrep/(pfmdat.RefD);
+  //pfmvar.dx                 = pfmvar.deltax*pfmdat.lrep; // m
+  //pfmvar.dy                 = pfmvar.deltay*pfmdat.lrep; // m
+  //pfmvar.dt                 = pfmvar.deltat*pfmdat.lrep*pfmdat.lrep/(pfmdat.RefD);
 
-  printf("deltax = %le, deltat = %le \n", pfmvar.deltax, pfmvar.deltat);
-  printf("dx = %le, dt = %le \n", pfmvar.dx, pfmvar.dt);
+  //printf("deltax = %le, deltat = %le \n", pfmvar.deltax, pfmvar.deltat);
+  //printf("dx = %le, dt = %le \n", pfmvar.dx, pfmvar.dt);
     
-  pfmvar.surfTen            = pfmdat.sigma/(pfmdat.lrep*pfmvar.E0);//Nothing but 1
+  pfmvar.surfTen            = pfmdat.sigma/pfmdat.sigma; //pfmdat.sigma/(pfmdat.lrep*pfmvar.E0);//Nothing but 1
   pfmvar.ee                 = (6.0*pfmvar.surfTen*pfmdat.intwidth)/4.39445;
   pfmvar.w                  = (3.0*pfmvar.surfTen*4.39445)/pfmdat.intwidth;
   pfmvar.eesqrt             = sqrt(pfmvar.ee);
   pfmvar.IntMob             = pfmdat.InterfaceMobility*pfmdat.lrep*pfmvar.E0/pfmdat.RefD;
 
-  printf("surfTen = %le, ee = %le, w = %le \n", pfmvar.surfTen, pfmvar.ee, pfmvar.w);
-  printf("sigma = %le, intwidth = %le \n", pfmdat.sigma, pfmdat.intwidth);
+  //printf("surfTen = %le, ee = %le, w = %le \n", pfmvar.surfTen, pfmvar.ee, pfmvar.w);
+  //printf("sigma = %le, intwidth = %le \n", pfmdat.sigma, pfmdat.intwidth);
 
-  printf("sigma=%le,lrep=%le,E0=%le,intwidth=%le,RefD=%le\n", pfmdat.sigma, pfmdat.lrep, pfmvar.E0, pfmdat.intwidth,pfmdat.RefD);
+  //printf("sigma=%le,lrep=%le,E0=%le,intwidth=%le,RefD=%le\n", pfmdat.sigma, pfmdat.lrep, pfmvar.E0, pfmdat.intwidth,pfmdat.RefD);
 
   if ( pfmdat.InterfaceMobility < 0.0 ) { 
     pfmvar.IntMobInv = 0.0;
@@ -95,17 +105,17 @@ void CL_initialize_variables() {
   gridNew  = (struct grid*)malloc(nxny*sizeof(struct grid));
   gridOld  = (struct grid*)malloc(nxny*sizeof(struct grid));
   cscl     = (struct csle*)malloc(nxny*sizeof(struct csle));
-  temp     = (double*)malloc(ny*sizeof(double));
-  tstep    = (int*)malloc(sizeof(int));
+  temp     = (double*)malloc(nx*sizeof(double)); //Changed to nx, According to MESH_Y****
+  tstep    = (long*)malloc(sizeof(long));
 
   //pfmdat.myrank = rank;
   pfmdat.myrank = 0;
   istart = 0;
   iend = ny;
 
-  t = 1;
-  tstart = 1;
-  tstep[0] = 1;
+  t = STARTTIME;//1;
+  tstart = STARTTIME;//1;
+  tstep[0] = STARTTIME;//1;
 
   //deltax = pfmvar.deltax;
   //deltay = deltax;
