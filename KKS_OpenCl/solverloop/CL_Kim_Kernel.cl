@@ -42,9 +42,9 @@ struct pfmpar {
     double deltax;
     double deltay;
     double deltat;
-    double dx;
-    double dy;
-    double dt;
+    //double dx;
+    //double dy;
+    //double dt;
     double eesqrt;
     double Er;
     double IntMob;
@@ -75,14 +75,16 @@ struct pfmval {
     double InterfaceMobility;
     double RefD;
     double angle;
-    double TLiquidus;
-    //double Tempstart;
-    //double CR;
-    double Toffset;
-    double PosOffset;
-    double TG;
-    double Vp;
-    double NoiseFac;
+  double TLiquidus;
+  double Toffset;
+  //double PosOffset;
+  //double TG;
+  //double Vp;
+  double TPosOffset; 
+  double TGRADIENT;
+  double velocity;
+  double NoiseFac;
+  long shift_OFFSET;
     int   nproc;
     int   jNx;
     int   iNy;
@@ -129,7 +131,7 @@ __kernel void SolverCsClEq(__global struct grid *gridOld, __global struct csle *
 
     index = (i*nx + j);
     
-    Ti = temp[i];
+    Ti = temp[j];
 
  
     fi = gridOld[index].phi;
@@ -187,12 +189,23 @@ __kernel void SolverCsClEq(__global struct grid *gridOld, __global struct csle *
 
         x1l = ca[0];  
         x1s = ca[1];
+		
+		if (count > 1000) {
+		    printf("Too many iterations ~ %d\n", count);
+			printf("Exited the loop. Results may not be correct\n");
+			printf("Stop the code and choose correct parameters\n");
+		    break;
+		}
 
 
 	} while ( (fabs(dumcn[0]-ca[0]) > 1e-6) && (fabs(dumcn[1]-ca[1]) > 1e-6) );
+	
+	
 
     cscl[index].c1l = ca[0];
     cscl[index].c1s = ca[1];
+
+    //printf("%le,%le\n",cscl[index].c1l,cscl[index].c1s);
  
 }
 
@@ -314,7 +327,7 @@ __kernel void SolverPhiIso(__global struct grid *gridOld, __global struct grid *
     
     if ( i != 0 && i != ny-1 && j != 0 && j != nx-1 ) {
 
-        Ti = temp[i];
+        Ti = temp[j];
 
         index = (i)*nx + (j);
 
@@ -330,6 +343,8 @@ __kernel void SolverPhiIso(__global struct grid *gridOld, __global struct grid *
 
         cliq1 = cscl[( i )*nx + ( j )].c1l;
         csol1 = cscl[( i )*nx + ( j )].c1s;
+
+        //printf("%le,%le,%le,%le\n",cliq1, csol1, cscl[( i )*nx + ( j )].c1l, cscl[( i )*nx + ( j )].c1s);
 
         D11invL = 1.0/pfmdat->D11l;
 
@@ -361,7 +376,7 @@ __kernel void SolverPhiIso(__global struct grid *gridOld, __global struct grid *
 
         gridNew[ ( ( i )*nx + ( j ) ) ].phi = stgridO[4].phi + (pfmvar->deltat)*phidot_iso;
         
-        
+        //printf("%le,\t%le,\t%le,\t%le,\t%le,\t%le,\t%le,\t%le\n", Mphi, pfmvar->w, pfmvar->ee, pfmdat->a2, zeta, cliq1, csol1, ddgldc1ldc1l);
     }
 }
 
@@ -430,7 +445,7 @@ __kernel void SolverPhi(__global struct grid *gridOld, __global struct grid *gri
     
     if ( i != 0 && i != ny-1 && j != 0 && j != nx-1 ) {
 
-        Ti = temp[i];
+        Ti = temp[j];
 
         index = (i)*nx + (j);
 
@@ -554,7 +569,7 @@ __kernel void SolverPhi(__global struct grid *gridOld, __global struct grid *gri
         phidot_aniso =  Mphi*((pfmvar->ee)*alp - (pfmvar->w)*dgphidphi - dhphidphi*(gs-gl-(csol1-cliq1)*dgldc1l));
 
         gridNew[ ( ( i )*nx + ( j ) ) ].phi = stgridO[4].phi + (pfmvar->deltat)*phidot_aniso;
-		
+		//printf("%le,\t%le,\t%le,\t%le,\t%le,\t%le,\t%le,\t%le\n", Mphi, pfmvar->w, pfmvar->ee, pfmdat->a2, zeta, cliq1, csol1, ddgldc1ldc1l);
 		
 
     }
@@ -1449,7 +1464,7 @@ __kernel void update_temp_UC(__global double *temp, __global int *tstep, __const
     nx = pfmdat->jNx;
     ny = pfmdat->iNy;
 
-    temp[i] = pfmdat->T0;
+    temp[j] = pfmdat->T0;
     
 
 }
@@ -1464,6 +1479,7 @@ __kernel void update_temp_DS(__global double *temp, __global int *tstep, __const
     int nz;
     int index;
     int i0;
+    int j0;
 
     j = get_global_id(0);
     i = get_global_id(1);
@@ -1471,8 +1487,14 @@ __kernel void update_temp_DS(__global double *temp, __global int *tstep, __const
     nx = pfmdat->jNx;
     ny = pfmdat->iNy;
 
-    i0 = i + (pfmdat->myrank*(ny-2))-1; 
-    temp[i] = pfmdat->Toffset + pfmdat->TG*((i0-pfmdat->PosOffset)*pfmvar->dx - pfmdat->Vp*tstep[0]*pfmvar->dt);
+    //i0 = i + (pfmdat->myrank*(ny-2))-1; 
+    //temp[i] = pfmdat->Toffset + pfmdat->TG*((i0-pfmdat->PosOffset)*pfmvar->dx - pfmdat->Vp*tstep[0]*pfmvar->dt);
+
+    //i0 = i + (pfmdat->myrank*(ny-2));
+    //temp[i] = pfmdat->Toffset + pfmdat->TGRADIENT*((i0-pfmdat->TPosOffset+pfmdat->shift_OFFSET)*pfmvar->deltax-(pfmdat->velocity*tstep[0]*pfmvar->deltat));
+
+    j0 = j + (pfmdat->myrank*(nx-2));
+    temp[j] = pfmdat->Toffset + pfmdat->TGRADIENT*((j0-pfmdat->TPosOffset+pfmdat->shift_OFFSET)*pfmvar->deltax-(pfmdat->velocity*tstep[0]*pfmvar->deltat));
 
 }
   

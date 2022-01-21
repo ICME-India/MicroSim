@@ -8,7 +8,7 @@ void CL_DeviceToHost() {
     printf("Error: Failed to read d_gridNew \n%d\n", ret);
     exit(1);
   }
-  ret = clEnqueueReadBuffer(cmdQ, d_temp, CL_TRUE, 0, ny*sizeof(double), temp, 0, NULL, NULL);
+  ret = clEnqueueReadBuffer(cmdQ, d_temp, CL_TRUE, 0, nx*sizeof(double), temp, 0, NULL, NULL);// Changed to nx for MESH_Y
   if (ret != CL_SUCCESS) {
     printf("Error: Failed to read d_temp \n%d\n", ret);
     exit(1);
@@ -34,6 +34,8 @@ void CL_DeviceToHost() {
         gridinfo[index].compi[0] = gridNew[index].c1;
 
         gridinfo[index].phia[0] = gridNew[index].phi;
+
+        gridinfo[index].temperature = temp[y];
 
       }
     }

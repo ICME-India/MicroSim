@@ -26,13 +26,13 @@ void CL_buffer_allocation() {
     printf("falied to allocate device memory d_pfmvar %d\n", ret);
     exit(1);
   }
-  d_temp = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, ny*sizeof(double), temp, &ret);
+  d_temp = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, nx*sizeof(double), temp, &ret);//Changed to nx, According to MESH_X
   if ( !d_temp ) {
     printf("falied to allocate device memory d_temp %d\n", ret);
     exit(1);
   }
-  d_tstep = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, sizeof(int), tstep, &ret);
-  if ( !d_pfmvar ) {
+  d_tstep = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, sizeof(long), tstep, &ret);
+  if ( !d_tstep ) {
     printf("falied to allocate device memory d_tstep %d\n", ret);
     exit(1);
   }
@@ -64,12 +64,12 @@ void CL_buffer_allocation() {
     printf("enq buffer write error d_pfmvar %d\n", ret);
     exit(1);
   }
-  ret  = clEnqueueWriteBuffer(cmdQ, d_temp, CL_TRUE, 0, ny*sizeof(double), temp, 0, NULL, NULL);
+  ret  = clEnqueueWriteBuffer(cmdQ, d_temp, CL_TRUE, 0, nx*sizeof(double), temp, 0, NULL, NULL);//Changed to nx, According to MESH_X
   if (ret!=CL_SUCCESS) {
     printf("enq buffer write error d_temp %d\n", ret);
     exit(1);
   }
-  ret  = clEnqueueWriteBuffer(cmdQ, d_tstep, CL_TRUE, 0, sizeof(int), tstep, 0, NULL, NULL);
+  ret  = clEnqueueWriteBuffer(cmdQ, d_tstep, CL_TRUE, 0, sizeof(long), tstep, 0, NULL, NULL);
   if (ret!=CL_SUCCESS) {
     printf("enq buffer write error d_tstep %d\n", ret);
     exit(1);

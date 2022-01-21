@@ -59,4 +59,11 @@ void free_variables(){
   }
 
 
+  free(global_max_min.phi_max);
+  free(global_max_min.phi_min);
+  free(global_max_min.com_max);
+  free(global_max_min.com_min);
+  free(global_max_min.rel_change_phi);
+  free(global_max_min.rel_change_com);
+
 }

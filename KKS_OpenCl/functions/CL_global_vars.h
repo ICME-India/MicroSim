@@ -31,9 +31,9 @@ struct pfmpar {
   double deltax;
   double deltay;
   double deltat;
-  double dx;
-  double dy;
-  double dt;
+  //double dx;
+  //double dy;
+  //double dt;
   double eesqrt;
   double Er;
   double IntMob;
@@ -66,10 +66,14 @@ struct pfmval {
   double angle;
   double TLiquidus;
   double Toffset;
-  double PosOffset;
-  double TG;
-  double Vp;
+  //double PosOffset;
+  //double TG;
+  //double Vp;
+  double TPosOffset; 
+  double TGRADIENT;
+  double velocity;
   double NoiseFac;
+  long shift_OFFSET;
   int   nproc;
   int   jNx;
   int   iNy;
@@ -80,7 +84,7 @@ struct pfmval {
   int   myrank;
 };
 
-int t;
+//long t;
 
 struct grid *gridNew;
 struct grid *gridOld;
@@ -90,7 +94,7 @@ struct pfmpar pfmvar;
 
 double *temp;
 int timestep;
-int *tstep;
+long *tstep;
 
 int device_run;
 
@@ -177,10 +181,11 @@ void CL_initialize_variables();
 void CL_memory_apis();
 void CL_Initialize_domain();
 void CL_kernel_init_temperature();
-void CL_Update_Temperature();
+void CL_Update_Temperature(long t);
 void CL_Solve_phi_com();
 void CL_DeviceToHost();
 void CL_Global_Max_Min();
+void CL_Shift();
 
 void initialize_domain(struct grid *, struct grid *, struct csle *, struct pfmval *, struct pfmpar *, double *);
 void savetimestep(struct grid *, struct pfmval *, struct pfmpar *, double *, int);

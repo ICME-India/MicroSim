@@ -95,6 +95,12 @@ void reading_input_parameters(char *argv[]) {
       else if (strcmp(tmpstr1,"NSMOOTH")==0) {
         nsmooth = atol(tmpstr2);
       }
+      else if (strcmp(tmpstr1,"STARTTIME")==0) {
+        STARTTIME = atol(tmpstr2);
+      }
+      else if (strcmp(tmpstr1,"RESTART")==0) {
+        RESTART = atol(tmpstr2);
+      }
       else if (strcmp(tmpstr1,"R")==0) {
         R = atof(tmpstr2);
       }
@@ -114,6 +120,9 @@ void reading_input_parameters(char *argv[]) {
       }
       else if (strcmp(tmpstr1,"T")==0) {
         T = atof(tmpstr2);
+      }
+      else if (strcmp(tmpstr1,"temperature")==0) {
+        temperature = atof(tmpstr2);
       }
       else if (strcmp(tmpstr1,"tilt_angle")==0) {
         tilt_angle = atof(tmpstr2);
@@ -158,6 +167,14 @@ void reading_input_parameters(char *argv[]) {
         }
         free(tmp);
       }
+      else if (strcmp(tmpstr1, "Shift") == 0) {
+        SHIFT = atoi(tmpstr2);
+      }
+      else if (strcmp(tmpstr1, "Shiftj") == 0) {
+        if (SHIFT) {
+         shiftj = atol(tmpstr2);
+        }
+      }
       else if (strcmp(tmpstr1, "BINARY") == 0) {
         BINARY = atoi(tmpstr2);
       }
@@ -192,13 +209,13 @@ void reading_input_parameters(char *argv[]) {
       else if (strcmp(tmpstr1,"tNoiseStart")==0) {
         tNoiseStart = atol(tmpstr2);
       }
-      else if (strcmp(tmpstr1,"DirectionalSolidification")==0) {
+      /*else if (strcmp(tmpstr1,"DirectionalSolidification")==0) {
         DirectionalSolidification = atoi(tmpstr2);
-      }
+      }*/
       else if (strcmp(tmpstr1,"TLiquidus")==0) {
         TLiquidus = atof(tmpstr2);
       }
-      else if (strcmp(tmpstr1,"TemperatureGradient")==0) {
+      /*else if (strcmp(tmpstr1,"TemperatureGradient")==0) {
         TemperatureGradient = atof(tmpstr2);
       }
       else if (strcmp(tmpstr1,"PullingVelocity")==0) {
@@ -209,7 +226,7 @@ void reading_input_parameters(char *argv[]) {
       }
       else if (strcmp(tmpstr1,"T_Offset")==0) {
         T_Offset = atof(tmpstr2);
-      }
+      }*/
       else if (strcmp(tmpstr1, "atr") == 0) {
         atr = atoi(tmpstr2);
       }
@@ -292,6 +309,14 @@ void reading_input_parameters(char *argv[]) {
   strcpy(key, "NSMOOTH");
   
   PRINT_LONG(key, nsmooth, fr);
+  
+  strcpy(key, "STARTTIME");
+  
+  PRINT_LONG(key, STARTTIME, fr);
+  
+  strcpy(key, "RESTART");
+  
+  PRINT_LONG(key, RESTART, fr);
 
   strcpy(key,"R");
   
@@ -408,11 +433,11 @@ void reading_input_parameters(char *argv[]) {
 
   fprintf(fr, "tdbfname = %s\n\n",tdbfname);
 
-  fprintf(fr, "Time step (Dimensional) = %le s\n", deltat*(Gamma[0][1]*V/(TLiquidus*R))*(Gamma[0][1]*V/(TLiquidus*R))/Diffusivity[1][0][0]); 
+  //fprintf(fr, "Time step (Dimensional) = %le s\n", deltat*(Gamma[0][1]*V/(TLiquidus*R))*(Gamma[0][1]*V/(TLiquidus*R))/Diffusivity[1][0][0]); 
 
-  fprintf(fr, "Grid size (x) (Dimensional) = %le m\n", deltax*Gamma[0][1]*V/(TLiquidus*R));
+  //fprintf(fr, "Grid size (x) (Dimensional) = %le m\n", deltax*Gamma[0][1]*V/(TLiquidus*R));
 
-  fprintf(fr, "Grid size (y) (Dimensional) = %le m\n", deltay*Gamma[0][1]*V/(TLiquidus*R));
+  //fprintf(fr, "Grid size (y) (Dimensional) = %le m\n", deltay*Gamma[0][1]*V/(TLiquidus*R));
 
 
 //   PRINT_BOUNDARY_CONDITIONS(fr);
