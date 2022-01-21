@@ -494,15 +494,17 @@ void PRINT_STRING_ARRAY(char *key, char **str, long m, FILE *fp) {
 }
 
 void allocate_memory_fields(struct fields *ptr) {
-  ptr->phia        = (double *)malloc(NUMPHASES*sizeof(double));
+  if (!SPINODAL) {
+    ptr->phia        = (double *)malloc(NUMPHASES*sizeof(double));
+  }
+  
   ptr->compi       = (double *)malloc((NUMCOMPONENTS-1)*sizeof(double));
   //ptr->deltaphi    = (double *)malloc((NUMPHASES)*sizeof(double));
 }
 
 void free_memory_fields(struct fields *ptr) {
-  free(ptr->phia);
+  //free(ptr->phia);
   free(ptr->compi);
-  //free(ptr->deltaphi);
 }
 void populate_vector(double *Mat, char *tmpstr, long ielements) {
   char **tmp;

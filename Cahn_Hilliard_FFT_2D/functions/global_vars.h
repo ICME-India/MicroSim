@@ -21,6 +21,8 @@ int t;
 long ntimesteps;
 long saveT;
 long nsmooth;
+long STARTTIME=0;
+long RESTART=0;
 
 double R; 
 double V;
@@ -124,6 +126,8 @@ fftw_complex **dfdc;
 fftw_plan planF;
 fftw_plan planB;
 
+int SPINODAL=1;
+int tdbflag=0;
 long i, j, k;
 long x, y, z;
 long half_MESH_X;
@@ -140,10 +144,14 @@ double *W;
 double *kx;
 double *ky;
 double *P;
+double temperature=673.0;
 
 double **Kappa_phi, **Kappa_c, **L_phi;
 double ***AtomicMobility;
 double *A_fm, *B_fp;
+
+
+char tdbfname[100];
 
 #define X 0
 #define Y 1

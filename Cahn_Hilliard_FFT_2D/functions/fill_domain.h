@@ -50,8 +50,12 @@ void fill_domain(char *argv[]) {
         fill_cube_parameters.z_start = atol(tmp[3]) + start[Z];
         fill_cube_parameters.z_end   = atol(tmp[6]) + start[Z];
         
-        fill_phase_cube(fill_cube_parameters, gridinfo, phase);
-        fill_phase_cube(fill_cube_parameters, gridinfo, NUMPHASES-1);
+        
+        if (!SPINODAL) {
+          fill_phase_cube(fill_cube_parameters, gridinfo, phase);
+          fill_phase_cube(fill_cube_parameters, gridinfo, NUMPHASES-1);
+        }
+        
         
         for (i = 0; i < 7; ++i) {
           free(tmp[i]);
@@ -78,8 +82,10 @@ void fill_domain(char *argv[]) {
         fill_cylinder_parameters.z_end    = atol(tmp[4]) + start[Z];
         fill_cylinder_parameters.radius   = atof(tmp[5]);
         
-        fill_phase_cylinder(fill_cylinder_parameters, gridinfo, phase);
-        fill_phase_cylinder(fill_cylinder_parameters, gridinfo, NUMPHASES-1);
+        if (!SPINODAL) {
+          fill_phase_cylinder(fill_cylinder_parameters, gridinfo, phase);
+          fill_phase_cylinder(fill_cylinder_parameters, gridinfo, NUMPHASES-1);
+        }
         
         for (i = 0; i < 6; ++i) {
           free(tmp[i]);
@@ -105,8 +111,10 @@ void fill_domain(char *argv[]) {
         fill_sphere_parameters.z_center = atol(tmp[3]) + start[Z];
         fill_sphere_parameters.radius   = atof(tmp[4]);
         
-        fill_phase_sphere(fill_sphere_parameters, gridinfo, phase);
-        fill_phase_sphere(fill_sphere_parameters, gridinfo, NUMPHASES-1);
+        if (!SPINODAL) {
+          fill_phase_sphere(fill_sphere_parameters, gridinfo, phase);
+          fill_phase_sphere(fill_sphere_parameters, gridinfo, NUMPHASES-1);
+        }
         
         for (i = 0; i < 5; ++i) {
           free(tmp[i]);
@@ -134,8 +142,10 @@ void fill_domain(char *argv[]) {
         fill_ellipse_parameters.eccentricity = atol(tmp[5]);
         fill_ellipse_parameters.rot_angle    = atol(tmp[6]);
         
-        fill_phase_ellipse(fill_ellipse_parameters, gridinfo, phase);
-        fill_phase_ellipse(fill_ellipse_parameters, gridinfo, NUMPHASES-1);
+        if (!SPINODAL) {
+          fill_phase_ellipse(fill_ellipse_parameters, gridinfo, phase);
+          fill_phase_ellipse(fill_ellipse_parameters, gridinfo, NUMPHASES-1);
+        }
         
         for (i = 0; i < 7; ++i) {
           free(tmp[i]);

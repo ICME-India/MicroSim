@@ -12,6 +12,7 @@ double swap_bytes(double value) {
   double  src_num = value;
   int64_t tmp_num = htobe64(le64toh(*(int64_t*)&src_num));
   double  dst_num = *(double*)&tmp_num;
+  return dst_num;
 }
 
 void writetofile_serial2D(struct fields* gridinfo, char *argv[], long t);
@@ -44,6 +45,32 @@ void writetofile_serial2D_binary(struct fields* gridinfo, char *argv[], long t) 
   write_cells_vtk_2D_binary(fp, gridinfo);
   fclose(fp);
 }
+void readfromfile_serial2D(struct fields* gridinfo, char *argv[], long t) {
+  long x,y,z;
+  long gidy;
+  FILE *fp;
+  char name[1000];
+  double composition;
+  long b, k;
+  //printf("Reading Input file %ld\n",t);
+  sprintf(name,"DATA/%s_%ld.vtk",argv[3], t);
+  fp=fopen(name,"r");
+  read_cells_vtk_2D(fp, gridinfo);
+  fclose(fp);
+}
+void readfromfile_serial2D_binary(struct fields* gridinfo, char *argv[], long t) {
+  long x,y,z;
+  long gidy;
+  FILE *fp;
+  char name[1000];
+  double composition;
+  long b, k;
+  //printf("Reading Input file %ld\n",t);
+  sprintf(name,"DATA/%s_%ld.vtk",argv[3], t);
+  fp=fopen(name,"rb");
+  read_cells_vtk_2D_binary(fp, gridinfo);
+  fclose(fp);
+}
 
 void write_cells_vtk_2D(FILE *fp, struct fields *gridinfo) {
   long x, y, z, index;
@@ -60,6 +87,7 @@ void write_cells_vtk_2D(FILE *fp, struct fields *gridinfo) {
   fprintf(fp,"POINT_DATA %ld\n",(long)MESH_X*(long)MESH_Y);
 //   fprintf(fp,"FIELD PHASEFIELD 2\n");
 //   fprintf(fp,"PHI[0] 1 %ld double\n", (long)Nx*(long)Ny);
+  if (!SPINODAL) {
   for (a=0; a < NUMPHASES-1; a++) {
     fprintf(fp,"SCALARS %s double 1\n",Phases[a]);
     fprintf(fp,"LOOKUP_TABLE default\n");
@@ -73,8 +101,9 @@ void write_cells_vtk_2D(FILE *fp, struct fields *gridinfo) {
     }
     fprintf(fp,"\n");
   }
+  }
   for (k=0; k < NUMCOMPONENTS-1; k++) {
-    fprintf(fp,"SCALARS comp_%s double 1\n",Components[k]);
+    fprintf(fp,"SCALARS comp double 1\n");
     fprintf(fp,"LOOKUP_TABLE default\n");
     for (x=start[X]; x<=end[X]; x++) {
       for (z=start[Z]; z <= end[Z]; z++) {
@@ -104,7 +133,7 @@ void write_cells_vtk_2D_binary(FILE *fp, struct fields *gridinfo) {
   fprintf(fp,"ORIGIN 0 0 0\n");
   fprintf(fp,"SPACING %le %le %le\n",deltax, deltay, deltaz);
   fprintf(fp,"POINT_DATA %ld\n",(long)MESH_X*(long)MESH_Y);
-  
+  if (!SPINODAL) {
   for (a=0; a < NUMPHASES-1; a++) {
     fprintf(fp,"SCALARS %s double 1\n",Phases[a]);
     fprintf(fp,"LOOKUP_TABLE default\n");
@@ -123,8 +152,9 @@ void write_cells_vtk_2D_binary(FILE *fp, struct fields *gridinfo) {
     }
     fprintf(fp,"\n");
   }
+  }
   for (k=0; k < NUMCOMPONENTS-1; k++) {
-    fprintf(fp,"SCALARS comp_%s double 1\n",Components[k]);
+    fprintf(fp,"SCALARS comp double 1\n");
     fprintf(fp,"LOOKUP_TABLE default\n");
     for (x=start[X]; x<=end[X]; x++) {
       for (z=start[Z]; z <= end[Z]; z++) {
@@ -142,4 +172,114 @@ void write_cells_vtk_2D_binary(FILE *fp, struct fields *gridinfo) {
    fprintf(fp,"\n");
   }
 }
+
+void read_cells_vtk_2D(FILE *fp, struct fields *gridinfo) {
+  long x, y, z, index;
+  long a, b;
+  long k;
+  char name[1000];
+  long mesh_x, mesh_y, mesh_z;
+  long ox, oy, oz;
+  long total_points;
+  double dx, dy, dz;
+  double composition;
+  long size;
+    
+  fscanf(fp,"%*[^\n]\n");
+  fscanf(fp,"%*[^\n]\n");
+  fscanf(fp,"%*[^\n]\n");
+  fscanf(fp,"%*[^\n]\n");
+  fscanf(fp,"%*[^\n]\n");
+  fscanf(fp,"%*[^\n]\n");
+  fscanf(fp,"%*[^\n]\n");
+  fscanf(fp,"%*[^\n]\n");
+
+  if (!SPINODAL) {
+  for (a=0; a < NUMPHASES-1; a++) {
+    fscanf(fp,"%*[^\n]\n");
+    fscanf(fp,"%*[^\n]\n");
+    for (x=start[X]; x<=end[X]; x++) {
+      for (z=start[Z]; z <= end[Z]; z++) {
+        for (y=start[Y]; y <= end[Y]; y++) {
+          index = x*layer_size + z*rows_y + y;
+          fscanf(fp, "%le \n",&gridinfo[index].phia[a]);
+        }
+      }
+    }
+  }
+  }
+  for (k=0; k < NUMCOMPONENTS-1; k++) {
+    fscanf(fp,"%*[^\n]\n");
+    fscanf(fp,"%*[^\n]\n");
+    for (x=start[X]; x<=end[X]; x++) {
+      for (z=start[Z]; z <= end[Z]; z++) {
+        for (y=start[Y]; y <= end[Y]; y++) {
+          index = x*layer_size + z*rows_y + y;
+          fscanf(fp, "%le \n",&gridinfo[index].compi[k]);
+        }
+      }
+    }
+  }
+}
+void read_cells_vtk_2D_binary(FILE *fp, struct fields *gridinfo) {
+  long x, y, z, index;
+  long a, b;
+  long k;
+  char name[1000];
+  long mesh_x, mesh_y, mesh_z;
+  long ox, oy, oz;
+  long total_points;
+  double dx, dy, dz;
+  double composition;
+  long size;
+  double value;
+  
+  fscanf(fp,"%*[^\n]\n");
+  fscanf(fp,"%*[^\n]\n");
+  fscanf(fp,"%*[^\n]\n");
+  fscanf(fp,"%*[^\n]\n");
+  fscanf(fp,"%*[^\n]\n");
+  fscanf(fp,"%*[^\n]\n");
+  fscanf(fp,"%*[^\n]\n");
+  fscanf(fp,"%*[^\n]\n");
+  
+
+  if (!SPINODAL) {
+  for (a=0; a < NUMPHASES-1; a++) {
+    fscanf(fp,"%*[^\n]\n");
+    fscanf(fp,"%*[^\n]\n");
+    for (x=start[X]; x<=end[X]; x++) {
+      for (z=start[Z]; z <= end[Z]; z++) {
+        for (y=start[Y]; y <= end[Y]; y++) {
+          index = x*layer_size + z*rows_y + y;
+          fread(&value, sizeof(double), 1, fp);
+          if (IS_LITTLE_ENDIAN) {
+            gridinfo[index].phia[a] = swap_bytes(value);
+          } else {
+            gridinfo[index].phia[a] = value;
+          }
+        }
+      }
+    }
+  }
+  }
+  for (k=0; k < NUMCOMPONENTS-1; k++) {
+    fscanf(fp,"%*[^\n]\n");
+    fscanf(fp,"%*[^\n]\n");
+    for (x=start[X]; x<=end[X]; x++) {
+      for (z=start[Z]; z <= end[Z]; z++) {
+        for (y=start[Y]; y <= end[Y]; y++) {
+          index = x*layer_size + z*rows_y + y;
+          fread(&value, sizeof(double), 1, fp);
+          if (IS_LITTLE_ENDIAN) {
+            gridinfo[index].compi[k] = swap_bytes(value);
+          } else {
+            gridinfo[index].compi[k] = value;
+          }
+        }
+      }
+    }
+  }
+}
+
 #endif

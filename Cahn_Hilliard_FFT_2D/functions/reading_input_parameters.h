@@ -89,6 +89,12 @@ void reading_input_parameters(char *argv[]) {
       else if (strcmp(tmpstr1,"NSMOOTH")==0) {
         nsmooth = atol(tmpstr2);
       }
+      else if (strcmp(tmpstr1,"STARTTIME")==0) {
+        STARTTIME = atol(tmpstr2);
+      }
+      else if (strcmp(tmpstr1,"RESTART")==0) {
+        RESTART = atol(tmpstr2);
+      }
       else if (strcmp(tmpstr1,"R")==0) {
         R = atof(tmpstr2);
       }
@@ -151,6 +157,19 @@ void reading_input_parameters(char *argv[]) {
         //printf("A_fm=%le\n", A_fm);
         A_fm = MallocV(1);
         populate_vector(A_fm, tmpstr2, 1);
+      }
+      else if (strcmp(tmpstr1,"spinodal")==0) {
+        SPINODAL = atoi(tmpstr2);
+      }
+      else if (strcmp(tmpstr1,"tdbflag")==0) {
+        tdbflag = atoi(tmpstr2);
+      }
+      else if (tdbflag && (strcmp(tmpstr1,"tdbfname")==0)) {
+        strcpy(tdbfname,tmpstr2);
+        printf("%s\n",tdbfname);
+      }
+      else if (strcmp(tmpstr1,"temperature")==0) {
+        temperature = atof(tmpstr2);
       }
       else {
         printf("Unrecongized parameter : \"%s\"\n", tmpstr1);
@@ -218,6 +237,14 @@ void reading_input_parameters(char *argv[]) {
   strcpy(key, "NSMOOTH");
   
   PRINT_LONG(key, nsmooth, fr);
+  
+  strcpy(key, "STARTTIME");
+  
+  PRINT_LONG(key, STARTTIME, fr);
+  
+  strcpy(key, "RESTART");
+  
+  PRINT_LONG(key, RESTART, fr);
 
   strcpy(key,"R");
   
