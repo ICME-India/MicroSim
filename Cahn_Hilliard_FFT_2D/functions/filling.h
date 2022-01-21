@@ -231,6 +231,7 @@ void fill_composition_cube(struct fields* gridinfo) {
       for (y=0; y<rows_y; y++) {
         index = x*layer_size + z*rows_y + y;
         PHASE_FILLED = 0;
+        if (!SPINODAL) {
         for (b=0; b < NUMPHASES-1; b++) {
           if (gridinfo[index].phia[b] == 1.0) {
             for (k=0; k < NUMCOMPONENTS-1; k++) {
@@ -248,6 +249,7 @@ void fill_composition_cube(struct fields* gridinfo) {
             break;
           }
         }
+        }
         if (!PHASE_FILLED) {
           //Fill with liquid
           for (k=0; k < NUMCOMPONENTS-1; k++) {
@@ -260,7 +262,15 @@ void fill_composition_cube(struct fields* gridinfo) {
           for (k=0; k < NUMCOMPONENTS-1; k++) {
             //chemical_potential = Mu(c, Teq, NUMPHASES-1, k);
 //             printf("chemical_potential =%le\n", chemical_potential);
-            gridinfo[index].compi[k] = c[k];//chemical_potential;
+
+            if (SPINODAL) {
+              gridinfo[index].compi[k] = c[k] + 0.05*(0.5-(double)rand()/(double)RAND_MAX);//chemical_potential;
+            }
+            else
+            {
+              gridinfo[index].compi[k] = c[k];//chemical_potential;
+            }
+            //printf("%d,\t%d\n", rand(),RAND_MAX);
             //printf("Liquid comp = %le\n", c[k]);
           }
         }

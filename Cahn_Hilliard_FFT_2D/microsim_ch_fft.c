@@ -16,21 +16,37 @@
 #include "functions/free_variables.h"
 #include "functions/fill_domain.h"
 #include "solverloop/serialinfo_xy.h"
+#include "solverloop/GibbsEnergyData.h"
 #include "solverloop/functions_fftw.h"
 #include "solverloop/file_writer.h"
 
 int main(int argc, char * argv[]) {
+  
+  mkdir("DATA",0777);
 
   reading_input_parameters(argv);
 
   serialinfo_xy();
 
-  fill_domain(argv);
+  if ((STARTTIME == 0) && (RESTART ==0)) {
+    fill_domain(argv);
+  } else {
+    if (ASCII) {
+      readfromfile_serial2D(gridinfo, argv, STARTTIME);
+    } else {
+      readfromfile_serial2D_binary(gridinfo, argv, STARTTIME);
+    }
+  }
 
   prepfftw();
-  
-  mkdir("DATA",0777);
-  writetofile_serial2D(gridinfo, argv, 0);
+
+  if((RESTART == 0) || (STARTTIME ==0)) {
+    if (ASCII == 0) {
+      writetofile_serial2D_binary(gridinfo, argv, 0);
+    } else {
+      writetofile_serial2D(gridinfo, argv, 0);
+    }
+  } 
 
   //Time-loop
   for(t=1;t<=ntimesteps;t++) {
@@ -40,17 +56,19 @@ int main(int argc, char * argv[]) {
     evolve_fftw();
 
     if(t%saveT == 0) {
-      printf("Writing time step = %d\n", t);
+      printf("Writing time step = %ld\n", t + STARTTIME);
       if (ASCII == 0) {
-        writetofile_serial2D_binary(gridinfo, argv, t);
+        writetofile_serial2D_binary(gridinfo, argv, t + STARTTIME);
       } else {
-        writetofile_serial2D(gridinfo, argv, t);
+        writetofile_serial2D(gridinfo, argv, t + STARTTIME);
       }
     }
     if (t%time_output == 0) {
       fprintf(stdout, "Time=%le\n", t*deltat);
-      for (b=0; b<NUMPHASES-1; b++) {
-        fprintf(stdout, "%*s, Max = %le, Min = %le, Relative_Change=%le\n", max_length, Phases[b], global_max_min.phi_max[b], global_max_min.phi_min[b], sqrt(global_max_min.rel_change_phi[b]));
+      if (!SPINODAL) {
+        for (b=0; b<NUMPHASES-1; b++) {
+          fprintf(stdout, "%*s, Max = %le, Min = %le, Relative_Change=%le\n", max_length, Phases[b], global_max_min.phi_max[b], global_max_min.phi_min[b], sqrt(global_max_min.rel_change_phi[b]));
+        }
       }
       for (k=0; k<NUMCOMPONENTS-1; k++) {
         fprintf(stdout, "%*s, Max = %le, Min = %le, Relative_Change=%le\n", max_length, Components[k], global_max_min.com_max[k], global_max_min.com_min[k], sqrt(global_max_min.rel_change_com[k]));

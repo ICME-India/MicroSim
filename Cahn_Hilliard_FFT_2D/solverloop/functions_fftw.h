@@ -50,15 +50,16 @@ void prepfftw() {
   W = (double *) malloc((NUMPHASES-1)*sizeof(double));
 
 
-  phi = fftw_malloc((NUMPHASES-1)*sizeof(**phi));
-  dfdphi = fftw_malloc((NUMPHASES-1)*sizeof(**dfdphi));
-  
-  for (b=0; b < NUMPHASES-1; b++) {
+  if (!SPINODAL) {
+    phi = fftw_malloc((NUMPHASES-1)*sizeof(**phi));
+    
+    dfdphi = fftw_malloc((NUMPHASES-1)*sizeof(**dfdphi));
 
-    phi[b] = fftw_malloc(index_count*sizeof(fftw_complex));
+    for (b=0; b < NUMPHASES-1; b++) {
+      phi[b] = fftw_malloc(index_count*sizeof(fftw_complex));
 
-    dfdphi[b] = fftw_malloc(index_count*sizeof(fftw_complex));
-
+      dfdphi[b] = fftw_malloc(index_count*sizeof(fftw_complex));
+    }
   }
 
   com = fftw_malloc((NUMCOMPONENTS-1)*sizeof(**com));
@@ -71,8 +72,8 @@ void prepfftw() {
 
   }
 
-  planF = fftw_plan_dft_2d(MESH_X, MESH_Y, phi[0], phi[0],  FFTW_FORWARD, FFTW_ESTIMATE);
-  planB = fftw_plan_dft_2d(MESH_X, MESH_Y, phi[0], phi[0], FFTW_BACKWARD, FFTW_ESTIMATE);
+  planF = fftw_plan_dft_2d(MESH_X, MESH_Y, com[0], com[0],  FFTW_FORWARD, FFTW_ESTIMATE);
+  planB = fftw_plan_dft_2d(MESH_X, MESH_Y, com[0], com[0], FFTW_BACKWARD, FFTW_ESTIMATE);
 
   realtoFourier();
 
@@ -98,8 +99,10 @@ void realtoFourier() {
         for (a=0; a < NUMCOMPONENTS-1; a++) {
           com[a][index] = gridinfo[index].compi[a] + 0.0*_Complex_I;
         }
-        for (b=0; b < NUMPHASES-1; b++) {
-          phi[b][index] = gridinfo[index].phia[b] + 0.0*_Complex_I;
+        if (!SPINODAL) { 
+          for (b=0; b < NUMPHASES-1; b++) {
+            phi[b][index] = gridinfo[index].phia[b] + 0.0*_Complex_I;
+          }
         }
       }
     }
@@ -113,11 +116,14 @@ void Fouriertoreal() {
 
   inv_denom = 1.0 / (MESH_X*MESH_Y);
 
-  for (b=0; b < NUMPHASES-1; b++) {
-    global_max_min.rel_change_phi[b] = 0.0;
-  }
-  for (a=0; a < NUMCOMPONENTS-1; a++) {
-    global_max_min.rel_change_com[a] = 0.0;
+  if (!SPINODAL) {
+
+    for (b=0; b < NUMPHASES-1; b++) {
+      global_max_min.rel_change_phi[b] = 0.0;
+    }
+    for (a=0; a < NUMCOMPONENTS-1; a++) {
+      global_max_min.rel_change_com[a] = 0.0;
+    }
   }
 
   for (x=0;x < rows_x; x++) {
@@ -135,15 +141,17 @@ void Fouriertoreal() {
             global_max_min.com_min[a] = gridinfo[index].compi[a];
           }
         }
-        for (b=0; b < NUMPHASES-1; b++) {
-          phi[b][index] = creal(phi[b][index])*inv_denom + 0.0*_Complex_I;
-          global_max_min.rel_change_phi[b] += (creal(phi[b][index])-gridinfo[index].phia[b])*(creal(phi[b][index])-gridinfo[index].phia[b]);
-          gridinfo[index].phia[b] = creal(phi[b][index]);
-          if (gridinfo[index].phia[b] > global_max_min.phi_max[b]) { 
-            global_max_min.phi_max[b] = gridinfo[index].phia[b];
-          }
-          if (gridinfo[index].phia[b] < global_max_min.phi_min[b]) { 
-            global_max_min.phi_min[b] = gridinfo[index].phia[b];
+        if (!SPINODAL) {
+          for (b=0; b < NUMPHASES-1; b++) {
+            phi[b][index] = creal(phi[b][index])*inv_denom + 0.0*_Complex_I;
+            global_max_min.rel_change_phi[b] += (creal(phi[b][index])-gridinfo[index].phia[b])*(creal(phi[b][index])-gridinfo[index].phia[b]);
+            gridinfo[index].phia[b] = creal(phi[b][index]);
+            if (gridinfo[index].phia[b] > global_max_min.phi_max[b]) { 
+              global_max_min.phi_max[b] = gridinfo[index].phia[b];
+            }
+            if (gridinfo[index].phia[b] < global_max_min.phi_min[b]) { 
+              global_max_min.phi_min[b] = gridinfo[index].phia[b];
+            }
           }
         }
       }
@@ -155,6 +163,10 @@ void Fouriertoreal() {
 void calculate_df() {
 
   long index;
+  double x1s;
+  double Ti;
+  double dgdxp;
+  double dgdxm;
 
   for (x=0;x < rows_x; x++) {
     for (z=0; z < rows_z; z++) {
@@ -162,40 +174,74 @@ void calculate_df() {
 
         index = x*layer_size + z*rows_y + y;
 
-        for (b=0; b < NUMPHASES-1; b++) {
-
-          if (gridinfo[index].phia[b] < 0) {
-            W[b] = 0.0;
+        if (!SPINODAL) {
+          for (b=0; b < NUMPHASES-1; b++) {
+            if (gridinfo[index].phia[b] < 0) {
+              W[b] = 0.0;
+            }
+            else if (gridinfo[index].phia[b] > 1) {
+              W[b] = 1.0;
+            }
+            else {
+              W[b] = gridinfo[index].phia[b]*gridinfo[index].phia[b]*gridinfo[index].phia[b]*(10.0-15.0*gridinfo[index].phia[b]+6.0*gridinfo[index].phia[b]*gridinfo[index].phia[b]);
+            }
           }
-          else if (gridinfo[index].phia[b] > 1) {
-            W[b] = 1.0;
-          }
-          else {
-            W[b] = gridinfo[index].phia[b]*gridinfo[index].phia[b]*gridinfo[index].phia[b]*(10.0-15.0*gridinfo[index].phia[b]+6.0*gridinfo[index].phia[b]*gridinfo[index].phia[b]);
-          }
 
-        }
-
-        sum1 = 0;
-        for (b=0; b < NUMPHASES-1; b++) {
-          sum1 += W[b];
+          sum1 = 0;
+          for (b=0; b < NUMPHASES-1; b++) {
+            sum1 += W[b];
+          }
         }
 
         a=0; //For 1 solute or 2 components only 
-        dfdc[a][index] = 2.0*A_fm[0]*gridinfo[index].compi[a]*(1.0-sum1) - 2.0*B_fp[0]*(1.0-gridinfo[index].compi[a])*sum1;
-
-        for (b=0; b < NUMPHASES-1; b++) {
-
-          if (gridinfo[index].phia[b] < 0 || gridinfo[index].phia[b] > 1) {
-            dWdphi = 0.0;
+        if (SPINODAL) {
+          //dfdc[a][index] = 2.0*A_fm[0]*gridinfo[index].compi[a]*(1.0-gridinfo[index].compi[a])*(1.0-2.0*gridinfo[index].compi[a]);
+          if (tdbflag) {
+            x1s = gridinfo[index].compi[a];
+            dfdc[a][index] = dGSOLdX1S(temperature, x1s);
+          }
+          else{
+            dfdc[a][index] = 2.0*A_fm[0]*gridinfo[index].compi[a]*(1.0-gridinfo[index].compi[a])*(1.0-2.0*gridinfo[index].compi[a]);
+          }
+          
+        } 
+        else {
+          //dfdc[a][index] = 2.0*A_fm[0]*gridinfo[index].compi[a]*(1.0-sum1) - 2.0*B_fp[0]*(1.0-gridinfo[index].compi[a])*sum1;
+          if (tdbflag) {
+            x1s = gridinfo[index].compi[a];
+            dgdxm = dGSOL_mdX1S(temperature, x1s);
+            dgdxp = dGSOLdX1S(temperature, x1s);
+            dfdc[a][index] = (1.0-sum1)*dgdxm + sum1*dgdxp; 
           }
           else {
-            dWdphi = 30.0*gridinfo[index].phia[b]*gridinfo[index].phia[b]*(1.0-gridinfo[index].phia[b])*(1.0-gridinfo[index].phia[b]);
+            dfdc[a][index] = 2.0*A_fm[0]*gridinfo[index].compi[a]*(1.0-sum1) - 2.0*B_fp[0]*(1.0-gridinfo[index].compi[a])*sum1;
           }
-          a = 0; //For 1 solute or 2 components
-          tmp1 = dWdphi*(-A_fm[0]*gridinfo[index].compi[a]*gridinfo[index].compi[a] + B_fp[0]*(1.0-gridinfo[index].compi[a])*(1.0-gridinfo[index].compi[a]));
-          tmp2 = 2.0*P[0]*gridinfo[index].phia[b]*(1.0-gridinfo[index].phia[b])*(1.0-2.0*gridinfo[index].phia[b]); 
-          dfdphi[b][index] = tmp1 + tmp2;
+        }
+
+        if (!SPINODAL) {
+
+          for (b=0; b < NUMPHASES-1; b++) {
+            if (gridinfo[index].phia[b] < 0 || gridinfo[index].phia[b] > 1) {
+              dWdphi = 0.0;
+            }
+            else {
+              dWdphi = 30.0*gridinfo[index].phia[b]*gridinfo[index].phia[b]*(1.0-gridinfo[index].phia[b])*(1.0-gridinfo[index].phia[b]);
+            }
+            a = 0; //For 1 solute or 2 components
+            if (tdbflag) {
+              x1s = gridinfo[index].compi[a];
+              dgdxm = dGSOL_mdX1S(temperature, x1s);
+              dgdxp = dGSOLdX1S(temperature, x1s);
+              tmp1 = dWdphi*(-dgdxm + dgdxp);
+              tmp2 = 2.0*P[0]*gridinfo[index].phia[b]*(1.0-gridinfo[index].phia[b])*(1.0-2.0*gridinfo[index].phia[b]); 
+              dfdphi[b][index] = tmp1 + tmp2;
+            }
+            else{
+              tmp1 = dWdphi*(-A_fm[0]*gridinfo[index].compi[a]*gridinfo[index].compi[a] + B_fp[0]*(1.0-gridinfo[index].compi[a])*(1.0-gridinfo[index].compi[a]));
+              tmp2 = 2.0*P[0]*gridinfo[index].phia[b]*(1.0-gridinfo[index].phia[b])*(1.0-2.0*gridinfo[index].phia[b]); 
+              dfdphi[b][index] = tmp1 + tmp2;
+            }
+          }
         }
       }
     }
@@ -209,7 +255,7 @@ void call_fftwF() {
   for (a=0; a < NUMCOMPONENTS-1; a++) {
     fftw_execute_dft(planF,dfdc[a],dfdc[a]);
   }
-  
+  if (!SPINODAL) { 
   for (b=0; b < NUMPHASES-1; b++) {
     fftw_execute_dft(planF,dfdphi[b],dfdphi[b]);
   }
@@ -217,7 +263,7 @@ void call_fftwF() {
   for (b=0; b < NUMPHASES-1; b++) {
     fftw_execute_dft(planF,phi[b],phi[b]);
   }
-  
+  }
   for (a=0; a < NUMCOMPONENTS-1; a++) {
     fftw_execute_dft(planF,com[a],com[a]);
   }
@@ -236,9 +282,11 @@ void update_Fourier_com_phi() {
         
         k2 = kx[x]*kx[x] + ky[y]*ky[y]; 
         // For 2 components and 2 phases only
-        for (b=0; b < NUMPHASES-1; b++) { 
-          inv_denom = 1.0 / (1.0+2.0*L_phi[0][1]*Kappa_phi[0][1]*k2*deltat);
-          phi[b][index] = inv_denom*(phi[b][index]-dfdphi[b][index]*deltat*L_phi[0][1]);
+        if (!SPINODAL) {
+          for (b=0; b < NUMPHASES-1; b++) { 
+            inv_denom = 1.0 / (1.0+2.0*L_phi[0][1]*Kappa_phi[0][1]*k2*deltat);
+            phi[b][index] = inv_denom*(phi[b][index]-dfdphi[b][index]*deltat*L_phi[0][1]);
+          }
         }
 
         for (a=0; a < NUMCOMPONENTS-1; a++) {
@@ -253,9 +301,10 @@ void update_Fourier_com_phi() {
 void call_fftwB() {
 
   long index;
-  
-  for (b=0; b < NUMPHASES-1; b++) {
-    fftw_execute_dft(planB,phi[b],phi[b]);
+  if (!SPINODAL) {
+    for (b=0; b < NUMPHASES-1; b++) {
+      fftw_execute_dft(planB,phi[b],phi[b]);
+    }
   }
   
   for (a=0; a < NUMCOMPONENTS-1; a++) {

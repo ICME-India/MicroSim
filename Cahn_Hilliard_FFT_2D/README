@@ -2,7 +2,10 @@
  * C code for precipitate evolution. 
  * It solves Allen-Cahn and Cahn–Hilliard equations using FFTW3. 
  * 
- * Compile the code using "make". Compilation creates "FFT_2D_ppt.out" file. 
+ * Compile the code using "make". Compilation creates "microsim_ch_fft" file. 
+ * To use TDB file as input for Gibbs energy expressions, execute "python3 GEdata_writer.py Input.in" 
+ * If TDB file input is not considered or the files with Gibbs energy functions are  
+ * already generated then proceed for the execution of the code by  
  * Execute "./microsim_ch_fft Input.in Filling.in output" 
  * 
  * Authors: Dasari Mohan and M P Gururajan

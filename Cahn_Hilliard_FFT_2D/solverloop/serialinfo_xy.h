@@ -36,17 +36,21 @@ void serialinfo_xy() {
     allocate_memory_fields(&gridinfo[index]);
   }
 
-  global_max_min.phi_max        = (double*)malloc(NUMPHASES*sizeof(double));
-  global_max_min.phi_min        = (double*)malloc(NUMPHASES*sizeof(double));
+  if (!SPINODAL) { 
+    global_max_min.phi_max        = (double*)malloc(NUMPHASES*sizeof(double));
+    global_max_min.phi_min        = (double*)malloc(NUMPHASES*sizeof(double));
+    global_max_min.rel_change_phi = (double*)malloc((NUMPHASES)*sizeof(double));
+    for (a=0; a<NUMPHASES; a++) {
+      global_max_min.phi_max[a] = 1.0;
+      global_max_min.phi_min[a] = 0.0;
+    }
+  }
   global_max_min.com_max         = (double*)malloc((NUMCOMPONENTS-1)*sizeof(double));
   global_max_min.com_min         = (double*)malloc((NUMCOMPONENTS-1)*sizeof(double));
-  global_max_min.rel_change_phi = (double*)malloc((NUMPHASES)*sizeof(double));
+  
   global_max_min.rel_change_com  = (double*)malloc((NUMCOMPONENTS-1)*sizeof(double));
   
-  for (a=0; a<NUMPHASES; a++) {
-    global_max_min.phi_max[a] = 1.0;
-    global_max_min.phi_min[a] = 0.0;
-  }
+  
   for (k=0; k<NUMCOMPONENTS-1; k++) {
     global_max_min.com_max[k] = 1.0;
     global_max_min.com_min[k] = 1.0;

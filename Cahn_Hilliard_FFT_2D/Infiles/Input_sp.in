@@ -19,8 +19,8 @@ STARTTIME = 00;
 RESTART = 0;
 ## Component and Phase names
 # COMPONENTS = {Al,Cu,B};
-COMPONENTS = {CR, FE};
-PHASES = {BCC, BCC};
+COMPONENTS = {Cu, Al};
+PHASES = {beta, alpha};
 ##Gas constant and molar volume
 R = 1.0;
 V = 1.0;
@@ -28,11 +28,11 @@ V = 1.0;
 ## WRITEFORMAT ASCII/BINARY
 ##TRACK_PROGRESS: interval of writing out the progress of the simulation to stdout. 
 WRITEFORMAT = ASCII;
-TRACK_PROGRESS = 50000;
+TRACK_PROGRESS = 10;
 ##Model-specific parameters: Preipitate growth (FFT)
 #AtomicMobility = {Diagonal:0/1, phase, 11,22,33, 12, 13, 23...};
-AtomicMobility = {1, 0, 1.0};
-AtomicMobility = {1, 1, 1.0};
+AtomicMobility = {1, 0, 1};
+AtomicMobility = {1, 1, 1};
 ##L={12, 13, 14, 23, 24...}
 L_phi = {1.0};
 ##K={12, 13, 14, 23, 24...}
@@ -55,5 +55,5 @@ cfill = {1, 0, 0.5};
 spinodal = 1;
 tdbflag = 0;
 tdbfname = crfe_lee.TDB;
-#temperature = 673.0;
+temperature = 673.0;
 

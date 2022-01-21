@@ -9,9 +9,9 @@ void free_variables(){
   Free3M(cfill,       NUMPHASES, NUMPHASES);
   Free3M(AtomicMobility, NUMPHASES, NUMCOMPONENTS-1);
 
-  fftw_free(phi);
+  //fftw_free(phi);
   fftw_free(com);
-  fftw_free(dfdphi);
+  //fftw_free(dfdphi);
   fftw_free(dfdc);
   fftw_destroy_plan(planF);
   fftw_destroy_plan(planB);
@@ -22,12 +22,12 @@ void free_variables(){
   }
 
   free(gridinfo);
-
   free(global_max_min.phi_max);
   free(global_max_min.phi_min);
+  free(global_max_min.rel_change_phi);
+
   free(global_max_min.com_max);
   free(global_max_min.com_min);
-  free(global_max_min.rel_change_phi);
   free(global_max_min.rel_change_com);
 
 }
