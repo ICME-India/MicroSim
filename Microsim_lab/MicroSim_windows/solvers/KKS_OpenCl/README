@@ -1,0 +1,20 @@
+/************************************************************
+ *
+ * OpenCL code for solidification microstructure evolution 
+ * 
+ * Compile the code using "make". Compilation creates "microsim_kks_opencl.out" file. 
+ * "python3 GEdata_writer.py Input.in" is used for generation of Gibbs energy and its derivatives
+ * To generate Gibbs energies and execute the program
+ * run "./kimsldfn.sh  Input.in Filling.in Output"
+ * It is always safe to run above command for execution of the code.
+ *
+ * If Gibbs energies are generated already then generating 
+ * Gibbs energies can be skipped and directly execute following command.
+ * Execute "./microsim_kks_opencl Input.in Filling.in Output" 
+ * 
+ * Authors: Dasari Mohan and Gandham Phanikumar
+ * Acknowledgement to P. Gerald Tennyson for contributions towards code development at IITM
+ * 
+ * This is alpha version of the code and check for updates in future release. 
+ * 
+************************************************************/

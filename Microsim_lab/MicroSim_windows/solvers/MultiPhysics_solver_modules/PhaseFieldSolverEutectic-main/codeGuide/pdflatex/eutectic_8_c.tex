@@ -1,0 +1,56 @@
+\hypertarget{eutectic_8_c}{}\doxysection{Phase\+Field\+Solver\+Eutectic/eutectic/eutectic.C File Reference}
+\label{eutectic_8_c}\index{PhaseFieldSolverEutectic/eutectic/eutectic.C@{PhaseFieldSolverEutectic/eutectic/eutectic.C}}
+{\ttfamily \#include \char`\"{}fv\+CFD.\+H\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}fv\+Options.\+H\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}simple\+Control.\+H\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}Random.\+H\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}set\+Root\+Case.\+H\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}create\+Time.\+H\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}create\+Mesh.\+H\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}create\+Fields.\+H\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}create\+Tol.\+H\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}phi\+\_\+abl\+\_\+anti\+T.\+H\char`\"{}}\newline
+Include dependency graph for eutectic.\+C\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{eutectic_8_c__incl}
+\end{center}
+\end{figure}
+\doxysubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+int \mbox{\hyperlink{eutectic_8_c_a0ddf1224851353fc92bfbff6f499fa97}{main}} (int argc, char $\ast$argv\mbox{[}$\,$\mbox{]})
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Function Documentation}
+\mbox{\Hypertarget{eutectic_8_c_a0ddf1224851353fc92bfbff6f499fa97}\label{eutectic_8_c_a0ddf1224851353fc92bfbff6f499fa97}} 
+\index{eutectic.C@{eutectic.C}!main@{main}}
+\index{main@{main}!eutectic.C@{eutectic.C}}
+\doxysubsubsection{\texorpdfstring{main()}{main()}}
+{\footnotesize\ttfamily int main (\begin{DoxyParamCaption}\item[{int}]{argc,  }\item[{char $\ast$}]{argv\mbox{[}$\,$\mbox{]} }\end{DoxyParamCaption})}
+
+The imposed temperature field as a function of thermal gradient in the x direction, G
+
+Initial tolerance to check convergence
+
+Solving the phase-\/field and chemical potential equations
+
+Writing the results according to keywords in control\+Dict
+
+Definition at line 39 of file eutectic.\+C.
+
+
+
+References A(), c\+\_\+eq\+\_\+alpha(), c\+\_\+eq\+\_\+beta(), c\+\_\+eq\+\_\+liq(), dimx(), G(), initial(), ms\+\_\+alpha(), ms\+\_\+beta(), mu(), T(), and T\+\_\+eut().
+
+Here is the call graph for this function\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=228pt]{eutectic_8_c_a0ddf1224851353fc92bfbff6f499fa97_cgraph}
+\end{center}
+\end{figure}

@@ -1,0 +1,34 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  2.1.x                                 |
+|   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    location    "constant";
+    object      transportProperties;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+dimx        dimx [0 1 0 0 0 0 0] 1; //Dimension of position
+dimt        dimt [0 0 1 0 0 0 0] 1; //Dimension of time
+ms_alpha    ms_alpha [0 0 0 0 0 0 0] -0.5; //Slope liq-alpha and alpha-liq
+ms_beta     ms_beta [0 0 0 0 0 0 0] 0.5; //Slope liq-beta and beta-liq
+c_eq_liq    c_eq_liq [0 0 0 0 0 0 0] 0.5; //Eutectic composition of liquid phase
+c_eq_alpha  c_eq_alpha [0 0 0 0 0 0 0] 0.2; //Eutectic composition of alpha phase
+c_eq_beta   c_eq_beta [0 0 0 0 0 0 0] 0.8; //Eutectic composition of beta phase
+G           G [0 0 0 0 0 0 0] 5.0e-4; //Thermal gradient
+v           v [0 0 0 0 0 0 0] 0.01; //Velocity
+A           A [0 0 0 0 0 0 0] 1.0;
+D           D [0 0 0 0 0 0 0] 1.0; //Diffusivity in liquid
+T_eut       T_eut [0 0 0 0 0 0 0] 1.0; //Eutectic temperature
+initial     initial [0 0 0 0 0 0 0] 0.89; //Constant value from temperature profile
+tau         tau [0 0 0 0 0 0 0] 0.288; //Relaxation coefficient
+gamma       gamma [0 0 0 0 0 0 0] 1.0; //Interface energy parameter
+epsilon     epsilon [0 0 0 0 0 0 0] 8.0; //Interface width parameter
+// ************************************************************************* //

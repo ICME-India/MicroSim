@@ -1,0 +1,101 @@
+##Geometrical dimensions of the simulation domain
+DIMENSION = 2;
+MESH_X = 128;
+MESH_Y = 256;
+MESH_Z = 1;
+##Discretization, space and time
+DELTA_X = 15.0;
+DELTA_Y = 15.0;
+DELTA_Z = 1.0;
+DELTA_t = 20.0;
+##Number of phases and composition
+NUMPHASES = 2;
+NUMCOMPONENTS = 2;
+#Running and saving information
+NTIMESTEPS = 1000;
+NSMOOTH = 10;
+SAVET = 100;
+STARTTIME = 0;
+RESTART = 0;
+## Component and Phase names
+## List of components in the alloy system 
+## {x1,...,xn}: x1 is 1st alloying element, xn is solvent (matrix) element
+## Name of the element should be in accordance with  TDB file 
+COMPONENTS = {NB, NI};
+## List of phases in the alloy system 
+## {phase_1,...,phase_n}: phase_1 is 1st phase, phase_n is matrix phase 
+## Name of the phase should be in accordance with  TDB file 
+PHASES = {FCC_A1, LIQUID};
+##Material properties
+##GAMMA={12, 13, 14, 23, 24...}
+GAMMA = {0.37};
+# Diffusivity = {Diagonal:0/1, phase, 11,22,33, 12, 13, 23...};
+DIFFUSIVITY = {1, 0, 1e-12};
+DIFFUSIVITY = {1, 1, 4.31e-9};
+##Gas constant and molar volume
+R = 8.314;
+V = 7.43e-6;
+##Boundary conditions
+#0: Free, 1: Neumann, 2: Dirichlet, 3: Periodic, 4: Complex
+#Boundary = {phase, X+, X-, Y+, Y-, Z+, Z-}
+BOUNDARY = {phi, 1, 1, 1, 1, 0, 0};
+BOUNDARY = {mu, 1, 1, 1, 1, 0, 0};
+BOUNDARY = {c, 1, 1, 1, 1, 0, 0};
+BOUNDARY = {T, 1, 1, 1, 1, 0, 0};
+# Boundary = {phi, 1, 1, 0};
+# Boundary = {"u", 3, 3, 2, 2};
+#Boundary_value = {Value X+, Value X-, Value Y+, Value Y-, Value Z+, Value Z-}
+BOUNDARY_VALUE = {phi, 0, 0, 0, 0, 0, 0};
+BOUNDARY_VALUE = {mu, 0, 0, 0, 0, 0, 0};
+BOUNDARY_VALUE = {c, 0, 0, 0, 0, 0, 0};
+BOUNDARY_VALUE = {T, 0, 0, 0, 0, 0, 0};
+##Type of simulation
+ISOTHERMAL = 0;
+BINARY = 1;
+T = 1690.0;
+##FILEWRITING and OUTPUTTING TO SCREEN
+## WRITEFORMAT ASCII/BINARY
+##TRACK_PROGRESS: interval of writing out the progress of the simulation to stdout. 
+WRITEFORMAT = ASCII;
+TRACK_PROGRESS = 1000;
+##Model-specific parameters: Grand-potential model
+##Phase-field parameters; epsilon:interface width; it is not the gradient energy coefficient
+epsilon = 300.0;
+##Anisotropy functions
+##Anisotropy mode, FUNCTION_ANISOTROPY=0 is isotropic
+Function_anisotropy = 1;
+dab = {0.023};
+#Rotation_matrix = {0, 1, Euler_x(ang), Euler_y(ang), Euler_z(ang)};
+Rotation_matrix = {0, 1, 0, 0, 0};
+#Shifting of domain for infinite domain simulations
+Shift = 0;
+Shiftj = 0;
+#Writing of composition fields along with the chemical potential fields
+Writecomposition = 0;
+#Noise
+Noise_phasefield = 1;
+Amp_Noise_Phase = 0.0001;
+#TEMPGRADY={BASETEMP,    DELTAT,   DISTANCE,    OFFSET,      VELOCITY}
+Tempgrady = {1695.52,      0.02,       20.0,      25.0,      0.002320};
+#Composition at T 
+ceq = {0, 0, 2.03782E-02};
+ceq = {0, 1, 2.03782E-02};
+ceq = {1, 1, 3.28341E-02};
+ceq = {1, 0, 3.28341E-02};
+#Initial domain composition
+cfill = {0, 0, 2.03782E-02};
+cfill = {0, 1, 2.03782E-02};
+cfill = {1, 1, 3.28341E-02};
+cfill = {1, 0, 3.28341E-02};
+##Parameters for Kim model
+#Time step to start the noise implementation
+tNoiseStart = 1000;
+TLiquidus = 1695.52;
+#Anti-trapping current in composition evolution 
+atr = 1; 
+# ID of OpenCL platform
+CLplatformID = 0; 
+# ID of OpenCL device in above platform
+CLdeviceID = 0;
+# Name of the TDB file 
+tdbfname = nbni_bolc.tdb;

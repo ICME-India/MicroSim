@@ -1,0 +1,42 @@
+The solver requires {\itshape dynamic\+Interface\+Refine\+Fv\+Mesh} library, and has been successfully tested using Open\+FOAM v6. Before compiling the solver, the library must be obtained in the following procedure\+:
+
+
+\begin{DoxyItemize}
+\item You can compile the lib where ever you want. This is just an example\+: \begin{quote}
+mkdir -\/p \$\+FOAM\+\_\+\+RUN/../\+Open\+FOAM\+\_\+extensions \end{quote}
+
+\item Switch to this directory \begin{quote}
+cd \$\+FOAM\+\_\+\+RUN/../\+Open\+FOAM\+\_\+extensions \end{quote}
+
+\item Clone the repository \begin{quote}
+git clone \href{https://bitbucket.org/shor-ty/dynamicinterfacerefinefvmesh.git}{\texttt{ https\+://bitbucket.\+org/shor-\/ty/dynamicinterfacerefinefvmesh.\+git}} \end{quote}
+
+\item Move to the new library folder \begin{quote}
+cd dynamicinterfacerefinefvmesh \end{quote}
+
+\item Checkout the openfoam version you need (e.\+g. using 5.\+x) \begin{quote}
+git checkout Open\+FOAM-\/5.\+x \end{quote}
+
+\item Go to the library source \begin{quote}
+cd src/dynamic\+Fv\+Mesh \end{quote}
+
+\item Compile the lib \begin{quote}
+wmake libso \end{quote}
+
+\item Finally you have to include the libary into your solver set-\/up. Therefore add the following line to your dynamic\+Mesh\+Dict \begin{quote}
+dynamic\+Fv\+Mesh\+Libs ( \char`\"{}libdynamic\+Interface\+Refine\+Fv\+Mesh.\+so\char`\"{} ); \end{quote}
+
+\item The best way is to copy the dynamic\+Mesh\+Dict to your case and modify it.
+\end{DoxyItemize}\hypertarget{index_s1}{}\doxysection{Compiling the solver}\label{index_s1}
+
+\begin{DoxyItemize}
+\item Following commands should create the executable of the solver \begin{quote}
+cd \$\+FOAM\+\_\+\+RUN/phase\+Field\+Solver\+Dynamic/phase\+Field\+Solver\+Dynamic \end{quote}
+\begin{quote}
+wclean \end{quote}
+\begin{quote}
+wmake \end{quote}
+
+\item The solver can be run by following the instructions in {\itshape user\+Guide}.
+\end{DoxyItemize}\hypertarget{index_s2}{}\doxysection{Further details}\label{index_s2}
+The implementation, client and header files of the solver have been written following Open\+FOAM conventions. These are explained next with flow charts generated from the source code using Doxygen. It must be noted that the solver is based on \href{https://www.openfoam.com/documentation/guides/latest/doc/guide-applications-solvers-basic-laplacianFoam.html}{\texttt{ laplacian\+Foam}} solver within Open\+FOAM. Hence, it may be helpful for the user to become familiar with \href{http://foam.sourceforge.net/docs/Guides-a4/ProgrammersGuide.pdf}{\texttt{ Open\+FOAM Programmer’s Guide}} and \href{https://www.openfoam.com/documentation/guides/latest/doc/guide-applications-solvers-basic-laplacianFoam.html}{\texttt{ laplacian\+Foam}} beforehand. 

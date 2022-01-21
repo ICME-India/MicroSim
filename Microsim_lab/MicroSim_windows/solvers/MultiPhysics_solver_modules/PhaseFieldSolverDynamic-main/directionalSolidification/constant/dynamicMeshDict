@@ -1,0 +1,84 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  5.x                                   |
+|   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    location    "constant";
+    object      dynamicMeshDict;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+dynamicFvMeshLibs ( "libdynamicInterfaceRefineFvMesh.so" );
+
+dynamicFvMesh   dynamicInterfaceRefineFvMesh;
+
+dynamicInterfaceRefineFvMeshCoeffs
+{
+    // Field to be refined
+    field       phi;
+
+    // Setting for Interface handling
+
+        // How often to refine
+        refineInterface  50;
+
+        // Refine field inbetween lower..upper
+        lowerRefineLevelInterface 0.001;
+        upperRefineLevelInterface 0.999;
+
+        // If unrefineLevelMin > value of field -> unrefine
+        // If unrefineLevelMax < value of field -> unrefine
+        unrefineLevelInterfaceMin   0.0001;
+        unrefineLevelInterfaceMax   0.9999;
+
+        // Have slower than 2:1 refinement
+        nBufferLayersInterface   1;
+
+        // Refine cells only up to maxRefinement levels
+        maxRefinementInterface   2;
+
+        // Stop refinement if maxCells reached
+        maxCellsInterface        2000000;
+
+    // Setting for Phase handling
+        // How often to refine
+        refinePhase  1;
+
+        // Refine field inbetween lower..upper
+        lowerRefineLevelPhase 0.0000000001;
+        upperRefineLevelPhase 0.001;
+
+        // If unrefineLevelPhase > value of field -> unrefine
+        unrefineLevelPhase   -1.10;
+
+        // Have slower than 2:1 refinement
+        nBufferLayersPhase   0;
+
+        // Refine cells only up to maxRefinement levels
+        maxRefinementPhase   1;
+
+        // Stop refinement if maxCells reached
+        maxCellsPhase        20000000;
+
+
+    // Flux field and corresponding velocity field. Fluxes on changed
+    // faces get recalculated by interpolating the velocity. Use 'none'
+    // on surfaceScalarFields that do not need to be reinterpolated.
+    correctFluxes
+    (
+      
+    );
+
+    // Write the refinement level as a volScalarField
+    dumpLevel       false;
+}
+
+
+// ************************************************************************* //

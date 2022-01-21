@@ -1,0 +1,23 @@
+################################################################################
+# File
+#     MicroSim/bashrc
+#
+# Description
+#     Startup file for MicroSim
+#     Sourced from ~/.bashrc
+################################################################################
+# Location of install directory
+export MS_INST_DIR=/opt/MicroSim
+
+# Location of user directory
+export MS_USR=$HOME/MicroSim
+
+# Location of copied executables
+export MS_BIN=$MS_USR/bin
+
+# Location for running simulations
+export MS_RUN=$MS_USR/run
+
+# Adding MS_BIN to path
+export PATH="$MS_BIN:$MS_INST_DIR:$PATH"
+################################################################################

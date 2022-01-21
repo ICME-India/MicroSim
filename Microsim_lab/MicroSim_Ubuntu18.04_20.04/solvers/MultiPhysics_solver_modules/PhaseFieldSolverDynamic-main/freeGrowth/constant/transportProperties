@@ -1,0 +1,40 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  2.1.x                                 |
+|   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    location    "constant";
+    object      transportProperties;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+dimx        dimx [0 1 0 0 0 0 0] 1; //Dimension of position
+dimt        dimt [0 0 1 0 0 0 0] 1; //Dimension of time
+m_0         m_0 [0 0 0 0 0 0 0] 1e9; //Slope solidus
+m_1         m_1 [0 0 0 0 0 0 0] 0.45; //Slope liquidus
+omega       omega [0 0 0 0 0 0 0] 1.687; //Relaxation coefficient for phi (order parameter)
+gamma       gamma [0 0 0 0 0 0 0] 1; //Surface Energy
+epsilon     epsilon [0 0 0 0 0 0 0] 48; //Interface Width
+c_Sol       c_Sol [0 0 0 0 0 0 0] 0.78; //Composition of solid in equilibrium with liquid
+c_Liq       c_Liq [0 0 0 0 0 0 0] 0.45; //Composition of liquid in equilibrium with solid
+c_eq        c_eq [0 0 0 0 0 0 0] 0.5; //Equilibrium composition or average composition of alloy
+diff_Sol    diff_Sol [0 0 0 0 0 0 0] 1; //Diffusivity in solid
+diff_Liq    diff_Liq [0 0 0 0 0 0 0] 1; //Diffusivity in liquid
+anti_trap   anti_trap [0 0 0 0 0 0 0] 0.35355; //Antitrapping coefficient
+G           G [0 0 0 0 0 0 0] 0.0; //Thermal gradient
+v           v [0 0 0 0 0 0 0] 0.0; //Velocity
+noise_mag           noise_mag [0 0 0 0 0 0 0] 0.003; //Noise magnitude
+initial           initial [0 0 0 0 0 0 0] 0.93; //Constant value from temperature profile
+T0         	 T0 [0 0 0 0 0 0 0] 1.0; //Melting temperature
+T         	 T0 [0 0 0 0 0 0 0] 0.93; //Operating temperature
+delta_01         delta_01 [0 0 0 0 0 0 0] 0.02; //Strength of anisotropy
+A            A [0 0 0 0 0 0 0] 1;
+//B            B [0 0 0 0 0 0 0] 1;
+// ************************************************************************* //
