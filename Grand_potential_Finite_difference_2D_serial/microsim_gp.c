@@ -73,6 +73,14 @@ int main(int argc, char * argv[]) {
       }
     }
   }
+  
+  if (TEMPGRADY) {
+    BASE_POS    = (temperature_gradientY.gradient_OFFSET/deltay) - shift_OFFSET;
+    GRADIENT    = (temperature_gradientY.DeltaT)*deltay/(temperature_gradientY.Distance);
+    temp_bottom = temperature_gradientY.base_temp - BASE_POS*GRADIENT;
+    apply_temperature_gradientY(gridinfo, shift_OFFSET, 0);
+  }
+  
   apply_boundary_conditions(0);
 
   if((RESTART == 0) || (STARTTIME ==0)) {
