@@ -139,6 +139,10 @@ void Mpiinfo(long taskid) {
               buffer[j] = gridinfo[index].compi[k];
               j++;
             }
+            for (k=0; k<NUMCOMPONENTS-1; k++) {
+              buffer[j] = gridinfo[index].composition[k];
+              j++;
+            }
             for (a=0; a<NUMPHASES; a++) {
               buffer[j] = gridinfo[index].deltaphi[a];
               j++;
@@ -185,6 +189,55 @@ void Mpiinfo(long taskid) {
         workers_mpi.offset_y    = 0;
         workers_mpi.offset_z    = 0;
         
+        if ((workers_mpi.firstx==1) || (workers_mpi.lastx==1) || (workers_mpi.firsty==1) || (workers_mpi.lasty==1)) {
+          if((workers_mpi.firstx==1) || (workers_mpi.lastx==1)) {
+            workers_mpi.rows_x = workers_mpi.rows[X] + 3;
+            workers_mpi.end[X] = workers_mpi.rows_x  - 4;
+            if (workers_mpi.lastx==1) {
+              workers_mpi.offset_x = 3; 
+            } else {
+              workers_mpi.offset_x = 0;
+            }
+            if (workers_mpi.firstx && workers_mpi.lastx) { //Just one worker in the x-direction
+              workers_mpi.offset_x   = 0;
+              workers_mpi.rows_x     = workers_mpi.rows[X];
+              workers_mpi.end[X]     = workers_mpi.rows_x - 4;
+            }
+          } else {
+            workers_mpi.rows_x   = workers_mpi.rows[X] + 6;
+            workers_mpi.end[X]   = workers_mpi.rows_x  - 4;
+            workers_mpi.offset_x = 3;
+          }
+          if ((workers_mpi.firsty==1) || (workers_mpi.lasty==1)) {
+            workers_mpi.rows_y     = workers_mpi.rows[Y] + 3;
+            workers_mpi.end[Y]     = workers_mpi.rows_y  - 4;
+            
+            if (workers_mpi.lasty==1) {
+              workers_mpi.offset_y = 3; 
+            } else {
+              workers_mpi.offset_y = 0;
+            }
+            if (workers_mpi.firsty && workers_mpi.lasty) { //Just one worker in y-direction
+              workers_mpi.offset_y = 0;
+              workers_mpi.rows_y   = workers_mpi.rows[Y];
+              workers_mpi.end[Y]   = workers_mpi.rows_y - 4;
+            }
+          } else {
+            workers_mpi.rows_y    = workers_mpi.rows[Y] + 6;
+            workers_mpi.end[Y]    = workers_mpi.rows_y  - 4;
+            workers_mpi.offset_y   = 3;
+          }
+        } else {
+          workers_mpi.rows_x   = workers_mpi.rows[X] + 6;
+          workers_mpi.rows_y   = workers_mpi.rows[Y] + 6;
+          workers_mpi.end[X]   = workers_mpi.rows_x  - 4;
+          workers_mpi.end[Y]   = workers_mpi.rows_y  - 4;
+          workers_mpi.offset_x = 3;
+          workers_mpi.offset_y = 3;
+        }
+        
+        workers_mpi.layer_size  = workers_mpi.rows_y*workers_mpi.rows_z;
+        
         if (DIMENSION == 2) {
           workers_mpi.rows_z     = 1;
           workers_mpi.rows[Z]    = 1;
@@ -227,6 +280,9 @@ void Mpiinfo(long taskid) {
               }
               for (k=0; k<(NUMCOMPONENTS-1);k++) {
                 gridinfo_w[index_w].compi[k]    = gridinfo[index].compi[k];
+              }
+              for (k=0; k<(NUMCOMPONENTS-1);k++) {
+                gridinfo_w[index_w].composition[k]    = gridinfo[index].composition[k];
               }
               for (a=0; a<(NUMPHASES);a++) {
                 gridinfo_w[index_w].deltaphi[a] = gridinfo[index].deltaphi[a];
@@ -397,6 +453,9 @@ void Mpiinfo(long taskid) {
         for (k=0; k<(NUMCOMPONENTS-1); k++) {
           gridinfo_w[index].compi[k] = 0.0;
         }
+        for (k=0; k<(NUMCOMPONENTS-1); k++) {
+          gridinfo_w[index].composition[k] = 0.0;
+        }
         for (a=0; a<NUMPHASES; a++) {
           gridinfo_w[index].deltaphi[a] = 0.0;
         }
@@ -411,6 +470,10 @@ void Mpiinfo(long taskid) {
         }
         for (k=0; k<(NUMCOMPONENTS-1); k++) {
           gridinfo_w[index].compi[k] = buffer[j];
+          j++;
+        }
+        for (k=0; k<(NUMCOMPONENTS-1); k++) {
+          gridinfo_w[index].composition[k] = buffer[j];
           j++;
         }
         for (a=0; a<NUMPHASES; a++) {
@@ -657,6 +720,10 @@ void fill_buffer_x(long start_j, long x_start, long x_end) {
         buffer_boundary_x[j] = gridinfo_w[index].compi[k];
         j++;
       }
+      for (k=0; k<NUMCOMPONENTS-1; k++) {
+        buffer_boundary_x[j] = gridinfo_w[index].composition[k];
+        j++;
+      }
       for (a=0; a<NUMPHASES; a++) {
         buffer_boundary_x[j] = gridinfo_w[index].deltaphi[a];
         j++;
@@ -680,6 +747,10 @@ void fill_buffer_y(long start_j, long y_start, long y_end) {
       }
       for (k=0; k<NUMCOMPONENTS-1; k++) {
         buffer_boundary_y[j] = gridinfo_w[index].compi[k];
+        j++;
+      }
+      for (k=0; k<NUMCOMPONENTS-1; k++) {
+        buffer_boundary_y[j] = gridinfo_w[index].composition[k];
         j++;
       }
       for (a=0; a<NUMPHASES; a++) {
@@ -708,6 +779,10 @@ void fill_gridinfo_x(long start_j, long x_start, long x_end) {
         gridinfo_w[index].compi[k] = buffer_boundary_x[j];
         j++;
       }
+      for (k=0; k<NUMCOMPONENTS-1; k++) {
+        gridinfo_w[index].composition[k] = buffer_boundary_x[j];
+        j++;
+      }
       for (a=0; a<NUMPHASES; a++) {
         gridinfo_w[index].deltaphi[a] = buffer_boundary_x[j];
         j++;
@@ -731,6 +806,10 @@ void fill_gridinfo_y(long start_j, long y_start, long y_end) {
       }
       for (k=0; k<(NUMCOMPONENTS-1); k++) {
         gridinfo_w[index].compi[k] = buffer_boundary_y[j];
+        j++;
+      }
+      for (k=0; k<(NUMCOMPONENTS-1); k++) {
+        gridinfo_w[index].composition[k] = buffer_boundary_y[j];
         j++;
       }
       for (a=0; a<NUMPHASES; a++) {

@@ -38,7 +38,8 @@ void copyXZ(struct bc_scalars *boundary, long x_start, long x_end, struct fields
             gidy_from          = x*workers_mpi.layer_size + z*workers_mpi.rows_y + copy_from;
             gidy_to            = x*workers_mpi.layer_size + z*workers_mpi.rows_y + copy_to;
             for (k=0; k< NUMCOMPONENTS-1; k++) {
-              gridinfo_w[gidy_to].compi[k] = gridinfo_w[gidy_from].compi[k];
+              gridinfo_w[gidy_to].compi[k]       = gridinfo_w[gidy_from].compi[k];
+              gridinfo_w[gidy_to].composition[k] = gridinfo_w[gidy_from].composition[k];
             }
           }
         }
@@ -95,6 +96,7 @@ void copyYZ(struct bc_scalars *boundary, struct fields* gridinfo_w, char *field_
             gidy_to            = copy_to*workers_mpi.layer_size    +  z*workers_mpi.rows_y + y;
             for (k=0; k < NUMCOMPONENTS-1; k++) {
               gridinfo_w[gidy_to].compi[k] = gridinfo_w[gidy_from].compi[k];
+              gridinfo_w[gidy_to].composition[k] = gridinfo_w[gidy_from].composition[k];
             }
           }
         }
@@ -151,6 +153,7 @@ void copyXY(struct bc_scalars *boundary, long x_start, long x_end, struct fields
               gidy_to            = x*workers_mpi.layer_size + copy_to*workers_mpi.rows_y   + y;
               for(k=0; k<NUMCOMPONENTS-1; k++) {
                 gridinfo_w[gidy_to].compi[k] = gridinfo_w[gidy_from].compi[k];
+                gridinfo_w[gidy_to].composition[k] = gridinfo_w[gidy_from].composition[k];
               }
             }
           }

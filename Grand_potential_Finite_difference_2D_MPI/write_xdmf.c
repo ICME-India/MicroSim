@@ -6,6 +6,8 @@
 #include <stdlib.h> 
 #include <stdbool.h>
 #include <sys/stat.h>
+#include <gsl/gsl_errno.h>
+#include <gsl/gsl_spline.h>
 #include "functions/global_vars.h"
 #include "functions/functions.h"
 #include "functions/matrix.h"
@@ -13,7 +15,7 @@
 #include "functions/reading_input_parameters.h"
 
 
-void write_xdmf_xml(long t, long nprocs, char *argv[]);
+void write_xdmf_xml(long t, char *argv[]);
 
 void main(int argc, char *argv[]) {
   /* PASS TIME ARGUMENT ALSO: ELSE IT WILL GIVE SEGMENTATION FAULT
@@ -22,16 +24,16 @@ void main(int argc, char *argv[]) {
   long t, nprocs;
   long t_start, t_end;
   assert(argc > 1);
-  nprocs = atol(argv[3]);
+//   nprocs = atol(argv[3]);
 //   if (argc > 2){
 //           t = atol(argv[3]);
 //   }
   reading_input_parameters(argv);
-  t_start = atol(argv[4]);
-  t_end   = atol(argv[5]);
+  t_start = atol(argv[3]);
+  t_end   = atol(argv[4]);
   
   for (t=t_start; t<=t_end; t+=saveT) {
-    write_xdmf_xml(t, nprocs, argv);
+    write_xdmf_xml(t, argv);
   }
   
   Free3M(Diffusivity, NUMPHASES, NUMCOMPONENTS-1);
@@ -61,7 +63,7 @@ void main(int argc, char *argv[]) {
   
   return;
 }
-void write_xdmf_xml(long t, long nprocs, char *argv[]){
+void write_xdmf_xml(long t, char *argv[]){
     long a, k;
 	
     FILE *xmf = 0;
@@ -70,11 +72,13 @@ void write_xdmf_xml(long t, long nprocs, char *argv[]){
      * Open the file and write the XML description of the mesh..
      */
 	char fname_write[1000];
-	sprintf(fname_write, "DATA/%s_%ld_%ld.xmf", argv[2], nprocs, t);
+// 	sprintf(fname_write, "DATA/%s_%ld_%ld.xmf", argv[2], nprocs, t);
+        sprintf(fname_write, "DATA/%s_%ld.xmf", argv[2], t);
     xmf = fopen(fname_write, "w");
 	
 	char fname_read[1000];
-	sprintf(fname_read, "%s_%ld_%ld.h5", argv[2], nprocs, t);
+// 	sprintf(fname_read, "%s_%ld_%ld.h5", argv[2], nprocs, t);
+        sprintf(fname_read, "%s_%ld.h5", argv[2], t);
 	
     fprintf(xmf, "<?xml version=\"1.0\" ?>\n");
     fprintf(xmf, "<!DOCTYPE Xdmf SYSTEM \"Xdmf.dtd\" []>\n");
@@ -88,7 +92,7 @@ void write_xdmf_xml(long t, long nprocs, char *argv[]){
     fprintf(xmf, "       	0 0\n");
     fprintf(xmf, "       </DataItem>\n");
     fprintf(xmf, "       <DataItem Dimensions=\"%d\" NumberType=\"Float\" Precision=\"4\" Format=\"XML\">\n", DIMENSION);
-    fprintf(xmf, "       	%lf %lf\n", deltax, deltay);
+    fprintf(xmf, "       	%lf %lf\n", 1.0, 1.0);
     fprintf(xmf, "       </DataItem>\n");
     fprintf(xmf, "     </Geometry>\n");
     

@@ -20,6 +20,43 @@ void free_variables(){
   FreeM(dBbdT,        NUMPHASES);
   FreeM(Gamma, NUMPHASES);
   Free3M(Gamma_abc, NUMPHASES, NUMPHASES);
+//   if (FUNCTION_F==2) {
+    Free3M(c_guess,         NUMPHASES, NUMPHASES);
+//   }
+  if (FUNCTION_F==4) {
+    for(i=0;i<NUM_THERMO_PHASES;i++) {
+      for(j=0;j<NUMCOMPONENTS-1;j++){
+        for(k=0;k<NUMCOMPONENTS-1;k++){
+          gsl_spline_free (spline_ThF[i][j][k]);
+          gsl_interp_accel_free (acc_ThF[i][j][k]);
+        }
+        free(spline_ThF[i][j]);
+        free(acc_ThF[i][j]);
+      }
+//       free(Mat[i]);
+      free(spline_ThF[i]);
+      free(acc_ThF[i]);
+    }
+    free(spline_ThF);
+    free(acc_ThF);
+//     Mat=NULL;
+    
+    for(i=0;i<NUM_THERMO_PHASES-1;i++) {
+      for(j=0;j<NUMCOMPONENTS-1;j++){
+        for(k=0;k<2;k++){
+          gsl_spline_free (spline_ES[i][j][k]);
+          gsl_interp_accel_free (acc_ES[i][j][k]);
+        }
+        free(spline_ES[i][j]);
+        free(acc_ES[i][j]);
+      }
+//       free(Mat[i]);
+      free(spline_ES[i]);
+      free(acc_ES[i]);
+    }
+    free(spline_ES);
+    free(acc_ES);
+  }
   
   if(FUNCTION_ANISOTROPY !=0) {
     if(FOLD==4) {
@@ -81,9 +118,12 @@ void free_variables(){
   
   Free3M(cmu,NUMCOMPONENTS-1,NUMCOMPONENTS-1);
   Free3M(muc,NUMCOMPONENTS-1,NUMCOMPONENTS-1);
+  Free3M(dcdmu_phase, NUMPHASES, NUMCOMPONENTS-1);
+ 
 //   
   FreeM(dcdmu,    NUMCOMPONENTS-1);
   FreeM(inv_dcdmu,NUMCOMPONENTS-1);
+  FreeM(Ddcdmu,   NUMCOMPONENTS-1);
   Free4M(Rotation_matrix,NUMPHASES, NUMPHASES, DIMENSION);
   Free4M(Inv_Rotation_matrix,NUMPHASES, NUMPHASES, DIMENSION);
   free(Rotated_qab);
@@ -100,4 +140,33 @@ void free_variables(){
   free(divflux);
   free(divjat);
   free(deltac);
+  free(c_old);
+  free(c_new);
+  free(c_tdt);
+  
+  for (i = 0; i < NUMPHASES; ++i) {
+    free(Phases[i]);
+  }
+  free(Phases);
+  Phases = NULL;
+  
+  for (i = 0; i < NUMCOMPONENTS; ++i) {
+    free(Components[i]);
+  }
+  free(Components);
+  Components = NULL;
+  
+  for (i = 0; i < NUM_THERMO_PHASES; ++i) {
+    free(Phases_tdb[i]);
+  }
+  free(Phases_tdb);
+  Phases_tdb = NULL;
+  
+  for (i = 0; i < NUMPHASES; ++i) {
+    free(phase_map[i]);
+  }
+  free(phase_map);
+  phase_map = NULL;
+  
+  free(thermo_phase);
 }

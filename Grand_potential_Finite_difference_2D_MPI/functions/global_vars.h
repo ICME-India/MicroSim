@@ -13,6 +13,7 @@ double deltaz;
 double deltat;
 
 int NUMPHASES;
+int NUM_THERMO_PHASES;
 int NUMCOMPONENTS;
 int t;
 
@@ -29,6 +30,7 @@ double T;
 int TEMPGRADY=0;
 int ISOTHERMAL=0;
 double TEMPERATURE_SCALE;
+double DELTAT;
 
 double epsilon;
 double tau;
@@ -61,6 +63,9 @@ int NOISE_PHASEFIELD=0;
 double AMP_NOISE_PHASE=0.0;
 char **Components;
 char **Phases;
+char **Phases_tdb;
+char **phase_map;
+long *thermo_phase;
 
 double t_smooth;
 // double divphi[NUMPHASES],lambda_phi[NUMPHASES];
@@ -94,13 +99,24 @@ double ***cfill;
 double ***ceq_coeffs;
 // double slopes[NUMPHASES][NUMPHASES][NUMCOMPONENTS-1];
 double ***slopes;
+double ***c_guess;
+double ****comp_ES;
+double ****ThF;
+double **T_ES;
+double **T_ThF;
+gsl_interp_accel ****acc_ES;
+gsl_spline ****spline_ES;
+gsl_interp_accel ****acc_ThF;
+gsl_spline ****spline_ThF;
+
+
 double DET;
 
 // double c_old[NUMCOMPONENTS-1],c_new[NUMCOMPONENTS-1],c[NUMCOMPONENTS-1];
-double *c_old, *c_new, *c;
+double *c_old, *c_new, *c, *c_tdt;
 // double Diffusivity[NUMPHASES][NUMCOMPONENTS-1][NUMCOMPONENTS-1];
 double ***Diffusivity;
-double **dcdmu, **inv_dcdmu, *deltamu, *deltac, *sum;
+double **dcdmu, **inv_dcdmu, *deltamu, *deltac, *sum, ***dcdmu_phase, **Ddcdmu;
 long bulk_phase;
 // double Gamma[NUMPHASES][NUMPHASES];
 double **Gamma;
@@ -222,7 +238,7 @@ long active_phases, count_phases;
 double Deltaphi;
 long interface;
 double scalprod;
-long i,k;
+long i,j,k;
 double mu;
 int ASCII=0;
 int WRITEHDF5;
@@ -349,6 +365,7 @@ struct Stiffness_tetragonal *Stiffness_t;
 struct fields {
   double *phia;
   double *compi;
+  double *composition;
   double *deltaphi;
   double temperature;
 };
@@ -356,7 +373,7 @@ struct fields {
 double *buffer;
 double *buffer_boundary_x;
 double *buffer_boundary_y;
-#define SIZE_STRUCT_FIELDS (2*NUMPHASES+NUMCOMPONENTS-1+1)
+#define SIZE_STRUCT_FIELDS (2*NUMPHASES+2*(NUMCOMPONENTS-1)+1)
 
 // struct fields {
 //   double phia[2];
@@ -377,6 +394,11 @@ struct gradlayer {
  double ***Dmid;
  double **jat;
  double *deltaphi;
+ double **phase_comp;
+ double **dcbdT_phase;
+ double ***dcdmu_phase;
+ int interface;
+ int bulk_phase;
 };
 struct gradlayer **gradient;
 struct gradlayer *gradient1[4];
@@ -416,14 +438,19 @@ int FUNCTION_F = 1;
 
 
 double (*free_energy)(double *c, double T, long a);
-double (*Mu)(double *c, double T, long a, long i);
-double (*c_mu)(double *mu, double T, long a, long i);
-double (*dc_dmu)(double *mu, double T, long a, long i, long j);
-double (*dpsi)(double *mu, double T, double *phi, long a);
-double (*function_A)(double T1, long i, long j, long a);
+// double (*Mu)(double *c, double T, long a, long i);
+void (*Mu)(double *c, double T, long a, double *Mu);
+// double (*c_mu)(double *mu, double T, long a, long i);
+void (*c_mu)(double *mu, double *c, double T, long a, double *c_guess);
+// double (*dc_dmu)(double *mu, double T, long a, long i, long j);
+void (*dc_dmu)(double *mu, double *phase_comp, double T, long a, double **dcdmu);
+// double (*dpsi)(double *mu, double T, double *phi, long a);
+double (*dpsi)(double *mu, double **phase_comp, double T, double *phi, long a);
+void (*function_A)(double T, double ***c);
 double (*function_B)(double T, long i, long a);
 double (*function_C)(double T, long a);
-void (*compute_chemicalpotential)(struct fields* gridinfo);
+void (*init_propertymatrices)(double T);
+// void (*compute_chemicalpotential)(struct fields* gridinfo);
 // double (*free_energy)(double *c, double T, long a);
 
 double (*dwdphi)(double *phi, double *divphi, struct gradlayer **gradient, long gidy, long a);
@@ -439,7 +466,8 @@ void (*dAdq)(double *qab, double* dadq, long a, long b);
 double (*function_ac)(double *qab, long a, long b);
 
 void (*calculate_gradients)(long x, struct gradlayer **gradient);
-void (*calculate_gradients_phasefield)(long x, struct gradlayer **gradient);
+// void (*calculate_gradients_phasefield)(long x, struct gradlayer **gradient);
+void (*calculate_gradients_phasefield)(long x, struct gradlayer **gradient, int CALCULATE_COMPOSITION);
 void (*calculate_gradients_concentration)(long x, struct gradlayer **gradient);
 void (*calculate_fluxes_concentration)(long x, struct gradlayer **gradient);
 void (*calculate_divergence_concentration)(long x, struct gradlayer **gradient);
@@ -447,6 +475,8 @@ void (*calculate_divergence_concentration_smooth)(long x, struct gradlayer **gra
 void (*calculate_divergence_concentration_smooth_concentration)(long x, struct gradlayer **gradient);
 void (*calculate_divergence_phasefield)(long x, struct gradlayer **gradient);
 void (*calculate_divergence_phasefield_smooth)(long x, struct gradlayer **gradient);
+void (*solverloop_phasefield)(long *start, long *end);
+void (*solverloop_concentration)(long *start, long *end);
 
 // #define PHI 0
 // #define MU  1

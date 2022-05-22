@@ -68,8 +68,20 @@ void reading_input_parameters(char *argv[]) {
         for (i = 0; i < NUMPHASES; ++i) {
           Phases[i] = (char*)malloc(sizeof(char)*51);
         }
+        phase_map = (char**)malloc(sizeof(char*)*NUMPHASES);
+        for (i = 0; i < NUMPHASES; ++i) {
+          phase_map[i] = (char*)malloc(sizeof(char)*51);
+        }
         filling_type_phase = (struct filling_type* )malloc((NUMPHASES)*sizeof(*filling_type_phase));
       }
+      else if (strcmp(tmpstr1,"num_thermo_phases")==0) {
+        NUM_THERMO_PHASES = atoi(tmpstr2);
+        Phases_tdb = (char**)malloc(sizeof(char*)*NUM_THERMO_PHASES);
+        for (i = 0; i < NUM_THERMO_PHASES; ++i) {
+          Phases_tdb[i] = (char*)malloc(sizeof(char)*51);
+        }
+      }
+      
       else if (strcmp(tmpstr1,"NUMCOMPONENTS")==0) {
         NUMCOMPONENTS = atoi(tmpstr2);
         Components = (char**)malloc(sizeof(char*)*NUMCOMPONENTS);
@@ -176,6 +188,12 @@ void reading_input_parameters(char *argv[]) {
       }
       else if (strcmp(tmpstr1,"PHASES")==0) {
         populate_string_array(Phases, tmpstr2, NUMCOMPONENTS);
+      }
+      else if (strcmp(tmpstr1,"tdb_phases")==0) {
+        populate_string_array(Phases_tdb, tmpstr2, NUM_THERMO_PHASES);
+      }
+      else if (strcmp(tmpstr1,"phase_map")==0) {
+        populate_string_array(phase_map, tmpstr2, NUMPHASES);
       }
       else if ((strcmp(tmpstr1, "Function_anisotropy") == 0) && (NUMPHASES > 0) && ((NUMCOMPONENTS-1) >0)) {
         FUNCTION_ANISOTROPY = atoi(tmpstr2);
@@ -296,12 +314,18 @@ void reading_input_parameters(char *argv[]) {
       }
       else if ((strcmp(tmpstr1, "Function_F") == 0) && (NUMPHASES > 0) && ((NUMCOMPONENTS-1) >0)) {
         FUNCTION_F = atoi(tmpstr2);
+//         if (FUNCTION_F == 2) {
+          c_guess = Malloc3M(NUMPHASES, NUMPHASES,       NUMCOMPONENTS-1);
+//         }
       }
       else if ((strcmp(tmpstr1, "A") == 0) && (NUMPHASES > 0) && ((NUMCOMPONENTS-1) >0)) {
         populate_A_matrix(A, tmpstr2, NUMCOMPONENTS);
       }
       else if ((strcmp(tmpstr1, "slopes") == 0) && (NUMPHASES > 0) && ((NUMCOMPONENTS-1) >0)) {
         populate_thermodynamic_matrix(slopes, tmpstr2, NUMCOMPONENTS);
+      }
+      else if((strcmp(tmpstr1, "c_guess") == 0) && (NUMPHASES > 0) && ((NUMCOMPONENTS-1) >0)){
+        populate_thermodynamic_matrix(c_guess, tmpstr2, NUMCOMPONENTS);
       }
       else if ((strcmp(tmpstr1, "Function_W") == 0) && (NUMPHASES > 0) && ((NUMCOMPONENTS-1) >0)) {
         FUNCTION_W = atoi(tmpstr2);

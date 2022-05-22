@@ -27,18 +27,21 @@ void initialize_variables() {
     }
   }
 // #endif
-  dcdmu      = MallocM((NUMCOMPONENTS-1),(NUMCOMPONENTS-1));
-  inv_dcdmu  = MallocM(NUMCOMPONENTS-1,NUMCOMPONENTS-1);
-  deltamu    = MallocV(NUMCOMPONENTS-1);
-  deltac     = MallocV(NUMCOMPONENTS-1);
-  sum        = MallocV(NUMCOMPONENTS-1);
-  divphi     = MallocV(NUMPHASES);
-  lambda_phi = MallocV(NUMPHASES);
-  divflux    = MallocV(NUMCOMPONENTS-1);
-  c_old      = MallocV(NUMCOMPONENTS-1);
-  c_new      = MallocV(NUMCOMPONENTS-1);
-  divjat     = MallocV(NUMCOMPONENTS-1);
-  deltac     = MallocV(NUMCOMPONENTS-1);
+  dcdmu       = MallocM((NUMCOMPONENTS-1),(NUMCOMPONENTS-1));
+  dcdmu_phase = Malloc3M(NUMPHASES, NUMCOMPONENTS-1,NUMCOMPONENTS-1);
+  Ddcdmu      = MallocM(NUMCOMPONENTS-1,NUMCOMPONENTS-1);
+  inv_dcdmu   = MallocM(NUMCOMPONENTS-1,NUMCOMPONENTS-1);
+  deltamu     = MallocV(NUMCOMPONENTS-1);
+  deltac      = MallocV(NUMCOMPONENTS-1);
+  sum         = MallocV(NUMCOMPONENTS-1);
+  divphi      = MallocV(NUMPHASES);
+  lambda_phi  = MallocV(NUMPHASES);
+  divflux     = MallocV(NUMCOMPONENTS-1);
+  c_old       = MallocV(NUMCOMPONENTS-1);
+  c_new       = MallocV(NUMCOMPONENTS-1);
+  c_tdt       = MallocV(NUMCOMPONENTS-1);
+  divjat      = MallocV(NUMCOMPONENTS-1);
+  deltac      = MallocV(NUMCOMPONENTS-1);
   
   gridinfo_instance = (struct fields *)malloc(sizeof(*gridinfo_instance));
   allocate_memory_fields(gridinfo_instance);

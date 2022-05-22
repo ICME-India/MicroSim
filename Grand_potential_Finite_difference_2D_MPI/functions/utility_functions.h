@@ -337,6 +337,13 @@ void populate_string_array(char**string, char *tmpstr, long size) {
     if (token == NULL)
         break;
     strcpy(string[i],token);
+    if (string[i][0] == ' '){
+//       string[i]++;
+       memmove(string[i], string[i]+1, strlen(string[i]));
+    }
+    if (string[i][strlen(string[i])-1] == ' ') {
+      string[i][strlen(string[i])-1] = '\0';
+    }
   }
 }
 void populate_cubic_stiffness(struct Stiffness_cubic *Mat, char *tmpstr) {
@@ -1093,13 +1100,17 @@ void allocate_memory_gradlayer(struct gradlayer *ptr) {
   ptr->Dmid         = Malloc3M(3,NUMCOMPONENTS-1, NUMCOMPONENTS-1);
   ptr->jat          = MallocM(3, NUMCOMPONENTS-1);
   ptr->deltaphi     = (double *)malloc(NUMPHASES*sizeof(double));
+  ptr->phase_comp   = MallocM(NUMPHASES,NUMCOMPONENTS-1);
+  ptr->dcbdT_phase  = MallocM(NUMPHASES,NUMCOMPONENTS-1);
+  ptr->dcdmu_phase  = Malloc3M(NUMPHASES,NUMCOMPONENTS-1, NUMCOMPONENTS-1);
 }
 void allocate_memory_fields(struct fields *ptr) {
   double *tmp;
-  tmp = (double *)malloc((2*NUMPHASES+NUMCOMPONENTS-1)*sizeof(double));
-  ptr->phia     = tmp;
-  ptr->compi    = tmp + NUMPHASES;
-  ptr->deltaphi = tmp + (NUMPHASES) + (NUMCOMPONENTS-1);
+  tmp = (double *)malloc((2*NUMPHASES+2*(NUMCOMPONENTS-1))*sizeof(double));
+  ptr->phia        = tmp;
+  ptr->compi       = tmp + NUMPHASES;
+  ptr->composition = tmp + NUMPHASES   + (NUMCOMPONENTS-1);
+  ptr->deltaphi    = tmp + (NUMPHASES) + 2*(NUMCOMPONENTS-1);
 }
 
 void free_memory_gradlayer(struct gradlayer *ptr) {
@@ -1110,6 +1121,9 @@ void free_memory_gradlayer(struct gradlayer *ptr) {
   Free3M(ptr->Dmid, 3, NUMCOMPONENTS-1);
   FreeM(ptr->jat, 3);
   free(ptr->deltaphi);
+  FreeM(ptr->phase_comp,  NUMPHASES);
+  FreeM(ptr->dcbdT_phase, NUMPHASES);
+  Free3M(ptr->dcdmu_phase, NUMPHASES, NUMCOMPONENTS-1);
 }
 void free_memory_fields(struct fields *ptr) {
   if ((ptr->phia)!=NULL) {
