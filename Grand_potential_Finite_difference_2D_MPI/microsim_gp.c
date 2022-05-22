@@ -6,12 +6,23 @@
 #include <stdlib.h> 
 #include <stdbool.h>
 #include <sys/stat.h>
+#include <gsl/gsl_errno.h>
+#include <gsl/gsl_spline.h>
+#include <gsl/gsl_vector.h>
+#include <gsl/gsl_blas.h>
+#include <gsl/gsl_multiroots.h>
+#include <gsl/gsl_roots.h>
+#include "tdbs/Thermo.h"
+#include "tdbs/Thermo.c"
 #include "functions/global_vars.h"
 #include "functions/functions.h"
 #include "functions/matrix.h"
 #include "functions/utility_functions.h"
 #include "functions/functionH.h"
 #include "functions/functionF_01.h"
+#include "functions/functionF_02.h"
+#include "functions/functionF_03.h"
+#include "functions/functionF_04.h"
 #include "functions/functionQ.h"
 #include "functions/anisotropy_01.h"
 #include "functions/functionW_01.h"
@@ -38,8 +49,8 @@
 #include "solverloop/calculate_fluxes_concentration.h"
 #include "solverloop/calculate_divergence_phasefield.h"
 #include "solverloop/calculate_divergence_concentration.h"
-#include "solverloop/initialize_functions_solverloop.h"
 #include "solverloop/solverloop.h"
+#include "solverloop/initialize_functions_solverloop.h"
 #include "solverloop/mpiinfo_xy.h"
 #include "solverloop/boundary_mpi.h"
 #include "solverloop/file_writer.h"
@@ -57,9 +68,18 @@ int main(int argc, char * argv[]) {
   initialize_variables();
   initialize_functions_solverloop();
   read_boundary_conditions(argv);
-  init_propertymatrices(T);
+  if (!(FUNCTION_F == 2)) {
+    init_propertymatrices(T);
+//     printf("I am coming here\n");
+  }
   
-  
+  for (a=0; a<NUMPHASES-1; a++) {
+    for(k=0; k<NUMCOMPONENTS-1; k++) {
+      printf("slopes[a][NUMPHASES-1][k]=%le\n", slopes[a][NUMPHASES-1][k]);
+      printf("slopes[a][a][k]=%le\n", slopes[a][a][k]);
+    }
+  }
+
   Build_derived_type(gridinfo_instance, &MPI_gridinfo);
   
   numworkers_x = atol(argv[4]);
@@ -85,9 +105,43 @@ int main(int argc, char * argv[]) {
       fill_domain(argv);
     }
   }
+ 
   populate_table_names();
     
   Mpiinfo(taskid);
+  
+//   if (FUNCTION_F == 2) {
+    Calculate_Tau();
+//   }
+  
+  //Checking tdb functions
+  
+  if (taskid == MASTER) {
+    double c_x;
+    double c[NUMCOMPONENTS-1];
+    double c_calc[NUMCOMPONENTS-1];
+    double mu[NUMCOMPONENTS-1];
+    double dpsi;    
+    char filename[1000];
+    double fe;
+    FILE *fp_check;
+    for (a=0; a<NUMPHASES; a++) {
+      sprintf(filename, "Thermodynamic_functions_%ld.dat", a);
+      fp_check = fopen(filename, "w");
+      for(c_x=0.01; c_x < 0.99;) {
+        c[0] = c_x;
+        Mu(c, T, a, mu);
+        dc_dmu(mu, c, T, a, dcdmu);
+        fe = free_energy(c, T, a);
+        dpsi = fe - mu[0]*c[0];
+        c_mu(mu, c, T, a, ceq[a][a]);
+        fprintf(fp_check, "%le %le %le %le %le %le\n", c_x, mu[0], dcdmu[0][0], fe,  dpsi, c_calc[0]);
+        c_x += 0.05;
+      }
+      fclose(fp_check);
+    }
+  }
+  
   
   if ((STARTTIME !=0) || (RESTART !=0)) {
     if (WRITEHDF5){
@@ -117,10 +171,10 @@ int main(int argc, char * argv[]) {
       }
     }
   }
-    
+  
   mpiexchange_left_right(taskid);
   mpiexchange_top_bottom(taskid);
-   
+    
   if (TEMPGRADY) {
     BASE_POS    = (temperature_gradientY.gradient_OFFSET/deltay) - shift_OFFSET;
     GRADIENT    = (temperature_gradientY.DeltaT)*deltay/(temperature_gradientY.Distance);
@@ -153,8 +207,20 @@ int main(int argc, char * argv[]) {
       apply_boundary_conditions(taskid);
     }
   }
+  
+  if (!WRITEHDF5) {
+      if ((ASCII == 0)) {
+        writetofile_mpi2D_binary(gridinfo_w, argv, 0 + STARTTIME);
+      } else {
+        writetofile_mpi2D(gridinfo_w, argv, 0 + STARTTIME);
+      }
+  } else {
+    writetofile_mpi2D_hdf5(gridinfo_w, argv, 0 + STARTTIME);
+  }
+  
   printf("Finished Smoothing:%d\n", taskid);
- 
+//   exit(0);
+  
   for(t=1;t<=ntimesteps;t++) {
     mpiexchange_left_right(taskid);
     mpiexchange_top_bottom(taskid);

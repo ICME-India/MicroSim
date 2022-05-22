@@ -1,9 +1,10 @@
 FDIR=functions
 SDIR=solverloop
+TDIR=tdbs
 CC=h5pcc
 CFLAGS=-I.
 
-_FUNCTION_DEPS = global_vars.h functions.h matrix.h utility_functions.h functionH.h functionF_01.h functionQ.h \
+_FUNCTION_DEPS = global_vars.h functions.h matrix.h utility_functions.h functionH.h functionF_01.h functionF_02.h functionF_03.h functionF_04.h functionQ.h \
                  functionW_01.h functionW_02.h function_A_00.h function_A_01.h anisotropy_01.h functionTau.h \
                  functionD.h filling.h reading_input_parameters.h read_boundary_conditions.h print_boundary_conditions.h print_input_parameters.h \
                  initialize_variables.h free_variables.h fill_domain.h shift.h Temperature_gradient.h
@@ -17,15 +18,18 @@ _SOLVERLOOP_DEPS = serialinfo_xy.h mpiinfo_xy.h gradients.h simplex_projection.h
 
 DEPS += $(patsubst %,$(SDIR)/%,$(_SOLVERLOOP_DEPS))
 
+_tdb_DEPS = Thermo.c Thermo.h
 
-LIBS =-lm
+DEPS += $(patsubst %,$(TDIR)/%,$(_tdb_DEPS))
+
+LIBS =-lm -lgsl -lgslcblas 
 
 all : microsim_gp write_xdmf reconstruct 
 
 
 # echo "Making microsim_gp solver (grand-potential based phase-field model)"
 
-microsim_gp : microsim_gp.o 
+microsim_gp : microsim_gp.o
 	$(CC) -o microsim_gp microsim_gp.o $(CFLAGS) $(LIBS) -Wall
 
 microsim_gp.o : $(DEPS)       

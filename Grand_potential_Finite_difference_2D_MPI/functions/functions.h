@@ -44,7 +44,7 @@ void fill_phase_cube(struct fill_cube fill_cube_parameters, struct fields* gridi
 void fill_phase_cylinder (struct fill_cylinder fill_cylinder_parameters, struct fields* gridinfo, long b);
 void fill_phase_sphere(struct fill_sphere fill_sphere_parameters, struct fields* gridinfo, long b);
 void fill_phase_ellipse (struct fill_ellipse fill_ellipse_parameters, struct fields* gridinfo, long b);
-void init_propertymatrices();
+// void init_propertymatrices();
 void q_divx (struct gradlayer *grad1, struct gradlayer *grad1_front, long a, long b, double *qab);
 void q_divy (struct gradlayer *grad1, struct gradlayer *grad1_right, long a, long b, double *qab);
 void q_dadphi (double *phi, struct gradlayer *grad1, long a,  long b , double *qab);
@@ -60,22 +60,24 @@ void apply_shiftY(struct fields* gridinfo, long INTERFACE_POS_GLOBAL);
 void apply_temperature_gradientY(struct fields* gridinfo, long shift_OFFSET, long t);
 void free_variables();
 void Build_derived_type(struct fields* myNode, MPI_Datatype* MPI_gridinfo) {
-  int block_lengths[4];
+  int block_lengths[5];
 //   MPI_Aint displacements[4];
-  int displacements[4];
-  MPI_Datatype typelists[4];
+  int displacements[5];
+  MPI_Datatype typelists[5];
   MPI_Aint start_address;
   MPI_Aint address;
   //fill block lengths
   block_lengths[0] = NUMPHASES;
   block_lengths[1] = NUMCOMPONENTS-1;
-  block_lengths[2] = NUMPHASES;
-  block_lengths[3] = 1;
+  block_lengths[2] = NUMCOMPONENTS-1;
+  block_lengths[3] = NUMPHASES;
+  block_lengths[4] = 1;
   //Fill Typelists
   typelists[0] = MPI_DOUBLE;
   typelists[1] = MPI_DOUBLE;
   typelists[2] = MPI_DOUBLE;
   typelists[3] = MPI_DOUBLE;
+  typelists[4] = MPI_DOUBLE;
   //Calculate Displacements
 //   displacements[0] = 0;
 //   displacements[1] = sizeof(double)*NUMPHASES;
@@ -84,7 +86,8 @@ void Build_derived_type(struct fields* myNode, MPI_Datatype* MPI_gridinfo) {
   displacements[0] = 0;
   displacements[1] = NUMPHASES;
   displacements[2] = NUMPHASES + (NUMCOMPONENTS-1);
-  displacements[3] = NUMPHASES + (NUMCOMPONENTS-1) + NUMPHASES;
+  displacements[3] = NUMPHASES + 2*(NUMCOMPONENTS-1);
+  displacements[4] = NUMPHASES + 2*(NUMCOMPONENTS-1) + NUMPHASES;
 //   MPI_Get_address(&((*myNode)),&start_address);
 //   MPI_Get_address(&((*myNode).phia),&start_address);
 //   MPI_Get_address(&((*myNode).compi),&address);

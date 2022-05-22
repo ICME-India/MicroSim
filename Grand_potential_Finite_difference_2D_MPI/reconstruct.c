@@ -7,6 +7,8 @@
 #include <stdlib.h> 
 #include <stdbool.h>
 #include <sys/stat.h>
+#include <gsl/gsl_errno.h>
+#include <gsl/gsl_spline.h>
 #include "functions/global_vars.h"
 #include "functions/functions.h"
 #include "functions/matrix.h"

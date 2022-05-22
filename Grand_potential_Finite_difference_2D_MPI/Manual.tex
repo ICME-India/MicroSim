@@ -513,7 +513,7 @@ slopes = {0, 1, 0.45};
 slopes = {1, 0, 0.45};
 slopes = {1, 1, 0.45};
 \end{lstlisting}
-
+ 
 $\psi$ is the grand potential density in Eqn.\ref{eq:grand_eqn}, 
 which is obtained at any point as a weighted sum of the the grand potential densities of each phase present at that point, 
 \begin{flalign}
@@ -795,6 +795,199 @@ For solidification reactions, this would correspond to solidus and liquidus slop
 \end{itemize}
 
 \begin{lstlisting}
+Function_F = 2;
+num_thermo_phases = 2;
+tdbfname = alzn_mey.tdb;
+tdb_phases = {FCC_A1, LIQUID};
+phase_map = {FCC_A1, LIQUID};
+c_guess = {0, 0, 0.92133};
+c_guess = {0, 1, 0.80354};
+c_guess = {1, 1, 0.80354};
+c_guess = {1, 0, 0.80354};
+\end{lstlisting}
+
+\begin{itemize}
+ \item This function chooses the option that the thermodynamic functions from the databases will be utilized for the computation of the driving forces.
+ \item There are additional Infile keys corresponding to this selection.
+ \item "tdbfname" is the name of the thermodynamic database from which the thermodynamic functions will be extracted. The extraction occurs using a separate
+ python code "GE\_data\_writer.py" which extracts the required thermodynamic functions and places them in the folder "tdbs" which will be utilized by the 
+ solvers. The generated files are "Thermo.c" and "Thermo.h" which are included in the solver. 
+ \item "num\_thermo\_phases" is the number of thermodynamic distinct phases that the user wishes to consider for the simulation.
+ \item "tdb\_phases" is the tuple mentioning the names of the thermodynamic phases that will be considered from the .tdb file. It is important that the 
+ names of these phases be exactly the same as in the database. This can be pre-checked by running the "GE\_data\_writer.py" separately by the user, which 
+ interfaces with the .tdb. The length of this tuple must be exactly the same as "num\_thermo\_phases".
+ \item "phase\_map" is the tuple that mentions the association of the phases in the tuple "PHASES" with the thermodynamic phases mentioned in "tdb\_phases".
+ It is important that the length of the tuple "phase\_map" be exactly the same as the length of the tuple "PHASES" as this ensures that each phase has a 
+ thermodynamic association and the corresponding thermodynamics will be utilized for its evolution.
+ \item The tuples "tau" and "Tau" can be avoided as the values are self-consistently calculated for diffusion controlled growth.
+ \item Since, the thermodynamic functions may not be convex through the interval and in general are non-linear, it is important to evaluate the function 
+ $\mathbf{c}\left(\mathbf{\mu}\right)$ through a numerical inversion route as an analytical inversion may not be possible. 
+ \item For this the functions in gsl/gsl\_multiroots.h are utilized as these are heavily optimized for the solution of these non-linear problems. In addition,
+ processor specific optimization such as the intel-oneapi-mkl libraries may be linked for superior performance. 
+ \item The numerical evaluation of the $\mathbf{c}\left(\mathbf{\vmu}\right)$ allows the function to be locally treated in a convex fashion and thereby the 
+ driving forces can be calculated. 
+ \item In order to limit the evaluation of the function $\mathbf{c}\left(\mathbf{\vmu}\right)$ to the local equilibrium valley of a a given phase, it is necessary 
+ to provide guess for the iteration routines called from the gsl library. These guesses are provided in the tuple "c\_guess" which can be interpreted in the same 
+ manner as "c\_eq" or "c\_fill".
+ \item Different iterative routines from the gsl\_multiroots library may be chosen based on convergence and the particular problem. The hybridj and hybridsj solvers 
+ work the best when it comes to global convergence behavior.
+ \item Since, these are non-linear functions, in contrast to the parabolic functions the matrices $\left[\dfrac{\partial c_i}{\partial \mu_j}\right]$ are composition dependent. 
+ Therefore, although the $\vmu$ update equation is derived from the condition $c_i = \sum_\alpha \vc_i^{\alpha}\left(\mathbf{\vmu}\right)h_\alpha\left(\mathbf{\phi}\right)$ along with 
+ the mass conservation equation, the diffusion potential evolution equation linearizes the dependencies on each of the variables. This can introduce errors in the composition constraint for certain cases. 
+ \item In order to avoid this, an iterative scheme is devised for correcting the diffusion potential update if required. The iterative scheme in pseudo-code 
+ is written as follows and is detailed  in FunctionF\_02.h. The conservation equation for each of the components follows
+ \begin{align}
+  \dfrac{\partial c_i}{\partial t} &= \nabla \cdot \left(M_{ij}\nabla\mu_j\right),
+  \label{Mass_conservation}
+ \end{align}
+ 
+ where $M_{ij}=\sum_{\alpha=1}^{N}\left[D_{ij}^{\alpha}\right]\left[\dfrac{\partial c_i^{\alpha}}{\partial \mu_{ij}}\right]h_\alpha\left(\vphi\right)$. 
+ This can be converted into a diffusion potential update equation by
+ linearising based on the dependencies on the individual variables as,
+ 
+ \begin{align}
+ &\left\lbrace\dfrac{\partial \mu_i}{\partial t}\right\rbrace = \nonumber\\
+&\left[\sum_{\alpha=1}^N 
+h_\alpha\left(\vphi\right)\dfrac{\partial c_i^\alpha\left(\vmu,
+T\right)}{\partial\mu_j}\right]^{-1}_{ij}\Big\lbrace\nabla\cdot\sum_{j=1}^{K}M_{ij}
+\left(\vphi\right)\nabla\mu_j 
+- \nonumber\\
+&\sum_{\alpha}^N c^\alpha_{i}\left(\vmu,T\right)\dfrac{\partial
+h_\alpha\left(\vphi\right)}{\partial t} - \nonumber \\
+&\dfrac{\partial T}{\partial t}\sum_{\alpha}^N \left(\dfrac{\partial c^\alpha_{i}\left(\vmu,T\right)}{\partial T}\right)_{\vmu}
+h_\alpha\left(\vphi\right)\Big\rbrace,
+\label{Mu_explicit_temperature}
+\end{align}
+
+using the composition constraint $c_i = \sum_{\alpha=1}^{N} c_i^\alpha\left(\vmu\right)h_\alpha\left(\vphi\right)$. However, as mentioned when the matrices 
+$\left[\dfrac{\partial c_i^{\alpha}}{\partial \mu_{j}}\right]$ become composition dependent, there can be errors in the composition constraint, 
+depending on the changes in the other variables in a given time step. In order to account for this, a hybrid approach is devised, in which the composition 
+is updated using the mass conservation equation in Eqn.\ref{Mass_conservation}, along with the explicit diffusion potential update in Eqn.\ref{Mu_explicit_temperature}
+and the following correction scheme is implemented.
+ \begin{enumerate}
+  \item Step 1: Update composition using Eqn.\ref{Mass_conservation} and diffusion potential using Eqn.\ref{Mu_explicit_temperature}.
+  \item Step 2: Calculate the error in each composition of each component as  $\left\lbrace\Delta c_i\right\rbrace = c_i - \sum_{\alpha=1}^{N} c_i^\alpha\left(\vmu\right)h_\alpha\left(\vphi\right)$. For this you need
+  to call the functions that compute the phase compositions using the gsl functions.
+  \item Step 3: Compute matrices $\left[\dfrac{\partial c_i^{\alpha}}{\partial \mu_{j}}\right]$ for each phase and calculate the matrix 
+  $\left[\dfrac{\partial c_i}{\partial \mu_j}\right] = \sum_{\alpha=1}^{N}\left[\dfrac{\partial c_i^{\alpha}}{\partial \mu_{j}}\right]h_\alpha\left(\vphi\right)$.
+  \item Step 3: Compute correction in $\vmu$ by $\left\lbrace\Delta \mu_i\right\rbrace = \left[\dfrac{\partial c_i}{\partial \mu_{j}}\right]^{-1}\left\lbrace\Delta c_i\right\rbrace$.
+  \item Update diffusion potential as $\left\lbrace\mu_i\right\rbrace = \left\lbrace\mu_i\right\rbrace + \left\lbrace\Delta \mu_i\right\rbrace$.
+  \item Check tolerance and continue from Step 2 if not satisfied.
+ \end{enumerate}
+\item One might recognize that the procedure illustrated is a Newton iteration in the variable $\vmu$, starting from the explicit update from Eqn.\ref{Mu_explicit_temperature}
+as the initial guess. This greatly simplifies the iterations from the classical version in typical Kim-Kim-Suzuki models as the number of iterations are greatly reduced. 
+Because of this, it is also prudent for most cases to avoid this iteration altogether, as the magnitude of errors are already very small, and it avoids the computation of 
+the matrices $\left[\dfrac{\partial c_i^{\alpha}}{\partial \mu_{j}}\right]$ that involve costly matrix inversion operations.
+\end{itemize}
+
+\begin{lstlisting}
+Function_F = 3;
+num_thermo_phases = 2;
+tdbfname = alzn_mey.tdb;
+tdb_phases = {FCC_A1, LIQUID};
+phase_map = {FCC_A1, LIQUID};
+ceq = {0, 0, 0.78125};
+ceq = {0, 1, 0.5};
+ceq = {1, 1, 0.5};
+ceq = {1, 0, 0.5};
+c_guess = {0, 0, 0.92133};
+c_guess = {0, 1, 0.80354};
+c_guess = {1, 1, 0.80354};
+c_guess = {1, 0, 0.80354};
+\end{lstlisting}
+
+\begin{itemize}
+ \item This function chooses the option to couple with information from thermodynamic databases using an approximate parabolic formulation.
+ \item This function is built on the Function\_F=1, where parabolas are utilized to describe the free-energies of the phases. 
+ \item In this function however, the thermodynamic information from the databases is utilized to construct the coefficients $A_{ij}$, $B_{j}$ and $C_j$. 
+ \item The function requires the same keys as Function\_F=2, where the number of thermodynamic phases and the phase association with the 
+ phases needs to be explicitly put in. 
+ \item For this function the tuples "slopes" and "A" can be avoided as the required information is constructed from the thermodynamic 
+ database.
+ \item The tuples "tau" and "Tau" can be avoided as the values are self-consistently calculated for diffusion controlled growth.
+ \item The matrices $A_{ij}^{\alpha}$ for each phase $\alpha$ are evaluated using the matrices as $\left[\dfrac{\partial c_i}{\partial \mu_j}\right]$ that 
+ are computed from the thermodynamic functions in the .tdb files at the compositions mentioned in tuple "ceq" at the temperature T. For components $i=j$, 
+ $A_{ii}^{\alpha} = \dfrac{1}{2}\dfrac{\partial c_i^{\alpha}}{\partial \mu_i}$ and  $A_{ij}^{\alpha} = \dfrac{\partial c_i^{\alpha}}{\partial \mu_j}$, for $i\neq j$.
+ The $\left[\dfrac{\partial c_i}{\partial \mu_j}\right]$ is computed by first evaluating $\left[\dfrac{\partial \mu_i}{\partial c_j}\right]$ from the 
+ thermodynamic functions in "Thermo.c" generated from the databases and then inverting them.
+ 
+ \item For the determination of the slopes the following scheme is utilized. For any solid $\alpha$ phase in equilibrium with the liquid, 
+ equilibrium co-existence is maintained if the following holds;
+ \begin{align*}
+  \left(\dfrac{\partial \psi^{\alpha}}{\partial T}\right)_{\vmu} \Delta T + \sum_{i=1}^{K-1} \left(\dfrac{\partial \psi^\alpha}{\partial \mu_i}\right)_T\Delta \mu_i &=
+  \left(\dfrac{\partial \psi^l}{\partial T}\right)_{\vmu} \Delta T + \sum_{i=1}^{K-1} \left(\dfrac{\partial \psi^l}{\partial \mu_i}\right)_T\Delta \mu_i.
+ \end{align*}
+ 
+ At constant diffusion potential, it can be shown that $\left(\dfrac{\partial \psi^{\alpha}}{\partial T}\right)_{\vmu} = \left(\dfrac{\partial f^{\alpha}}{\partial T}\right)_{\vc}$.
+ Similarly, $\dfrac{\partial \psi^{\alpha}}{\partial \mu_i} = -c_i^{\alpha}$. With this, the preceding relation may be re-written as,
+ 
+ \begin{align*}
+  \left(\dfrac{\partial f^{\alpha}}{\partial T}\right)_{\vc^{\alpha}} - \left(\dfrac{\partial f^l}{\partial T}\right)_{\vc^{l}} = \sum_{i=1}^{K-1} \left(c_i^{\alpha} - c_i^{l}\right)\Delta \mu_i.
+ \end{align*}
+ 
+ The preceding relation has infinite solutions for components more than 2. However, since we are interested in the determination of slopes, we need to determine co-existence points 
+ upon variation of one component(along with solvent) at a given time. Thus, the changes in the diffusion potential may be written as a function of change in the composition of a
+ component $j$ along with change in T. With this, the preceding relation becomes;
+ 
+ \begin{align*}
+  \left(\left(\dfrac{\partial f^{\alpha}}{\partial T}\right)_{\vc^{\alpha}} - \left(\dfrac{\partial f^l}{\partial T}\right)_{\vc^{l}}\right)\Delta T = 
+  \sum_{i=1}^{K-1} \left(c_i^{\alpha} - c_i^{l}\right)\left(\dfrac{\partial \mu_i}{\partial c_j}\right)_T\Delta c_j + \sum_{i=1}^{K-1}\left(c_i^{\alpha} - c_i^{l}\right)\left(\dfrac{\partial \mu_i}{\partial T}\right)_{\vc} \Delta T.
+ \end{align*}
+ 
+ Re-arranging, we derive;
+ 
+ \begin{align*}
+  \dfrac{\Delta T}{\Delta c_j} &=  \dfrac{\sum_{i=1}^{K-1} \left(c_i^{\alpha} - c_i^{l}\right)\left(\dfrac{\partial \mu_i}{\partial c_j}\right)_T}{\left(\dfrac{\partial f^{\alpha}}{\partial T}\right)_{\vc^{\alpha}} 
+  - \left(\dfrac{\partial f^l}{\partial T}\right)_{\vc^{l}} -  \sum_{i=1}^{K-1}\left(c_i^{\alpha} - c_i^{l}\right)\left(\dfrac{\partial \mu_i}{\partial T}\right)_{\vc}}
+ \end{align*}
+ 
+ In the limit $\Delta c_j \rightarrow 0$, we have for each solid phase, the solidus slope as, 
+ 
+ \begin{align*}
+  \dfrac{\partial T}{\partial c_j^{\alpha}} &=  \dfrac{\sum_{i=1}^{K-1} \left(c_i^{\alpha} - c_i^{l}\right)\left(\dfrac{\partial \mu_i^{\alpha}}{\partial c_j^{\alpha}}\right)_T}{\left(\dfrac{\partial f^{\alpha}}{\partial T}\right)_{\vc^{\alpha}} 
+  - \left(\dfrac{\partial f^l}{\partial T}\right)_{\vc^{l}} -  \sum_{i=1}^{K-1}\left(c_i^{\alpha} - c_i^{l}\right)\left(\dfrac{\partial \mu_i^{\alpha}}{\partial T}\right)_{\vc^{\alpha}}}
+ \end{align*}
+ 
+ and the corresponding liquidus slope as, 
+ 
+ \begin{align*}
+  \dfrac{\partial T}{\partial c_j^{l}} &=  \dfrac{\sum_{i=1}^{K-1} \left(c_i^{\alpha} - c_i^{l}\right)\left(\dfrac{\partial \mu_i^{l}}{\partial c_j^{l}}\right)_T}{\left(\dfrac{\partial f^{\alpha}}{\partial T}\right)_{\vc^{\alpha}} 
+  - \left(\dfrac{\partial f^l}{\partial T}\right)_{\vc^{l}} -  \sum_{i=1}^{K-1}\left(c_i^{\alpha} - c_i^{l}\right)\left(\dfrac{\partial \mu_i^{l}}{\partial T}\right)_{\vc^{l}}}
+ \end{align*}
+ 
+ \item Utilizing the information about the slopes and the coefficients $A_{ij}$ the coefficients $B_j$ and $C_j$ are determined just as in Function\_F=1.
+\end{itemize}
+
+\begin{lstlisting}
+Function_F = 4;
+num_thermo_phases = 2;
+tdbfname = alzn_mey.tdb;
+tdb_phases = {FCC_A1, LIQUID};
+phase_map = {FCC_A1, LIQUID};
+ceq = {0, 0, 0.78125};
+ceq = {0, 1, 0.5};
+ceq = {1, 1, 0.5};
+ceq = {1, 0, 0.5};
+\end{lstlisting}
+
+\begin{itemize}
+ \item This function chooses to couple with thermodynamic databases using the parabolic approximation, however, the coefficients of the free-energy expressions are
+ derived not from the functional evaluation of the expressions from the databases, rather they are computed using information read in from files present in the 
+ folder ``tdbs\_encrypted''.
+ \item The folder contains files "Composition\_'Phase\_name'.csv" that contains information about compositions of the phase 'Phase\_name' for each of the components at different 
+ temperatures in the solidification interval, followed by the compositions of the last thermodynamic phase that is in equilibrium with the phase 'Phase\_name'.
+ The folder also contains files "HSN\_'Phase\_name'.csv" for each thermodynamic phase. This file contains the components of the Hessian matrix for each of the thermodynamic 
+ phases for each of the temperatures in the solidification interval for a given alloy composition. 
+ \item The phase compositions in "Composition\_'Phase\_name'.csv" are fitted with csplines using the gsl libraries. Similarly each of the components of the Hessian 
+ matrix present in the files "HSN\_'Phase\_name'.csv" are fitted as a function of temperatures with csplines using the gsl libraries.
+ \item The information from the Hessian as well as the phase compositions are utilized to create the coefficients A, B and C just like in functions F=1,3.
+ \item This function provides the option of incorporating thermodynamic information from encrypted databases by utilizing information relating to Hessian and the equilibrium 
+ compositions in a temperature interval that can be computed using softwares like Pandat and ThermoCalc.
+\end{itemize}
+
+
+
+\begin{lstlisting}
 ##Temperature
 ISOTHERMAL = 1;
 #Tempgrady={BASETEMP, DELTAT, DISTANCE, OFFSET, VELOCITY}
@@ -1005,7 +1198,7 @@ FILLSPHERE = {0, 50, 50, 0, 10};
  paraview, it needs to be put in .xml format, which can be performed using the following command, that needs to be
  executed from just outside the /DATA folder that is created using the run,
  \begin{lstlisting}
-  ./write_xdmf name_of_infile name_of_output_file number_of_workers start_time end_time
+  ./write_xdmf name_of_infile name_of_output_file start_time end_time
  \end{lstlisting}
  \item The files at all the timesteps can be opened as a group in the software "paraview" and the fields according to the names given in the COMPONENTS and PHASES keys can be visualized.
  \item As a check the solver also outputs two files "name\_of\_infile.out" and "name\_of\_infile.bd" that prints out the parameters that have been read in by the solver as well as the 

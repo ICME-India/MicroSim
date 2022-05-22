@@ -236,11 +236,12 @@ void fill_composition_cube(struct fields* gridinfo) {
             for (k=0; k < NUMCOMPONENTS-1; k++) {
               c[k] = ceq[b][b][k];
             }
-            init_propertymatrices(Teq);
-  //        chemical_potential = 2.0*ceq[NUMPHASES-1][NUMPHASES-1][0];
+//             init_propertymatrices(Teq);
+            Mu(c, Teq, b, gridinfo[index].compi); 
             for (k=0; k < NUMCOMPONENTS-1; k++) {
-              chemical_potential = Mu(c, Teq, b, k);
-              gridinfo[index].compi[k] = chemical_potential;
+//               chemical_potential = Mu(c, Teq, b, k);
+//               gridinfo[index].compi[k] = chemical_potential;
+              gridinfo[index].composition[k] = c[k];
   //             printf("solid_chemical_potential=%le\n",gridinfo[gidy].compi[k]);
             }
             PHASE_FILLED =1;
@@ -255,20 +256,20 @@ void fill_composition_cube(struct fields* gridinfo) {
   //         c[0] = 0.160413;
   //         c[1] = 0.245857;
 //           init_propertymatrices(Teq);
-          
+          Mu(c, Teq, NUMPHASES-1, gridinfo[index].compi); 
           for (k=0; k < NUMCOMPONENTS-1; k++) {
-            chemical_potential = Mu(c, Teq, NUMPHASES-1, k);
-//             printf("chemical_potential =%le\n", chemical_potential);
-            gridinfo[index].compi[k] = chemical_potential;
+//             chemical_potential = Mu(c, Teq, NUMPHASES-1, k);
+// //             printf("chemical_potential =%le\n", chemical_potential);
+//             gridinfo[index].compi[k] = chemical_potential;
+             gridinfo[index].composition[k] = c[k]; 
           }
         }
       }
     }
   }
 //   exit(0);
-  init_propertymatrices(T);
+//   init_propertymatrices(T);
 }
-
 #endif
 
 

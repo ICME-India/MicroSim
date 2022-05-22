@@ -11,34 +11,50 @@ double function_F_01_free_energy(double *c, double T, long a) {
         sum += A[a][i][j]*c[i]*c[j];
       }
     }
+    if (!ISOTHERMAL) {
+      B[a][i] = (Beq[a][i] + dBbdT[a][i]*(T-Teq));
+    }
     sum += B[a][i]*c[i];
+  }
+  if (!ISOTHERMAL) {
+    C[a] = function_C(T,a);
   }
   sum += C[a];
   return sum;
 }
-double function_F_01_Mu(double *c, double T, long a, long i) {
-  long j;
+void function_F_01_Mu(double *c, double T, long a, double *Mu) {
+  long j,k;
   double sum=0.0;
-  sum  = 2.0*A[a][i][i]*c[i] + (Beq[a][i] + dBbdT[a][i]*(T-Teq));
-  for (j=0; j<NUMCOMPONENTS-1;j++) {
-    if (i!=j) {
-      sum += A[a][i][j]*c[j];
+  for(k=0; k < NUMCOMPONENTS-1; k++) {
+    sum  = 2.0*A[a][k][k]*c[k] + (Beq[a][k] + dBbdT[a][k]*(T-Teq));
+    for (j=0; j<NUMCOMPONENTS-1;j++) {
+      if (k!=j) {
+        sum += A[a][k][j]*c[j];
+      }
+    }
+    Mu[k] = sum;
+  }
+}
+void function_F_01_c_mu(double *mu, double *c, double T, long a, double *c_guess) {
+  long k,l;
+  double sum=0.0;
+  for(l=0; l < NUMCOMPONENTS-1; l++) {
+    sum = 0.0;
+    for (k=0;k < NUMCOMPONENTS-1;k++) {
+      sum += cmu[a][l][k]*(mu[k]-(Beq[a][k] + dBbdT[a][k]*(T-Teq)));
+    }
+    c[l] = sum;
+  }
+}
+void function_F_01_dc_dmu(double *mu, double *phase_comp, double T, long a, double **dcdmu) {
+  long i, j;
+  for (i=0; i<NUMCOMPONENTS-1; i++) {
+    for (j=0; j<NUMCOMPONENTS-1; j++) {
+      dcdmu[i][j] = cmu[a][i][j];
     }
   }
-  return sum;
 }
-double function_F_01_c_mu(double *mu, double T, long a, long i) {
-  long k;
-  double sum=0.0;
-  for (k=0;k < NUMCOMPONENTS-1;k++) {
-    sum += cmu[a][i][k]*(mu[k]-(Beq[a][k] + dBbdT[a][k]*(T-Teq)));
-  }
-  return sum;
-}
-double function_F_01_dc_dmu(double *mu, double T, long a, long i, long j) {
-  return cmu[a][i][j];
-}
-double function_F_01_dpsi(double *mu, double T, double *phi, long a) {
+double function_F_01_dpsi(double *mu, double **phase_comp, double T, double *phi, long a) {
   double psi=0.0;
   double c[NUMCOMPONENTS-1];
   long k=0, b;
@@ -47,7 +63,7 @@ double function_F_01_dpsi(double *mu, double T, double *phi, long a) {
   for (b=0; b < NUMPHASES; b++) {
     psi = 0.0;
     for (k=0;k <NUMCOMPONENTS-1; k++) {
-      c[k] = c_mu(mu, T, b, k);
+      c[k] = phase_comp[b][k];
       psi -= mu[k]*c[k];
     }
     psi += free_energy(c,T,b);
@@ -55,9 +71,14 @@ double function_F_01_dpsi(double *mu, double T, double *phi, long a) {
   }
   return sum;
 }
-double function_F_01_function_A(double T1, long i, long j, long a) {
-  return A[a][i][j];
-}
+// void function_F_01_function_A(double T, long a) {
+//   long i, j;
+//   for (i=0; i<NUMCOMPONENTS-1; i++) {
+//     for (j=0; j<NUMCOMPONENTS-1; j++) {
+//       A[a][i][j];
+//     }
+//   }
+// }
 
 double function_F_01_function_B(double T, long i, long a) {
   double c_liq[NUMCOMPONENTS-1];
@@ -102,71 +123,72 @@ double function_F_01_function_C(double T, long a) {
   }
   return sum_c;
 }
-void function_F_01_compute_chemicalpotential(struct fields* gridinfo) {
-  long x, y;
-  long gidy;
-  double c[NUMCOMPONENTS]; 
-  long b, k, l;
-  long a;
-  long bulk_phase;
-  double **dcdmu, **inv_dcdmu, *chempot, *sum;
-    
-  dcdmu     = MallocM((NUMCOMPONENTS-1),(NUMCOMPONENTS-1));
-  inv_dcdmu = MallocM(NUMCOMPONENTS-1,NUMCOMPONENTS-1);
-  chempot   = MallocV(NUMCOMPONENTS-1);
-  sum       = MallocV(NUMCOMPONENTS-1);
-  
-  for(x=0;x<=(MESH_X-1);x++) {
-    for (y=0; y<=(MESH_Y-1); y++) {
-      gidy = x*MESH_Y + y;
-      for (k=0; k < NUMCOMPONENTS-1; k++) {
-        sum[k] = 0.0;
-        c[k]   = gridinfo[gidy].compi[k];
-        for (l=0; l < NUMCOMPONENTS-1; l++) {
-          dcdmu[k][l] = 0.0;
-        }
-      }
-      interface = 1;
-      for (a=0; a < NUMPHASES; a++) {
-        if (gridinfo[gidy].phia[a] == 1.0) {
-          bulk_phase=a;
-          interface = 0;
-          break;
-        }
-      }
-      if (interface) {
-        for (k=0; k < NUMCOMPONENTS-1; k++) {
-          sum[k] = 0.0;
-          for (l=0; l < NUMCOMPONENTS-1; l++) {
-            for (a=0; a < NUMPHASES; a++) {
-              sum[k] += cmu[a][k][l]*B[a][l]*hphi(gridinfo[gidy].phia, a);
-            }
-          }
-          sum[k] += c[k];
-        }
-        for (k=0; k < NUMCOMPONENTS-1; k++) {
-          for (l=0; l < NUMCOMPONENTS-1; l++) {
-            for (a=0; a < NUMPHASES; a++) {
-              dcdmu[k][l] += dc_dmu(c, T, a, k, l)*hphi(gridinfo[gidy].phia, a);
-            }
-          }
-        }
-        matinvnew(dcdmu,inv_dcdmu,NUMCOMPONENTS-1);
-        multiply(inv_dcdmu,sum,gridinfo[gidy].compi,NUMCOMPONENTS-1);
-      } else {
-        for (k=0; k < NUMCOMPONENTS-1; k++) {
-         gridinfo[gidy].compi[k] = Mu(c, T, bulk_phase, k);
-        }
-      }
-    }
-  }
-  FreeM(dcdmu,NUMCOMPONENTS-1);
-  FreeM(inv_dcdmu,NUMCOMPONENTS-1);
-  free(chempot);
-  free(sum);
-}
+// void function_F_01_compute_chemicalpotential(struct fields* gridinfo) {
+//   long x, y;
+//   long gidy;
+//   double c[NUMCOMPONENTS]; 
+//   long b, k, l;
+//   long a;
+//   long bulk_phase;
+//   double **dcdmu, **inv_dcdmu, *chempot, *sum;
+//     
+//   dcdmu     = MallocM((NUMCOMPONENTS-1),(NUMCOMPONENTS-1));
+//   inv_dcdmu = MallocM(NUMCOMPONENTS-1,NUMCOMPONENTS-1);
+//   chempot   = MallocV(NUMCOMPONENTS-1);
+//   sum       = MallocV(NUMCOMPONENTS-1);
+//   
+//   for(x=0;x<=(MESH_X-1);x++) {
+//     for (y=0; y<=(MESH_Y-1); y++) {
+//       gidy = x*MESH_Y + y;
+//       for (k=0; k < NUMCOMPONENTS-1; k++) {
+//         sum[k] = 0.0;
+//         c[k]   = gridinfo[gidy].compi[k];
+//         for (l=0; l < NUMCOMPONENTS-1; l++) {
+//           dcdmu[k][l] = 0.0;
+//         }
+//       }
+//       interface = 1;
+//       for (a=0; a < NUMPHASES; a++) {
+//         if (gridinfo[gidy].phia[a] == 1.0) {
+//           bulk_phase=a;
+//           interface = 0;
+//           break;
+//         }
+//       }
+//       if (interface) {
+//         for (k=0; k < NUMCOMPONENTS-1; k++) {
+//           sum[k] = 0.0;
+//           for (l=0; l < NUMCOMPONENTS-1; l++) {
+//             for (a=0; a < NUMPHASES; a++) {
+//               sum[k] += cmu[a][k][l]*B[a][l]*hphi(gridinfo[gidy].phia, a);
+//             }
+//           }
+//           sum[k] += c[k];
+//         }
+//         for (k=0; k < NUMCOMPONENTS-1; k++) {
+//           for (l=0; l < NUMCOMPONENTS-1; l++) {
+//             for (a=0; a < NUMPHASES; a++) {
+//               dc_dmu(double *mu, double *phase_comp, double T, long a, double **dcdmu)
+//               dcdmu[k][l] += dc_dmu(c, T, a, k, l)*hphi(gridinfo[gidy].phia, a);
+//             }
+//           }
+//         }
+//         matinvnew(dcdmu,inv_dcdmu,NUMCOMPONENTS-1);
+//         multiply(inv_dcdmu,sum,gridinfo[gidy].compi,NUMCOMPONENTS-1);
+//       } else {
+//         for (k=0; k < NUMCOMPONENTS-1; k++) {
+//          gridinfo[gidy].compi[k] = Mu(c, T, bulk_phase, k);
+//         }
+//       }
+//     }
+//   }
+//   FreeM(dcdmu,NUMCOMPONENTS-1);
+//   FreeM(inv_dcdmu,NUMCOMPONENTS-1);
+//   free(chempot);
+//   free(sum);
+// }
 
-void init_propertymatrices(double T) {
+void function_F_01_init_propertymatrices(double T) {
   //Initialize property matrices
   long a, b, i, j, k;
     
@@ -176,8 +198,8 @@ void init_propertymatrices(double T) {
 //     }
 //     C[a] = function_C(T,a);
 //   }  
-#ifndef PHASE_DIAGRAM_PROP
-#define PHASE_DIAGRAM_PROP
+// #ifndef PHASE_DIAGRAM_PROP
+// #define PHASE_DIAGRAM_PROP
   for (a=0;a<NUMPHASES;a++) {
     for (i=0;i<NUMCOMPONENTS-1;i++) {
       for (j=0;j<NUMCOMPONENTS-1;j++) {
@@ -220,7 +242,7 @@ void init_propertymatrices(double T) {
       Beq[a][i] = function_B(Teq, i, a); 
     }
   }
-#endif
+// #endif
   for (a=0; a < NUMPHASES; a++) {
     for (i=0; i < NUMCOMPONENTS-1; i++) {
       B[a][i] = function_B(T, i, a); 

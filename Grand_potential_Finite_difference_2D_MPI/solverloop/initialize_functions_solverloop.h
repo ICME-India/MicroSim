@@ -8,10 +8,69 @@ void initialize_functions_solverloop(){
        c_mu                      = function_F_01_c_mu;
        Mu                        = function_F_01_Mu;
        dpsi                      = function_F_01_dpsi;
-       function_A                = function_F_01_function_A;
+//        function_A                = function_F_01_function_A;
        function_B                = function_F_01_function_B;
        function_C                = function_F_01_function_C;
-       compute_chemicalpotential = function_F_01_compute_chemicalpotential;
+       init_propertymatrices     = function_F_01_init_propertymatrices;
+  }
+  if ((FUNCTION_F == 2)) {
+    thermo_phase = (long*)malloc(NUMPHASES*sizeof(long));
+    long a, b;
+    for (a=0; a<NUMPHASES; a++) {
+      for (b=0; b<NUM_THERMO_PHASES; b++) {
+        if (strcmp(phase_map[a],Phases_tdb[b])==0) {
+          thermo_phase[a] = b;
+          break;
+        }
+      }
+    }
+    free_energy               = function_F_02_free_energy;
+    dc_dmu                    = function_F_02_dc_dmu;
+    c_mu                      = function_F_02_c_mu;
+    Mu                        = function_F_02_Mu;
+    dpsi                      = function_F_02_dpsi;
+  }
+  if ((FUNCTION_F == 3)) {
+    thermo_phase = (long*)malloc(NUMPHASES*sizeof(long));
+    long a, b;
+    for (a=0; a<NUMPHASES; a++) {
+      for (b=0; b<NUM_THERMO_PHASES; b++) {
+        if (strcmp(phase_map[a],Phases_tdb[b])==0) {
+          thermo_phase[a] = b;
+          break;
+        }
+      }
+    }
+    free_energy               = function_F_03_free_energy;
+    dc_dmu                    = function_F_03_dc_dmu;
+    c_mu                      = function_F_03_c_mu;
+    Mu                        = function_F_03_Mu;
+    dpsi                      = function_F_03_dpsi;
+    function_A                = function_F_03_function_A;
+    function_B                = function_F_03_function_B;
+    function_C                = function_F_03_function_C;
+    init_propertymatrices     = function_F_03_init_propertymatrices;
+  }
+  if ((FUNCTION_F == 4)) {
+    thermo_phase = (long*)malloc(NUMPHASES*sizeof(long));
+    long a, b;
+    for (a=0; a<NUMPHASES; a++) {
+      for (b=0; b<NUM_THERMO_PHASES; b++) {
+        if (strcmp(phase_map[a],Phases_tdb[b])==0) {
+          thermo_phase[a] = b;
+          break;
+        }
+      }
+    }
+    free_energy               = function_F_04_free_energy;
+    dc_dmu                    = function_F_04_dc_dmu;
+    c_mu                      = function_F_04_c_mu;
+    Mu                        = function_F_04_Mu;
+    dpsi                      = function_F_04_dpsi;
+    function_A                = function_F_04_function_A;
+    function_B                = function_F_04_function_B;
+    function_C                = function_F_04_function_C;
+    init_propertymatrices     = function_F_04_init_propertymatrices;
   }
   if (FUNCTION_W == 1) {
     dwdphi        = function_W_01_dwdphi;
@@ -45,7 +104,6 @@ void initialize_functions_solverloop(){
 //     printf("Fold=%d\n",FOLD);
   }
   if (DIMENSION==2) {
-    calculate_gradients                                     = calculate_gradients_2D;
     calculate_gradients_phasefield                          = calculate_gradients_phasefield_2D;
     calculate_gradients_concentration                       = calculate_gradients_concentration_2D;
     calculate_fluxes_concentration                          = calculate_fluxes_concentration_2D;
@@ -54,6 +112,8 @@ void initialize_functions_solverloop(){
     calculate_divergence_concentration_smooth_concentration = calculate_divergence_concentration_smooth_concentration_2D;
     calculate_divergence_phasefield                         = calculate_divergence_phasefield_2D;
     calculate_divergence_phasefield_smooth                  = calculate_divergence_phasefield_smooth_2D;
+    solverloop_concentration                                = solverloop_concentration_tdb;
+    solverloop_phasefield                                   = solverloop_phasefield_tdb;
   }
 }
 #endif
