@@ -81,7 +81,7 @@ grand-potential formalism. This is a 2D serial CPU version of the code.
 
 - Run using the following command:
 
-./microsim_gp <name_of_infile>  <name_of_filling_file> **_<name_of_output_files>_**
+_**Syntax:**_ ./microsim_gp <name_of_infile>  <name_of_filling_file> **_<name_of_output_files>_**
 
 Example:
 
@@ -107,7 +107,7 @@ CPUs and requires the **h5pcc** compiler for compilation and execution.
 
  **_For running the code on the cluster please use a script.
 For testing on your desktops/laptops the following execution command is required:_**
-
+_**Syntax:**_
 mpirun -np <num_processors> ./microsim_gp <name_of_infile> <name_of_filling_file> <name_of_output_files> <num_workers_x> <num_workers_y>
 
 **_N.B- the<num_workers_x> * <num_workers_y> = <num_processors>_**
@@ -120,7 +120,7 @@ For .h5 files, with WRITEHDF5=1(_in the Input file_), output files need to be tr
 - Navigate outside the DATA folder that is created upon execution of the above command.
 
 
- **Syntax-**  _./write_xdmf <name_of_infile> <name_of_output_file> <start_time> <end_time>_
+ _**Syntax:**_  _./write_xdmf <name_of_infile> <name_of_output_file> <start_time> <end_time>_
    
 _<start_time>_ and _<end_time>_ refers to the timesteps that is included in the name of the Output files in the DATA folder.  
   
@@ -131,8 +131,9 @@ _<start_time>_ and _<end_time>_ refers to the timesteps that is included in the 
 For ASCII files in .vtk format the consolidated output files needs to be reconstructed out of separate processor files
 that are written in the DATA folder that is created upon execution
 
-        ./reconstruct <name_of_infile> <name_of_output_file> <number_of_workers> <start_time> <end_time>
-For More info on WRITEHDF5, ASCII, etc refer [MicroSim](./Microsim_overview.pdf)
+_**Syntax:**_ ./reconstruct <name_of_infile> <name_of_output_file> <number_of_workers> <start_time> <end_time>
+  
+  For More info on WRITEHDF5, ASCII, etc refer [MicroSim](./Microsim_overview.pdf)
 
 The code has been developed at IISc Bangalore, Department of Materials 
 Engineering by Prof. Abhik Choudhury. 
@@ -156,20 +157,20 @@ a) Sumeet Rajesh Khanna
 - GEdata_writer.py is used for generation of Gibbs energy and its derivatives
 - To generate Gibbs energies and execute the program with   
  
-  Syntax: ./kiimsldfn.sh <Input_file_name> <Filling_file_name> <Output_file_name>
+ _**Syntax:**_ ./kimsldfn.sh <Input_file_name> <Filling_file_name> <Output_file_name>
     
-    Example:
+   Example:
 
-        ./kimsldfn.sh  Input.in Filling.in Output
+        ./kimsldfn.sh Input.in Filling.in Output
    **It is always safe to run above command for execution of the code.**
 
 - If Gibbs energies are generated already then generating 
   Gibbs energies can be skipped and directly execute following command.
  For executing  
  
- Syntax- ./microsim_kks_opencl <Input_file_name> <Filling_file_name> <Output_file_name>  
+ _**Syntax:**_ ./microsim_kks_opencl <Input_file_name> <Filling_file_name> <Output_file_name>  
    
-   Example:
+ Example:
 
         ./microsim_kks_opencl Input.in Filling.in Output 
   The Output file names can be user defined.
@@ -183,7 +184,7 @@ a) Sumeet Rajesh Khanna
 
 This code solves the problem of precipitate growth using a multiphase field solver on the GPU.
 The code is tested on Tesla P100 and Tesla V100.
-For Tesla K80, one needs to comment "CudaMemPrefetchAsync" in solverloop/evolve.h
+**For Tesla K80, one needs to comment "CudaMemPrefetchAsync" in solverloop/evolve.h**
 
 - Navigate inside the folder 'KKS_CuFFT'
 - to create executable 'microsim_kks_cufft' 
@@ -192,7 +193,7 @@ For Tesla K80, one needs to comment "CudaMemPrefetchAsync" in solverloop/evolve.
         
          make
 - To run the solver ,   
-  _**Syntax-**_ ./microsim_kks_cufft <Input_file_name> <Filling_file_name> <Output_file_name>  
+  _**Syntax:**_ ./microsim_kks_cufft <Input_file_name> <Filling_file_name> <Output_file_name>  
   
         ./microsim_kks_cufft Input.in Filling.in Output
 
