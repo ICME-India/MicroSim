@@ -1,0 +1,1 @@
+./Deviceinfo.out 
