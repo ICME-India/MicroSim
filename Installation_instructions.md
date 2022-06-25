@@ -39,7 +39,10 @@ _run the code after navigating to the parent folder._
 
 ## 3. Running the Solvers
 The solvers can be run from the GUI. For running the solvers the steps are given below.
-for more information refer to the readme in each solvers.
+for more information refer to the readme in each solvers.   
+Visit the link below to redirected to the Official Youtube Channel 
+
+[MicroSim in Action:Workshop-cum-Demo](https://www.youtube.com/channel/UCnmLKb-kqQCNXWa0Oz6Ua_g)  
 
 ### a) Cahn Hillard
 
