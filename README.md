@@ -5,8 +5,9 @@ that are based on OpenFoam and AMRex libraries(will be added soon). The stack ha
 using python that allows one to create the input and filling files required for the solvers as well as provides 
 a consolidated framework to choose the solver, compile, execute and visualize simulation results.
 The project is a consortium between (IISc Bangalore, IIT Hyderabad, IIT Bombay, IIT Madras, Savitribai Phule Pune University, C-DAC Pune).
-Following is a brief description of the different software modules and details on how to independently execute them.
+Following is a brief description of the different software modules and details on how to independently execute them.  
 
+ [Youtube](https://www.youtube.com/channel/UCnmLKb-kqQCNXWa0Oz6Ua_g)
 ## Grand-Potential Model(SERIAL)
 This is multiphase multi-component phase-field solver based on the 
 grand-potential formalism. This is a 2D serial CPU version of the code.
