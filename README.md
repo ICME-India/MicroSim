@@ -7,7 +7,8 @@ a consolidated framework to choose the solver, compile, execute and visualize si
 The project is a consortium between (IISc Bangalore, IIT Hyderabad, IIT Bombay, IIT Madras, Savitribai Phule Pune University, C-DAC Pune).
 Following is a brief description of the different software modules and details on how to independently execute them.  
 
- [Youtube](https://www.youtube.com/channel/UCnmLKb-kqQCNXWa0Oz6Ua_g)
+ [Workshop-cum-demo](https://www.youtube.com/channel/UCnmLKb-kqQCNXWa0Oz6Ua_g)  
+ 
 ## Grand-Potential Model(SERIAL)
 This is multiphase multi-component phase-field solver based on the 
 grand-potential formalism. This is a 2D serial CPU version of the code.
