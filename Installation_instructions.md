@@ -107,11 +107,13 @@ CPUs and requires the **h5pcc** compiler for compilation and execution.
 
  **_For running the code on the cluster please use a script.
 For testing on your desktops/laptops the following execution command is required:_**
-_**Syntax:**_
+  
+  _**Syntax:**_
 mpirun -np <num_processors> ./microsim_gp <name_of_infile> <name_of_filling_file> <name_of_output_files> <num_workers_x> <num_workers_y>
 
 **_N.B- the<num_workers_x> * <num_workers_y> = <num_processors>_**
-  Example:  
+   
+   Example:  
 
         mpirun -np 4 ./microsim_gp Input.in Filling.in Outputabcd 2 2
 
@@ -120,13 +122,14 @@ For .h5 files, with WRITEHDF5=1(_in the Input file_), output files need to be tr
 - Navigate outside the DATA folder that is created upon execution of the above command.
 
 
- _**Syntax:**_  _./write_xdmf <name_of_infile> <name_of_output_file> <start_time> <end_time>_
+   
+   _**Syntax:**_  _./write_xdmf <name_of_infile> <name_of_output_file> <start_time> <end_time>_
    
 _<start_time>_ and _<end_time>_ refers to the timesteps that is included in the name of the Output files in the DATA folder.  
   
   Example:
 
-        ./write_xdmf Input.in Outputabc 0 100000
+        ./write_xdmf Input.in Outputabcd 0 100000
 
 For ASCII files in .vtk format the consolidated output files needs to be reconstructed out of separate processor files
 that are written in the DATA folder that is created upon execution
