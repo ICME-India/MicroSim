@@ -301,27 +301,27 @@ void function_F_04_init_propertymatrices(double T) {
   struct stat sb;
   
   
-  for (a=0; a < NUM_THERMO_PHASES-1; a++) {
-    sprintf(filename,"tdbs_encrypted/Composition_%s.csv",Phases_tdb[a]);
-    fp = fopen(filename, "r");
-    if (stat(filename, &sb) == -1) {
-      perror("stat");
-      exit(EXIT_FAILURE);
-    }
-    
-    file_contents = malloc(sb.st_size);
-    
-    numlines = 0;
-    while (fscanf(fp, "%[^\n] ", file_contents) != EOF) {
-      numlines++;
-    }
-    fclose(fp);
-    
-    comp_ES = Malloc4M(NUM_THERMO_PHASES, NUMCOMPONENTS-1, 2, numlines);
-    ThF     = Malloc4M(NUM_THERMO_PHASES, NUMCOMPONENTS-1, NUMCOMPONENTS-1, numlines);
-    T_ES    = MallocM(NUM_THERMO_PHASES, numlines);
-    T_ThF   = MallocM(NUM_THERMO_PHASES, numlines);
+//   for (a=0; a < NUM_THERMO_PHASES-1; a++) {
+  sprintf(filename,"tdbs_encrypted/Composition_%s.csv",Phases_tdb[0]);
+  fp = fopen(filename, "r");
+  if (stat(filename, &sb) == -1) {
+    perror("stat");
+    exit(EXIT_FAILURE);
   }
+  
+  file_contents = malloc(sb.st_size);
+  
+  numlines = 0;
+  while (fscanf(fp, "%[^\n] ", file_contents) != EOF) {
+    numlines++;
+  }
+  fclose(fp);
+//   }
+  comp_ES = Malloc4M(NUM_THERMO_PHASES, NUMCOMPONENTS-1, 2,              numlines);
+  ThF     = Malloc4M(NUM_THERMO_PHASES, NUMCOMPONENTS-1, NUMCOMPONENTS-1, numlines);
+  T_ES    = MallocM(NUM_THERMO_PHASES, numlines);
+  T_ThF   = MallocM(NUM_THERMO_PHASES, numlines);
+  
   for (a=0; a < NUM_THERMO_PHASES-1; a++) {
     sprintf(filename,"tdbs_encrypted/Composition_%s.csv",Phases_tdb[a]);
     fp = fopen(filename, "r");

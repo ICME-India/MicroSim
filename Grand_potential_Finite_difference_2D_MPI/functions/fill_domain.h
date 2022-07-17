@@ -143,6 +143,69 @@ void fill_domain(char *argv[]) {
         free(tmp);
         
       }
+      else if ((strcmp(tmpstr1, "FILLCYLINDERRANDOM") == 0) && (NUMPHASES > 0) && ((NUMCOMPONENTS-1) > 0)) {
+        printf("Filling cylinders at random\n");
+        tmp = (char**)malloc(sizeof(char*)*5);
+        for (i = 0; i < 5; i++) {
+          tmp[i] = (char*)malloc(sizeof(char)*10);
+        }
+        for (i = 0, str1 = tmpstr2; ; i++, str1 = NULL) {
+          token = strtok_r(str1, "{,}", &saveptr1);
+          if (token == NULL)
+              break;
+          strcpy(tmp[i],token);
+        }
+        phase                   = atol(tmp[0]);
+        long ppt_radius         = atol(tmp[1]);
+        double volume_fraction  = atof(tmp[2]);
+        long shield_dist        = atol(tmp[3]);
+        double spread           = atof(tmp[4]);
+
+        if (shield_dist > 8)
+            shield_dist = 8;
+        else if (shield_dist == 1)
+            shield_dist = 2;
+
+        fill_phase_cylinder_random(phase, ppt_radius, volume_fraction, shield_dist, spread);
+
+        for (i = 0; i < 5; i++) { 
+          free(tmp[i]);
+        }
+        free(tmp);
+        printf("End filling cylinders at random\n");
+      }
+      else if ((strcmp(tmpstr1, "FILLSPHERERANDOM") == 0) && (NUMPHASES > 0) && ((NUMCOMPONENTS-1) > 0)) {
+        printf("Filling spheres at random\n");
+        tmp = (char**)malloc(sizeof(char*)*5);
+        for (i = 0; i < 5; i++) {
+          tmp[i] = (char*)malloc(sizeof(char)*10);
+        }
+        for (i = 0, str1 = tmpstr2; ; i++, str1 = NULL) {
+          token = strtok_r(str1, "{,}", &saveptr1);
+          if (token == NULL)
+              break;
+          strcpy(tmp[i],token);
+        }
+
+        phase                   = atol(tmp[0]);
+        long ppt_radius         = atol(tmp[1]);
+        double volume_fraction  = atof(tmp[2]);
+        long shield_dist        = atol(tmp[3]);
+        double spread           = atof(tmp[4]);
+
+        if (shield_dist > 8)
+            shield_dist = 8;
+        else if (shield_dist == 1)
+            shield_dist = 2;
+
+        fill_phase_sphere_random(phase, ppt_radius, volume_fraction, shield_dist, spread);
+
+        for (i = 0; i < 5; i++) {
+          free(tmp[i]);
+        }
+        free(tmp);
+        printf("End filling spheres at random\n");
+      }
     }
   }
   fclose(fr);

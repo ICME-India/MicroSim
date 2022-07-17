@@ -174,7 +174,7 @@ void print_input_parameters(char *argv[]){
   
   strcpy(key, "PHASES");
   
-  PRINT_STRING_ARRAY(key, Phases, NUMCOMPONENTS, fr);
+  PRINT_STRING_ARRAY(key, Phases, NUMPHASES, fr);
   
   for (i=0; i<NUMPHASES; i++) {
     sprintf(key, "ceq[Solidus,%s]",Phases[i]);

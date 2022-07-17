@@ -107,40 +107,41 @@ int main(int argc, char * argv[]) {
   }
  
   populate_table_names();
-    
+  
   Mpiinfo(taskid);
   
+//   exit(0);
 //   if (FUNCTION_F == 2) {
     Calculate_Tau();
 //   }
   
   //Checking tdb functions
   
-  if (taskid == MASTER) {
-    double c_x;
-    double c[NUMCOMPONENTS-1];
-    double c_calc[NUMCOMPONENTS-1];
-    double mu[NUMCOMPONENTS-1];
-    double dpsi;    
-    char filename[1000];
-    double fe;
-    FILE *fp_check;
-    for (a=0; a<NUMPHASES; a++) {
-      sprintf(filename, "Thermodynamic_functions_%ld.dat", a);
-      fp_check = fopen(filename, "w");
-      for(c_x=0.01; c_x < 0.99;) {
-        c[0] = c_x;
-        Mu(c, T, a, mu);
-        dc_dmu(mu, c, T, a, dcdmu);
-        fe = free_energy(c, T, a);
-        dpsi = fe - mu[0]*c[0];
-        c_mu(mu, c, T, a, ceq[a][a]);
-        fprintf(fp_check, "%le %le %le %le %le %le\n", c_x, mu[0], dcdmu[0][0], fe,  dpsi, c_calc[0]);
-        c_x += 0.05;
-      }
-      fclose(fp_check);
-    }
-  }
+//   if (taskid == MASTER) {
+//     double c_x;
+//     double c[NUMCOMPONENTS-1];
+//     double c_calc[NUMCOMPONENTS-1];
+//     double mu[NUMCOMPONENTS-1];
+//     double dpsi;    
+//     char filename[1000];
+//     double fe;
+//     FILE *fp_check;
+//     for (a=0; a<NUMPHASES; a++) {
+//       sprintf(filename, "Thermodynamic_functions_%ld.dat", a);
+//       fp_check = fopen(filename, "w");
+//       for(c_x=0.01; c_x < 0.99;) {
+//         c[0] = c_x;
+//         Mu(c, T, a, mu);
+//         dc_dmu(mu, c, T, a, dcdmu);
+//         fe = free_energy(c, T, a);
+//         dpsi = fe - mu[0]*c[0];
+//         c_mu(mu, c, T, a, ceq[a][a]);
+//         fprintf(fp_check, "%le %le %le %le %le %le\n", c_x, mu[0], dcdmu[0][0], fe,  dpsi, c_calc[0]);
+//         c_x += 0.05;
+//       }
+//       fclose(fp_check);
+//     }
+//   }
   
   
   if ((STARTTIME !=0) || (RESTART !=0)) {
@@ -198,14 +199,14 @@ int main(int argc, char * argv[]) {
   }
 //   writetofile_worker();
   
-  //Preconditioning
+//   Preconditioning
   for(t=1; t<nsmooth; t++) {
     smooth(workers_mpi.start, workers_mpi.end);
-    mpiexchange_left_right(taskid);
-    mpiexchange_top_bottom(taskid);
     if(boundary_worker) {
       apply_boundary_conditions(taskid);
     }
+    mpiexchange_left_right(taskid);
+    mpiexchange_top_bottom(taskid);
   }
   
   if (!WRITEHDF5) {
@@ -295,7 +296,7 @@ int main(int argc, char * argv[]) {
         MPI_Reduce(&workers_max_min.rel_change_mu[k],  &global_max_min.rel_change_mu[k],   1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
       }
       if (taskid == MASTER) {
-        fprintf(stdout, "Time=%le\n", t*deltat);
+        fprintf(stdout, "Time=%le\n", t*deltat + STARTTIME);
         for (b=0; b<NUMPHASES; b++) {
           fprintf(stdout, "%*s, Max = %le, Min = %le, Relative_Change=%le\n", max_length, Phases[b], global_max_min.phi_max[b], global_max_min.phi_min[b], sqrt(global_max_min.rel_change_phi[b]));
         }

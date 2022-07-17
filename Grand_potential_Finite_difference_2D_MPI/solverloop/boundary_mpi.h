@@ -190,10 +190,19 @@ void apply_boundary_conditions(long taskid) {
 
     for (i=0; i<6; i++) {
       if ((i==0) || (i==1)) {
-        copyYZ(boundary[i], gridinfo_w, "PHI");
-        copyYZ(boundary[i], gridinfo_w, "MU");
-        if (!ISOTHERMAL) {
-          copyYZ(boundary[i], gridinfo_w, "T");
+        if (workers_mpi.firstx) {
+          copyYZ(boundary[0], gridinfo_w, "PHI");
+          copyYZ(boundary[0], gridinfo_w, "MU");
+          if (!ISOTHERMAL) {
+            copyYZ(boundary[0], gridinfo_w, "T");
+          }
+        }
+        if (workers_mpi.lastx) {
+          copyYZ(boundary[1], gridinfo_w, "PHI");
+          copyYZ(boundary[1], gridinfo_w, "MU");
+          if (!ISOTHERMAL) {
+            copyYZ(boundary[1], gridinfo_w, "T");
+          }
         }
       }
       if ((i==2) || (i==3)) {
@@ -202,10 +211,19 @@ void apply_boundary_conditions(long taskid) {
 //         if (!ISOTHERMAL) {
 //           copyXZ(boundary[i], workers_mpi.start[X], workers_mpi.end[X], gridinfo_w, "T");
 //         }
-        copyXZ(boundary[i], 0, workers_mpi.rows_x-1, gridinfo_w, "PHI");
-        copyXZ(boundary[i], 0, workers_mpi.rows_x-1, gridinfo_w, "MU");
-        if (!ISOTHERMAL) {
-          copyXZ(boundary[i], 0, workers_mpi.rows_x-1, gridinfo_w, "T");
+        if (workers_mpi.lasty) {
+          copyXZ(boundary[2], 0, workers_mpi.rows_x-1, gridinfo_w, "PHI");
+          copyXZ(boundary[2], 0, workers_mpi.rows_x-1, gridinfo_w, "MU");
+          if (!ISOTHERMAL) {
+            copyXZ(boundary[2], 0, workers_mpi.rows_x-1, gridinfo_w, "T");
+          }
+        }
+        if (workers_mpi.firsty) {
+          copyXZ(boundary[3], 0, workers_mpi.rows_x-1, gridinfo_w, "PHI");
+          copyXZ(boundary[3], 0, workers_mpi.rows_x-1, gridinfo_w, "MU");
+          if (!ISOTHERMAL) {
+            copyXZ(boundary[3], 0, workers_mpi.rows_x-1, gridinfo_w, "T");
+          }
         }
       }
       if (DIMENSION != 2) {
@@ -217,10 +235,19 @@ void apply_boundary_conditions(long taskid) {
 //           }
 //         }
         if ((i==4)||(i==5)) {
-          copyXY(boundary[i], 0, workers_mpi.rows_x-1, gridinfo_w, "PHI");
-          copyXY(boundary[i], 0, workers_mpi.rows_x-1, gridinfo_w, "MU");
-          if (!ISOTHERMAL) {
-            copyXY(boundary[i], 0, workers_mpi.rows_x-1, gridinfo_w, "T");
+          if (workers_mpi.firstz) {
+            copyXY(boundary[4], 0, workers_mpi.rows_x-1, gridinfo_w, "PHI");
+            copyXY(boundary[4], 0, workers_mpi.rows_x-1, gridinfo_w, "MU");
+            if (!ISOTHERMAL) {
+              copyXY(boundary[4], 0, workers_mpi.rows_x-1, gridinfo_w, "T");
+            }
+          }
+          if (workers_mpi.lastz) {
+            copyXY(boundary[5], 0, workers_mpi.rows_x-1, gridinfo_w, "PHI");
+            copyXY(boundary[5], 0, workers_mpi.rows_x-1, gridinfo_w, "MU");
+            if (!ISOTHERMAL) {
+              copyXY(boundary[5], 0, workers_mpi.rows_x-1, gridinfo_w, "T");
+            }
           }
         }
       }

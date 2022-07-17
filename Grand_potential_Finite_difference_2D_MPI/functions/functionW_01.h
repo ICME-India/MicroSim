@@ -26,11 +26,11 @@ double function_W_01_dwdphi(double *phi, double *divphi, struct gradlayer **grad
       if (b!=a && c!=a && b < c) {
         if (fabs(divphi[b]) > 0.0 && fabs(divphi[c]) > 0.0) {
           phibphic = phi[b]*phi[c];
-          if (phi[a]*phibphic >= 0.00000) {
+//           if (phi[a]*phibphic >= 0.00000) {
             sum += Gamma_abc[a][b][c]*phibphic;
-          } else {
-            sum += -Gamma_abc[a][b][c]*phibphic;
-          }
+//           } else {
+//             sum += -Gamma_abc[a][b][c]*phibphic;
+//           }
         }
       }
     }
