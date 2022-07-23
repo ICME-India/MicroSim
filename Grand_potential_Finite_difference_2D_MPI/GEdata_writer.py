@@ -112,7 +112,10 @@ print("````````````````````````````````\n")
 
 #my_phases_tdb = ['LIQUID', 'FCC_A1']
 ### Reading in the .tdb files
-tdbf = Database(tdbfname)
+
+tdb_path = "tdbs/" + tdbfname
+
+tdbf = Database(tdb_path)
 
 ## You can initialize a phase string consisting of the phases. The list you can
 ## by just printing tdbf.phases.keys(). You can just create a list of the phases
@@ -261,47 +264,47 @@ functions += [(dmudc_tdb[i].name, eqn_dmudc[i])    for i in range(len(phases))]
 
 print(functions)
 
-codegen(functions, language='c', to_files=True, prefix='Thermo')
+codegen(functions, language='c', to_files=True, prefix='tdbs/Thermo')
 
 import fileinput
 
-with fileinput.FileInput('Thermo.c', inplace=True) as file:
+with fileinput.FileInput('tdbs/Thermo.c', inplace=True) as file:
     for line in file:
         print(line.replace('#include <math.h>', '//#include <math.h>'), end='')
 
 
-free_energy_functions = "{" + free_energy_tdb[0].name + ","
+free_energy_functions = "{" + free_energy_tdb[0].name
 
 for i in range(1,len(phases)):
- free_energy_functions += free_energy_tdb[i].name
+ free_energy_functions += "," + free_energy_tdb[i].name
 
 free_energy_functions += "}"
 
-Diffusion_potential_functions = "{" + Mu_tdb[0].name + ","
+Diffusion_potential_functions = "{" + Mu_tdb[0].name
 
 for i in range(1,len(phases)):
- Diffusion_potential_functions += Mu_tdb[i].name
+ Diffusion_potential_functions += "," + Mu_tdb[i].name
 
 Diffusion_potential_functions += "}"
 
-Hessian_functions = "{" + dmudc_tdb[0].name + ","
+Hessian_functions = "{" + dmudc_tdb[0].name 
 
 for i in range(1,len(phases)):
- Hessian_functions += dmudc_tdb[i].name
+ Hessian_functions += "," + dmudc_tdb[i].name
 
 Hessian_functions += "}"
 
 #print(str);
 ## For .h File: void... added before #endif
-with fileinput.FileInput('Thermo.h', inplace=True) as file:
+with fileinput.FileInput('tdbs/Thermo.h', inplace=True) as file:
     for line in file:
         print(line.replace('#endif', 'void(*free_energy_tdb[])(double T, double *y, double *Ge) = %s; \n#endif '% free_energy_functions), end='')
 
-with fileinput.FileInput('Thermo.h', inplace=True) as file:
+with fileinput.FileInput('tdbs/Thermo.h', inplace=True) as file:
     for line in file:
         print(line.replace('#endif', 'void(*Mu_tdb[])(double T, double *y, double *Mu) = %s; \n#endif '% Diffusion_potential_functions), end='')
 
-with fileinput.FileInput('Thermo.h', inplace=True) as file:
+with fileinput.FileInput('tdbs/Thermo.h', inplace=True) as file:
     for line in file:
         print(line.replace('#endif', 'void(*dmudc_tdb[])(double T, double *y, double *Dmudc) = %s; \n#endif '% Hessian_functions), end='')
 
