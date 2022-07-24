@@ -1,0 +1,16 @@
+EXE_INC = \
+     -I. \
+    -I$(LIB_SRC)/finiteVolume/lnInclude \
+    -I$(LIB_SRC)/sampling/lnInclude \
+    -I$(LIB_SRC)/meshTools/lnInclude \
+    -I/usr/include
+    
+   
+
+EXE_LIBS = \
+    -lfiniteVolume \
+    -lmeshTools \
+    -lsampling \
+    -L/usr/lib/x86_64-linux-gnu \
+    -lgsl \
+    -lgslcblas
