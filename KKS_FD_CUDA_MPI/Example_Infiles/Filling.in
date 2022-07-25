@@ -1,0 +1,9 @@
+##FILLCYLINDER = {phase, x_centre, y_centre, z_start, z_end, radius};
+FILLCYLINDER = {1, 128, 128, 0, 0, 16};
+#FILLCYLINDER = {1, 167, 128, 0, 0, 16};
+##FILLSPHERE = {phase, x_centre, y_centre, z_centre, radius};
+#FILLSPHERE = {1, 64, 64, 64, 16};
+##FILLCYLINDERRANDOM = {phase, ppt_radius, volume_fraction, shield_dist, seed, radius variation};
+#FILLCYLINDERRANDOM = {1, 10, 0.15, 1, 0, 10};
+##FILLSPHERERANDOM = {phase, ppt_radius, volume_fraction, shield_dist, seed, radius variation};
+#FILLSPHERERANDOM = {1, 12, 0.1, 8, 0, 10};
