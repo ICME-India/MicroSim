@@ -36,7 +36,11 @@ For visualization and post-processing, ParaView 5.6 and 5.8 are tested. ParaView
 
 > paraview
 
-To view the plots, gnuplot can be used, which comes preinstalled with Ubuntu. It can be launched using the command:
+To view the plots, gnuplot can be used, which can be installed using the following command in the terminal:
+
+> sudo apt install gnuplot-x11
+
+It can be launched using the command:
 
 > gnuplot
 
@@ -70,4 +74,8 @@ To run the case with the default parameters, execute the following:
 > ./Allrun
 
 Note: Allclean and Allrun must be set as executables
+
+To check the results in ParaView:
+
+> paraview binary.foam
 
