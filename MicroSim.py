@@ -2964,8 +2964,9 @@ class StartScreen(QDialog):
         #self.elastIntKKS.setText("")
         self.temperatureKKS.setText("")
         self.TauKKS.setText("")
-        self.EpsilonKKS.setText("")
-        self.SeedKKS.setText("")
+        self.epsilonKKS.setText("")
+        #self.SeedKKS.setText("")
+        self.equTKKS.setText("")
     
 
         #KKS2
@@ -5510,7 +5511,7 @@ class StartScreen(QDialog):
             self.errorKKS.setText("Please fill Track Progress Size ")
             return False
         
-        elif self.EpsilonKKS.text() == "":
+        elif self.epsilonKKS.text() == "":
             self.errorKKS.setText("Please fill relaxCoeff value")
             return False
 
@@ -5522,8 +5523,8 @@ class StartScreen(QDialog):
             self.errorKKS.setText("Required " + str((noP_value * ((noP_value - 1) / 2))) + " values for Tau" )
             return False
 
-        elif self.SeedKKS.text() == "":
-            self.errorKKS.setText("Please fill seed value")
+        elif self.equTKKS.text() == "":
+            self.errorKKS.setText("Please fill Equilibrium Temperature")
             return False
       
 
@@ -6158,8 +6159,8 @@ class StartScreen(QDialog):
                 f.write("WRITEFORMAT = "+self.writeFormatKKS.currentText()+";\n"
                         "TRACK_PROGRESS = " + self.trackprogressKKS.text()+";\n"
                         "Tau = {" + self.TauKKS.text()+"};\n"
-                        "Epsilon = " + self.EpsilonKKS.text()+";\n"
-                        "seed = " + self.SeedKKS.text()+";\n"
+                        "epsilon = " + self.epsilonKKS.text()+";\n"
+                        "Equilibrium_temperature = " + self.equTKKS.text()+";\n"
                         "T = " + self.temperatureKKS.text()+";\n"
                     )
                 
@@ -6689,7 +6690,7 @@ class StartScreen(QDialog):
                         CHmsg.exec_()
 
                 if self.model_KKS.isChecked():
-                    kksVariables =["DIMENSION", "MESH_X" ,"MESH_Y", "MESH_Z", "DELTA_X" ,"DELTA_Y", "DELTA_Z", "DELTA_t", "NUMPHASES", "NUMCOMPONENTS", "NTIMESTEPS", "NSMOOTH", "SAVET", "COMPONENTS", "PHASES", "GAMMA", "DIFFUSIVITY", "R", "V", "EIGEN_STRAIN", "Elastic Constant","BOUNDARY Phi","BOUNDARY mu/c","BOUNDARY T","BOUNDARY_VALUE Phi","BOUNDARY_VALUE mu/c","BOUNDARY_VALUE T"," WRITEFORMAT", "TRACK_PROGRESS", "T","relax_coeff" ,"seed", "alpha", "lambda","Tau","Epsilon"]
+                    kksVariables =["DIMENSION", "MESH_X" ,"MESH_Y", "MESH_Z", "DELTA_X" ,"DELTA_Y", "DELTA_Z", "DELTA_t", "NUMPHASES", "NUMCOMPONENTS", "NTIMESTEPS", "NSMOOTH", "SAVET", "COMPONENTS", "PHASES", "GAMMA", "DIFFUSIVITY", "R", "V", "EIGEN_STRAIN", "Elastic Constant","BOUNDARY Phi","BOUNDARY mu/c","BOUNDARY T","BOUNDARY_VALUE Phi","BOUNDARY_VALUE mu/c","BOUNDARY_VALUE T"," WRITEFORMAT", "TRACK_PROGRESS", "T","relax_coeff" ,"Equilibrium_temperature", "alpha", "lambda","Tau","epsilon"]
                     kksmsgFlag =0
                     kkserror = "Oops ! we have noticed some missing parameters in your Infile\n"
                     for i in range(36):
@@ -7680,8 +7681,8 @@ class StartScreen(QDialog):
             self.kksFlag[29] = 1
 
 
-        elif entryname == "seed":
-            self.SeedKKS.setText(entryvalue)
+        elif entryname == "Equilibrium_temperature":
+            self.equTKKS.setText(entryvalue)
             self.kksFlag[31] = 1
        
         elif entryname == "Tau":
@@ -7690,8 +7691,8 @@ class StartScreen(QDialog):
             self.TauKKS.setText(entryvalue)
             self.kksFlag[34] = 1
             
-        elif entryname == "Epsilon":
-            self.EpsilonKKS.setText(entryvalue)
+        elif entryname == "epsilon":
+            self.epsilonKKS.setText(entryvalue)
             self.kksFlag[35] = 1
 
         
