@@ -9,8 +9,8 @@
 . ./c_resources/c.sh
 . ./resources/nuplt_chkr.sh
 . ./resources/pview_chkr.sh
-. ./nvcc_chkr.sh
-. ./vtk_checker.sh
+. ./resources/nvcc_chkr.sh
+. ./resources/vtk_checker.sh
 
 #	. ./C_Header_files/c_gsl_chkr.sh
 h5pcc_chkr
@@ -23,5 +23,5 @@ fftw3chkr
 #CUDA_Aware_MPI
 CL_Devices
 nvcc_checker 11.0
-py_vtk
+py_vt
 
