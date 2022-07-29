@@ -40,7 +40,9 @@ void CL_Shift() {
 
         index = x*layer_size + z*rows_y + y;
 
-        gridNew[index].c1 = gridinfo[index].compi[0];
+        gridNew[index].c1 = gridinfo[index].composition[0];
+
+        gridNew[index].mu[0] = gridinfo[index].compi[0];
 
         gridNew[index].phi = gridinfo[index].phia[0];
 

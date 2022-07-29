@@ -303,6 +303,13 @@ void populate_string_array(char**string, char *tmpstr, long size) {
     if (token == NULL)
         break;
     strcpy(string[i],token);
+    if (string[i][0] == ' '){
+//       string[i]++;
+       memmove(string[i], string[i]+1, strlen(string[i]));
+    }
+    if (string[i][strlen(string[i])-1] == ' ') {
+      string[i][strlen(string[i])-1] = '\0';
+    }
   }
 }
 void initialize_boundary_conditions(char *tmpstr) {
@@ -671,7 +678,7 @@ void populate_rotation_matrix(double ****Mat, double ****Mat_Inv, char *tmpstr) 
   thetay = atof(tmp[3]);
   thetaz = atof(tmp[4]);
   
-  printf("phase1=%ld, phase2=%ld\n", phase1, phase2);
+  //printf("phase1=%ld, phase2=%ld\n", phase1, phase2);
   
   get_Rotation_Matrix(Rx, thetax, 0);
   get_Rotation_Matrix(Ry, thetay, 1);
@@ -684,15 +691,15 @@ void populate_rotation_matrix(double ****Mat, double ****Mat_Inv, char *tmpstr) 
   
   matinvnew(Mat[phase1][phase2],Mat_Inv[phase1][phase2], 3);
   
-//   for (i=0; i<3; i++) {
-//     for (j=0; j<3; j++) {
-//       Mat[phase2][phase1][i][j]     = Mat[phase1][phase2][i][j];
-//       Mat_Inv[phase2][phase1][i][j] = Mat_Inv[phase1][phase2][i][j];
-//       printf("%le ",Mat_Inv[phase2][phase1][i][j]);
-//     }
-//     printf("\n");
-//   }
-//   
+  for (i=0; i<3; i++) {
+    for (j=0; j<3; j++) {
+      Mat[phase2][phase1][i][j]     = Mat[phase1][phase2][i][j];
+      Mat_Inv[phase2][phase1][i][j] = Mat_Inv[phase1][phase2][i][j];
+      //printf("%le ",Mat_Inv[phase2][phase1][i][j]);
+    }
+    //printf("\n");
+  }
+  
 //   exit(0);
   
   FreeM(Rx, 3);
@@ -820,6 +827,7 @@ void PRINT_BOUNDARY_CONDITIONS(FILE *fp) {
 void allocate_memory_fields(struct fields *ptr) {
   ptr->phia        = (double *)malloc(NUMPHASES*sizeof(double));
   ptr->compi       = (double *)malloc((NUMCOMPONENTS-1)*sizeof(double));
+  ptr->composition       = (double *)malloc((NUMCOMPONENTS-1)*sizeof(double));
 }
 
 void free_memory_fields(struct fields *ptr) {
@@ -861,7 +869,7 @@ void Read_Rotation_Angles(double *Mat, char *tmpstr) {
   Mat[1] = thetay;
   Mat[2] = thetaz;
   
-  printf("phase1=%ld, phase2=%ld\n", phase1, phase2);
+  //printf("phase1=%ld, phase2=%ld\n", phase1, phase2);
   
   for (i = 0; i < len; ++i) {
     free(tmp[i]);

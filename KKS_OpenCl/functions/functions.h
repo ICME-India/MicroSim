@@ -36,7 +36,7 @@ void fill_phase_cube(struct fill_cube fill_cube_parameters, struct fields* gridi
 void fill_phase_cylinder (struct fill_cylinder fill_cylinder_parameters, struct fields* gridinfo, long b);
 void fill_phase_sphere(struct fill_sphere fill_sphere_parameters, struct fields* gridinfo, long b);
 void fill_phase_ellipse (struct fill_ellipse fill_ellipse_parameters, struct fields* gridinfo, long b);
-void init_propertymatrices();
+//void init_propertymatrices();
 void fill_composition_cube(struct fields* gridinfo);
 void reading_input_parameters(char *argv[]);
 void free_variables();

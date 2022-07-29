@@ -4,6 +4,14 @@
 #include <stdlib.h> 
 #include <stdbool.h>
 #include <sys/stat.h>
+#include <gsl/gsl_errno.h>
+#include <gsl/gsl_spline.h>
+#include <gsl/gsl_vector.h>
+#include <gsl/gsl_blas.h>
+#include <gsl/gsl_multiroots.h>
+#include <gsl/gsl_roots.h>
+#include "tdbs/Thermo.h"
+#include "tdbs/Thermo.c"
 #include "functions/global_vars.h"
 #include "functions/CL_global_vars.h" 
 #include "functions/CL_initialize_variables.h"
@@ -18,15 +26,25 @@
 #include "functions/functions.h"
 #include "functions/matrix.h"
 #include "functions/utility_functions.h"
+#include "functions/functionH.h"
+#include "functions/functionF_01.h"
+#include "functions/functionF_02.h"
+#include "functions/functionF_03.h"
+#include "functions/CL_functionF_03_HostUpdate.h"
+#include "functions/functionF_04.h"
+#include "functions/CL_functionF_04_HostUpdate.h"
+#include "solverloop/FunctionF_4_SplineCPU.h"
 #include "functions/filling.h"
 #include "functions/reading_input_parameters.h"
 #include "functions/read_boundary_conditions.h"
+#include "functions/initialize_variables.h"
 #include "functions/free_variables.h"
 #include "functions/fill_domain.h"
 #include "functions/Temperature_gradient.h"
 #include "functions/shift.h"
 #include "functions/CL_Shift.h"
 #include "solverloop/serialinfo_xy.h"
+#include "solverloop/initialize_functions_solverloop.h"
 #include "solverloop/file_writer.h" 
 
 int main(int argc, char * argv[]) { 
@@ -35,9 +53,56 @@ int main(int argc, char * argv[]) {
 
   reading_input_parameters(argv);
   
+  initialize_variables();
+  
   serialinfo_xy();
   
+  initialize_functions_solverloop();
+  
   read_boundary_conditions(argv);
+  
+  if (!(FUNCTION_F == 2)) {
+    init_propertymatrices(T);
+    if ( FUNCTION_F == 3 ) { 
+      propf3Hostupdate(&propf3);
+    }
+    else if ( FUNCTION_F == 4 ) { 
+      propf4Hostupdate(&propf4);
+    }
+  }
+  
+  for (a=0; a<NUMPHASES-1; a++) {
+    for(k=0; k<NUMCOMPONENTS-1; k++) {
+      printf("slopes[a][NUMPHASES-1][k]=%le, %le\n", slopes[a][NUMPHASES-1][k], propf3.slopes[a][NUMPHASES-1][k]);
+      printf("slopes[a][a][k]=%le, %le\n", slopes[a][a][k], propf3.slopes[a][a][k]);
+    }
+  }
+  
+
+
+  double c_x;
+  double c[NUMCOMPONENTS-1];
+  double c_calc[NUMCOMPONENTS-1];
+  double mu[NUMCOMPONENTS-1];
+  double dpsi;
+  char filename[1000];
+  double fe;
+  FILE *fp_check;
+  for (a=0; a<NUMPHASES; a++) {
+    sprintf(filename, "Thermodynamic_functions_%ld.dat", a);
+    fp_check = fopen(filename, "w");
+    for(c_x=0.001; c_x < 0.99;) {
+      c[0] = c_x;
+      Mu(c, T, a, mu);
+      dc_dmu(mu, c, T, a, dcdmu);
+      fe = free_energy(c, T, a);
+      dpsi = fe - mu[0]*c[0];
+      c_mu(mu, c, T, a, ceq[a][a]);
+      fprintf(fp_check, "%le %le %le %le %le %le %le\n", T, c_x, mu[0], dcdmu[0][0], fe,  dpsi, c_calc[0]);
+      c_x += 0.001;
+    }
+    fclose(fp_check);
+  }
   
   if ((STARTTIME == 0) && (RESTART ==0)) {
     fill_domain(argv);
@@ -73,7 +138,7 @@ int main(int argc, char * argv[]) {
       }
     }
   }
-
+  
   CL_initialize_variables();
 
   CL_device_kernel_build();
@@ -99,12 +164,15 @@ int main(int argc, char * argv[]) {
     
     printf("Timestep=%ld\n",t);
 
-    CL_Solve_phi_com();
+    CL_Solve_phi_com_Function(t + STARTTIME);
     
     CL_Update_Temperature(t + STARTTIME);
   
-    if (t%100 == 0) {
-      CL_Shift();
+    
+    if (SHIFT) {
+      if (t%100 == 0) {
+        CL_Shift();
+      }
     }
 	
     if(t%saveT == 0) {

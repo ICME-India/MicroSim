@@ -1,5 +1,7 @@
 void CL_initialize_variables() {
 
+  int ip1, ip2, i1, i2, ip;
+
   pfmdat.nproc              = 1;
   pfmdat.jDimX              = MESH_Y;
   pfmdat.iDimY              = MESH_X;
@@ -10,22 +12,27 @@ void CL_initialize_variables() {
   pfmdat.Vm                 = V;
   pfmdat.D11s               = Diffusivity[0][0][0];
   pfmdat.D11l               = Diffusivity[1][0][0];
+  pfmdat.interfaceDownlimit = 1e-4;
+  pfmdat.interfaceUplimit   = 1.0 - pfmdat.interfaceDownlimit;
 
   pfmdat.phisolid           = 1.0;
   pfmdat.philiquid          = 0.0;
   pfmdat.Rg                 = R;
-  if (temperature > T) {
-    pfmdat.T0                 = temperature;
-  }
-  else {
+  // if (temperature > T) {
+  //   pfmdat.T0                 = temperature;
+  // }
+  // else {
     pfmdat.T0                 = T;
-  }
+  // }
+  pfmdat.Teq                 = Teq;
+  pfmdat.Tfill               = Tfill;
+  pfmdat.ISOTHERMAL          = ISOTHERMAL;
   
   pfmdat.lrep               = 1.0;//(pfmdat.sigma*pfmdat.Vm)/(TLiquidus*R);//1.0;//CharLength*1e2;
   pfmdat.c1s_Initial        = cfill[0][0][0];
-  pfmdat.c1l_Initial        = cfill[1][0][0];
-  pfmdat.c1s_1stguess       = ceq[0][0][0];
-  pfmdat.c1l_1stguess       = ceq[1][0][0];
+  pfmdat.c1l_Initial        = cfill[1][1][0];
+  pfmdat.c1s_1stguess       = c_guess[0][0][0];
+  pfmdat.c1l_1stguess       = c_guess[1][1][0];
 
   pfmdat.a2                 = 47.0/60.0;
   pfmdat.rad                = fill_cylinder_parameters.radius;
@@ -44,10 +51,27 @@ void CL_initialize_variables() {
   //pfmdat.Vp                 = PullingVelocity;
   pfmdat.velocity           = temperature_gradientY.velocity;
   pfmdat.NoiseFac           = AMP_NOISE_PHASE;
-  pfmdat.angle              = RotAngles[0]*M_PI/180.0;
+  //pfmdat.angle              = RotAngles[0]*M_PI/180.0;
   pfmdat.shift_OFFSET       = shift_OFFSET; /* */
+  
+  for ( ip1 = 0; ip1 < 2; ip1++ ) { 
+    for ( ip2 = 0; ip2 < 2; ip2++ ) { 
+      for ( i1 = 0; i1 < 3; i1++ ) { 
+        for ( i2 = 0; i2 < 3; i2++ ) { 
+          pfmdat.Rotation_matrix[ip1][ip2][i1][i2] = Rotation_matrix[ip1][ip2][i1][i2]; 
+          pfmdat.Inv_Rotation_matrix[ip1][ip2][i1][i2] = Inv_Rotation_matrix[ip1][ip2][i1][i2]; 
+        }
+      }
+    }
+  }
+  
+  
+  for ( ip = 0; ip < NUMPHASES; ip++ ) { 
+    pfmdat.thermophase[ip] = thermo_phase[ip];
+    printf("ip = %d, thermo_phase[%d]\n", ip, ip);
+  }
 
-  pfmdat.RefD = pfmdat.D11l;
+  pfmdat.RefD = 1.0;;
 
   pfmvar.E0                 = 1.0;//8.314*pfmdat.Tr/pfmdat.Vm;
   pfmvar.deltax             = deltax; 
@@ -61,7 +85,7 @@ void CL_initialize_variables() {
   //printf("deltax = %le, deltat = %le \n", pfmvar.deltax, pfmvar.deltat);
   //printf("dx = %le, dt = %le \n", pfmvar.dx, pfmvar.dt);
     
-  pfmvar.surfTen            = pfmdat.sigma/pfmdat.sigma; //pfmdat.sigma/(pfmdat.lrep*pfmvar.E0);//Nothing but 1
+  pfmvar.surfTen            = pfmdat.sigma; // /pfmdat.sigma; //pfmdat.sigma/(pfmdat.lrep*pfmvar.E0);//Nothing but 1
   pfmvar.ee                 = (6.0*pfmvar.surfTen*pfmdat.intwidth)/4.39445;
   pfmvar.w                  = (3.0*pfmvar.surfTen*4.39445)/pfmdat.intwidth;
   pfmvar.eesqrt             = sqrt(pfmvar.ee);
@@ -107,6 +131,8 @@ void CL_initialize_variables() {
   cscl     = (struct csle*)malloc(nxny*sizeof(struct csle));
   temp     = (double*)malloc(nx*sizeof(double)); //Changed to nx, According to MESH_Y****
   tstep    = (long*)malloc(sizeof(long));
+  propf4spline     = (struct propmatf4spline*)malloc(nx*sizeof(struct propmatf4spline));
+  propf4spline1     = (struct propmatf4spline*)malloc(nx*sizeof(struct propmatf4spline));
 
   //pfmdat.myrank = rank;
   pfmdat.myrank = 0;

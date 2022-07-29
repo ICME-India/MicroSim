@@ -36,6 +36,26 @@ void CL_buffer_allocation() {
     printf("falied to allocate device memory d_tstep %d\n", ret);
     exit(1);
   }
+  d_propf3 = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, sizeof(struct propmatf3), &propf3, &ret);
+  if ( !d_propf3 ) {
+    printf("falied to allocate device memory d_propf3 %d\n", ret);
+    exit(1);
+  }
+  d_propf4 = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, sizeof(struct propmatf4), &propf4, &ret);
+  if ( !d_propf4 ) {
+    printf("falied to allocate device memory d_propf4 %d\n", ret);
+    exit(1);
+  }
+  d_propf4spline = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, nx*sizeof(struct propmatf4spline), propf4spline, &ret);
+  if ( !d_propf4spline ) {
+    printf("falied to allocate device memory d_propf4spline %d\n", ret);
+    exit(1);
+  }
+  d_propf4spline1 = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_COPY_HOST_PTR, nx*sizeof(struct propmatf4spline), propf4spline1, &ret);
+  if ( !d_propf4spline1 ) {
+    printf("falied to allocate device memory d_propf4spline1 %d\n", ret);
+    exit(1);
+  }
   printf("Device buffers created. \n");
 
   /* Copy input data to memory buffer */
@@ -72,6 +92,26 @@ void CL_buffer_allocation() {
   ret  = clEnqueueWriteBuffer(cmdQ, d_tstep, CL_TRUE, 0, sizeof(long), tstep, 0, NULL, NULL);
   if (ret!=CL_SUCCESS) {
     printf("enq buffer write error d_tstep %d\n", ret);
+    exit(1);
+  }
+  ret  = clEnqueueWriteBuffer(cmdQ, d_propf3, CL_TRUE, 0, sizeof(struct propmatf3), &propf3, 0, NULL, NULL);
+  if (ret!=CL_SUCCESS) {
+    printf("enq buffer write error d_propf3 %d\n", ret);
+    exit(1);
+  }
+  ret  = clEnqueueWriteBuffer(cmdQ, d_propf4, CL_TRUE, 0, sizeof(struct propmatf4), &propf4, 0, NULL, NULL);
+  if (ret!=CL_SUCCESS) {
+    printf("enq buffer write error d_propf4 %d\n", ret);
+    exit(1);
+  }
+  ret  = clEnqueueWriteBuffer(cmdQ, d_propf4spline, CL_TRUE, 0, nx*sizeof(struct propmatf4spline), propf4spline, 0, NULL, NULL);
+  if (ret!=CL_SUCCESS) {
+    printf("enq buffer write error d_propf4spline %d\n", ret);
+    exit(1);
+  }
+  ret  = clEnqueueWriteBuffer(cmdQ, d_propf4spline1, CL_TRUE, 0, nx*sizeof(struct propmatf4spline), propf4spline1, 0, NULL, NULL);
+  if (ret!=CL_SUCCESS) {
+    printf("enq buffer write error d_propf4spline1 %d\n", ret);
     exit(1);
   }
   printf("Write to device completed. \n");

@@ -96,6 +96,21 @@ void write_cells_vtk_2D(FILE *fp, struct fields *gridinfo) {
     }
     fprintf(fp,"\n");
   }
+
+  for (k=0; k < NUMCOMPONENTS-1; k++) {
+    fprintf(fp,"SCALARS Mu_%s double 1\n",Components[k]);
+    fprintf(fp,"LOOKUP_TABLE default\n");
+    for (x=start[X]; x<=end[X]; x++) {
+      for (z=start[Z]; z <= end[Z]; z++) {
+        for (y=start[Y]; y <= end[Y]; y++) {
+          index = x*layer_size + z*rows_y + y;
+          fprintf(fp, "%le\n",gridinfo[index].compi[k]);
+        }
+      }
+    }
+    fprintf(fp,"\n");
+  }
+
   for (k=0; k < NUMCOMPONENTS-1; k++) {
     fprintf(fp,"SCALARS comp_%s double 1\n",Components[k]);
     fprintf(fp,"LOOKUP_TABLE default\n");
@@ -103,7 +118,7 @@ void write_cells_vtk_2D(FILE *fp, struct fields *gridinfo) {
       for (z=start[Z]; z <= end[Z]; z++) {
         for (y=start[Y]; y <= end[Y]; y++) {
           index = x*layer_size + z*rows_y + y;
-          fprintf(fp, "%le\n",gridinfo[index].compi[k]);
+          fprintf(fp, "%le\n",gridinfo[index].composition[k]);
         }
       }
     }
@@ -176,6 +191,24 @@ void write_cells_vtk_2D_binary(FILE *fp, struct fields *gridinfo) {
     }
    fprintf(fp,"\n");
   }
+  for (k=0; k < NUMCOMPONENTS-1; k++) {
+    fprintf(fp,"SCALARS Composition_%s double 1\n",Components[k]);
+    fprintf(fp,"LOOKUP_TABLE default\n");
+    for (x=start[X]; x<=end[X]; x++) {
+      for (z=start[Z]; z <= end[Z]; z++) {
+        for (y=start[Y]; y <= end[Y]; y++) {
+          index = x*layer_size + z*rows_y + y;
+          if (IS_LITTLE_ENDIAN) {
+            value = swap_bytes(gridinfo[index].compi[k]);
+          } else {
+            value = gridinfo[index].composition[k];
+          }
+          fwrite(&value, sizeof(double), 1, fp);
+        }
+      }
+    }
+   fprintf(fp,"\n");
+  }
   if (!ISOTHERMAL) {
     fprintf(fp,"SCALARS Temperature double 1\n");
     fprintf(fp,"LOOKUP_TABLE default\n");
@@ -235,6 +268,18 @@ void read_cells_vtk_2D(FILE *fp, struct fields *gridinfo) {
         for (y=start[Y]; y <= end[Y]; y++) {
           index = x*layer_size + z*rows_y + y;
           fscanf(fp, "%le \n",&gridinfo[index].compi[k]);
+        }
+      }
+    }
+  }
+  for (k=0; k < NUMCOMPONENTS-1; k++) {
+    fscanf(fp,"%*[^\n]\n");
+    fscanf(fp,"%*[^\n]\n");
+    for (x=start[X]; x<=end[X]; x++) {
+      for (z=start[Z]; z <= end[Z]; z++) {
+        for (y=start[Y]; y <= end[Y]; y++) {
+          index = x*layer_size + z*rows_y + y;
+          fscanf(fp, "%le \n",&gridinfo[index].composition[k]);
         }
       }
     }
@@ -309,6 +354,23 @@ void read_cells_vtk_2D_binary(FILE *fp, struct fields *gridinfo) {
       }
     }
   }
+  for (k=0; k < NUMCOMPONENTS-1; k++) {
+    fscanf(fp,"%*[^\n]\n");
+    fscanf(fp,"%*[^\n]\n");
+    for (x=start[X]; x<=end[X]; x++) {
+      for (z=start[Z]; z <= end[Z]; z++) {
+        for (y=start[Y]; y <= end[Y]; y++) {
+          index = x*layer_size + z*rows_y + y;
+          fread(&value, sizeof(double), 1, fp);
+          if (IS_LITTLE_ENDIAN) {
+            gridinfo[index].composition[k] = swap_bytes(value);
+          } else {
+            gridinfo[index].composition[k] = value;
+          }
+        }
+      }
+    }
+  }
   if (!ISOTHERMAL) {
     fscanf(fp,"%*[^\n]\n");
     fscanf(fp,"%*[^\n]\n");
@@ -325,6 +387,49 @@ void read_cells_vtk_2D_binary(FILE *fp, struct fields *gridinfo) {
         }
       }
     }
+  }
+}
+
+void populate_table_names(){
+  long i, a, b, k;
+  char chempot_name[100];
+  char composition_name[100]; 
+  char phase_name[100];
+  
+  size_fields = NUMPHASES + (NUMCOMPONENTS-1);
+  
+//   if (WRITECOMPOSITION) {
+    size_fields += (NUMCOMPONENTS-1);
+//   }
+  if(!ISOTHERMAL) {
+    size_fields += 1;
+  }
+  
+  coordNames   = (char**)malloc(sizeof(char*)*(size_fields));
+  i=0;
+  for (a = 0; a < NUMPHASES; a++) {
+    sprintf(phase_name, "/%s",Phases[a]);
+    coordNames[i] = (char*)malloc(sizeof(char)*strlen(phase_name));
+    strcpy(coordNames[i], phase_name);
+    i++;
+  }
+  for (k=0; k < NUMCOMPONENTS-1; k++) {
+    sprintf(chempot_name, "/Mu_%s",Components[k]);
+    coordNames[i] = (char*)malloc(sizeof(char)*strlen(chempot_name));
+    strcpy(coordNames[i], chempot_name);
+    i++;
+  }
+//   if (WRITECOMPOSITION) {
+    for (k=0; k < NUMCOMPONENTS-1; k++) {
+      sprintf(composition_name, "/Composition_%s",Components[k]);
+      coordNames[i] = (char*)malloc(sizeof(char)*strlen(composition_name));
+      strcpy(coordNames[i], composition_name);
+      i++;
+    }
+//   }
+  if (!ISOTHERMAL) {
+    coordNames[i] = (char*)malloc(sizeof(char)*(strlen("/T")+1));
+    strcpy(coordNames[i], "/T");
   }
 }
 
