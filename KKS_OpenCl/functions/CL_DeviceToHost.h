@@ -31,7 +31,9 @@ void CL_DeviceToHost() {
 
         index = x*layer_size + z*rows_y + y;
 
-        gridinfo[index].compi[0] = gridNew[index].c1;
+        gridinfo[index].composition[0] = gridNew[index].c1;
+
+        gridinfo[index].compi[0] = gridNew[index].mu[0];
 
         gridinfo[index].phia[0] = gridNew[index].phi;
 
@@ -66,7 +68,9 @@ void CL_Global_Max_Min() {
 
         index = x*layer_size + z*rows_y + y;
 
-        gridinfoO[index].compi[0] = gridOld[index].c1;
+        gridinfoO[index].composition[0] = gridOld[index].c1;
+
+        gridinfoO[index].compi[0] = gridOld[index].mu[0];
 
         gridinfoO[index].phia[0] = gridOld[index].phi;
 

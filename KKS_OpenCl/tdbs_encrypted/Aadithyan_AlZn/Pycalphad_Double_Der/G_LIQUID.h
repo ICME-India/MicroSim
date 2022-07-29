@@ -1,5 +1,5 @@
 /******************************************************************************
- *                       Code generated with sympy 1.8                        *
+ *                      Code generated with sympy 1.5.1                       *
  *                                                                            *
  *              See http://www.sympy.org/ for more information.               *
  *                                                                            *
@@ -7,12 +7,10 @@
  ******************************************************************************/
 
 
-#ifndef PROJECT__SOLVERLOOP_GIBBSENERGYFUNCTIONS_GSOL__H
-#define PROJECT__SOLVERLOOP_GIBBSENERGYFUNCTIONS_GSOL__H
+#ifndef PROJECT__G_LIQUID__H
+#define PROJECT__G_LIQUID__H
 
-void GES(double T, double *y, double *GES);
-void dGES(double T, double *y, double *dGES);
-void ddGES(double T, double *y, double *ddGES);
+void G_LIQUID(double T, double *y, double *dG);
 
 #endif
 

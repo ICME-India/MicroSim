@@ -10,11 +10,17 @@ void CL_Initialize_domain() {
 
         index = x*layer_size + z*rows_y + y;
 
-        cscl[index].c1l = ( pfmdat.c1l_1stguess );
-        cscl[index].c1s = ( pfmdat.c1s_1stguess );
+        // cscl[index].c1l = ( c_guess[1][0][0] );
+        // cscl[index].c1s = ( c_guess[0][0][0] );
 
-        gridOld[index].c1  = gridinfo[index].compi[0];
-        gridNew[index].c1  = gridinfo[index].compi[0];
+        gridOld[index].mu[0]  = gridinfo[index].compi[0];
+        gridNew[index].mu[0]  = gridinfo[index].compi[0];
+
+        cscl[index].c1l = ceq[1][1][0];; //cfill[1][0][0];  //c_guess[1][0][0]; //gridinfo[index].composition[0];//0.0;
+        cscl[index].c1s = ceq[0][0][0];; //cfill[0][0][0]; //c_guess[0][0][0]; //gridinfo[index].composition[0];//0.0;
+
+        gridOld[index].c1  = gridinfo[index].composition[0];
+        gridNew[index].c1  = gridinfo[index].composition[0];
 
         gridOld[index].phi = gridinfo[index].phia[0];
         gridNew[index].phi = gridinfo[index].phia[0];

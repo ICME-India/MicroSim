@@ -5,13 +5,11 @@ Created on Thu May 13 21:46:00 2021
 
 @author: abhik
 """
-## This code generates GLiq.h GLiq.c GSol.h and GSol.c files at solverloop/GibbsEnergyFunctions/
-## Above files are necessesary for getting Gibbs energy and their derivative values in 
-## Kim solidification module 
 
 ## Install pycalphad and related dependencies. Sympy gets automatically installed
 ## You will also need pandas
 
+import string
 from tinydb import where
 import sympy as sym
 
@@ -35,7 +33,9 @@ from sympy.codegen.ast import Assignment
 
 import sys
 import re
+import os 
 
+## Generates thermo files for CPU
 print('Reading Input file')
 with open(sys.argv[1], 'r') as my_file:
     flines=my_file.readlines()
@@ -55,7 +55,7 @@ with open(sys.argv[1], 'r') as my_file:
         tdbfline = flines[index-1]
         tdbfname = tdbfline.split("=")[1].replace(";", "").strip()
         #print(tdbfname)
-    
+
     flag = 0
     index = 0
     for line in flines:
@@ -73,7 +73,7 @@ with open(sys.argv[1], 'r') as my_file:
         components1 = COMPONENTSline.split("=")[1].replace(';', '').strip()
         components = re.sub(r"[{} ]","",components1).split(",")
         #print(components)
-    
+
     flag = 0
     index = 0
     for line in flines:
@@ -87,12 +87,28 @@ with open(sys.argv[1], 'r') as my_file:
         print("# Error in Input file: No phase information #")
         print("#############################################")
     else:
+        nPHASESline = flines[index-1]
+        nphases1 = nPHASESline.split("=")[1].replace(';', '').strip()
+        nphases = re.sub(r"[{} ]","",nphases1).split(",")
+        
+    flag = 0
+    index = 0
+    for line in flines:
+        index += 1
+        searchstatus = re.match(r'\btdb_phases\b', line)
+        if searchstatus:
+            flag = 1
+            break
+    if flag == 0:
+        print("#############################################")
+        print("# Error in Input file: No phase information #")
+        print("#############################################")
+    else:
         PHASESline = flines[index-1]
         phases1 = PHASESline.split("=")[1].replace(';', '').strip()
         phases = re.sub(r"[{} ]","",phases1).split(",")
         #print(phases)
-    
-
+        
 comps=components+['VA']
 #print(comps)
 
@@ -108,16 +124,16 @@ if 'liquid' == phases[1].lower() or 'liq' == phases[1].lower():
 print("\n````````````````````````````````")
 print("TDB file name =", tdbfname)
 print("Components =", comps)
-print("Phases =", phases)
+print("tdb_phases =", phases)
 print("````````````````````````````````\n")
 
 #my_phases_tdb = ['LIQUID', 'FCC_A1']
 ### Reading in the .tdb files
 tdbf = Database(tdbfname)
 
-## You can initialize a phase string consisting of the phases. The list you can 
+## You can initialize a phase string consisting of the phases. The list you can
 ## by just printing tdbf.phases.keys(). You can just create a list of the phases
-## that you want to consider. If you want all the phases you can also do 
+## that you want to consider. If you want all the phases you can also do
 ## my_phases_tdb = list(tdbf.phases.keys())
 
 #my_phases_tdb = ['LIQUID', 'FCC_A1']
@@ -126,188 +142,267 @@ tdbf = Database(tdbfname)
 ## Importing the codegen library for codeprinting
 from sympy.utilities.codegen import codegen
 
-## Initializing the instance of the model for a particular phase in this 
-## case 'FCC_A1', It is has different attributes, you can just do 
-## dir(mod3) to print out the possibilities. Here we will utilize 
-## the free-energies that are given by mod3.GM
-mod3S = Model(tdbf, comps, phases[0])
-print("\nGE =", mod3S.GM,"\n")
+def generate_thermodynamic_files(tdbf, comps, phase):
+  ## Initializing the instance of the model for a particular phase in this
+  ## case 'FCC_A1', It is has different attributes, you can just do
+  ## dir(mod3) to print out the possibilities. Here we will utilize
+  ## the free-energies that are given by mod3.GM
+  mod3 = Model(tdbf, comps, phase)
+  print("\nGE =", mod3.GM,"\n")
+  
+  ##You will see that the functions have long variable names
+  ## corresponding to the compositions of the sublattice compositions.
+  ## In order to create a clean C-code, we will replace the variables
+  ## by performing a map between the new variables and the old variables
 
-##You will see that the functions have long variable names 
-## corresponding to the compositions of the sublattice compositions.
-## In order to create a clean C-code, we will replace the variables 
-## by performing a map between the new variables and the old variables
+  ## These are the set of new variables that are being created
+  ## This is held in 'var' which is essentially the symbols for the
+  ## two sublattices concentrations of 'comps' and followed by T
+  y = sym.MatrixSymbol('y', mod3.GM.args.__len__()-1, 1)
+  T = sym.MatrixSymbol('T', 1, 1)
+  var = tuple(y)+tuple(T)
+  print(mod3.GM.args.__len__())
+  ## The original set of variables in mod3.GM. The sublattice
+  ## variables are obtained from v.Y(phase_name, sublattice_index, species_name)
+  ## Derivatives are calculated w.r.t. arguments in below lists excluding temperature
+  #my_list = [v.Y(phase,0,comps[0]), v.Y(phase,0,comps[1]), 'T']
+  #sym.symbols('x_%d' % i) for i in range(3)
+  #my_list = [v.Y('FCC_A1',0,'AL'), v.Y('FCC_A1',0,'ZN'), 'T']
+  my_list = [v.Y(phase, 0, comps[i]) for i in range(len(components))]
+  my_list += T.name
+  print("my_List -> ", my_list)
+  ## Creating a mapping between the old and the new
+  ## that is stored in state_array_map
 
-## These are the set of new variables that are being created
-## This is held in 'var' which is essentially the symbols for the 
-## two sublattices concentrations of 'comps' and followed by T
-y = sym.MatrixSymbol('y', mod3S.GM.args.__len__()-1, 1)
-T = sym.MatrixSymbol('T', 1, 1)
-var = tuple(y)+tuple(T)
-#print(len(var))
+  mapped = zip(my_list, list(var))
+  mapped = list(mapped)
+  state_array_map= dict(zip(my_list, list(var)))
+  print("Mapped -> ", state_array_map)
+  
+  # Replacing the original variables in the mod3.GM expression
+  # with the state_array_map. The new expression is stored in
+  # a new expression reduced_GM
 
-## The original set of variables in mod3.GM. The sublattice 
-## variables are obtained from v.Y(phase_name, sublattice_index, species_name)
-## Derivatives are calculated w.r.t. arguments in below lists excluding temperature
-my_listS = [v.Y(phases[0],0,comps[0]), v.Y(phases[0],0,comps[1]), 'T']
-my_listL = [v.Y(phases[1],0,comps[0]), v.Y(phases[1],0,comps[1]), 'T']
+  reduced_GM = mod3.GM.xreplace(state_array_map)
+  print("\nGE_%s =" % phases[0], reduced_GM,"\n")
+  
+  # Deciding the 'var' boundaries for partial derivatives
+  # Presence of magnetic contribution may alter the size of 'var'
 
-print("my_ListS -> ", my_listS)
+  if (len(var)==len(comps)):
+      a1=1
+  elif ((len(var)-1)==len(comps)):
+      #magnetic contribution might be present
+      a1=2
+  else:
+      print("Unknown vribales in tuple var")
+      print("Expressions may not be correct")
+      #print("Manual editing of this file is necessary")
+      print("No expressions are generated")
+      print("Presently, code works for only binary system")
+      print("Exiting")
+      exit()
+  print("a1=",a1)
+  
+  ## Doing the same for the partial derivatives of the
+  ## free-energy vs sublattice compositions.
+  ## The partial derivatives are being stored here in a
+  ## dictionary with the names of the new variables as keys.
+  ## Derivatives are stored in reduced_GM_diff
+  ## Note, that derivatives can simply be taken by
+  ## .diff operation
 
-## Creating a mapping between the old and the new
-## that is stored in state_array_map
-mapped = zip(my_listS, list(var))
-mapped = list(mapped)
-state_array_map= dict(zip(my_listS, list(var)))
-print("Mapped -> ", state_array_map)
+  print('Calculating partial derivatives')
+  reduced_GM_diff={}
+  for i, n in enumerate(var[0:len(components)-1]):
+      reduced_GM_diff[n] = reduced_GM.diff(n) - reduced_GM.diff(var[len(components)-1])
 
-## Replacing the original variables in the mod3.GM expression 
-## with the state_array_map. The new expression is stored in 
-## a new expression reduced_GM
-reduced_GMS = mod3S.GM.xreplace(state_array_map)
-print("\nGE_%s =" % phases[0], reduced_GMS,"\n")
+  #Converting the dictionary of the derivatives into a list
 
-# Deciding the 'var' boundaries for partial derivatives
-# Presence of magnetic contribution may alter the size of 'var'
-if (len(var)==len(comps)):
-    a1=1
-elif ((len(var)-1)==len(comps)):
-    #magnetic contribution might be present
-    a1=2
-else:
-    print("Unknown vribales in tuple var")
-    print("Expressions may not be correct")
-    #print("Manual editing of this file is necessary")
-    print("No expressions are generated")
-    print("Presently, code works for only binary system")
-    print("Exiting")
-    exit()
+  mu = [reduced_GM_diff[n] for n in var[0:len(components)-1]]
 
-#print("a1=",a1)
+  # And into a matrix. This is required for codegen
+  # for printing a matrix eqn into a C-code
 
-### Doing the same for the partial derivatives of the 
-### free-energy vs sublattice compositions.
-### The partial derivatives are being stored here in a
-### dictionary with the names of the new variables as keys.
-### Derivatives are stored in reduced_GM_diff
-### Note, that derivatives can simply be taken by 
-### .diff operation
-print('Calculating partial derivatives')
-reduced_GMS_diff={}
-for i, n in enumerate(var[0:-a1]):
-    reduced_GMS_diff[n] = reduced_GMS.diff(n)
+  mu_expr = sym.Matrix(mu)
+  print(mu_expr)
+  
+  print('Calculating second derivatives')
+  reduced_GM_diff2={}
+  for i, n1 in enumerate(var[0:len(components)-1]):
+    reduced_GM_diff2[n1]={}
+    
+  for i, n1 in enumerate(var[0:len(components)-1]):
+    for j, n2 in enumerate(var[0:len(components)-1]):
+      reduced_GM_diff2[n1][n2] = mu[i].diff(n2) - mu[i].diff(var[len(components)-1])
 
-##Converting the dictionary of the derivatives into a list
-expr1 = [reduced_GMS_diff[n] for n in var[0:-a1]]
+  #Converting the dictionary of the derivatives into a list
 
-## And into a matrix. This is required for codegen 
-## for printing a matrix eqn into a C-code
-mat_expr = sym.Matrix(expr1)
+  dmudc = [[reduced_GM_diff2[n1][n2] for n2 in var[0:len(components)-1]] for n1 in var[0:len(components)-1]]
 
-## We are now going to be creating equations which can be written 
-## into C-code, as functions. The lhs of the equations are going to 
-## symbols or Matrix symbols depending on whether you want to write 
-## single equation or multiple equations
+  # And into a matrix. This is required for codegen
+  # for printing a matrix eqn into a C-code
 
-## This symbol in short for Gibbs energy of solid, will be used to denote
-## the lhs of the Gibbs energy expression
-GES = sym.symbols('GES')
-
-## This Matrix symbol (dGES) is used for storing the lhs for the 
-## partial derivatives of the Gibbs energies with composition
-## Note the shape of the matrix is the same as the number of 
-## partial derivatives
-dGES = sym.MatrixSymbol('dGES', mod3S.GM.args.__len__()-a1,1)
-
-## Creating the equations using the symbolic equation 
-## creator sym.Eq
-eqn_GES = sym.Eq(GES, reduced_GMS)
-eqn_dGES = sym.Eq(dGES, mat_expr)
-
-muS = expr1[0] - expr1[1]
-
-reduced_GMS_diff2={}
-for i, n in enumerate(var[0:-a1]):
-    reduced_GMS_diff2[n] = muS.diff(n)
-
-
-expr1a = [reduced_GMS_diff2[n] for n in var[0:-a1]]
-
-mat_expr1 = sym.Matrix(expr1a)
-
-ddGES = sym.MatrixSymbol('ddGES', mod3S.GM.args.__len__()-a1,1)
-
-eqn_ddGES = sym.Eq(ddGES, mat_expr1)
-
-## Writing the equations to the files specified by 'prefix'
-
-## This creates GSol.c and GSol.h, where GSol.c
-## contains the functions of Gibbs energy and partial derivatives, whose output is returned as 
-## a pointer that is passed as an argument to the function
-codegen([('GES', eqn_GES), ('dGES', eqn_dGES), ('ddGES', eqn_ddGES)], language='c', to_files=True, prefix='solverloop/GibbsEnergyFunctions/GSol')
-
-###############################################
-## Writing Liquid energy 
-print('\n##',phases[1],'Gibbs energy ##\n')
-mod3L = Model(tdbf, comps, phases[1])
-#print(mod3L.GM)
-
-y = sym.MatrixSymbol('y', mod3L.GM.args.__len__()-1, 1)
-T = sym.MatrixSymbol('T', 1, 1)
-var = tuple(y)+tuple(T)
-print("my_ListL -> ", my_listL)
-
-mapped = zip(my_listL, list(var))
-mapped = list(mapped)
-state_array_map= dict(zip(my_listL, list(var)))
-print("Mapped -> ", state_array_map)
-
-reduced_GML = mod3L.GM.xreplace(state_array_map)
-print("\nGE_%s =" % phases[1], reduced_GML,"\n")
-
-print('Calculating partial derivatives')
-a1l=1
-reduced_GML_diff={}
-for i, n in enumerate(var[0:-a1l]):
-    reduced_GML_diff[n] = reduced_GML.diff(n)
+  dmudc_expr = sym.Matrix(dmudc)
+  
+  #print(dmudc_expr[0,0]);
+  
+  return reduced_GM, mu_expr, dmudc_expr, len(components), len(phases)
 
 
-expr1L = [reduced_GML_diff[n] for n in var[0:-a1l]]
+free_energy_tdb = [sym.symbols('GE_%d' %i)    for i in range(len(phases))]
+Mu_tdb          = [sym.symbols('Mu_%d' %i)    for i in range(len(phases))]
+dmudc_tdb       = [sym.symbols('dmudc_%d' %i) for i in range(len(phases))]
 
-mat_exprL = sym.Matrix(expr1L)
 
-GEL = sym.symbols('GEL')
+eqn_GM          = [sym.symbols('eqn_GM_%d' %i)    for i in range(len(phases))]
+eqn_mu          = [sym.symbols('eqn_mu_%d' %i)    for i in range(len(phases))]
+eqn_dmudc       = [sym.symbols('eqn_dmudc_%d' %i) for i in range(len(phases))]
 
-dGEL = sym.MatrixSymbol('dGEL', mod3L.GM.args.__len__()-a1l,1)
 
-eqn_GEL = sym.Eq(GEL, reduced_GML)
-eqn_dGEL = sym.Eq(dGEL, mat_exprL)
+for i in range(len(phases)):
+  GM, mu, dmu_dc, num_comps, num_tdb_phases = generate_thermodynamic_files(tdbf, comps, phases[i])
+  
+  GE           = sym.symbols('Ge')
+  MU           = sym.MatrixSymbol('Mu',    num_comps-1,1)
+  DMUDC        = sym.MatrixSymbol('Dmudc', num_comps-1,num_comps-1)
+  
+  eqn_GM[i]    = sym.Eq(GE,    GM)
+  eqn_mu[i]    = sym.Eq(MU,    mu)
+  eqn_dmudc[i] = sym.Eq(DMUDC, dmu_dc)
+  
 
-muL = expr1L[0] - expr1L[1]
+functions  = [(free_energy_tdb[i].name, eqn_GM[i]) for i in range(len(phases))]
+functions += [(Mu_tdb[i].name, eqn_mu[i])          for i in range(len(phases))]
+functions += [(dmudc_tdb[i].name, eqn_dmudc[i])    for i in range(len(phases))]
 
-reduced_GML_diff2={}
-for i, n in enumerate(var[0:-a1l]):
-    reduced_GML_diff2[n] = muL.diff(n)
+print(functions)
 
-expr1aL = [reduced_GML_diff2[n] for n in var[0:-a1l]]
+if not os.path.exists('tdbs'):
+    os.makedirs('tdbs')
+#os.mkdir('tdbs', mode=0o777)
 
-mat_expr1L = sym.Matrix(expr1aL)
-
-ddGEL = sym.MatrixSymbol('ddGEL', mod3L.GM.args.__len__()-a1l,1)
-
-eqn_ddGEL = sym.Eq(ddGEL, mat_expr1L)
-
-codegen([('GEL', eqn_GEL), ('dGEL', eqn_dGEL), ('ddGEL', eqn_ddGEL)], language='c', to_files=True, prefix='solverloop/GibbsEnergyFunctions/GLiq')
-
+codegen(functions, language='c', to_files=True, prefix='tdbs/Thermo')
 
 import fileinput
 
-with fileinput.FileInput('solverloop/GibbsEnergyFunctions/GLiq.c', inplace=True) as file:
+with fileinput.FileInput('tdbs/Thermo.c', inplace=True) as file:
     for line in file:
         print(line.replace('#include <math.h>', '//#include <math.h>'), end='')
 
-with fileinput.FileInput('solverloop/GibbsEnergyFunctions/GSol.c', inplace=True) as file:
+
+free_energy_functions = "{" + free_energy_tdb[0].name
+
+for i in range(1,len(phases)):
+ free_energy_functions += "," + free_energy_tdb[i].name
+
+free_energy_functions += "}"
+
+Diffusion_potential_functions = "{" + Mu_tdb[0].name
+
+for i in range(1,len(phases)):
+ Diffusion_potential_functions += "," + Mu_tdb[i].name
+
+Diffusion_potential_functions += "}"
+
+Hessian_functions = "{" + dmudc_tdb[0].name 
+
+for i in range(1,len(phases)):
+ Hessian_functions += "," + dmudc_tdb[i].name
+
+Hessian_functions += "}"
+
+#print(str);
+## For .h File: void... added before #endif
+with fileinput.FileInput('tdbs/Thermo.h', inplace=True) as file:
+    for line in file:
+        print(line.replace('#endif', 'void(*free_energy_tdb[])(double T, double *y, double *Ge) = %s; \n#endif '% free_energy_functions), end='')
+
+with fileinput.FileInput('tdbs/Thermo.h', inplace=True) as file:
+    for line in file:
+        print(line.replace('#endif', 'void(*Mu_tdb[])(double T, double *y, double *Mu) = %s; \n#endif '% Diffusion_potential_functions), end='')
+
+with fileinput.FileInput('tdbs/Thermo.h', inplace=True) as file:
+    for line in file:
+        print(line.replace('#endif', 'void(*dmudc_tdb[])(double T, double *y, double *Dmudc) = %s; \n#endif '% Hessian_functions), end='')
+
+
+# Generating Files for OpenCL 
+
+
+
+codegen(functions, language='c', to_files=True, prefix='solverloop/ThermoCL_2')
+
+import fileinput
+
+with fileinput.FileInput('solverloop/ThermoCL_2.c', inplace=True) as file:
     for line in file:
         print(line.replace('#include <math.h>', '//#include <math.h>'), end='')
 
-print("\nFiles generated successfully\n")
+
+
+nphadef = '#define npha (' + str(len(nphases)) + ')\n'
+ncomdef = '#define ncom (' + str(len(components)) + ')\n'  
+
+#print(nphadef)
+#print(ncomdef)
+
+file = open("solverloop/defines.h", "w")
+file.write(nphadef)
+file.write(ncomdef)
+
+# with fileinput.FileInput('solverloop/defines.h', inplace=True) as file:
+#     for line in file:
+#         if line.strip().startswith('#define npha ('):
+#             line = nphadef
+#         sys.stdout.write(line)
+
+
+# with fileinput.FileInput('solverloop/defines.h', inplace=True) as file:
+#     for line in file:
+#         if line.strip().startswith('#define ncom ('):
+#             line = ncomdef
+#         sys.stdout.write(line)
+
+
+file = open("solverloop/GibbsEnergyData2.h", "w")
+file.write("//Do not edit this file alone. Function calls in kerenls can go wrong if any changes are made...\n\n")
+file.write("#pragma OPENCL EXTENSION cl_khr_fp64 : enable\n\n")
+file.write("void Ge(double T, double *y, double *Ge, int tpha);\n")
+file.write("void Mu(double T, double *y, double *MU, int tpha);\n")
+file.write("void dMudc(double T, double *y, double *Dmudc, int tpha\n);")
+file.write("\n\n")
+file.write("void Ge(double T, double *y, double *Ge, int tpha) { \n")
+
+Ge_functions = "\n  if ( tpha == 0 ) { \n " + "   " + free_energy_tdb[0].name + "(T, y, Ge); \n  }\n"
+
+for i in range(1,len(phases)):
+    Ge_functions += "  else if ( tpha == " + str(i) +" ) { \n" 
+    Ge_functions += "    " + free_energy_tdb[i].name + "(T, y, Ge); \n  }\n"
+
+Ge_functions += "\n}\n\n"
+
+file.write(Ge_functions)
+
+file.write("void Mu(double T, double *y, double *MU, int tpha) { \n")
+Mu_functions = "\n  if ( tpha == 0 ) { \n " + "   " + Mu_tdb[0].name + "(T, y, MU); \n  }\n"
+
+for i in range(1,len(phases)):
+    Mu_functions += "  else if ( tpha == " + str(i) +" ) { \n" 
+    Mu_functions += "    " + Mu_tdb[i].name + "(T, y, MU); \n  }\n"
+
+Mu_functions += "\n}\n\n"
+
+file.write(Mu_functions)
+
+file.write("void dMudc(double T, double *y, double *Dmudc, int tpha) { \n")
+dMudc_functions = "\n  if ( tpha == 0 ) { \n " + "   " + dmudc_tdb[0].name + "(T, y, Dmudc); \n  }\n"
+
+for i in range(1,len(phases)):
+    dMudc_functions += "  else if ( tpha == " + str(i) +" ) { \n" 
+    dMudc_functions += "    " + dmudc_tdb[i].name + "(T, y, Dmudc); \n  }\n"
+
+dMudc_functions += "\n}\n\n"
+
+file.write(dMudc_functions)
+

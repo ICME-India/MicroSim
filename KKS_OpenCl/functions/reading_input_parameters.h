@@ -63,8 +63,20 @@ void reading_input_parameters(char *argv[]) {
         for (i = 0; i < NUMPHASES; ++i) {
           Phases[i] = (char*)malloc(sizeof(char)*51);
         }
+        phase_map = (char**)malloc(sizeof(char*)*NUMPHASES);
+        for (i = 0; i < NUMPHASES; ++i) {
+          phase_map[i] = (char*)malloc(sizeof(char)*51);
+        }
         filling_type_phase = (struct filling_type* )malloc((NUMPHASES)*sizeof(*filling_type_phase));
       }
+      else if (strcmp(tmpstr1,"num_thermo_phases")==0) {
+        NUM_THERMO_PHASES = atoi(tmpstr2);
+        Phases_tdb = (char**)malloc(sizeof(char*)*NUM_THERMO_PHASES);
+        for (i = 0; i < NUM_THERMO_PHASES; ++i) {
+          Phases_tdb[i] = (char*)malloc(sizeof(char)*51);
+        }
+      }
+      
       else if (strcmp(tmpstr1,"NUMCOMPONENTS")==0) {
         NUMCOMPONENTS = atoi(tmpstr2);
         Components = (char**)malloc(sizeof(char*)*NUMCOMPONENTS);
@@ -73,8 +85,27 @@ void reading_input_parameters(char *argv[]) {
         }
         if (((NUMCOMPONENTS-1)>0) && (NUMPHASES>0)) {
           Diffusivity         = Malloc3M(NUMPHASES, NUMCOMPONENTS-1, NUMCOMPONENTS-1);
+          DiffusivityInv      = Malloc3M(NUMPHASES, NUMCOMPONENTS-1, NUMCOMPONENTS-1);
           ceq                 = Malloc3M(NUMPHASES, NUMPHASES,       NUMCOMPONENTS-1);
           cfill               = Malloc3M(NUMPHASES, NUMPHASES,       NUMCOMPONENTS-1);
+          ceq_coeffs          = Malloc3M(NUMPHASES, NUMCOMPONENTS-1,               4);
+          slopes              = Malloc3M(NUMPHASES, NUMPHASES,       NUMCOMPONENTS-1);
+          dcbdT               = Malloc3M(NUMPHASES, NUMPHASES,       NUMCOMPONENTS-1);
+          A                   = Malloc3M(NUMPHASES, NUMCOMPONENTS-1, NUMCOMPONENTS-1);
+          
+          DELTA_T             = MallocM(NUMPHASES,  NUMPHASES);
+          DELTA_C             = MallocM(NUMPHASES,  NUMCOMPONENTS-1);
+          dcbdT_phase         = MallocM(NUMPHASES,  NUMCOMPONENTS-1);
+          B                   = MallocM(NUMPHASES,  NUMCOMPONENTS-1);
+          Beq                 = MallocM(NUMPHASES,  NUMCOMPONENTS-1);
+          dBbdT               = MallocM(NUMPHASES,  NUMCOMPONENTS-1);
+          C                   = (double *)malloc(NUMPHASES*sizeof(double));
+          
+          cmu                 = Malloc3M(NUMPHASES, NUMCOMPONENTS-1,   NUMCOMPONENTS-1);
+          muc                 = Malloc3M(NUMPHASES, NUMCOMPONENTS-1,   NUMCOMPONENTS-1);
+          
+          Rotation_matrix     = Malloc4M(NUMPHASES,       NUMPHASES,   3,             3);
+          Inv_Rotation_matrix = Malloc4M(NUMPHASES,       NUMPHASES,   3,             3);
 
 
           for (i=0; i < 6; i++) {
@@ -118,6 +149,15 @@ void reading_input_parameters(char *argv[]) {
       else if (strcmp(tmpstr1,"TRACK_PROGRESS")==0) {
         time_output = atol(tmpstr2);
       }
+      else if (strcmp(tmpstr1,"TEMPERATURE_SCALE")==0) {
+        TEMPERATURE_SCALE = atof(tmpstr2);
+      }
+      else if (strcmp(tmpstr1,"Equilibrium_temperature")==0) {
+        Teq = atof(tmpstr2);
+      }
+      else if (strcmp(tmpstr1,"Filling_temperature")==0) {
+        Tfill = atof(tmpstr2);
+      }
       else if (strcmp(tmpstr1,"T")==0) {
         T = atof(tmpstr2);
       }
@@ -133,12 +173,19 @@ void reading_input_parameters(char *argv[]) {
       else if (strcmp(tmpstr1,"PHASES")==0) {
         populate_string_array(Phases, tmpstr2, NUMCOMPONENTS);
       }
+      else if (strcmp(tmpstr1,"tdb_phases")==0) {
+        populate_string_array(Phases_tdb, tmpstr2, NUM_THERMO_PHASES);
+      }
+      else if (strcmp(tmpstr1,"phase_map")==0) {
+        populate_string_array(phase_map, tmpstr2, NUMPHASES);
+      }
       else if ((strcmp(tmpstr1, "Function_anisotropy") == 0) && (NUMPHASES > 0) && ((NUMCOMPONENTS-1) >0)) {
         FUNCTION_ANISOTROPY = atoi(tmpstr2);
       }
       else if ((strcmp(tmpstr1, "Rotation_matrix") == 0) && (FUNCTION_ANISOTROPY !=0)) {
         RotAngles = MallocV(3);
-        Read_Rotation_Angles(RotAngles, tmpstr2);
+        //Read_Rotation_Angles(RotAngles, tmpstr2);
+        populate_rotation_matrix(Rotation_matrix, Inv_Rotation_matrix, tmpstr2);
       }
       else if (strcmp(tmpstr1, "ISOTHERMAL") == 0) {
         ISOTHERMAL = atoi(tmpstr2);
@@ -199,12 +246,31 @@ void reading_input_parameters(char *argv[]) {
       }
       else if ((strcmp(tmpstr1, "DIFFUSIVITY") == 0) && (NUMPHASES > 0) && ((NUMCOMPONENTS-1) >0)) {
         populate_diffusivity_matrix(Diffusivity, tmpstr2, NUMCOMPONENTS);
+        for ( a = 0; a < NUMPHASES; a++ ) { 
+          matinvnew(Diffusivity[a], DiffusivityInv[a], NUMCOMPONENTS-1);
+        }
       }
       else if ((strcmp(tmpstr1, "ceq") == 0) && (NUMPHASES > 0) && ((NUMCOMPONENTS-1) >0)) {
         populate_thermodynamic_matrix(ceq, tmpstr2, NUMCOMPONENTS);
       }
       else if ((strcmp(tmpstr1, "cfill") == 0) && (NUMPHASES > 0) && ((NUMCOMPONENTS-1) >0)) {
         populate_thermodynamic_matrix(cfill, tmpstr2, NUMCOMPONENTS);
+      }
+      else if ((strcmp(tmpstr1, "Function_F") == 0) && (NUMPHASES > 0) && ((NUMCOMPONENTS-1) >0)) {
+        FUNCTION_F = atoi(tmpstr2);
+        printf("%d\n", FUNCTION_F);
+        // if (FUNCTION_F == 2) {
+          c_guess = Malloc3M(NUMPHASES, NUMPHASES,       NUMCOMPONENTS-1);
+        // }
+      }
+      else if ((strcmp(tmpstr1, "A") == 0) && (NUMPHASES > 0) && ((NUMCOMPONENTS-1) >0)) {
+        populate_A_matrix(A, tmpstr2, NUMCOMPONENTS);
+      }
+      else if ((strcmp(tmpstr1, "slopes") == 0) && (NUMPHASES > 0) && ((NUMCOMPONENTS-1) >0)) {
+        populate_thermodynamic_matrix(slopes, tmpstr2, NUMCOMPONENTS);
+      }
+      else if((strcmp(tmpstr1, "c_guess") == 0) && (NUMPHASES > 0) && ((NUMCOMPONENTS-1) >0)){
+        populate_thermodynamic_matrix(c_guess, tmpstr2, NUMCOMPONENTS);
       }
       else if (strcmp(tmpstr1,"tNoiseStart")==0) {
         tNoiseStart = atol(tmpstr2);
@@ -239,9 +305,9 @@ void reading_input_parameters(char *argv[]) {
       else if (strcmp(tmpstr1,"tdbfname")==0) {
         strcpy(tdbfname,tmpstr2);
       }
-      else {
-        printf("Unrecongized parameter : \"%s\"\n", tmpstr1);
-      }
+//       else {
+//         printf("Unrecongized parameter : \"%s\"\n", tmpstr1);
+//       }
     }
   }
   fclose(fr);

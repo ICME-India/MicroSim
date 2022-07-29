@@ -19,6 +19,12 @@ void CL_device_kernel_build() {
   if ( rank == 0 ) { 
     printf("No. of platforms %d\n", ret_num_platforms);
   }
+  
+  if ( ret_num_platforms == 0 ) { 
+    printf("----------------------------------------\n");
+    printf(" OpenCL is not installed on this machine\n");
+    exit(1);
+  }
 
   ret = clGetPlatformIDs(ret_num_platforms, platform_id, NULL);
   if ( rank == 0 ) { 

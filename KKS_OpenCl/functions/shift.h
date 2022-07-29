@@ -18,6 +18,9 @@ void apply_shiftY(struct fields* gridinfo, long INTERFACE_POS_GLOBAL) {
         for (k=0; k < NUMCOMPONENTS-1; k++) {
           gridinfo[gidy].compi[k] = gridinfo[gidy+(INTERFACE_POS_GLOBAL-shiftj)].compi[k];
         }
+        for (k=0; k < NUMCOMPONENTS-1; k++) {
+          gridinfo[gidy].composition[k] = gridinfo[gidy+(INTERFACE_POS_GLOBAL-shiftj)].composition[k];
+        }
         gridinfo[gidy].temperature = gridinfo[gidy + (INTERFACE_POS_GLOBAL-shiftj)].temperature;
       }
 //       if (workers_mpi.lasty==1) {
@@ -32,9 +35,10 @@ void apply_shiftY(struct fields* gridinfo, long INTERFACE_POS_GLOBAL) {
           //c[k] = cfill[NUMPHASES-1][NUMPHASES-1][k];
           c[k] = cfill[1][1][0];
         }
+        Mu(c, Teq, NUMPHASES-1, gridinfo[gidy].compi); 
         for (k=0; k < NUMCOMPONENTS-1; k++) {
           //chemical_potential         = Mu(c, Tfill, NUMPHASES-1, k);
-          gridinfo[gidy].compi[k]    = c[k]; //chemical_potential;
+          gridinfo[gidy].composition[k]    = c[k]; //chemical_potential;
         }
       }
 //       }
@@ -83,8 +87,8 @@ void apply_shiftY_cscl(struct csle *cscl, long INTERFACE_POS_GLOBAL) {
       
       for (y=(rows_y-(INTERFACE_POS_GLOBAL-shiftj)); y<=(rows_y-1); y++) {
         gidy = x*layer_size + z*rows_y + y;
-        cscl[gidy].c1l = pfmdat.c1l_1stguess;
-        cscl[gidy].c1s = pfmdat.c1s_1stguess;
+        cscl[gidy].c1l = ceq[1][1][0];
+        cscl[gidy].c1s = ceq[0][0][0];
       }
     }
   }

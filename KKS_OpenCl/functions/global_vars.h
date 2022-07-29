@@ -13,6 +13,7 @@ double deltaz=1;
 double deltat=1;
 
 int NUMPHASES;
+int NUM_THERMO_PHASES;
 int NUMCOMPONENTS;
 long t;
 
@@ -62,20 +63,55 @@ int NOISE_PHASEFIELD=0;
 double AMP_NOISE_PHASE=0.0;
 char **Components;
 char **Phases;
+char **Phases_tdb;
+char **phase_map;
+long *thermo_phase;
 
 double t_smooth;
+
+double ***cmu,***muc;
+// double A[NUMPHASES][NUMCOMPONENTS-1][NUMCOMPONENTS-1];
+double ***A;
+// double DELTA_T[NUMPHASES][NUMPHASES];
+double **DELTA_T;
+// double DELTA_C[NUMPHASES][NUMCOMPONENTS-1];
+double **DELTA_C;
+// double dcbdT[NUMPHASES][NUMPHASES][NUMCOMPONENTS-1];
+double ***dcbdT;
+// double dcbdT_phase[NUMPHASES][NUMCOMPONENTS-1];
+double **dcbdT_phase;
+// double B[NUMPHASES][NUMCOMPONENTS-1];
+double **B;
+// double Beq[NUMPHASES][NUMCOMPONENTS-1];
+double **Beq;
+// double dBbdT[NUMPHASES][NUMCOMPONENTS-1];
+double **dBbdT;
 // double C[NUMPHASES];
 double *C;
 // double ceq[NUMPHASES][NUMPHASES][NUMCOMPONENTS-1];
 double ***ceq;
 // double cfill[NUMPHASES][NUMPHASES][NUMCOMPONENTS-1];
 double ***cfill;
-
+// double ceq_coeffs[NUMPHASES][NUMCOMPONENTS-1][4];
+double ***ceq_coeffs;
+// double slopes[NUMPHASES][NUMPHASES][NUMCOMPONENTS-1];
+double ***slopes;
+double ***c_guess;
+double ****comp_ES;
+double ****ThF;
+double **T_ES;
+double **T_ThF;
+gsl_interp_accel ****acc_ES;
+gsl_spline ****spline_ES;
+gsl_interp_accel ****acc_ThF;
+gsl_spline ****spline_ThF;
 
 // double c_old[NUMCOMPONENTS-1],c_new[NUMCOMPONENTS-1],c[NUMCOMPONENTS-1];
 double *c_old, *c_new, *c;
 // double Diffusivity[NUMPHASES][NUMCOMPONENTS-1][NUMCOMPONENTS-1];
 double ***Diffusivity;
+double ***DiffusivityInv;
+double **dcdmu, **inv_dcdmu, *deltamu, *deltac, *sum, ***dcdmu_phase, **Ddcdmu;
 long bulk_phase;
 // double Gamma[NUMPHASES][NUMPHASES];
 double **Gamma;
@@ -208,11 +244,32 @@ struct filling_type *filling_type_phase;
 struct fields {
   double *phia;
   double *compi;
+  double *composition;
   double temperature;
 };
 
 struct fields *gridinfo;
 struct fields *gridinfoO;
+
+struct gradlayer {
+ double **gradphi;
+ double **gradphi_c;
+ double **phistagg;
+ double **gradchempot;
+ double ***Dmid;
+ double **jat;
+ double *deltaphi;
+ double **phase_comp;
+ double **dcbdT_phase;
+ double ***dcdmu_phase;
+ int interface;
+ int bulk_phase;
+};
+struct gradlayer **gradient;
+struct gradlayer *gradient1[4];
+struct gradlayer *tmp;
+struct gradlayer *grad, *grad_right, *grad_left, *grad_back, *grad_front, *grad_boundary;
+struct gradlayer test;
 
 long tNoiseStart;
 double TLiquidus;
@@ -230,12 +287,34 @@ char tdbfname[100];
 #define Z 2
 #define TRUE 1
 
+int FUNCTION_F = 3;
+
 // #define PHI 0
 // #define MU  1
 // #define T   2
 
 char *Scalars[] = {"PHI", "MU", "T"}; 
+char dirname[1000];
+char **coordNames;
+long size_fields;
 FILE *fp;
+long position,file_iter;
+long time_file;
+
+
+double (*free_energy)(double *c, double T, long a);
+// double (*Mu)(double *c, double T, long a, long i);
+void (*Mu)(double *c, double T, long a, double *Mu);
+// double (*c_mu)(double *mu, double T, long a, long i);
+void (*c_mu)(double *mu, double *c, double T, long a, double *c_guess);
+// double (*dc_dmu)(double *mu, double T, long a, long i, long j);
+void (*dc_dmu)(double *mu, double *phase_comp, double T, long a, double **dcdmu);
+// double (*dpsi)(double *mu, double T, double *phi, long a);
+double (*dpsi)(double *mu, double **phase_comp, double T, double *phi, long a);
+void (*function_A)(double T, double ***c);
+double (*function_B)(double T, long i, long a);
+double (*function_C)(double T, long a);
+void (*init_propertymatrices)(double T);
 
 
 #endif
