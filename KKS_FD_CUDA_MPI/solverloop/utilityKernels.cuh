@@ -7,23 +7,20 @@
 #include "Thermo.cuh"
 #include "structures.h"
 
-/*
- * __device__ __host__ double evalFunc
- *
- * Evaluates thermo writer functions of the specified form at the given composition and temperature
- * Can be called from both host-side code and device-side code
- *
- * Arguments:
- *              1. void f(double, double*, double*) -> free-energy function and derivatives as written by SymPy codegen
- *              2. double x -> specifies c[1], as Al-Zn test simulations are being run using X_{ZN}
- *              3. double temperature -> temperature
- *
- * Return:
- *          the value of the function, as a double
- *
- */
-__device__ __host__
-double evalFunc(void f(double, double*, double*), double x, double temperature);
+#ifndef MAX_NUM_PHASES
+#define MAX_NUM_PHASES 5
+#endif
+
+#ifndef MAX_NUM_COMP
+#define MAX_NUM_COMP 5
+#endif
+
+#ifndef MAX_NUM_PHASE_COMP
+#define MAX_NUM_PHASE_COMP 16
+#endif
+
+// __device__ __host__
+// double evalFunc(void f(double, double*, double*), double x, double temperature);
 
 
 __device__ __host__

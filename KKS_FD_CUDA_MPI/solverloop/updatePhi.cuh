@@ -6,6 +6,18 @@
 #include <stdio.h>
 #include "structures.h"
 
+#ifndef MAX_NUM_PHASES
+#define MAX_NUM_PHASES 5
+#endif
+
+#ifndef MAX_NUM_COMP
+#define MAX_NUM_COMP 5
+#endif
+
+#ifndef MAX_NUM_PHASE_COMP
+#define MAX_NUM_PHASE_COMP 16
+#endif
+
 /*
  * Kernel that solves d(\phi_{i})/dt = -L/N \sum_{j=1, i \neq j}^{N} (df/dphi_{i} - df/dphi_[j})
  */

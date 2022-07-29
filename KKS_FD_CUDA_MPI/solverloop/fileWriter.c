@@ -18,7 +18,7 @@ void writeVTK_ASCII(double *phi, double *comp,
 
     int layer_size = simDomain.MESH_X * simDomain.MESH_Y;
 
-    sprintf(name, "DATA/Processor_%d/%s_%07d.vtk", rank, argv[3], t);
+    sprintf(name, "DATA/Processor_%d/%s_%ld.vtk", rank, argv[3], (long)t);
     fp = fopen(name, "w");
 
     /*
@@ -32,24 +32,6 @@ void writeVTK_ASCII(double *phi, double *comp,
     fprintf(fp, "ORIGIN 0 0 0\n");
     fprintf(fp, "SPACING %le %le %le\n", simDomain.DELTA_X, simDomain.DELTA_Y, simDomain.DELTA_Z);
     fprintf(fp, "POINT_DATA %d\n", subdomain.numCells);
-
-    for (int b = 0; b < simDomain.numComponents-1; b++)
-    {
-        fprintf(fp, "SCALARS %s double 1\n", simDomain.componentNames[b]);
-        fprintf(fp, "LOOKUP_TABLE default\n");
-
-        for (int z = 0; z <= subdomain.zE - subdomain.zS; z++)
-        {
-            for (int y = 0; y <= subdomain.yE - subdomain.yS; y++)
-            {
-                for (int x = 0; x <= subdomain.xE - subdomain.xS; x++)
-                {
-                    fprintf(fp, "%le\n", comp[b*subdomain.numCells + z*layer_size + y*simDomain.MESH_X + x]);
-                }
-            }
-        }
-        fprintf(fp, "\n");
-    }
 
     for (int a = 0; a < simDomain.numPhases; a++)
     {
@@ -71,6 +53,24 @@ void writeVTK_ASCII(double *phi, double *comp,
         fprintf(fp, "\n");
     }
 
+    for (int b = 0; b < simDomain.numComponents-1; b++)
+    {
+        fprintf(fp, "SCALARS %s double 1\n", simDomain.componentNames[b]);
+        fprintf(fp, "LOOKUP_TABLE default\n");
+
+        for (int z = 0; z <= subdomain.zE - subdomain.zS; z++)
+        {
+            for (int y = 0; y <= subdomain.yE - subdomain.yS; y++)
+            {
+                for (int x = 0; x <= subdomain.xE - subdomain.xS; x++)
+                {
+                    fprintf(fp, "%le\n", comp[b*subdomain.numCells + z*layer_size + y*simDomain.MESH_X + x]);
+                }
+            }
+        }
+        fprintf(fp, "\n");
+    }
+
     fclose(fp);
 }
 
@@ -86,7 +86,7 @@ void writeVTK_BINARY(double *phi, double *comp,
 
     double value;
 
-    sprintf(name, "DATA/Processor_%d/%s_%07d.vtk", rank, argv[3], t);
+    sprintf(name, "DATA/Processor_%d/%s_%ld.vtk", rank, argv[3], (long)t);
     fp = fopen(name, "w");
 
     /*
@@ -100,28 +100,6 @@ void writeVTK_BINARY(double *phi, double *comp,
     fprintf(fp, "ORIGIN 0 0 0\n");
     fprintf(fp, "SPACING %le %le %le\n", simDomain.DELTA_X, simDomain.DELTA_Y, simDomain.DELTA_Z);
     fprintf(fp, "POINT_DATA %d\n", subdomain.numCells);
-
-    for (int b = 0; b < simDomain.numComponents-1; b++)
-    {
-        fprintf(fp, "SCALARS %s double 1\n", simDomain.componentNames[b]);
-        fprintf(fp, "LOOKUP_TABLE default\n");
-
-        for (int z = 0; z <= subdomain.zE - subdomain.zS; z++)
-        {
-            for (int y = 0; y <= subdomain.yE - subdomain.yS; y++)
-            {
-                for (int x = 0; x <= subdomain.xE - subdomain.xS; x++)
-                {
-                    if (IS_LITTLE_ENDIAN)
-                        value = swap_bytes(comp[b*subdomain.numCells + z*layer_size + y*simDomain.MESH_X + x]);
-                    else
-                        value = comp[b*subdomain.numCells + z*layer_size + y*simDomain.MESH_X + x];
-                    fwrite(&value, sizeof(double), 1, fp);
-                }
-            }
-        }
-        fprintf(fp, "\n");
-    }
 
     for (int a = 0; a < simDomain.numPhases; a++)
     {
@@ -143,6 +121,28 @@ void writeVTK_BINARY(double *phi, double *comp,
             }
         }
 
+        fprintf(fp, "\n");
+    }
+
+    for (int b = 0; b < simDomain.numComponents-1; b++)
+    {
+        fprintf(fp, "SCALARS %s double 1\n", simDomain.componentNames[b]);
+        fprintf(fp, "LOOKUP_TABLE default\n");
+
+        for (int z = 0; z <= subdomain.zE - subdomain.zS; z++)
+        {
+            for (int y = 0; y <= subdomain.yE - subdomain.yS; y++)
+            {
+                for (int x = 0; x <= subdomain.xE - subdomain.xS; x++)
+                {
+                    if (IS_LITTLE_ENDIAN)
+                        value = swap_bytes(comp[b*subdomain.numCells + z*layer_size + y*simDomain.MESH_X + x]);
+                    else
+                        value = comp[b*subdomain.numCells + z*layer_size + y*simDomain.MESH_X + x];
+                    fwrite(&value, sizeof(double), 1, fp);
+                }
+            }
+        }
         fprintf(fp, "\n");
     }
 
@@ -336,7 +336,7 @@ void read_domain(double *phi, double *comp,
     // Ensure numprocs = numfiles
     if (rank == size-1)
     {
-        sprintf(name,"DATA/Processor_%d/%s_%07d.vtk", rank+1, argv[3], t);
+        sprintf(name,"DATA/Processor_%d/%s_%ld.vtk", rank+1, argv[3], (long)t);
         if (fp = fopen(name, "rb"))
         {
             printf("Found files that are not being read. Either move those files or change the number of processors\n");
@@ -346,7 +346,7 @@ void read_domain(double *phi, double *comp,
     }
     MPI_Barrier(comm);
 
-    sprintf(name,"DATA/Processor_%d/%s_%07d.vtk", rank, argv[3], t);
+    sprintf(name,"DATA/Processor_%d/%s_%ld.vtk", rank, argv[3], (long)t);
 
     if (fp = fopen(name, "rb"))
     {

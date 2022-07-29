@@ -357,7 +357,7 @@ int main(int argc, char *argv[])
     {
         for (int j = 0; j < numProcs; j++)
         {
-            sprintf(fileName, "%s/Processor_%d/%s_%07ld.vtk", where, j, name, i);
+            sprintf(fileName, "%s/Processor_%d/%s_ld.vtk", where, j, name, i);
 
             if (fp = fopen(fileName, "rb"))
             {

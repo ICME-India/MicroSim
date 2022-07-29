@@ -72,11 +72,18 @@ typedef struct simParameters
 // User input
     double **gamma_host, *gamma_dev;
     double ***diffusivity_host, *diffusivity_dev;
+    double ***mobility_host, *mobility_dev;
     double **Tau_host;
     double **relax_coeff_host, *relax_coeff_dev;
     double ***F0_A_host, *F0_A_dev;
     double **F0_B_host, *F0_B_dev;
+    double **F0_Beq_host, *F0_Beq_dev;
     double *F0_C_host, *F0_C_dev;
+
+    double **DELTA_T;
+    double **DELTA_C;
+    double ***dcbdT;
+    double **dBbdT;
 
     double alpha;
     double epsilon;
@@ -87,6 +94,8 @@ typedef struct simParameters
     double R;
     double molarVolume;
     double T, Teq, Tfill;
+
+    double ***slopes;
 
     double *theta_i_host, *theta_i_dev;
     double **theta_ij_host, *theta_ij_dev;

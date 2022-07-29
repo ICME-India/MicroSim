@@ -1,7 +1,7 @@
 ##Geometrical dimensions of the simulation domain
 DIMENSION = 2;
-MESH_X = 250;
-MESH_Y = 250;
+MESH_X = 400;
+MESH_Y = 400;
 MESH_Z = 1;
 ##Discretization, space and time
 DELTA_X = 0.5;
@@ -27,15 +27,7 @@ DIFFUSIVITY = {1,0,1e-0};
 DIFFUSIVITY = {1,1,1e-0};
 R = 8.314;
 V = 9.6e-6;
-##Type of simulation
-ISOTHERMAL = 1;
-BINARY = 0;
 T = 400;
-Filling_temperature = 500;
-## dTdt = {Rate of change in temperature (K/min)}
-dTdt = 10;
-## Frequency of temperature change (no. iterations)
-T_update = 100000;
 ##FILEWRITING and OUTPUTTING TO SCREEN
 ## WRITEFORMAT ASCII/BINARY/HDF5(Only for MPI)
 ##TRACK_PROGRESS: interval of writing out the progress of the simulation to stdout.
@@ -43,9 +35,8 @@ WRITEFORMAT = ASCII;
 WRITEHDF5 = 1;
 TRACK_PROGRESS = 10;
 ##Model-specific parameters: KKS FFT GPU
-relax_coeff = 1.615;
-alpha = 2.94;
-lambda = 8;
+Tau = {0.077};
+epsilon = 8;
 Gamma_abc = {};
 Function_F = 1;
 A = {0, 0.75};

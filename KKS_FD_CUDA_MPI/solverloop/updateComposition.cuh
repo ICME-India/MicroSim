@@ -5,6 +5,19 @@
 #include <cuda_runtime.h>
 #include <stdio.h>
 #include "structures.h"
+#include "Thermo.cuh"
+
+#ifndef MAX_NUM_PHASES
+#define MAX_NUM_PHASES 5
+#endif
+
+#ifndef MAX_NUM_COMP
+#define MAX_NUM_COMP 5
+#endif
+
+#ifndef MAX_NUM_PHASE_COMP
+#define MAX_NUM_PHASE_COMP 16
+#endif
 
 /*
  * Kernel that solves dc_{j}/dt = div(M grad(mu)) using a fourth order FD stencil and forward Euler
@@ -37,8 +50,8 @@ void __updateCompositionBinary__(double **phi,
 #ifdef __cplusplus
 extern "C"
 #endif
-void updateComposition(double **phi, double **comp, double **compNew,
-                       double **phaseComp,
+void updateComposition(double **phi, double **comp, double **phiNew, double **compNew,
+                       double **phaseComp, double **mu,
                        domainInfo* simDomain, controls* simControls,
                        simParameters* simParams, subdomainInfo* subdomain,
                        dim3 gridSize, dim3 blockSize);

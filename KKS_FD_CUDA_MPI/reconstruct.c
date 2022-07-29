@@ -28,7 +28,7 @@ void writeVTK_ASCII(double **phi, double **comp,
 
     int layer_size = simDomain.MESH_X * simDomain.MESH_Y;
 
-    sprintf(name, "DATA/%s_%07d.vtk", argv[2], t);
+    sprintf(name, "DATA/%s_%ld.vtk", argv[2], (long)t);
     fp = fopen(name, "w");
 
     /*
@@ -38,28 +38,10 @@ void writeVTK_ASCII(double **phi, double **comp,
     fprintf(fp, "Microsim_fields\n");
     fprintf(fp, "ASCII\n");
     fprintf(fp, "DATASET STRUCTURED_POINTS\n");
-    fprintf(fp, "DIMENSIONS %d %d %d\n", simDomain.MESH_X, simDomain.MESH_Y, simDomain.MESH_Z);
+    fprintf(fp, "DIMENSIONS %ld %ld %ld\n", (long)simDomain.MESH_X, (long)simDomain.MESH_Y, (long)simDomain.MESH_Z);
     fprintf(fp, "ORIGIN 0 0 0\n");
     fprintf(fp, "SPACING %le %le %le\n", simDomain.DELTA_X, simDomain.DELTA_Y, simDomain.DELTA_Z);
-    fprintf(fp, "POINT_DATA %d\n", simDomain.MESH_X*simDomain.MESH_Y*simDomain.MESH_Z);
-
-    for (int b = 0; b < simDomain.numComponents-1; b++)
-    {
-        fprintf(fp, "SCALARS %s double 1\n", simDomain.componentNames[b]);
-        fprintf(fp, "LOOKUP_TABLE default\n");
-
-        for (int z = 0; z < simDomain.MESH_Z; z++)
-        {
-            for (int y = 0; y < simDomain.MESH_Y; y++)
-            {
-                for (int x = 0; x < simDomain.MESH_X; x++)
-                {
-                    fprintf(fp, "%le\n", comp[b][z*layer_size + y*simDomain.MESH_X + x]);
-                }
-            }
-        }
-        fprintf(fp, "\n");
-    }
+    fprintf(fp, "POINT_DATA %ld\n", (long)simDomain.MESH_X*(long)simDomain.MESH_Y*(long)simDomain.MESH_Z);
 
     for (int a = 0; a < simDomain.numPhases; a++)
     {
@@ -81,6 +63,24 @@ void writeVTK_ASCII(double **phi, double **comp,
         fprintf(fp, "\n");
     }
 
+    for (int b = 0; b < simDomain.numComponents-1; b++)
+    {
+        fprintf(fp, "SCALARS %s double 1\n", simDomain.componentNames[b]);
+        fprintf(fp, "LOOKUP_TABLE default\n");
+
+        for (int z = 0; z < simDomain.MESH_Z; z++)
+        {
+            for (int y = 0; y < simDomain.MESH_Y; y++)
+            {
+                for (int x = 0; x < simDomain.MESH_X; x++)
+                {
+                    fprintf(fp, "%le\n", comp[b][z*layer_size + y*simDomain.MESH_X + x]);
+                }
+            }
+        }
+        fprintf(fp, "\n");
+    }
+
     fclose(fp);
 }
 
@@ -95,7 +95,7 @@ void writeVTK_BINARY(double **phi, double **comp,
 
     double value;
 
-    sprintf(name, "DATA/%s_%07d.vtk", argv[2], t);
+    sprintf(name, "DATA/%s_%ld.vtk", argv[2], (long)t);
     fp = fopen(name, "w");
 
     /*
@@ -105,32 +105,10 @@ void writeVTK_BINARY(double **phi, double **comp,
     fprintf(fp, "Microsim_fields\n");
     fprintf(fp, "BINARY\n");
     fprintf(fp, "DATASET STRUCTURED_POINTS\n");
-    fprintf(fp, "DIMENSIONS %d %d %d\n", simDomain.MESH_X, simDomain.MESH_Y, simDomain.MESH_Z);
+    fprintf(fp, "DIMENSIONS %ld %ld %ld\n", (long)simDomain.MESH_X, (long)simDomain.MESH_Y, (long)simDomain.MESH_Z);
     fprintf(fp, "ORIGIN 0 0 0\n");
     fprintf(fp, "SPACING %le %le %le\n", simDomain.DELTA_X, simDomain.DELTA_Y, simDomain.DELTA_Z);
-    fprintf(fp, "POINT_DATA %d\n", simDomain.MESH_X*simDomain.MESH_Y*simDomain.MESH_Z);
-
-    for (int b = 0; b < simDomain.numComponents-1; b++)
-    {
-        fprintf(fp, "SCALARS %s double 1\n", simDomain.componentNames[b]);
-        fprintf(fp, "LOOKUP_TABLE default\n");
-
-        for (int z = 0; z < simDomain.MESH_Z; z++)
-        {
-            for (int y = 0; y < simDomain.MESH_Y; y++)
-            {
-                for (int x = 0; x < simDomain.MESH_X; x++)
-                {
-                    if (IS_LITTLE_ENDIAN)
-                        value = swap_bytes(comp[b][z*layer_size + y*simDomain.MESH_X + x]);
-                    else
-                        value = comp[b][z*layer_size + y*simDomain.MESH_X + x];
-                    fwrite(&value, sizeof(double), 1, fp);
-                }
-            }
-        }
-        fprintf(fp, "\n");
-    }
+    fprintf(fp, "POINT_DATA %ld\n", (long)simDomain.MESH_X*(long)simDomain.MESH_Y*(long)simDomain.MESH_Z);
 
     for (int a = 0; a < simDomain.numPhases; a++)
     {
@@ -154,6 +132,28 @@ void writeVTK_BINARY(double **phi, double **comp,
             }
         }
 
+        fprintf(fp, "\n");
+    }
+
+    for (int b = 0; b < simDomain.numComponents-1; b++)
+    {
+        fprintf(fp, "SCALARS %s double 1\n", simDomain.componentNames[b]);
+        fprintf(fp, "LOOKUP_TABLE default\n");
+
+        for (int z = 0; z < simDomain.MESH_Z; z++)
+        {
+            for (int y = 0; y < simDomain.MESH_Y; y++)
+            {
+                for (int x = 0; x < simDomain.MESH_X; x++)
+                {
+                    if (IS_LITTLE_ENDIAN)
+                        value = swap_bytes(comp[b][z*layer_size + y*simDomain.MESH_X + x]);
+                    else
+                        value = comp[b][z*layer_size + y*simDomain.MESH_X + x];
+                    fwrite(&value, sizeof(double), 1, fp);
+                }
+            }
+        }
         fprintf(fp, "\n");
     }
 
@@ -362,7 +362,7 @@ int main(int argc, char *argv[])
 
         for (i = 0; i < atoi(argv[3]); i++)
         {
-            sprintf(name, "DATA/Processor_%d/%s_%07d.vtk", i, argv[2], t);
+            sprintf(name, "DATA/Processor_%d/%s_%ld.vtk", i, argv[2], (long)t);
             if (fp = fopen(name, "rb"))
             {
                 if (i == atoi(argv[3])-1)
@@ -400,7 +400,11 @@ int main(int argc, char *argv[])
                 fclose(fp);
             }
             else
+            {
+                if (i == atoi(argv[3])-1)
+                    printf("\Could not find %s\n", name);
                 break;
+            }
         }
 
         if (strcmp(writeformat, "ASCII") == 0 && i == atoi(argv[3]))

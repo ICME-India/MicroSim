@@ -25,14 +25,13 @@ void readInput_MPI(domainInfo *simDomain, controls *simControls,
 
     // Setting defaults
     simParams->alpha = 2.94;
-
+    simControls->multiphase = 1;
     simControls->restart = 0;
     simControls->writeHDF5 = 0;
 
     while (fgets(tempbuff,1000,fr))
     {
         sscanf(tempbuff,"%100s = %100[^;];", tmpstr1, tmpstr2);
-
         if (tmpstr1[0] != '#')
         {
             if (strcmp(tmpstr1, "MESH_X") == 0)
@@ -54,17 +53,17 @@ void readInput_MPI(domainInfo *simDomain, controls *simControls,
             else if (strcmp(tmpstr1, "DELTA_X") == 0)
             {
                 simDomain->DELTA_X = atof(tmpstr2);
-                fprintf(fp, "%s = %lf\n", tmpstr1, simDomain->DELTA_X);
+                fprintf(fp, "%s = %le\n", tmpstr1, simDomain->DELTA_X);
             }
             else if (strcmp(tmpstr1, "DELTA_Y") == 0)
             {
                 simDomain->DELTA_Y = atof(tmpstr2);
-                fprintf(fp, "%s = %lf\n", tmpstr1, simDomain->DELTA_Y);
+                fprintf(fp, "%s = %le\n", tmpstr1, simDomain->DELTA_Y);
             }
             else if (strcmp(tmpstr1, "DELTA_Z") == 0)
             {
                 simDomain->DELTA_Z = atof(tmpstr2);
-                fprintf(fp, "%s = %lf\n", tmpstr1, simDomain->DELTA_Z);
+                fprintf(fp, "%s = %le\n", tmpstr1, simDomain->DELTA_Z);
             }
             else if (strcmp(tmpstr1, "DIMENSION") == 0)
             {
@@ -108,6 +107,16 @@ void readInput_MPI(domainInfo *simDomain, controls *simControls,
 
                 if (simDomain->numComponents > 1 && simDomain->numPhases > 0)
                 {
+                    simParams->F0_Beq_host = malloc2M(simDomain->numPhases, simDomain->numComponents-1);
+
+                    simParams->DELTA_T = malloc2M(simDomain->numPhases, simDomain->numPhases);
+                    simParams->DELTA_C = malloc2M(simDomain->numPhases, simDomain->numComponents-1);
+
+                    simParams->dcbdT = malloc3M(simDomain->numPhases, simDomain->numPhases, simDomain->numComponents-1);
+                    simParams->dBbdT = malloc2M(simDomain->numPhases, simDomain->numComponents-1);
+
+                    simParams->slopes = malloc3M(simDomain->numPhases, simDomain->numPhases, simDomain->numPhases);
+
                     simParams->gamma_host = malloc2M(simDomain->numPhases, simDomain->numPhases);
                     cudaMalloc((void**)&simParams->gamma_dev, sizeof(double)*simDomain->numPhases*simDomain->numPhases);
 
@@ -121,6 +130,9 @@ void readInput_MPI(domainInfo *simDomain, controls *simControls,
 
                     simParams->diffusivity_host = malloc3M(simDomain->numPhases, simDomain->numComponents-1, simDomain->numComponents-1);
                     cudaMalloc((void**)&(simParams->diffusivity_dev), sizeof(double)*simDomain->numPhases*(simDomain->numComponents-1)*(simDomain->numComponents-1));
+
+                    simParams->mobility_host = malloc3M(simDomain->numPhases, simDomain->numComponents-1, simDomain->numComponents-1);
+                    cudaMalloc((void**)&(simParams->mobility_dev), sizeof(double)*simDomain->numPhases*(simDomain->numComponents-1)*(simDomain->numComponents-1));
 
                     simParams->F0_A_host = malloc3M(simDomain->numPhases, simDomain->numComponents-1, simDomain->numComponents-1);
                     cudaMalloc((void**)&(simParams->F0_A_dev), sizeof(double)*simDomain->numPhases*(simDomain->numComponents-1)*(simDomain->numComponents-1));
@@ -163,7 +175,7 @@ void readInput_MPI(domainInfo *simDomain, controls *simControls,
             else if (strcmp(tmpstr1, "DELTA_t") == 0)
             {
                 simControls->DELTA_t = atof(tmpstr2);
-                fprintf(fp, "%s = %lf\n", tmpstr1, simControls->DELTA_t);
+                fprintf(fp, "%s = %le\n", tmpstr1, simControls->DELTA_t);
             }
             else if (strcmp(tmpstr1, "RESTART") == 0)
             {
@@ -211,7 +223,7 @@ void readInput_MPI(domainInfo *simDomain, controls *simControls,
                 if (simDomain->numPhases > 0)
                     populate_matrix(simParams->gamma_host, tmpstr2, simDomain->numPhases);
 
-                fprintf(fp, "%s = %lf\n", tmpstr1, simParams->gamma_host[1][0]);
+                fprintf(fp, "%s = %le\n", tmpstr1, simParams->gamma_host[1][0]);
             }
             else if (strcmp(tmpstr1, "DIFFUSIVITY") == 0)
             {
@@ -222,17 +234,17 @@ void readInput_MPI(domainInfo *simDomain, controls *simControls,
                 if (simDomain->numPhases > 0)
                     populate_matrix(simParams->Tau_host, tmpstr2, simDomain->numPhases);
 
-                fprintf(fp, "%s = %lf\n", tmpstr1, simParams->Tau_host[0][1]);
+                fprintf(fp, "%s = %le\n", tmpstr1, simParams->Tau_host[0][1]);
             }
             else if (strcmp(tmpstr1, "alpha") == 0)
             {
                 simParams->alpha = atof(tmpstr2);
-                fprintf(fp, "%s = %lf\n", tmpstr1, simParams->alpha);
+                fprintf(fp, "%s = %le\n", tmpstr1, simParams->alpha);
             }
             else if (strcmp(tmpstr1, "epsilon") == 0)
             {
                 simParams->epsilon = atof(tmpstr2);
-                fprintf(fp, "%s = %lf\n", tmpstr1, simParams->epsilon);
+                fprintf(fp, "%s = %le\n", tmpstr1, simParams->epsilon);
             }
             else if (strcmp(tmpstr1, "ceq") == 0)
             {
@@ -249,27 +261,27 @@ void readInput_MPI(domainInfo *simDomain, controls *simControls,
             else if (strcmp(tmpstr1, "R") == 0)
             {
                 simParams->R = atof(tmpstr2);
-                fprintf(fp, "%s = %lf\n", tmpstr1, simParams->R);
+                fprintf(fp, "%s = %le\n", tmpstr1, simParams->R);
             }
             else if (strcmp(tmpstr1, "V") == 0)
             {
                 simParams->molarVolume = atof(tmpstr2);
-                fprintf(fp, "%s = %lf\n", tmpstr1, simParams->molarVolume);
+                fprintf(fp, "%s = %le\n", tmpstr1, simParams->molarVolume);
             }
             else if (strcmp(tmpstr1, "T") == 0)
             {
                 simParams->T = atof(tmpstr2);
-                fprintf(fp, "%s = %lf\n", tmpstr1, simParams->T);
+                fprintf(fp, "%s = %le\n", tmpstr1, simParams->T);
             }
             else if (strcmp(tmpstr1, "Equilibrium_temperature") == 0)
             {
                 simParams->Teq = atof(tmpstr2);
-                fprintf(fp, "%s = %lf\n", tmpstr1, simParams->Teq);
+                fprintf(fp, "%s = %le\n", tmpstr1, simParams->Teq);
             }
             else if (strcmp(tmpstr1, "Filling_temperature") == 0)
             {
                 simParams->Tfill = atof(tmpstr2);
-                fprintf(fp, "%s = %lf\n", tmpstr1, simParams->Tfill);
+                fprintf(fp, "%s = %le\n", tmpstr1, simParams->Tfill);
             }
             else if ((strcmp(tmpstr1, "Function_F") == 0) && simDomain->numPhases > 1 && simDomain->numComponents-1 > 0)
             {
@@ -320,7 +332,7 @@ void readInput_MPI(domainInfo *simDomain, controls *simControls,
             else if (strcmp(tmpstr1, "dTdt") == 0 && simDomain->numPhases > 1)
             {
                 simControls->dTdt = atof(tmpstr2);
-                fprintf(fp, "%s = %lf\n", tmpstr1, simControls->dTdt);
+                fprintf(fp, "%s = %le\n", tmpstr1, simControls->dTdt);
             }
             else if (strcmp(tmpstr1, "T_update") == 0 && simDomain->numPhases > 1)
             {

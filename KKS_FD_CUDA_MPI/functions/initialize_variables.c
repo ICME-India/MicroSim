@@ -1,5 +1,86 @@
 #include "initialize_variables.h"
 
+int LUPDecompose(double **A, int N, double Tol, int *P) {
+
+    int i, j, k, imax;
+    double maxA, *ptr, absA;
+
+    for (i = 0; i <= N; i++)
+        P[i] = i; //Unit permutation matrix, P[N] initialized with N
+
+    for (i = 0; i < N; i++) {
+        maxA = 0.0;
+        imax = i;
+
+        for (k = i; k < N; k++)
+            if ((absA = fabs(A[k][i])) > maxA) {
+                maxA = absA;
+                imax = k;
+            }
+
+        if (maxA < Tol) return 0; //failure, matrix is degenerate
+
+        if (imax != i) {
+            //pivoting P
+            j = P[i];
+            P[i] = P[imax];
+            P[imax] = j;
+
+            //pivoting rows of A
+            ptr = A[i];
+            A[i] = A[imax];
+            A[imax] = ptr;
+
+            //counting pivots starting from N (for determinant)
+            P[N]++;
+        }
+
+        for (j = i + 1; j < N; j++) {
+            A[j][i] /= A[i][i];
+
+            for (k = i + 1; k < N; k++)
+                A[j][k] -= A[j][i] * A[i][k];
+        }
+    }
+
+    return 1;  //decomposition done
+}
+
+void LUPInvert(double **A, int *P, int N, double **IA) {
+
+    for (int j = 0; j < N; j++) {
+        for (int i = 0; i < N; i++) {
+            IA[i][j] = P[i] == j ? 1.0 : 0.0;
+
+            for (int k = 0; k < i; k++)
+                IA[i][j] -= A[i][k] * IA[k][j];
+        }
+
+        for (int i = N - 1; i >= 0; i--) {
+            for (int k = i + 1; k < N; k++)
+                IA[i][j] -= A[i][k] * IA[k][j];
+
+            IA[i][j] /= A[i][i];
+        }
+    }
+}
+
+void matrixMultiply(double **A, double **B, double **C, int N)
+{
+    for (int i = 0; i < N; i++)
+    {
+        for (int j = 0; j < N; j++)
+        {
+            C[i][j] = 0.0;
+
+            for (int k = 0; k < N; k++)
+            {
+                C[i][j] += A[i][k]*B[k][j];
+            }
+        }
+    }
+}
+
 void decomposeDomain(domainInfo simDomain, subdomainInfo *subdomain,
                      int rank, int size)
 {
@@ -109,6 +190,37 @@ void decomposeDomain(domainInfo simDomain, subdomainInfo *subdomain,
 
 void moveParamsToGPU(domainInfo *simDomain, simParameters *simParams)
 {
+    double Tol = 1e-6;
+    int P[simDomain->numComponents];
+
+    double ***dmudc = malloc3M(simDomain->numPhases, simDomain->numComponents-1, simDomain->numComponents-1);
+    double **inverted = malloc2M(simDomain->numComponents-1, simDomain->numComponents-1);
+
+    for (int i = 0; i < simDomain->numPhases; i++)
+    {
+        for (int j = 0; j < simDomain->numComponents-1; j++)
+        {
+            for (int k = 0; k < simDomain->numComponents-1; k++)
+            {
+                if (j == k)
+                    dmudc[i][j][k] = 2.0*simParams->F0_A_host[i][j][k];
+                else
+                    dmudc[i][j][k] = simParams->F0_A_host[i][j][k];
+            }
+        }
+    }
+
+    for (int i = 0; i < simDomain->numPhases; i++)
+    {
+        LUPDecompose(dmudc[i], simDomain->numComponents-1, Tol, P);
+        LUPInvert(dmudc[i], P, simDomain->numComponents-1, inverted);
+
+        matrixMultiply(simParams->diffusivity_host[i], inverted, simParams->mobility_host[i], simDomain->numComponents-1);
+    }
+
+    free2M(inverted, simDomain->numComponents-1);
+    free3M(dmudc, simDomain->numPhases, simDomain->numComponents-1);
+
     cudaMemcpy(simDomain->thermo_phase_dev, simDomain->thermo_phase_host, sizeof(int)*simDomain->numPhases, cudaMemcpyHostToDevice);
 
     for (int i = 0; i < simDomain->numPhases; i++)
@@ -120,7 +232,10 @@ void moveParamsToGPU(domainInfo *simDomain, simParameters *simParams)
             if (i != j)
             {
                 simParams->kappaPhi_host[i][j] = 3.0/(2.0*simParams->alpha) * (simParams->gamma_host[i][j]*simParams->epsilon);
+
                 simParams->relax_coeff_host[i][j] = 1.0/(simParams->Tau_host[i][j]*simParams->epsilon);
+
+                //printf("%le\t%d\t%d\n", simParams->relax_coeff_host[i][j], i, j);
                 simParams->theta_ij_host[i][j] = 6.0 * simParams->alpha * simParams->gamma_host[i][j] / simParams->epsilon;
             }
             else
@@ -163,6 +278,7 @@ void moveParamsToGPU(domainInfo *simDomain, simParameters *simParams)
 
             for (int k = 0; k < simDomain->numComponents-1; k++)
             {
+                cudaMemcpy(&simParams->mobility_dev[(i*(simDomain->numComponents-1) + j)*(simDomain->numComponents-1) + k], &simParams->mobility_host[i][j][k], sizeof(double), cudaMemcpyHostToDevice);
                 cudaMemcpy(&simParams->diffusivity_dev[(i*(simDomain->numComponents-1) + j)*(simDomain->numComponents-1) + k], &simParams->diffusivity_host[i][j][k], sizeof(double), cudaMemcpyHostToDevice);
                 cudaMemcpy(&simParams->F0_A_dev[(i*(simDomain->numComponents-1) + j)*(simDomain->numComponents-1) + k], &simParams->F0_A_host[i][j][k], sizeof(double), cudaMemcpyHostToDevice);
             }

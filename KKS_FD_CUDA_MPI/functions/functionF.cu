@@ -18,7 +18,7 @@ void function_F_04_init_propertymatrices(domainInfo *simDomain, controls *simCon
         fp = fopen(filename, "r");
         if (stat(filename, &sb) == -1)
         {
-            perror("filename");
+            perror(filename);
             exit(EXIT_FAILURE);
         }
     }
@@ -96,6 +96,7 @@ void function_F_04_init_propertymatrices(domainInfo *simDomain, controls *simCon
         fclose(fp);
     }
 
+
     gsl_interp_accel ****acc_ES     = (gsl_interp_accel****)malloc((simDomain->numThermoPhases-1)*sizeof(gsl_interp_accel***));
     gsl_spline       ****spline_ES  = (gsl_spline ****)malloc((simDomain->numThermoPhases-1)*sizeof(gsl_spline***));
     gsl_interp_accel ****acc_ThF    = (gsl_interp_accel****)malloc(simDomain->numThermoPhases*sizeof(gsl_interp_accel***));
@@ -152,11 +153,11 @@ void function_F_04_init_propertymatrices(domainInfo *simDomain, controls *simCon
             {
                 if (i == j)
                 {
-                    simParams->F0_A_host[a][i][j] = 0.5*gsl_spline_eval(spline_ThF[simDomain->thermo_phase_host[a]][i][j], simParams->T, acc_ThF[simDomain->thermo_phase_host[a]][i][j]) / (simParams->molarVolume * 1.602*1e8);
+                    simParams->F0_A_host[a][i][j] = 0.5*gsl_spline_eval(spline_ThF[simDomain->thermo_phase_host[a]][i][j], simParams->T, acc_ThF[simDomain->thermo_phase_host[a]][i][j]);
                 }
                 else
                 {
-                    simParams->F0_A_host[a][i][j] = gsl_spline_eval(spline_ThF[simDomain->thermo_phase_host[a]][i][j], simParams->T, acc_ThF[simDomain->thermo_phase_host[a]][i][j]) / (simParams->molarVolume * 1.602*1e8);
+                    simParams->F0_A_host[a][i][j] = gsl_spline_eval(spline_ThF[simDomain->thermo_phase_host[a]][i][j], simParams->T, acc_ThF[simDomain->thermo_phase_host[a]][i][j]);
                 }
             }
         }
@@ -166,48 +167,53 @@ void function_F_04_init_propertymatrices(domainInfo *simDomain, controls *simCon
     double c_ppt[simDomain->numComponents-1];
 
     double sum_c = 0.0;
-    simParams->F0_B_host[0][0] = 0.0;
-    simParams->F0_C_host[0] = 0.0;
 
-    for (a = 1; a < simDomain->numPhases; a++)
+
+    for (a = 0; a < simDomain->numPhases; a++)
     {
-        for (i = 0; i < simDomain->numComponents-1; i++)
+        if (a == 0)
         {
+            for (i = 0; i < simDomain->numComponents-1; i++)
+                simParams->F0_B_host[0][i] = 0.0;
+            simParams->F0_C_host[0] = 0.0;
+        }
+        else
+        {
+            for (i = 0; i < simDomain->numComponents-1; i++)
+            {
+                for (k = 0; k < simDomain->numComponents-1; k++)
+                {
+                    c_mat[k] = gsl_spline_eval(spline_ES[simDomain->thermo_phase_host[a-1]][k][1], simParams->T, acc_ES[simDomain->thermo_phase_host[a-1]][k][1]);
+                    c_ppt[k] = gsl_spline_eval(spline_ES[simDomain->thermo_phase_host[a-1]][k][0], simParams->T, acc_ES[simDomain->thermo_phase_host[a-1]][k][0]);
+
+                    if (k != i)
+                        sum_c += simParams->F0_A_host[0][k][i]*c_mat[k] - simParams->F0_A_host[a][k][i]*c_ppt[k];
+                }
+
+                simParams->F0_B_host[a][i] = 2.0*(simParams->F0_A_host[0][i][i]*c_mat[i] - simParams->F0_A_host[a][i][i]*c_ppt[i]) + sum_c;
+            }
+
+            sum_c = 0.0;
+
             for (k = 0; k < simDomain->numComponents-1; k++)
             {
                 c_mat[k] = gsl_spline_eval(spline_ES[simDomain->thermo_phase_host[a-1]][k][1], simParams->T, acc_ES[simDomain->thermo_phase_host[a-1]][k][1]);
                 c_ppt[k] = gsl_spline_eval(spline_ES[simDomain->thermo_phase_host[a-1]][k][0], simParams->T, acc_ES[simDomain->thermo_phase_host[a-1]][k][0]);
 
-                printf("%lf\t%lf\n", c_mat[k], c_ppt[k]);
-
-                if (k != i)
-                    sum_c += simParams->F0_A_host[0][k][i]*c_mat[k] - simParams->F0_A_host[a][k][i]*c_ppt[k];
             }
-                printf("%lf\t%lf\n", simParams->F0_A_host[0][i][i], simParams->F0_A_host[a][i][i]);
 
-            simParams->F0_B_host[a][i] = 2.0*(simParams->F0_A_host[0][i][i]*c_mat[i] - simParams->F0_A_host[a][i][i]*c_ppt[i]) + sum_c;
-        }
-
-        sum_c = 0.0;
-
-        for (k = 0; k < simDomain->numComponents-1; k++)
-        {
-            c_mat[k] = gsl_spline_eval(spline_ES[simDomain->thermo_phase_host[a-1]][k][1], simParams->T, acc_ES[simDomain->thermo_phase_host[a-1]][k][1]);
-            c_ppt[k] = gsl_spline_eval(spline_ES[simDomain->thermo_phase_host[a-1]][k][0], simParams->T, acc_ES[simDomain->thermo_phase_host[a-1]][k][0]);
-
-        }
-
-        for (i = 0; i < simDomain->numComponents-1; i++)
-        {
-            for (k = 0; k < simDomain->numComponents-1; k++)
+            for (i = 0; i < simDomain->numComponents-1; i++)
             {
-                if (i <= k)
-                    sum_c += simParams->F0_A_host[a][i][k]*c_ppt[i]*c_ppt[k] - simParams->F0_A_host[0][i][k]*c_mat[i]*c_mat[k];
+                for (k = 0; k < simDomain->numComponents-1; k++)
+                {
+                    if (i <= k)
+                        sum_c += simParams->F0_A_host[a][i][k]*c_ppt[i]*c_ppt[k] - simParams->F0_A_host[0][i][k]*c_mat[i]*c_mat[k];
+                }
             }
-        }
-        simParams->F0_C_host[a] = sum_c;
+            simParams->F0_C_host[a] = sum_c;
 
-        sum_c = 0.0;
+            sum_c = 0.0;
+        }
     }
 }
 
@@ -268,37 +274,285 @@ void calcFreeEnergyCoeffs(domainInfo *simDomain, controls *simControls, simParam
             }
         }
 
-        // Calculating curvatures for each phase
-        for (int a = 0; a < simDomain->numPhases; a++)
-            for (int b = 0; b < simDomain->numComponents-1; b++)
-                simParams->F0_A_host[a][b][b] = 0.5*evalFunc(dmudc_tdb[simDomain->thermo_phase_host[a]], simParams->cguess_host[a][a][b], simParams->T)/simParams->molarVolume;
+        double *dmudc = (double*)malloc(sizeof(double)*(simDomain->numComponents-1)*(simDomain->numComponents-1));
+        long i, j, index;
+        long a,k;
+        double **dmudc_matrix;
+        double sum = 0.0;
 
-        // Calculating linear and constant part of the parabolic free energy function for each phase
-        // Set matrix values of the above to 0
-        simParams->F0_B_host[0][0] = 0.0;
-        simParams->F0_C_host[0]    = 0.0;
+        double *y = (double*)malloc(simDomain->numComponents);
+        dmudc_matrix = malloc2M((simDomain->numComponents-1),(simDomain->numComponents-1));
 
-        for (int i = 1; i < simDomain->numPhases; i++)
+        for (a = 0; a < simDomain->numPhases; a++)
         {
-            simParams->F0_C_host[i] = 0.0;
-
-            for (int j = 0; j < simDomain->numComponents-1; j++)
+            sum = 0.0;
+            for (int k = 0; k < simDomain->numComponents-1; k++)
             {
-                simParams->F0_B_host[i][j] = 2.0*(simParams->F0_A_host[0][j][j]*simParams->cguess_host[0][0][j] - simParams->F0_A_host[i][j][j]*simParams->cguess_host[i][i][j]);
+                y[k] = simParams->ceq_host[a][a][k];
+                sum += y[k];
+            }
 
-                for (int k = 0; k < simDomain->numComponents-1; k++)
+            y[simDomain->numComponents-1] = 1.0 - sum;
+
+            (*dmudc_tdb[simDomain->thermo_phase_host[a]])((simParams->T + simParams->Teq)/2.0, y, dmudc);
+
+            for (i = 0; i < simDomain->numComponents-1; i++)
+            {
+                for (j = 0; j < simDomain->numComponents-1; j++)
                 {
-                    if (j == k)
-                        continue;
-                    simParams->F0_B_host[i][j] += simParams->F0_A_host[i][j][k]*simParams->cguess_host[i][i][k] - simParams->F0_A_host[0][j][k]*simParams->cguess_host[0][0][k];
+                    index = i*(simDomain->numComponents-1) + j;
+                    dmudc_matrix[i][j] = dmudc[index];
                 }
+            }
 
-                for (int k = 0; k <= j; k++)
+            for (i = 0; i < simDomain->numComponents-1; i++)
+            {
+                for (j = 0; j < simDomain->numComponents-1; j++)
                 {
-                    simParams->F0_C_host[i] += simParams->F0_A_host[i][j][k]*simParams->cguess_host[i][i][j]*simParams->cguess_host[i][i][k] - simParams->F0_A_host[0][j][k]*simParams->cguess_host[0][0][j]*simParams->cguess_host[0][0][k];
+                    if (i == j)
+                        simParams->F0_A_host[a][i][j] = 0.5*dmudc_matrix[i][j];
+                    else
+                        simParams->F0_A_host[a][i][j] = dmudc_matrix[i][j];
+
                 }
             }
         }
+
+        for (a = simDomain->numPhases-1; a > 0; a--)
+        {
+            // long   index;
+            //double **dmudc_matrix;
+            double sum_cs[simDomain->numComponents-1];
+            double sum_cl[simDomain->numComponents-1];
+            double mu_s[simDomain->numComponents-1];
+            double dmu_s[simDomain->numComponents-1];
+            double mu_l[simDomain->numComponents-1];
+            double dmu_l[simDomain->numComponents-1];
+            double f_s, f_l;
+            double df_s, df_l;
+            double DT = 1;
+            double dS;
+            double dmuS, dmuL;
+
+            for (k = 0; k<simDomain->numComponents-1; k++)
+            {
+                y[k] = simParams->ceq_host[a][0][k];
+                sum += y[k];
+                sum_cl[k] = 0.0;
+            }
+
+            y[simDomain->numComponents-1] = 1.0 - sum;
+
+            (*free_energy_tdb[simDomain->thermo_phase_host[0]])((simParams->T + simParams->Teq)/2.0 - DT, y, &f_l);
+            (*free_energy_tdb[simDomain->thermo_phase_host[0]])((simParams->T + simParams->Teq)/2.0 + DT, y, &df_l);
+
+            (*Mu_tdb[simDomain->thermo_phase_host[0]])((simParams->T + simParams->Teq)/2.0-DT, y, mu_l);
+            (*Mu_tdb[simDomain->thermo_phase_host[0]])((simParams->T + simParams->Teq)/2.0+DT, y, dmu_l);
+
+
+            sum = 0.0;
+            for (k = 0; k < simDomain->numComponents-1; k++)
+            {
+                y[k] = simParams->ceq_host[a][a][k];
+                sum += y[k];
+                sum_cs[k] = 0.0;
+            }
+
+            y[simDomain->numComponents-1] = 1.0 - sum;
+
+            (*free_energy_tdb[simDomain->thermo_phase_host[a]])((simParams->T + simParams->Teq)/2.0 - DT, y, &f_s);
+            (*free_energy_tdb[simDomain->thermo_phase_host[a]])((simParams->T + simParams->Teq)/2.0 + DT, y, &df_s);
+
+            (*Mu_tdb[simDomain->thermo_phase_host[a]])((simParams->T + simParams->Teq)/2.0-DT, y, mu_s);
+            (*Mu_tdb[simDomain->thermo_phase_host[a]])((simParams->T + simParams->Teq)/2.0+DT, y, dmu_s);
+
+            dS   = 0.5*(df_s - f_s)/DT - 0.5*(df_l - f_l)/DT;
+
+            dmuS = 0.0;
+            dmuL = 0.0;
+
+            for (k = 0; k < simDomain->numComponents-1; k++)
+            {
+                dmuS += 0.5*(dmu_s[k] - mu_s[k])*(simParams->ceq_host[a][a][k] - simParams->ceq_host[a][0][k])/DT;
+                dmuL += 0.5*(dmu_l[k] - mu_l[k])*(simParams->ceq_host[a][a][k] - simParams->ceq_host[a][0][k])/DT;
+            }
+
+            for (k = 0; k < simDomain->numComponents-1; k++)
+            {
+                for (int l = 0; l < simDomain->numComponents-1; l++)
+                {
+                    if (k == l)
+                    {
+                        sum_cs[k] += 2.0*(simParams->ceq_host[a][a][l] - simParams->ceq_host[a][0][l])*simParams->F0_A_host[a][l][k];
+                        sum_cl[k] += 2.0*(simParams->ceq_host[a][a][l] - simParams->ceq_host[a][0][l])*simParams->F0_A_host[0][l][k];
+                    }
+                    else
+                    {
+                        sum_cs[k] += (simParams->ceq_host[a][a][l] - simParams->ceq_host[a][0][l])*simParams->F0_A_host[a][l][k];
+                        sum_cl[k] += (simParams->ceq_host[a][a][l] - simParams->ceq_host[a][0][l])*simParams->F0_A_host[0][l][k];
+                    }
+
+                }
+
+                simParams->slopes[a][a][k] = sum_cs[k]/(dS - dmuS);
+                simParams->slopes[a][0][k] = sum_cl[k]/(dS - dmuL);
+                simParams->slopes[0][a][k] = simParams->slopes[a][0][k];
+
+            }
+        }
+
+        for (a = 0; a < simDomain->numPhases; a++)
+        {
+            sum = 0.0;
+            for (int k = 0; k < simDomain->numComponents-1; k++)
+            {
+                y[k] = simParams->cguess_host[a][a][k];
+                sum += y[k];
+            }
+
+            y[simDomain->numComponents-1] = 1.0 - sum;
+
+            (*dmudc_tdb[simDomain->thermo_phase_host[a]])(simParams->T, y, dmudc);
+
+            for (i = 0; i < simDomain->numComponents-1; i++)
+            {
+                for (j = 0; j < simDomain->numComponents-1; j++)
+                {
+                    index = i*(simDomain->numComponents-1) + j;
+                    dmudc_matrix[i][j] = dmudc[index];
+                }
+            }
+
+            for (i = 0; i < simDomain->numComponents-1; i++)
+            {
+                for (j = 0; j < simDomain->numComponents-1; j++)
+                {
+                    if (i == j)
+                        simParams->F0_A_host[a][i][j] = 0.5*dmudc_matrix[i][j];
+                    else
+                        simParams->F0_A_host[a][i][j] = dmudc_matrix[i][j];
+                }
+            }
+        }
+
+
+        for (a = 1; a < simDomain->numPhases; a++)
+        {
+            simParams->DELTA_T[a][0] = 0.0;
+            simParams->DELTA_T[a][a] = 0.0;
+
+            for (k = 0; k < simDomain->numComponents-1; k++)
+            {
+                simParams->DELTA_T[a][a] += simParams->slopes[a][a][k]*(simParams->ceq_host[a][0][k] - simParams->ceq_host[a][a][k]);
+                simParams->DELTA_T[a][0] += simParams->slopes[a][0][k]*(simParams->ceq_host[a][0][k] - simParams->ceq_host[a][a][k]);
+                simParams->DELTA_C[a][k]  = simParams->ceq_host[a][0][k] - simParams->ceq_host[a][a][k];
+            }
+            for (k = 0; k < simDomain->numComponents-1; k++)
+            {
+                simParams->dcbdT[a][a][k] = simParams->DELTA_C[a][k]/simParams->DELTA_T[a][a];
+                simParams->dcbdT[a][0][k] = simParams->DELTA_C[a][k]/simParams->DELTA_T[a][0];
+            }
+            for (k = 0; k < simDomain->numComponents-1; k++)
+            {
+                simParams->dBbdT[a][k] = 2.0*(simParams->F0_A_host[0][k][k]*simParams->dcbdT[a][0][k] - simParams->F0_A_host[a][k][k]*simParams->dcbdT[a][a][k]);
+                for (i = 0; i < simDomain->numComponents-1; i++)
+                {
+                    if (k != i)
+                    {
+                        simParams->dBbdT[a][k] += (simParams->F0_A_host[0][k][i]*simParams->dcbdT[a][0][i] - simParams->F0_A_host[a][k][i]*simParams->dcbdT[a][a][i]);
+                    }
+                }
+            }
+        }
+        // Got here
+
+        for (k = 0; k < simDomain->numComponents-1; k++)
+        {
+            simParams->dBbdT[0][k] = 0.0;
+        }
+
+        for (a = 0; a < simDomain->numPhases; a++)
+        {
+            for (i = 0; i < simDomain->numComponents-1; i++)
+            {
+                double c_Mat[simDomain->numComponents-1];
+                double c_PPT[simDomain->numComponents-1];
+
+                double sum_c = 0.0;
+
+                if (a != 0)
+                {
+                    for (k = 0; k < simDomain->numComponents-1; k++)
+                    {
+                        c_Mat[k] = simParams->ceq_host[a][0][k];
+                        c_PPT[k] = simParams->ceq_host[a][a][k];
+
+                        if (k != i)
+                        {
+                            sum_c += simParams->F0_A_host[0][k][i]*c_Mat[k] - simParams->F0_A_host[a][k][i]*c_PPT[k];
+                        }
+                    }
+                    simParams->F0_Beq_host[a][i] = (2.0*(simParams->F0_A_host[0][i][i]*c_Mat[i] - simParams->F0_A_host[a][i][i]*c_PPT[i]) + sum_c);
+                }
+            }
+        }
+
+        for (a = 0; a < simDomain->numPhases; a++)
+        {
+            for (i = 0; i < simDomain->numComponents-1; i++)
+            {
+                double c_Mat[simDomain->numComponents-1];
+                double c_PPT[simDomain->numComponents-1];
+
+                double sum_c = 0.0;
+
+                if (a != 0)
+                {
+                    for (k = 0; k < simDomain->numComponents-1; k++)
+                    {
+                        c_Mat[k] = simParams->ceq_host[a][0][k] - (simParams->DELTA_C[a][k])*(simParams->Teq-simParams->T)/(simParams->DELTA_T[a][0]);
+                        c_PPT[k] = simParams->ceq_host[a][a][k] - (simParams->DELTA_C[a][k])*(simParams->Teq-simParams->T)/(simParams->DELTA_T[a][a]);
+                        if (k != i)
+                        {
+                            sum_c += simParams->F0_A_host[0][k][i]*c_Mat[k] - simParams->F0_A_host[a][k][i]*c_PPT[k];
+                        }
+                    }
+                    simParams->F0_B_host[a][i] = (2.0*(simParams->F0_A_host[0][i][i]*c_Mat[i] - simParams->F0_A_host[a][i][i]*c_PPT[i]) + sum_c);
+                }
+            }
+        }
+
+        for (a = 0; a < simDomain->numPhases; a++)
+        {
+            double c_Mat[simDomain->numComponents-1];
+            double c_PPT[simDomain->numComponents-1];
+
+            double sum_c = 0.0;
+
+            if (a != 0)
+            {
+                for (k = 0; k < simDomain->numComponents-1; k++)
+                {
+                    c_Mat[k] = simParams->ceq_host[a][0][k] - (simParams->DELTA_C[a][k])*(simParams->Teq-simParams->T)/(simParams->DELTA_T[a][0]);
+                    c_PPT[k] = simParams->ceq_host[a][a][k] - (simParams->DELTA_C[a][k])*(simParams->Teq-simParams->T)/(simParams->DELTA_T[a][a]);
+                }
+
+                for (i = 0; i < simDomain->numComponents-1; i++) {
+                    for (j = 0; j < simDomain->numComponents-1; j++) {
+                        if (i <= j) {
+                            sum_c += (simParams->F0_A_host[a][i][j]*c_PPT[i]*c_PPT[j] - simParams->F0_A_host[0][i][j]*c_Mat[i]*c_Mat[j]);
+                        }
+                    }
+                }
+            }
+
+            simParams->F0_C_host[a] = sum_c;
+        }
+
+
+        free2M(dmudc_matrix, simDomain->numComponents-1);
+        free(dmudc);
+        free(y);
     }
     else if (simControls->FUNCTION_F == 4)
     {
@@ -318,22 +572,4 @@ void calcFreeEnergyCoeffs(domainInfo *simDomain, controls *simControls, simParam
 
         function_F_04_init_propertymatrices(simDomain, simControls, simParams);
     }
-
-    FILE *fp = fopen("DATA/FreeEnergy.out", "w");
-
-    fprintf(fp, "Count = %d\n", simControls->count);
-    for (int i = 0; i < simDomain->numPhases; i++)
-    {
-        for (int j = 0; j < simDomain->numComponents-1; j++)
-        {
-            for (int k = 0; k < simDomain->numComponents-1; k++)
-            {
-                fprintf(fp, "A %d\t%d\t%d\t%lf\n", i, j, k, simParams->F0_A_host[i][j][k]*simParams->molarVolume * 1.602*1e8);
-            }
-            fprintf(fp, "B %d\t%d\t%lf\n", i, j, simParams->F0_B_host[i][j]);
-        }
-        fprintf(fp, "C %d\t%lf\n", i, simParams->F0_C_host[i]);
-    }
-
-    fclose(fp);
 }

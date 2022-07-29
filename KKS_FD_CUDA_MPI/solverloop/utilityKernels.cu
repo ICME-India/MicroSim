@@ -1,41 +1,18 @@
 #include "utilityKernels.cuh"
 #include <cub.cuh>
 
-__device__ __host__
-double evalFunc(void f(double, double*, double*), double x, double temperature)
-{
-    double c[2];
-    c[0] = x;
-    c[1] = 1.0 - c[0];
-
-    double ans;
-
-    f(temperature, c, &ans);
-
-    // Non-dimensionalise
-    ans /= (1.602*1e8);
-
-    return ans;
-}
-
-__device__ __host__
-double spline_eval(double x, double *controlPoints,
-                   double *a, double *b, double *c, double *d,
-                   int numControlPoints)
-{
-    double ans = 0.0;
-
-    for (int i = 0; i < numControlPoints-1; i++)
-    {
-        if (x >= controlPoints[i] && x <= controlPoints[i+1])
-        {
-            ans = x - controlPoints[i];
-            ans = d[i] + ans*(c[i] + ans*(b[i] + ans*a[i]));
-        }
-    }
-
-    return ans;
-}
+// __device__ __host__
+// double evalFunc(void f(double, double*, double*), double *x, double temperature, int NUMCOMPONENTS)
+// {
+//     double ans[NUM_COMPS];
+//
+//     f(temperature, x, &ans);
+//
+//     // Non-dimensionalise
+//     ans[0] /= (1.602*1e8);
+//
+//     return ans[0];
+// }
 
 __global__
 void computeChange(double *A, double *B,

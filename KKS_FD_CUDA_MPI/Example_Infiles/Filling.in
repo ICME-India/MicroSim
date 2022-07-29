@@ -1,6 +1,7 @@
 ##FILLCYLINDER = {phase, x_centre, y_centre, z_start, z_end, radius};
-FILLCYLINDER = {1, 128, 128, 0, 0, 16};
-#FILLCYLINDER = {1, 167, 128, 0, 0, 16};
+FILLCYLINDER = {1, 50, 50, 0, 0, 16};
+FILLCYLINDER = {2, 100, 100, 0, 0, 16};
+FILLCYLINDER = {3, 150, 150, 0, 0, 16};
 ##FILLSPHERE = {phase, x_centre, y_centre, z_centre, radius};
 #FILLSPHERE = {1, 64, 64, 64, 16};
 ##FILLCYLINDERRANDOM = {phase, ppt_radius, volume_fraction, shield_dist, seed, radius variation};

@@ -443,6 +443,9 @@ void freeOnDev(double **arr, double ***arr2)
 
 void freeVars(domainInfo *simDomain, simParameters *simParams)
 {
+    free3M(simParams->slopes, simDomain->numPhases, simDomain->numPhases);
+    free2M(simParams->DELTA_T, simDomain->numPhases);
+
     free2M(simParams->gamma_host, simDomain->numPhases);
     cudaFree(simParams->gamma_dev);
 
@@ -456,6 +459,9 @@ void freeVars(domainInfo *simDomain, simParameters *simParams)
 
     free3M(simParams->diffusivity_host, simDomain->numPhases, simDomain->numComponents-1);
     cudaFree(simParams->diffusivity_dev);
+
+    free3M(simParams->mobility_host, simDomain->numPhases, simDomain->numComponents-1);
+    cudaFree(simParams->mobility_dev);
 
     free3M(simParams->F0_A_host, simDomain->numPhases, simDomain->numComponents-1);
     cudaFree(simParams->F0_A_dev);

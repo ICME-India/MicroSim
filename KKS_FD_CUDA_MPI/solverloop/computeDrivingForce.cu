@@ -332,15 +332,15 @@ double calcDiffusionPotential(double **phaseComp,
     return ans;
 }
 
-__global__ void __computeDrivingForce_01_03__(double **phi, double **comp,
-                                              double **dfdphi,
-                                              double **phaseComp,
-                                              double *F0_A, double *F0_B, double *F0_C,
-                                              double *diffusivity, double *kappaPhi,
-                                              double *theta_i, double *theta_ij, double *theta_ijk,
-                                              int NUMPHASES, int NUMCOMPONENTS,
-                                              int sizeX, int sizeY, int sizeZ,
-                                              double DELTA_X, double DELTA_Y, double DELTA_Z)
+__global__ void __computeDrivingForce__(double **phi, double **comp,
+                                         double **dfdphi,
+                                         double **phaseComp,
+                                         double *F0_A, double *F0_B, double *F0_C,
+                                         double *kappaPhi, double molarVolume,
+                                         double *theta_i, double *theta_ij, double *theta_ijk,
+                                         int NUMPHASES, int NUMCOMPONENTS,
+                                         int sizeX, int sizeY, int sizeZ,
+                                         double DELTA_X, double DELTA_Y, double DELTA_Z)
 {
     int i = threadIdx.x + blockIdx.x * blockDim.x;
     int j = threadIdx.y + blockIdx.y * blockDim.y;
@@ -439,12 +439,12 @@ __global__ void __computeDrivingForce_01_03__(double **phi, double **comp,
             dfdphi[phase][idx] = 0.0;
             for (int p = 0; p < NUMPHASES; p++)
             {
-                dfdphi[phase][idx] += calcInterp5thDiff(phi, p, phase, idx, NUMPHASES)*calcPhaseEnergy(phaseComp, p, F0_A, F0_B, F0_C, idx, NUMPHASES, NUMCOMPONENTS);
+                dfdphi[phase][idx] += calcInterp5thDiff(phi, p, phase, idx, NUMPHASES)*calcPhaseEnergy(phaseComp, p, F0_A, F0_B, F0_C, idx, NUMPHASES, NUMCOMPONENTS)/molarVolume;
 
                 for (int component = 0; component < NUMCOMPONENTS-1; component++)
                     dfdphi[phase][idx] -= calcInterp5thDiff(phi, p, phase, idx, NUMPHASES)
                     *calcDiffusionPotential(phaseComp, phase, component, F0_A, F0_B, idx, NUMPHASES, NUMCOMPONENTS)
-                    *phaseComp[(component*NUMPHASES + p)][idx];
+                    *phaseComp[(component*NUMPHASES + p)][idx]/molarVolume;
 
                 if (phase == p)
                     continue;
@@ -460,23 +460,21 @@ __global__ void __computeDrivingForce_01_03__(double **phi, double **comp,
             dfdphi[phase][idx] += calcDoubleWellDerivative(phi, phase,
                                                            theta_i, theta_ij, theta_ijk,
                                                            idx, NUMPHASES);
-
-
         }
     }
     __syncthreads();
 }
 
 __global__
-void __computeDrivingForceBinary_02__(double **phi, double **comp,
-                                      double **dfdphi,
-                                      double **phaseComp,
-                                      double *F0_A, double *F0_B, double *F0_C,
-                                      double *diffusivity,
-                                      double *theta_i, double *theta_ij, double *theta_ijk,
-                                      double temperature, int *thermo_phase,
-                                      int NUMPHASES, int NUMCOMPONENTS,
-                                      int sizeX, int sizeY, int sizeZ)
+void __computeDrivingForce_02__(double **phi, double **comp,
+                                 double **dfdphi, double **mu,
+                                 double **phaseComp,
+                                 double molarVolume, double *kappaPhi,
+                                 double *theta_i, double *theta_ij, double *theta_ijk,
+                                 double temperature, int *thermo_phase,
+                                 int NUMPHASES, int NUMCOMPONENTS,
+                                 int sizeX, int sizeY, int sizeZ,
+                                 double DELTA_X, double DELTA_Y, double DELTA_Z)
 {
     int i = threadIdx.x + blockIdx.x * blockDim.x;
     int j = threadIdx.y + blockIdx.y * blockDim.y;
@@ -484,43 +482,145 @@ void __computeDrivingForceBinary_02__(double **phi, double **comp,
 
     int idx = (j + k*sizeY)*sizeX + i;
 
-    double mu;
-
-    double interp_phi, interp_prime, g_prime;
-    double etemp;
-    double calpha, cbeta, f_alpha, f_beta;
+    int xp[2], xm[2], yp[2], ym[2], zp[2], zm[2];
 
     if (i < sizeX && j < sizeY && k < sizeZ)
     {
-        etemp  = phi[1][idx];
+        // x-direction
+        xp[0] = (j + k*sizeY)*sizeX + i+1;
+        xp[1] = (j + k*sizeY)*sizeX + i+2;
+        xm[0] = (j + k*sizeY)*sizeX + i-1;
+        xm[1] = (j + k*sizeY)*sizeX + i-2;
 
-        calpha = phaseComp[0][idx];
-        cbeta  = phaseComp[1][idx];
+        if (i == 0)
+        {
+            xm[0] = (j + k*sizeY)*sizeX + sizeX-1;
+            xm[1] = (j + k*sizeY)*sizeX + sizeX-2;
+        }
+        else if (i == 1)
+        {
+            xm[1] = (j + k*sizeY)*sizeX + sizeX-1;
+        }
+        else if (i == sizeX - 2)
+        {
+            xp[1] = (j + k*sizeY)*sizeX;
+        }
+        else if (i == sizeX - 1)
+        {
+            xp[0] = (j + k*sizeY)*sizeX;
+            xp[1] = (j + k*sizeY)*sizeX + 1;
+        }
 
-        interp_phi   = etemp*etemp*etemp*(6.0*etemp*etemp - 15.0*etemp + 10.0);
-        interp_prime = 30.0*etemp*etemp*(1.0 - etemp)*(1.0 - etemp);
-        g_prime      = 2.0*etemp*(1.0 - etemp)*(1.0 - 2.0*etemp);
+        // y-direction
+        if (sizeY > 1)
+        {
+            yp[0] = (j+1 + k*sizeY)*sizeX + i;
+            yp[1] = (j+2 + k*sizeY)*sizeX + i;
+            ym[0] = (j-1 + k*sizeY)*sizeX + i;
+            ym[1] = (j-2 + k*sizeY)*sizeX + i;
 
-        comp[0][idx]  = calpha*(1.0 - interp_phi) + cbeta*interp_phi;
+            if (j == 0)
+            {
+                ym[0] = (sizeY-1 + k*sizeY)*sizeX + i;
+                ym[1] = (sizeY-2 + k*sizeY)*sizeX + i;
+            }
+            else if (j == 1)
+            {
+                ym[1] = (sizeY-1 + k*sizeY)*sizeX + i;
+            }
+            else if (j == sizeY - 2)
+            {
+                yp[1] = (k*sizeY)*sizeX + i;
+            }
+            else if (j == sizeY - 1)
+            {
+                yp[0] = (k*sizeY)*sizeX + i;
+                yp[1] = (1 + k*sizeY)*sizeX + i;
+            }
+        }
 
-        f_alpha = evalFunc(free_energy_tdb_dev[thermo_phase[0]], phaseComp[0][idx], temperature);
-        f_beta = evalFunc(free_energy_tdb_dev[thermo_phase[1]], phaseComp[1][idx], temperature);
+        // z-direction
+        if (sizeZ > 1)
+        {
+            zp[0] = (j + (k+1)*sizeY)*sizeX + i;
+            zp[1] = (j + (k+2)*sizeY)*sizeX + i;
+            zm[0] = (j + (k-1)*sizeY)*sizeX + i;
+            zm[1] = (j + (k-2)*sizeY)*sizeX + i;
 
-        mu = evalFunc(Mu_tdb_dev[thermo_phase[0]], phaseComp[0][idx], temperature);
+            if (k == 0)
+            {
+                zm[0] = (j + (sizeZ-1)*sizeY)*sizeX + i;
+                zm[1] = (j + (sizeZ-2)*sizeY)*sizeX + i;
+            }
+            else if (k == 1)
+            {
+                zm[1] = (j + (sizeZ-1)*sizeY)*sizeX + i;
+            }
+            else if (k == sizeZ - 2)
+            {
+                zp[1] = j*sizeX + i;
+            }
+            else if (k == sizeZ - 1)
+            {
+                zp[0] = j*sizeX + i;
+                zp[1] = (j + sizeY)*sizeX + i;
+            }
+        }
 
-        dfdphi[1][idx] = interp_prime * (f_beta - f_alpha - (cbeta - calpha)*mu) + theta_i[1]*g_prime;
+        double y[MAX_NUM_COMP];
+        double phaseEnergy = 0.0;
+        double sum = 0.0;
+
+        for (int phase = 0; phase < NUMPHASES; phase++)
+        {
+            // f'_{bulk}
+            dfdphi[phase][idx] = 0.0;
+            for (int p = 0; p < NUMPHASES; p++)
+            {
+                sum = 0.0;
+
+                for (int is = 0; is < NUMCOMPONENTS-1; is++)
+                {
+                    y[is] = phaseComp[is*NUMPHASES + phase][idx];
+                    sum += y[is];
+                }
+
+                y[NUMCOMPONENTS-1] = 1.0 - sum;
+
+                (*free_energy_tdb_dev[thermo_phase[p]])(temperature, y, &phaseEnergy);
+
+                dfdphi[phase][idx] += calcInterp5thDiff(phi, p, phase, idx, NUMPHASES)*phaseEnergy/molarVolume;
+
+                for (int component = 0; component < NUMCOMPONENTS-1; component++)
+                    dfdphi[phase][idx] -= calcInterp5thDiff(phi, p, phase, idx, NUMPHASES)*mu[component][idx]*phaseComp[(component*NUMPHASES + p)][idx]/molarVolume;
+
+                if (phase == p)
+                    continue;
+
+                dfdphi[phase][idx] -= 2.0*kappaPhi[phase*NUMPHASES + p]*(-phi[phase][xp[1]] + 16.0*phi[phase][xp[0]] - 30.0*phi[phase][idx] + 16.0*phi[phase][xm[0]] - phi[phase][xm[1]])/(12.0*DELTA_X*DELTA_X);
+                if (sizeY > 1)
+                    dfdphi[phase][idx] -= 2.0*kappaPhi[phase*NUMPHASES + p]*(-phi[phase][yp[1]] + 16.0*phi[phase][yp[0]] - 30.0*phi[phase][idx] + 16.0*phi[phase][ym[0]] - phi[phase][ym[1]])/(12.0*DELTA_Y*DELTA_Y);
+                if (sizeZ > 1)
+                    dfdphi[phase][idx] -= 2.0*kappaPhi[phase*NUMPHASES + p]*(-phi[phase][zp[1]] + 16.0*phi[phase][zp[0]] - 30.0*phi[phase][idx] + 16.0*phi[phase][zm[0]] - phi[phase][zm[1]])/(12.0*DELTA_Z*DELTA_Z);
+            }
+
+            // Potential function
+            dfdphi[phase][idx] += calcDoubleWellDerivative(phi, phase,
+                                                           theta_i, theta_ij, theta_ijk,
+                                                           idx, NUMPHASES);
+        }
     }
     __syncthreads();
 }
 
-__global__ void __computeDrivingForceBinary_01_03__(double **phi, double **comp,
-                                                    double **dfdphi,
-                                                    double **phaseComp,
-                                                    double *F0_A, double *F0_B, double *F0_C,
-                                                    double *diffusivity,
-                                                    double *theta_i, double *theta_ij, double *theta_ijk,
-                                                    int NUMPHASES, int NUMCOMPONENTS,
-                                                    int sizeX, int sizeY, int sizeZ)
+__global__ void __computeDrivingForceBinary__(double **phi, double **comp,
+                                               double **dfdphi,
+                                               double **phaseComp,
+                                               double *F0_A, double *F0_B, double *F0_C,
+                                               double *diffusivity,
+                                               double *theta_i, double *theta_ij, double *theta_ijk,
+                                               int NUMPHASES, int NUMCOMPONENTS,
+                                               int sizeX, int sizeY, int sizeZ)
 {
 
     int i = threadIdx.x + blockIdx.x * blockDim.x;
@@ -555,8 +655,50 @@ __global__ void __computeDrivingForceBinary_01_03__(double **phi, double **comp,
     __syncthreads();
 }
 
+__global__
+void __computeDrivingForceBinary_02__(double **phi, double **comp,
+                                      double **dfdphi, double **mu,
+                                      double **phaseComp,
+                                      double molarVolume,
+                                      double *theta_i, double *theta_ij, double *theta_ijk,
+                                      double temperature, int *thermo_phase,
+                                      int NUMPHASES, int NUMCOMPONENTS,
+                                      int sizeX, int sizeY, int sizeZ)
+{
+    int i = threadIdx.x + blockIdx.x * blockDim.x;
+    int j = threadIdx.y + blockIdx.y * blockDim.y;
+    int k = threadIdx.z + blockIdx.z * blockDim.z;
+
+    int idx = (j + k*sizeY)*sizeX + i;
+
+    double f[2], mu0[2];
+    double y[2];
+    double interp_prime, g_prime;
+
+    if (i < sizeX && j < sizeY && k < sizeZ)
+    {
+        double etemp = phi[1][idx];
+
+        interp_prime = 30.0*etemp*etemp*pow((1.0 - etemp), 2.0);
+        g_prime      = 2.0 * etemp * (1.0 - etemp) * (1.0 - 2.0 * etemp);
+
+        y[0] = phaseComp[0][idx];
+        y[1] = phaseComp[1][idx];
+
+        (*free_energy_tdb_dev[thermo_phase[0]])(temperature, y, &f[0]);
+        (*free_energy_tdb_dev[thermo_phase[1]])(temperature, y, &f[1]);
+
+        (*Mu_tdb_dev[thermo_phase[0]])(temperature, y, mu0);
+
+        mu[0][idx] = mu0[0];
+
+        dfdphi[1][idx] = interp_prime*(f[1] - f[0] - (phaseComp[1][idx] - phaseComp[0][idx])*mu[0][idx]) + theta_ij[1]*g_prime;
+    }
+    __syncthreads();
+}
+
 void computeDrivingForce(double **phi, double **comp,
-                         double **dfdphi,
+                         double **dfdphi, double **mu,
                          double **phaseComp,
                          domainInfo* simDomain, controls* simControls,
                          simParameters* simParams, subdomainInfo* subdomain,
@@ -566,40 +708,48 @@ void computeDrivingForce(double **phi, double **comp,
     {
         if (simControls->FUNCTION_F == 1 || simControls->FUNCTION_F == 3  || simControls->FUNCTION_F == 4)
         {
-            __computeDrivingForce_01_03__<<<gridSize, blockSize>>>(phi, comp,
-                                                                   dfdphi,
-                                                                   phaseComp,
-                                                                   simParams->F0_A_dev, simParams->F0_B_dev, simParams->F0_C_dev,
-                                                                   simParams->diffusivity_dev, simParams->kappaPhi_dev,
-                                                                   simParams->theta_i_dev, simParams->theta_ij_dev, simParams->theta_ijk_dev,
-                                                                   simDomain->numPhases, simDomain->numComponents,
-                                                                   subdomain->sizeX, subdomain->sizeY, subdomain->sizeZ,
-                                                                   simDomain->DELTA_X, simDomain->DELTA_Y, simDomain->DELTA_Z);
+            __computeDrivingForce__<<<gridSize, blockSize>>>(phi, comp,
+                                                              dfdphi,
+                                                              phaseComp,
+                                                              simParams->F0_A_dev, simParams->F0_B_dev, simParams->F0_C_dev,
+                                                              simParams->kappaPhi_dev, simParams->molarVolume,
+                                                              simParams->theta_i_dev, simParams->theta_ij_dev, simParams->theta_ijk_dev,
+                                                              simDomain->numPhases, simDomain->numComponents,
+                                                              subdomain->sizeX, subdomain->sizeY, subdomain->sizeZ,
+                                                              simDomain->DELTA_X, simDomain->DELTA_Y, simDomain->DELTA_Z);
         }
         else if (simControls->FUNCTION_F == 2)
-            printf("MPMC Exact not implemented\n");
-
+        {
+            __computeDrivingForce_02__<<<gridSize, blockSize>>>(phi, comp,
+                                                                dfdphi, mu,
+                                                                phaseComp,
+                                                                simParams->molarVolume, simParams->kappaPhi_dev,
+                                                                simParams->theta_i_dev, simParams->theta_ij_dev, simParams->theta_ijk_dev,
+                                                                simParams->T, simDomain->thermo_phase_dev,
+                                                                simDomain->numPhases, simDomain->numComponents,
+                                                                subdomain->sizeX, subdomain->sizeY, subdomain->sizeZ,
+                                                                simDomain->DELTA_X, simDomain->DELTA_Y, simDomain->DELTA_Z);
+        }
     }
     else if (simDomain->numPhases == 2 && simDomain->numComponents == 2)
     {
         if (simControls->FUNCTION_F == 1 || simControls->FUNCTION_F == 3  || simControls->FUNCTION_F == 4)
         {
-            __computeDrivingForceBinary_01_03__<<<gridSize, blockSize>>>(phi, comp,
-                                                                         dfdphi,
-                                                                         phaseComp,
-                                                                         simParams->F0_A_dev, simParams->F0_B_dev, simParams->F0_C_dev,
-                                                                         simParams->diffusivity_dev,
-                                                                         simParams->theta_i_dev, simParams->theta_ij_dev, simParams->theta_ijk_dev,
-                                                                         simDomain->numPhases, simDomain->numComponents,
-                                                                         subdomain->sizeX, subdomain->sizeY, subdomain->sizeZ);
+            __computeDrivingForceBinary__<<<gridSize, blockSize>>>(phi, comp,
+                                                                    dfdphi,
+                                                                    phaseComp,
+                                                                    simParams->F0_A_dev, simParams->F0_B_dev, simParams->F0_C_dev,
+                                                                    simParams->diffusivity_dev,
+                                                                    simParams->theta_i_dev, simParams->theta_ij_dev, simParams->theta_ijk_dev,
+                                                                    simDomain->numPhases, simDomain->numComponents,
+                                                                    subdomain->sizeX, subdomain->sizeY, subdomain->sizeZ);
         }
         else if (simControls->FUNCTION_F == 2)
         {
             __computeDrivingForceBinary_02__<<<gridSize, blockSize>>>(phi, comp,
-                                                                      dfdphi,
+                                                                      dfdphi, mu,
                                                                       phaseComp,
-                                                                      simParams->F0_A_dev, simParams->F0_B_dev, simParams->F0_C_dev,
-                                                                      simParams->diffusivity_dev,
+                                                                      simParams->molarVolume,
                                                                       simParams->theta_i_dev, simParams->theta_ij_dev, simParams->theta_ijk_dev,
                                                                       simParams->T, simDomain->thermo_phase_dev,
                                                                       simDomain->numPhases, simDomain->numComponents,

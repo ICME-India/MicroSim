@@ -8,22 +8,30 @@
 #include "utilityKernels.cuh"
 #include "Thermo.cuh"
 
-#ifndef NUM_PHASE_COMP
-#define NUM_PHASE_COMP 12
+#ifndef MAX_NUM_PHASES
+#define MAX_NUM_PHASES 5
+#endif
+
+#ifndef MAX_NUM_COMP
+#define MAX_NUM_COMP 5
+#endif
+
+#ifndef MAX_NUM_PHASE_COMP
+#define MAX_NUM_PHASE_COMP 16
 #endif
 
 /*
  * Calculate phase compositions
  */
 __global__
-void __calcPhaseComp_01_03__(double **phi, double **comp,
+void __calcPhaseComp___(double **phi, double **comp,
                              double **phaseComp,
                              double *F0_A, double *F0_B, double *F0_C,
                              int NUMPHASES, int NUMCOMPONENTS,
                              int sizeX, int sizeY, int sizeZ);
 
 __global__
-void __calcPhaseCompBinary_01_03__(double **phi, double **comp,
+void __calcPhaseCompBinary___(double **phi, double **comp,
                                    double **phaseComp,
                                    double *F0_A, double *F0_B, double *F0_C,
                                    int NUMPHASES, int NUMCOMPONENTS,
@@ -31,10 +39,19 @@ void __calcPhaseCompBinary_01_03__(double **phi, double **comp,
 
 
 __global__
-void initPhaseComp_02(double **phi, double **comp,
-                      double **phaseComp, double *cguess,
-                      double temperature, int *thermo_phase,
-                      int sizeX, int sizeY, int sizeZ);
+void __initMu__(double **comp, double **mu,
+                double molarVolume, int *thermo_phase, double temperature,
+                int NUMPHASES, int NUMCOMPONENTS,
+                int sizeX, int sizeY, int sizeZ);
+
+__global__
+void __calcPhaseComp_02__(double **phi, double **comp,
+                          double **phaseComp, double **mu, double *cguess,
+                          double molarVolume,
+                          double temperature, int *thermo_phase,
+                          int NUMPHASES, int NUMCOMPONENTS,
+                          int sizeX, int sizeY, int sizeZ);
+
 
 __global__
 void __calcPhaseCompBinary_02__(double **phi, double **comp,
@@ -49,7 +66,7 @@ void __calcPhaseCompBinary_02__(double **phi, double **comp,
 extern "C"
 #endif
 void calcPhaseComp(double **phi, double **comp,
-                   double **phaseComp,
+                   double **phaseComp, double **mu,
                    domainInfo* simDomain, controls* simControls,
                    simParameters* simParams, subdomainInfo* subdomain,
                    dim3 gridSize, dim3 blockSize);
