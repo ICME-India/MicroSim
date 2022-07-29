@@ -8,6 +8,7 @@ echo "checking for OpenCl installation"
 
 cd OpenCL_DeviceInfo
 sh compile.sh >/dev/null 2>&1
+chmod 777 *
 sh run.sh 
 #sh run.sh | grep "Number of" &> /dev/null
 

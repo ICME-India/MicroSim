@@ -7,6 +7,7 @@ pandas_chkr ()
 echo "**************************************************************"
 echo "Checking for pandas package"
 echo ""
+pip3 show pandas
 pandas_curr_ver=`pip3 show pandas | grep Version`
 pandas_status=$?
 if [ "$pandas_status" -eq 0 ]; then
