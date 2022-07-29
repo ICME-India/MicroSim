@@ -1,8 +1,0 @@
-[Desktop Entry]
-Version=2.0
-Name=MicroSim
-Path=/opt/MicroSim
-Exec=/opt/MicroSim/MicroSim %f
-Terminal=false
-Icon=/opt/MicroSim/resources/Mlogo.png
-Type=Application

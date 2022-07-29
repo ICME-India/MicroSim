@@ -1,10 +1,10 @@
 # Requirements
 
-To build and run the solver modules, the users need OpenFOAM and GSL. The modules are tested using OpenFOAM in Box 20 in Ubuntu 20, and OpenFOAM v6 in Ubuntu 18. Installation image of Ubuntu 20 can be downloaded from the link below:
+To build and run the solver modules, the users need OpenFOAM and GSL. The modules are tested using OpenFOAM-in-Box-20 in Ubuntu 18.04 and Ubuntu 20.04, and OpenFOAM-6 in Ubuntu 18.04. Installation image of Ubuntu 20.04 can be downloaded from the link below:
 
 * https://releases.ubuntu.com/20.04.4/ 
 
-OpenFOAM in Box 20 is recommended for new users due to ease of installation, and can be downloaded from the links below:
+OpenFOAM-in-Box-20 is recommended for new users due to ease of installation, and can be downloaded from the links below:
 
 * Official link with installation guide: https://www.cfdsupport.com/openfoam-in-box.html
 
@@ -20,7 +20,7 @@ The following commands can be used in the terminal to begin the installation (ch
 
 > bash OpenFOAM-in-Box-20.09v2-linux64.sh -install
 
-> echo "source ~/OpenFOAM/OpenFOAM-in-Box/OpenFOAM-in-Box-20.09v2*/OpenFOAM-dev/etc/bashrc" >> ~/.bashrc
+> echo "source ~/OpenFOAM/OpenFOAM-in-Box/OpenFOAM-in-Box-20.09v2-22-g178c07ee/OpenFOAM-dev/etc/bashrc" >> ~/.bashrc
 
 > source ~/.bashrc
 
@@ -36,13 +36,17 @@ For visualization and post-processing, ParaView 5.6 and 5.8 are tested. ParaView
 
 > paraview
 
-To view the plots, gnuplot can be used, which comes preinstalled with Ubuntu. It can be launched using the command:
+To view the plots, gnuplot can be used, which can be installed using the following command in the terminal:
+
+> sudo apt install gnuplot-x11
+
+It can be launched using the command:
 
 > gnuplot
 
 It is advised to refer to the OpenFOAM documentions to understand the methods involved while using. The below link can be useful:
 
-* https://www.openfoam.com/documentation/overview
+* https://cfd.direct/openfoam/documentation/
 
 
 # OpenFOAM modules
@@ -51,7 +55,7 @@ Copy the modules to the OpenFOAM run directory. For instance, to copy the direct
 
 > cp -r PFBinary $FOAM_RUN
 
-Solvers has to be compiled from the corresponding solver directory. For instance:
+Solver has to be compiled from the corresponding solver directory. For instance:
 
 > cd $FOAM_RUN/PFBinary/PFOFBinaryThermo
 
@@ -69,5 +73,9 @@ To run the case with the default parameters, execute the following:
 
 > ./Allrun
 
-Note: Allclean and Allrun must be set as executables.
+Note: Allclean and Allrun must be set as executables
+
+To check the results in ParaView:
+
+> paraview binary.foam
 
