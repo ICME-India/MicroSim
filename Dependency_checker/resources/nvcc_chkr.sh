@@ -7,7 +7,7 @@ echo "Checking for Nvidia CUDA Compiler package"
  echo "**************************************************************"
 echo ""
 echo "Nvidia CUDA Compiler's Required version: $1"   
- nvcc -v | grep -oP (?<=release)   
+ nvcc -v | grep -oP [?<=release]   
  nvcc_status=$?
 
 #########################################################
