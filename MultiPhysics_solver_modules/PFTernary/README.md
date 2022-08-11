@@ -4,10 +4,10 @@ An OpenFOAM phase-field solver to simulate solidification of ternary alloys
 
 It contains the source files of the solver.
 
-## ternaryGrainGrowth
+## multigrainNiAlMo
 
-It contains the OpenFOAM case files required to run the grain-growth problem.
+It contains the OpenFOAM case files required to run the multigrain problem for NiAlMo alloy.
 
-## ternaryCooling
+## coolingNiAlMo
 
-It contains the OpenFOAM case files required to run the cooling problem.
+It contains the OpenFOAM case files required to run the cooling problem for NiAlMo alloy.

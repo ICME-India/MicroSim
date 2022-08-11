@@ -4,10 +4,14 @@ An OpenFOAM phase-field solver to simulate solidification of binary alloys
 
 It contains the source files of the solver.
 
-## binaryGrainGrowth
+## multigrainAlZn
 
-It contains the OpenFOAM case files required to run the grain-growth problem.
+It contains the OpenFOAM case files required to run the multigrain problem for AlZn alloy.
 
-## binaryCooling
+## coolingAlZn
 
-It contains the OpenFOAM case files required to run the cooling problem.
+It contains the OpenFOAM case files required to run the cooling problem for AlZn alloy.
+
+## coolingNiNb
+
+It contains the OpenFOAM case files required to run the cooling problem for NiNb alloy.
