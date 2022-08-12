@@ -119,7 +119,7 @@ The following contributers are acknowledged
 
 ## MultiPhysics Solver
 
-# Requirements
+### Requirements
 
 To build and run the solver modules, the users need OpenFOAM and GSL. The modules are tested using OpenFOAM-in-Box-20 in Ubuntu 18.04 and Ubuntu 20.04, and OpenFOAM-6 in Ubuntu 18.04. Installation image of Ubuntu 20.04 can be downloaded from the link below:
 
@@ -170,7 +170,7 @@ It is advised to refer to the OpenFOAM documentions to understand the methods in
 * https://cfd.direct/openfoam/documentation/
 
 
-# OpenFOAM modules
+### OpenFOAM modules
 
 Copy the modules to the OpenFOAM run directory. For instance, to copy the directory PFBinary:
 
@@ -184,9 +184,9 @@ Solver has to be compiled from the corresponding solver directory. For instance:
 
 > wmake
 
-Finally, switch to the case directory, e.g. binaryCooling:
+Finally, switch to the case directory, e.g. coolingAlZn:
 
-> cd $FOAM_RUN/PFBinary/binaryCooling
+> cd $FOAM_RUN/PFBinary/coolingAlZn
 
 To run the case with the default parameters, execute the following:
 
