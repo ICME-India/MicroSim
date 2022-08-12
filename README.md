@@ -176,9 +176,9 @@ Solver has to be compiled from the corresponding solver directory. For instance:
 
 > wmake
 
-Finally, switch to the case directory, e.g. binaryCooling:
+Finally, switch to the case directory, e.g. coolingAlZn:
 
-> cd $FOAM_RUN/PFBinary/binaryCooling
+> cd $FOAM_RUN/PFBinary/coolingAlZn
 
 To run the case with the default parameters, execute the following:
 
