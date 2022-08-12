@@ -1,13 +1,47 @@
     //! Reading thermodynamic database
     
     int buffer = 1024;
-    const fileName pathToFile1 = "constant/HSN_FCC_A1.csv";
+    ifstream inpfph("constant/phases");
+    if (!inpfph.is_open())
+    {
+	cout << "No phase name found" << endl;
+    }
+
+    string line;
+    getline(inpfph, line);
+    int n_compo = stoi(line);
+    if (n_compo != 2)
+    {
+        cout << "This solver is only for binary alloys" << endl;
+	return 0;
+    }
+
+    getline(inpfph, line);
+    int n_phase = stoi(line);
+    if (n_phase != 2)
+    {
+        cout << "This solver is only for two phase systems" << endl;
+	return 0;
+    }
+
+    string phase[n_phase];
+    int i_phase = 0;
+
+    while (getline(inpfph, line))
+    {
+	phase[i_phase] = line;
+    ++i_phase;
+    }
+
+    inpfph.close();
+
+    const fileName pathToFile1 = "constant/HSN_"+phase[0]+".csv";
     ifstream inpfs(pathToFile1);
     if (!inpfs.is_open())
     {
         Info << "No solid data found" << endl;
     }
-    string line;
+    //string line;
     getline(inpfs, line);
     double T1[buffer], ASol[buffer];
     int np = 0;
@@ -29,7 +63,7 @@
     
     inpfs.close();
     
-    const fileName pathToFile2 = "constant/HSN_LIQUID.csv";
+    const fileName pathToFile2 = "constant/HSN_"+phase[1]+".csv";
     ifstream inpfl(pathToFile2);
     if (!inpfl.is_open())
     {
@@ -56,7 +90,7 @@
 
     inpfl.close();
     
-    const fileName pathToFile3 = "constant/Composition_FCC_A1.csv";
+    const fileName pathToFile3 = "constant/Composition_"+phase[0]+".csv";
     ifstream inpfc(pathToFile3);
     if (!inpfc.is_open())
     {

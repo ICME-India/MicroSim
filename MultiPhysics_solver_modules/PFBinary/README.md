@@ -12,6 +12,6 @@ It contains the OpenFOAM case files required to run the multigrain problem for A
 
 It contains the OpenFOAM case files required to run the cooling problem for AlZn alloy.
 
-## coolingNiNb
+## multigrainNiNb
 
-It contains the OpenFOAM case files required to run the cooling problem for NiNb alloy.
+It contains the OpenFOAM case files required to run the multigrain problem for NiNb alloy.
