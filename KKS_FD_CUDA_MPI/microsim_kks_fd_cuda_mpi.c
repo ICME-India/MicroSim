@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <mpi.h>
+#include <mpi-ext.h>
 #include <sys/stat.h>
 #include <unistd.h>
 #include <cuda.h>
@@ -12,8 +13,20 @@
 // Constant definitions
 #define MASTER 0
 
-#ifndef NUM_PHASE_COMP
-#define NUM_PHASE_COMP 12
+#ifndef MAX_NUM_PHASES
+#define MAX_NUM_PHASES 5
+#endif
+
+#ifndef MAX_NUM_COMP
+#define MAX_NUM_COMP 5
+#endif
+
+#ifndef MAX_NUM_PHASE_COMP
+#define MAX_NUM_PHASE_COMP 16
+#endif
+
+#ifndef ENABLE_HDF5
+#define ENABLE_HDF5 1
 #endif
 
 // C header files
@@ -39,6 +52,8 @@
 
 int main(int argc, char *argv[])
 {
+    cudaDeviceReset();
+
     MPI_Init(&argc, &argv);                 // Initialise MPI
     MPI_Comm comm = MPI_COMM_WORLD;
 
@@ -60,6 +75,7 @@ int main(int argc, char *argv[])
     // Phase-field variables on host-side
     double *phi;
     double *comp;
+    double *mu;
 
     // Phase-field variables on the GPUs
     // The blocks hold all the phases' and components' data contiguously,
@@ -71,6 +87,7 @@ int main(int argc, char *argv[])
     double **phiNewHost, **phiNewDev;
     double **compNewHost, **compNewDev;
     double **phaseCompHost, **phaseCompDev;
+    double **muHost, **muDev;
 
     // for-loop iterators
     int i, j;
@@ -109,11 +126,12 @@ int main(int argc, char *argv[])
     readInput_MPI(&simDomain, &simControls, &simParams, size, argv);
     MPI_Barrier(comm);
 
-    calcFreeEnergyCoeffs(&simDomain, &simControls, &simParams);
-    moveParamsToGPU(&simDomain, &simParams);
-
     // Fixed padding size for now
     simControls.padding = 2;
+
+    // Initialize free energy, simulation parameters
+    calcFreeEnergyCoeffs(&simDomain, &simControls, &simParams);
+    moveParamsToGPU(&simDomain, &simControls, &simParams);
 
     // Create subdirectories for every processor's share of the output
     char directory[1000];
@@ -123,17 +141,18 @@ int main(int argc, char *argv[])
 
     // Distribute data to all the processors
     // Only 1-D slab decomposition is available currently
-    decomposeDomain(simDomain, &subdomain, rank, size);
-    MPI_Barrier(comm);
+    decomposeDomain(simDomain, &simControls, &subdomain, rank, size);
+
+    // Decide appropriate kernel grid size and block size
+    calcKernelParams(&gridSize, &blockSize, simDomain, simControls, &subdomain);
 
     // Allocate memory on CPUs
     // Equivalent to gridinfo in the other MicroSim modules
     phi = (double*)malloc(sizeof(double) * simDomain.numPhases * subdomain.numCells);
     comp = (double*)malloc(sizeof(double) * (simDomain.numComponents-1) * subdomain.numCells);
+    if (simControls.FUNCTION_F == 2)
+        mu = (double*)malloc(sizeof(double) * (simDomain.numComponents-1) * subdomain.numCells);
 
-    // Decide appropriate kernel grid size and block size
-    // Subdomain padding is done here
-    calcKernelParams(&gridSize, &blockSize, simDomain, simControls, &subdomain);
     MPI_Barrier(comm);
     cudaDeviceSynchronize();
 
@@ -146,9 +165,18 @@ int main(int argc, char *argv[])
         fillDomain(simDomain, subdomain, simParams, phi, comp, &simFill);
     }
 
-    if (simControls.restart != 0 || simControls.startTime != 0)
+    if (!(simControls.restart == 0) || !(simControls.startTime == 0))
     {
-        read_domain(phi, comp, simDomain, subdomain, simControls.startTime, rank, comm, argv);
+        printf("Reading from disk\n");
+
+        #if ENABLE_HDF5 == 1
+        if (simControls.writeHDF5)
+            readHDF5(phi, comp, mu,
+                     simDomain, subdomain,
+                     simControls, rank, comm, argv);
+        else
+        #endif
+            read_domain(phi, comp, mu, simDomain, subdomain, simControls, rank, comm, argv);
     }
 
     MPI_Barrier(comm);
@@ -167,6 +195,9 @@ int main(int argc, char *argv[])
     cudaMalloc((void**)&phiNewDev, sizeof(double*)*(simDomain.numPhases));
     cudaMalloc((void**)&phaseCompDev, sizeof(double*)*simDomain.numPhases*(simDomain.numComponents-1));
 
+    if (simControls.FUNCTION_F == 2)
+        cudaMalloc((void**)&muDev, sizeof(double*)*(simDomain.numComponents-1));
+
     // These pointers can be dereferenced at the phase or component level on the host-side
     // Useful for data transfer and CUB compatibility
     compHost    = (double**)malloc((simDomain.numComponents-1)*sizeof(double*));
@@ -176,6 +207,9 @@ int main(int argc, char *argv[])
     dfdphiHost  = (double**)malloc(simDomain.numPhases*sizeof(double*));
     phiNewHost  = (double**)malloc(simDomain.numPhases*sizeof(double*));
     phaseCompHost = (double**)malloc(sizeof(double*)*simDomain.numPhases*(simDomain.numComponents-1));
+
+    if (simControls.FUNCTION_F == 2)
+        muHost = (double**)malloc((simDomain.numComponents-1)*sizeof(double*));
 
     // Memory on the device is allocated using the host-side pointers
     // The pointers are then copied to the device-side pointers so that they point to the same data
@@ -189,6 +223,12 @@ int main(int argc, char *argv[])
 
         cudaMalloc((void**)&compNewHost[j], sizeof(double)*subdomain.numCompCells);
         cudaMemcpy(&compNewDev[j], &compNewHost[j], sizeof(double*), cudaMemcpyHostToDevice);
+
+        if (simControls.FUNCTION_F == 2)
+        {
+            cudaMalloc((void**)&muHost[j], sizeof(double)*subdomain.numCompCells);
+            cudaMemcpy(&muDev[j], &muHost[j], sizeof(double*), cudaMemcpyHostToDevice);
+        }
     }
 
     for (j = 0; j < simDomain.numPhases; j++)
@@ -232,6 +272,11 @@ int main(int argc, char *argv[])
     for (i = 0; i < simDomain.numComponents-1; i++)
         cudaMemcpy(compHost[i] + subdomain.shiftPointer, comp + i*subdomain.numCells, sizeof(double)*subdomain.numCells, cudaMemcpyHostToDevice);
 
+    cudaDeviceSynchronize();
+    if (simControls.FUNCTION_F == 2)
+        for (i = 0; i < simDomain.numComponents-1; i++)
+            cudaMemcpy(muHost[i] + subdomain.shiftPointer, mu + i*subdomain.numCells, sizeof(double)*subdomain.numCells, cudaMemcpyHostToDevice);
+
     MPI_Barrier(comm);
     cudaDeviceSynchronize();
 
@@ -242,17 +287,23 @@ int main(int argc, char *argv[])
     for (i = 0; i < simDomain.numComponents-1; i++)
         cudaMemcpy(compNewHost[i], compHost[i], sizeof(double)*subdomain.numCompCells, cudaMemcpyDeviceToDevice);
 
+    //testThermoFuncs(simDomain, simParams);
+
     // Solution timeloop
     for (simControls.count = simControls.startTime; simControls.count <= simControls.startTime + simControls.numSteps; simControls.count++)
     {
         MPI_Barrier(comm);
         cudaDeviceSynchronize();
 
-        /* Print statistics */
+        /*
+         *
+         * Print max, min, change
+         *
+         */
         if (simControls.count % simControls.trackProgress == 0)
         {
             if (rank == MASTER)
-                printf("\nTime: %lf\n", (double)(simControls.count)*simControls.DELTA_t);
+                printf("\nTime: %le\n", (double)(simControls.count)*simControls.DELTA_t);
 
             printStats(phiHost, compHost,
                        phiNewHost, compNewHost,
@@ -266,18 +317,6 @@ int main(int argc, char *argv[])
 
             double ans1, ans2, ans3;
 
-            for (i = 0; i < simDomain.numComponents-1; i++)
-            {
-                MPI_Reduce(maxerr_h+i, &ans1, 1, MPI_DOUBLE, MPI_MAX, MASTER, comm);
-                MPI_Reduce(maxVal_h+i, &ans2, 1, MPI_DOUBLE, MPI_MAX, MASTER, comm);
-                MPI_Reduce(minVal_h+i, &ans3, 1, MPI_DOUBLE, MPI_MIN, MASTER, comm);
-
-                MPI_Barrier(comm);
-
-                if (rank == MASTER)
-                    printf("%*s, Max = %lf, Min = %lf, Relative_Change = %lf\n", 5, simDomain.componentNames[i], ans2, ans3, ans1);
-            }
-
             for (i = 0; i < simDomain.numPhases; i++)
             {
                 if (simControls.multiphase != 1 && i == 0 && simDomain.numPhases == 2 && simDomain.numComponents == 2)
@@ -290,7 +329,31 @@ int main(int argc, char *argv[])
                 MPI_Barrier(comm);
 
                 if (rank == MASTER)
-                    printf("%*s, Max = %lf, Min = %lf, Relative_Change = %lf\n", 5, simDomain.phaseNames[i], ans2, ans3, ans1);
+                    printf("%*s, Max = %le, Min = %le, Relative_Change = %le\n", 5, simDomain.phaseNames[i], ans2, ans3, ans1);
+
+                if (fabs(ans1) > 2)
+                {
+                    cudaDeviceReset();
+                    exit(0);
+                }
+            }
+
+            for (i = 0; i < simDomain.numComponents-1; i++)
+            {
+                MPI_Reduce(maxerr_h+i, &ans1, 1, MPI_DOUBLE, MPI_MAX, MASTER, comm);
+                MPI_Reduce(maxVal_h+i, &ans2, 1, MPI_DOUBLE, MPI_MAX, MASTER, comm);
+                MPI_Reduce(minVal_h+i, &ans3, 1, MPI_DOUBLE, MPI_MIN, MASTER, comm);
+
+                MPI_Barrier(comm);
+
+                if (rank == MASTER)
+                    printf("%*s, Max = %le, Min = %le, Relative_Change = %le\n", 5, simDomain.componentNames[i], ans2, ans3, ans1);
+
+                if (fabs(ans1) > 2)
+                {
+                    cudaDeviceReset();
+                    exit(0);
+                }
             }
         }
 
@@ -301,7 +364,14 @@ int main(int argc, char *argv[])
         for (i = 0; i < simDomain.numComponents-1; i++)
             cudaMemcpy(compHost[i], compNewHost[i], sizeof(double)*subdomain.numCompCells, cudaMemcpyDeviceToDevice);
 
+
         //Moving buffers to neighbours
+        /*
+         *  If CUDA-aware MPI is not found, the data will be staged through the host
+         *  This is, of course, highly inefficient. Installing CUDA-aware MPI with UCX and GDRcopy is highly recommended.
+         *  Instructions to get it running can be found in this module's manual, and on the OpenMPI website.
+         *
+         */
         for (i = 0; i < simDomain.numPhases; i++)
         {
             MPI_Sendrecv(phiHost[i]+subdomain.shiftPointer, subdomain.shiftPointer, MPI_DOUBLE, subdomain.nbBack, 0,
@@ -330,20 +400,51 @@ int main(int argc, char *argv[])
         MPI_Barrier(comm);
         cudaDeviceSynchronize();
 
-        // Writing to file
+        if (simControls.FUNCTION_F == 2)
+        {
+            for (i = 0; i < simDomain.numComponents-1; i++)
+            {
+                MPI_Sendrecv(muHost[i]+subdomain.shiftPointer, subdomain.shiftPointer, MPI_DOUBLE, subdomain.nbBack, 2,
+                             muHost[i]+subdomain.shiftPointer+subdomain.numCells, subdomain.shiftPointer, MPI_DOUBLE, subdomain.nbFront, 2,
+                             comm, MPI_STATUS_IGNORE);
+
+                MPI_Sendrecv(muHost[i]+subdomain.numCells, subdomain.shiftPointer, MPI_DOUBLE, subdomain.nbFront, 3,
+                             muHost[i], subdomain.shiftPointer, MPI_DOUBLE, subdomain.nbBack, 3,
+                             comm, MPI_STATUS_IGNORE);
+            }
+
+            MPI_Barrier(comm);
+            cudaDeviceSynchronize();
+        }
+
+
+        /*
+         *
+         * Writing to file
+         * Write mu only if FUNCTION_F = 2 (Exact)
+         *
+         */
         if (simControls.count % simControls.saveInterval == 0 || simControls.count == simControls.startTime + simControls.numSteps)
         {
             for (i = 0; i < simDomain.numPhases; i++)
                 cudaMemcpy(phi + i*subdomain.numCells, phiHost[i] + subdomain.shiftPointer, sizeof(double)*subdomain.numCells, cudaMemcpyDeviceToHost);
             for (i = 0; i < simDomain.numComponents-1; i++)
                 cudaMemcpy(comp + i*subdomain.numCells, compHost[i] + subdomain.shiftPointer, sizeof(double)*subdomain.numCells, cudaMemcpyDeviceToHost);
+            if (simControls.FUNCTION_F == 2)
+                for (i = 0; i < simDomain.numComponents-1; i++)
+                    cudaMemcpy(mu + i*subdomain.numCells, muHost[i] + subdomain.shiftPointer, sizeof(double)*subdomain.numCells, cudaMemcpyDeviceToHost);
 
             if (simControls.writeFormat == 0)
-                writeVTK_BINARY(phi, comp, simDomain, subdomain, simControls.count, rank, comm, argv);
-            else
-                writeVTK_ASCII(phi, comp, simDomain, subdomain, simControls.count, rank, comm, argv);
+                writeVTK_BINARY(phi, comp, mu, simDomain, subdomain, simControls, rank, comm, argv);
+            else if (simControls.writeFormat == 1)
+                writeVTK_ASCII(phi, comp, mu, simDomain, subdomain, simControls, rank, comm, argv);
 
-
+#if ENABLE_HDF5 == 1
+            if (simControls.writeHDF5)
+                 writeHDF5(phi, comp, mu,
+                           simDomain, subdomain,
+                           simControls, rank, comm, argv);
+#endif
             if (rank == MASTER)
                 printf("Wrote to file\n");
 
@@ -351,28 +452,35 @@ int main(int argc, char *argv[])
                 break;
         }
 
+
+        /*
+         *
+         *  Solution procedure
+         *  Kernel calls are wrapped using host-side functions
+         *
+         */
         calcPhaseComp(phiDev, compDev,
-                         phaseCompDev,
-                         &simDomain, &simControls,
-                         &simParams, &subdomain,
-                         gridSize, blockSize);
+                      phaseCompDev, muDev,
+                      &simDomain, &simControls,
+                      &simParams, &subdomain,
+                      gridSize, blockSize);
 
         computeDrivingForce(phiDev, compDev,
-                               dfdphiDev, phaseCompDev,
-                               &simDomain, &simControls,
-                               &simParams, &subdomain,
-                               gridSize, blockSize);
+                            dfdphiDev, phaseCompDev, muDev,
+                            &simDomain, &simControls,
+                            &simParams, &subdomain,
+                            gridSize, blockSize);
 
-        updateComposition(phiDev, compDev, compNewDev,
-                             phaseCompDev,
-                             &simDomain, &simControls,
-                             &simParams, &subdomain,
-                             gridSize, blockSize);
-
-        updatePhi(phiDev, dfdphiDev, phiNewDev,
+        updatePhi(phiDev, dfdphiDev, phiNewDev, phaseCompDev,
                   &simDomain, &simControls,
                   &simParams, &subdomain,
                   gridSize, blockSize);
+
+        updateComposition(phiDev, compDev, phiNewDev, compNewDev,
+                          phaseCompDev, muDev,
+                          &simDomain, &simControls,
+                          &simParams, &subdomain,
+                          gridSize, blockSize);
 
         MPI_Barrier(comm);
         cudaDeviceSynchronize();
@@ -386,9 +494,22 @@ int main(int argc, char *argv[])
     cudaFree(maxVal);
     cudaFree(maxerr);
 
+    for (j = 0; j < simDomain.numComponents-1; j++)
+    {
+        cudaFree(compHost[j]);
+        cudaFree(dfdcHost[j]);
+        cudaFree(compNewHost[j]);
+
+        if (simControls.FUNCTION_F == 2)
+            cudaFree(muHost[j]);
+    }
+
     cudaFree(compDev);
     cudaFree(dfdcDev);
     cudaFree(compNewDev);
+
+    if (simControls.FUNCTION_F == 2)
+        cudaFree(muDev);
 
     cudaFree(phiDev);
     cudaFree(dfdphiDev);
@@ -396,12 +517,30 @@ int main(int argc, char *argv[])
 
     cudaFree(phaseCompDev);
 
+    free(compHost);
+    free(dfdcHost);
+    free(compNewHost);
+
+    if (simControls.FUNCTION_F == 2)
+    {
+        free(muHost);
+        free(mu);
+    }
+
+    free(phiHost);
+    free(dfdphiHost);
+    free(phiNewHost);
+
+    free(phaseCompHost);
+
     freeVars(&simDomain, &simParams);
 
     free(phi);
     free(comp);
 
     MPI_Finalize();
+
+    cudaDeviceReset();
 
     return 0;
 }

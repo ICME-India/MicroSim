@@ -7,28 +7,28 @@
 typedef struct domainInfo
 {
 // Domain size
-    int MESH_X;
-    int MESH_Y;
-    int MESH_Z;
+    long MESH_X;
+    long MESH_Y;
+    long MESH_Z;
 
-    int numCells;
+    long numCells;
 
 // Cell size
     double DELTA_X;
     double DELTA_Y;
     double DELTA_Z;
 
-    int DIMENSION;
+    long DIMENSION;
 
-    int numPhases;
-    int numComponents;
+    long numPhases;
+    long numComponents;
     char **phaseNames;
     char **componentNames;
 
-    int numThermoPhases;
+    long numThermoPhases;
     char **phases_tdb;
     char **phase_map;
-    int  *thermo_phase_dev, *thermo_phase_host;
+    long  *thermo_phase_dev, *thermo_phase_host;
 } domainInfo;
 
 /*
@@ -38,32 +38,32 @@ typedef struct controls
 {
 // Simulation parameters
     double DELTA_t;
-    int startTime;
-    int count;
+    long startTime;
+    long count;
 
 // Number of iterations for all of the following
-    int numSteps;
-    int saveInterval;
-    int trackProgress;
-    int restart;
+    long numSteps;
+    long saveInterval;
+    long trackProgress;
+    long restart;
 
 // Extent of padding at the block boundaries
-    int padding;
+    long padding;
 
 // Type of free-energy
-    int FUNCTION_F;
+    long FUNCTION_F;
 
 // MPMC or binary
-    int multiphase;
+    long multiphase;
 
 // Filewriting
-    int writeFormat;
-    int writeHDF5;
+    long writeFormat;
+    long writeHDF5;
 
 // Temperature behaviour
-    int ISOTHERMAL;
+    long ISOTHERMAL;
     double dTdt;
-    int T_update;
+    long T_update;
 
 } controls;
 
@@ -79,6 +79,8 @@ typedef struct simParameters
     double **F0_B_host, *F0_B_dev;
     double **F0_Beq_host, *F0_Beq_dev;
     double *F0_C_host, *F0_C_dev;
+
+    long ISOTHERMAL;
 
     double **DELTA_T;
     double **DELTA_C;
@@ -113,15 +115,15 @@ typedef struct simParameters
  */
 typedef struct subdomainInfo
 {
-    int xS, yS, zS;
-    int xE, yE, zE;
+    long xS, yS, zS;
+    long xE, yE, zE;
 
-    int sizeX, sizeY, sizeZ;
+    long sizeX, sizeY, sizeZ;
 
-    int numCells;
-    int numCompCells;
-    int shiftPointer;
-    int padding;
+    long numCells;
+    long numCompCells;
+    long shiftPointer;
+    long padding;
 
     int rank;
 
@@ -135,9 +137,9 @@ typedef struct subdomainInfo
  */
 typedef struct sphere
 {
-    int xC, yC, zC;
-    int radius;
-    int phase;
+    long xC, yC, zC;
+    long radius;
+    long phase;
 } sphere;
 
 /*
@@ -145,10 +147,10 @@ typedef struct sphere
  */
 typedef struct cylinder
 {
-    int xC, yC;
-    int zS, zE;
-    int radius;
-    int phase;
+    long xC, yC;
+    long zS, zE;
+    long radius;
+    long phase;
 } cylinder;
 
 enum fill{FILLCYLINDER, FILLSPHERE, FILLCYLINDERRANDOM, FILLSPHERERANDOM};
@@ -159,16 +161,16 @@ enum fill{FILLCYLINDER, FILLSPHERE, FILLCYLINDERRANDOM, FILLSPHERERANDOM};
 typedef struct fillParameters
 {
     enum fill *fillType;
-    int *xC, *yC, *zC;
-    int *zS, *zE;
-    int *radius;
-    int *phase;
+    long *xC, *yC, *zC;
+    long *zS, *zE;
+    long *radius;
+    long *phase;
     long *seed;
     double *volFrac;
-    int *shieldDist;
+    long *shieldDist;
     double *radVar;
 
-    int countFill;
+    long countFill;
 } fillParameters;
 
 #endif

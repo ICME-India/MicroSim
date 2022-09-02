@@ -16,13 +16,13 @@
  * Allocate memory on the CPU and GPU for all the phase-field variables
  * and other required variables.
  */
-void decomposeDomain(domainInfo simDomain, subdomainInfo *subdomain,
+void decomposeDomain(domainInfo simDomain, controls *simControls, subdomainInfo *subdomain,
                      int rank, int size);
 
 /*
  * Initialize variables and move to GPU
  */
-void moveParamsToGPU(domainInfo *simDomain, simParameters *simParams);
+void moveParamsToGPU(domainInfo *simDomain, controls *simControls, simParameters *simParams);
 
 /*
  * Calculate grid size and block size for kernel calls

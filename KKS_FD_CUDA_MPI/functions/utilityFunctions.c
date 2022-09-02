@@ -1,12 +1,158 @@
 #include "utilityFunctions.h"
 
+/*
+ *  LU Decomposition
+ */
+int LUPDecompose(double **A, int N, double Tol, int *P)
+{
+
+    int i, j, k, imax;
+    double maxA, *ptr, absA;
+
+    for (i = 0; i <= N; i++)
+        P[i] = i; //Unit permutation matrix, P[N] initialized with N
+
+    for (i = 0; i < N; i++) {
+        maxA = 0.0;
+        imax = i;
+
+        for (k = i; k < N; k++)
+            if ((absA = fabs(A[k][i])) > maxA)
+            {
+                maxA = absA;
+                imax = k;
+            }
+
+        if (maxA < Tol) return 0; //failure, matrix is degenerate
+
+        if (imax != i)
+        {
+            //pivoting P
+            j = P[i];
+            P[i] = P[imax];
+            P[imax] = j;
+
+            //pivoting rows of A
+            ptr = A[i];
+            A[i] = A[imax];
+            A[imax] = ptr;
+
+            //counting pivots starting from N (for determinant)
+            P[N]++;
+        }
+
+        for (j = i + 1; j < N; j++)
+        {
+            A[j][i] /= A[i][i];
+
+            for (k = i + 1; k < N; k++)
+                A[j][k] -= A[j][i] * A[i][k];
+        }
+    }
+
+    return 1;  //decomposition done
+}
+
+/*
+ *  Inversion after LU-decomposition
+ */
+void LUPInvert(double **A, int *P, int N, double **IA)
+{
+    for (int j = 0; j < N; j++)
+    {
+        for (int i = 0; i < N; i++)
+        {
+            IA[i][j] = P[i] == j ? 1.0 : 0.0;
+
+            for (int k = 0; k < i; k++)
+                IA[i][j] -= A[i][k] * IA[k][j];
+        }
+
+        for (int i = N - 1; i >= 0; i--)
+        {
+            for (int k = i + 1; k < N; k++)
+                IA[i][j] -= A[i][k] * IA[k][j];
+
+            IA[i][j] /= A[i][i];
+        }
+    }
+}
+
+/*
+ *  AB = C
+ *  N is the dimension of all 3 matrices
+ */
+void matrixMultiply(double **A, double **B, double **C, int N)
+{
+    for (int i = 0; i < N; i++)
+    {
+        for (int j = 0; j < N; j++)
+        {
+            C[i][j] = 0.0;
+
+            for (int k = 0; k < N; k++)
+            {
+                C[i][j] += A[i][k]*B[k][j];
+            }
+        }
+    }
+}
+
+
+#if THERMO == 1
+void testThermoFuncs(domainInfo simDomain, simParameters simParams)
+{
+    FILE *fp[6];
+
+    long N = 3000;
+
+    double y[2], ans[2];
+
+    y[0] = -1.0, y[1] = 2.0;
+
+    fp[0] = fopen("DATA/GE0.bin", "w");
+    fp[1] = fopen("DATA/GE1.bin", "w");
+    fp[2] = fopen("DATA/mu0.bin", "w");
+    fp[3] = fopen("DATA/mu1.bin", "w");
+    fp[4] = fopen("DATA/dMu0.bin", "w");
+    fp[5] = fopen("DATA/dMu1.bin", "w");
+
+    for (int i = 0; i < N; i++)
+    {
+        y[0] += (double)3.0/N;
+        y[1] -= (double)3.0/N;
+
+        (*free_energy_tdb[simDomain.thermo_phase_host[0]])(simParams.Teq, y, ans);
+        fprintf(fp[0], "%le\t%le\n", y[0], ans[0]);
+
+        (*Mu_tdb[simDomain.thermo_phase_host[0]])(simParams.Teq, y, ans);
+        fprintf(fp[2], "%le\t%le\n", y[0], ans[0]);
+
+        (*dmudc_tdb[simDomain.thermo_phase_host[0]])(simParams.Teq, y, ans);
+        fprintf(fp[4], "%le\t%le\n", y[0], ans[0]);
+
+        (*free_energy_tdb[simDomain.thermo_phase_host[1]])(simParams.Teq, y, ans);
+        fprintf(fp[1], "%le\t%le\n", y[0], ans[0]);
+
+        (*Mu_tdb[simDomain.thermo_phase_host[1]])(simParams.Teq, y, ans);
+        fprintf(fp[3], "%le\t%le\n", y[0], ans[0]);
+
+        (*dmudc_tdb[simDomain.thermo_phase_host[1]])(simParams.Teq, y, ans);
+        fprintf(fp[5], "%le\t%le\n", y[0], ans[0]);
+    }
+
+    for (int i = 0; i < 6; i++)
+        fclose(fp[i]);
+}
+#endif
+
 void populate_matrix(double **Mat, char *tmpstr, long NUMPHASES)
 {
     char **tmp;
     char *str1, *str2, *token;
     char *saveptr1, *saveptr2;
 
-    int i, j, k;
+    long i, j, k;
 
     tmp = (char**)malloc(sizeof(char*)*NUMPHASES*(NUMPHASES-1)*0.5);
 
@@ -47,7 +193,7 @@ void populate_matrix3M(double ***Mat, char *tmpstr, long NUMPHASES) {
   char *str1, *str2, *token;
   char *saveptr1, *saveptr2;
 
-  int i,j,k,l;
+  long i,j,k,l;
   long len = NUMPHASES*(NUMPHASES-1)*(NUMPHASES-2)/6;
 
   tmp = (char**)malloc(sizeof(char*)*len);
@@ -93,7 +239,7 @@ void populate_thetaij_matrix(double **Mat, char *tmpstr, long NUMPHASES)
     char *str1, *token;
     char *saveptr1;
 
-    int i, j, k;
+    long i, j, k;
 
     tmp = (char**)malloc(sizeof(char*) * NUMPHASES*(NUMPHASES-1)*0.5);
 
@@ -137,7 +283,7 @@ void populate_thetai_matrix(double *Mat, char *tmpstr, long NUMPHASES)
     char *str1, *token;
     char *saveptr1;
 
-    int i;
+    long i;
     long len = 2;
     long phase;
 
@@ -171,7 +317,7 @@ void populate_diffusivity_matrix(double ***Mat, char *tmpstr, long NUMCOMPONENTS
     char *str1, *str2, *token;
     char *saveptr1, *saveptr2;
 
-    int i,j,k,l;
+    long i,j,k,l;
     long len = (NUMCOMPONENTS-1)*(NUMCOMPONENTS-1) +2;
     long phase;
 
@@ -229,7 +375,7 @@ void populate_A_matrix(double ***Mat, char *tmpstr, long NUMCOMPONENTS)
     char *str1, *str2, *token;
     char *saveptr1, *saveptr2;
 
-    int i,j,k,l;
+    long i,j,k,l;
     long len = (NUMCOMPONENTS-1)*(NUMCOMPONENTS-1) +1;
     long phase;
 
@@ -270,7 +416,7 @@ void populate_string_array(char **string, char *tmpstr, long size)
     char *str1, *token;
     char *saveptr1;
 
-    int i;
+    long i;
 
     for (i = 0, str1 = tmpstr; ; i++, str1 = NULL)
     {
@@ -293,9 +439,9 @@ void populate_thermodynamic_matrix(double ***Mat, char *tmpstr, long NUMCOMPONEN
     char *str1, *str2, *token;
     char *saveptr1, *saveptr2;
 
-    int i,j,k,l;
-    int len = (NUMCOMPONENTS-1) + 2;
-    int phase1, phase2;
+    long i,j,k,l;
+    long len = (NUMCOMPONENTS-1) + 2;
+    long phase1, phase2;
 
     tmp = (char**)malloc(sizeof(char*)*len);
     for (i = 0; i < len; ++i)
@@ -327,9 +473,9 @@ void populate_thermodynamic_matrix(double ***Mat, char *tmpstr, long NUMCOMPONEN
     tmp = NULL;
 }
 
-double** malloc2M(int a, int b)
+double** malloc2M(long a, long b)
 {
-    int i;
+    long i;
     double** Mat;
 
     Mat = (double**)malloc(a*sizeof(**Mat));
@@ -340,9 +486,9 @@ double** malloc2M(int a, int b)
     return Mat;
 }
 
-double*** malloc3M(int a, int b, int c)
+double*** malloc3M(long a, long b, long c)
 {
-    int i, j;
+    long i, j;
     double*** Mat;
 
     Mat = (double***)malloc(a*sizeof(***Mat));
@@ -357,9 +503,9 @@ double*** malloc3M(int a, int b, int c)
     return Mat;
 }
 
-double**** malloc4M(int a, int b, int c, int d)
+double**** malloc4M(long a, long b, long c, long d)
 {
-    int i, j, p;
+    long i, j, p;
     double**** Mat;
 
     Mat = (double****)malloc(a*sizeof(****Mat));
@@ -379,9 +525,9 @@ double**** malloc4M(int a, int b, int c, int d)
     return Mat;
 }
 
-void free2M(double **Mat, int a)
+void free2M(double **Mat, long a)
 {
-    int i;
+    long i;
 
     for (i = 0; i < a; i++)
         free(Mat[i]);
@@ -390,9 +536,9 @@ void free2M(double **Mat, int a)
     Mat = NULL;
 }
 
-void free3M(double ***Mat, int a, int b)
+void free3M(double ***Mat, long a, long b)
 {
-    int i, j;
+    long i, j;
 
     for (i = 0; i < a; i++)
     {
@@ -405,9 +551,9 @@ void free3M(double ***Mat, int a, int b)
     Mat = NULL;
 }
 
-void free4M(double ****Mat, int a, int b, int c)
+void free4M(double ****Mat, long a, long b, long c)
 {
-    int i, j, l;
+    long i, j, l;
 
     for(i = 0; i < a; i++)
     {
@@ -426,12 +572,12 @@ void free4M(double ****Mat, int a, int b, int c)
     Mat = NULL;
 }
 
-void allocOnDev(double **arr, double ***arr2, int N, int stride)
+void allocOnDev(double **arr, double ***arr2, long N, long stride)
 {
     cudaMalloc((void**)arr, sizeof(double)*N*stride);
 
     *arr2 = (double**)malloc(sizeof(double*) * N);
-    for (int i = 0; i < N; i++)
+    for (long i = 0; i < N; i++)
         *arr2[i] = *arr + stride;
 }
 
@@ -490,18 +636,18 @@ void freeVars(domainInfo *simDomain, simParameters *simParams)
     free(simParams->theta_i_host);
     cudaFree(simParams->theta_i_dev);
 
-    for (int i = 0; i < simDomain->numThermoPhases; i++)
+    for (long i = 0; i < simDomain->numThermoPhases; i++)
         free(simDomain->phases_tdb[i]);
 
     free(simDomain->phases_tdb);
 
-    for (int i = 0; i < simDomain->numPhases; i++)
+    for (long i = 0; i < simDomain->numPhases; i++)
     {
         free(simDomain->phaseNames[i]);
         free(simDomain->phase_map[i]);
     }
 
-    for (int i = 0; i < simDomain->numComponents; i++)
+    for (long i = 0; i < simDomain->numComponents; i++)
         free(simDomain->componentNames[i]);
 
     free(simDomain->phaseNames);

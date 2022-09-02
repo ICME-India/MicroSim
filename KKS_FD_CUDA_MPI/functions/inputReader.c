@@ -25,6 +25,7 @@ void readInput_MPI(domainInfo *simDomain, controls *simControls,
 
     // Setting defaults
     simParams->alpha = 2.94;
+    simParams->ISOTHERMAL = 1;
     simControls->multiphase = 1;
     simControls->restart = 0;
     simControls->writeHDF5 = 0;
@@ -36,19 +37,19 @@ void readInput_MPI(domainInfo *simDomain, controls *simControls,
         {
             if (strcmp(tmpstr1, "MESH_X") == 0)
             {
-                simDomain->MESH_X = atoi(tmpstr2);
-                fprintf(fp, "%s = %d\n", tmpstr1, simDomain->MESH_X);
+                simDomain->MESH_X = atol(tmpstr2);
+                fprintf(fp, "%s = %ld\n", tmpstr1, simDomain->MESH_X);
             }
             else if (strcmp(tmpstr1, "MESH_Y") == 0)
             {
-                simDomain->MESH_Y = atoi(tmpstr2);
-                fprintf(fp, "%s = %d\n", tmpstr1, simDomain->MESH_Y);
+                simDomain->MESH_Y = atol(tmpstr2);
+                fprintf(fp, "%s = %ld\n", tmpstr1, simDomain->MESH_Y);
 
             }
             else if (strcmp(tmpstr1, "MESH_Z") == 0)
             {
-                simDomain->MESH_Z = atoi(tmpstr2);
-                fprintf(fp, "%s = %d\n", tmpstr1, simDomain->MESH_Z);
+                simDomain->MESH_Z = atol(tmpstr2);
+                fprintf(fp, "%s = %ld\n", tmpstr1, simDomain->MESH_Z);
             }
             else if (strcmp(tmpstr1, "DELTA_X") == 0)
             {
@@ -68,27 +69,27 @@ void readInput_MPI(domainInfo *simDomain, controls *simControls,
             else if (strcmp(tmpstr1, "DIMENSION") == 0)
             {
                 simDomain->DIMENSION = atoi(tmpstr2);
-                fprintf(fp, "%s = %d\n", tmpstr1, simDomain->DIMENSION);
+                fprintf(fp, "%s = %ld\n", tmpstr1, simDomain->DIMENSION);
             }
             else if (strcmp(tmpstr1, "NUMPHASES") == 0)
             {
                 simDomain->numPhases = atoi(tmpstr2);
-                fprintf(fp, "%s = %d\n", tmpstr1, simDomain->numPhases);
+                fprintf(fp, "%s = %ld\n", tmpstr1, simDomain->numPhases);
             }
             else if (strcmp(tmpstr1, "NUMCOMPONENTS") == 0)
             {
                 simDomain->numComponents = atoi(tmpstr2);
-                fprintf(fp, "%s = %d\n", tmpstr1, simDomain->numComponents);
+                fprintf(fp, "%s = %ld\n", tmpstr1, simDomain->numComponents);
             }
             else if (strcmp(tmpstr1, "PHASES") == 0)
             {
                 simDomain->phaseNames = (char**)malloc(sizeof(char*)*simDomain->numPhases);
                 simDomain->phase_map = (char**)malloc(sizeof(char*)*simDomain->numPhases);
 
-                simDomain->thermo_phase_host = (int*)malloc(sizeof(int)*simDomain->numPhases);
-                cudaMalloc((void**)&simDomain->thermo_phase_dev, sizeof(int)*simDomain->numPhases);
+                simDomain->thermo_phase_host = (long*)malloc(sizeof(long)*simDomain->numPhases);
+                cudaMalloc((void**)&simDomain->thermo_phase_dev, sizeof(long)*simDomain->numPhases);
 
-                for (int i = 0; i < simDomain->numPhases; i++)
+                for (long i = 0; i < simDomain->numPhases; i++)
                 {
                     simDomain->phaseNames[i] = (char*)malloc(sizeof(char)*30);
                     simDomain->phase_map[i] = (char*)malloc(sizeof(char)*30);
@@ -100,7 +101,7 @@ void readInput_MPI(domainInfo *simDomain, controls *simControls,
             else if (strcmp(tmpstr1, "COMPONENTS") == 0)
             {
                 simDomain->componentNames = (char**)malloc(sizeof(char*)*simDomain->numComponents);
-                for (int i = 0; i < simDomain->numComponents; i++)
+                for (long i = 0; i < simDomain->numComponents; i++)
                     simDomain->componentNames[i] = (char*)malloc(sizeof(char)*30);
 
                 populate_string_array(simDomain->componentNames, tmpstr2, simDomain->numComponents);
@@ -154,9 +155,9 @@ void readInput_MPI(domainInfo *simDomain, controls *simControls,
 
                     simParams->theta_ijk_host = malloc3M(simDomain->numPhases, simDomain->numPhases, simDomain->numPhases);
 
-                    for (int i = 0; i < simDomain->numPhases; i++)
-                        for (int j = 0; j < simDomain->numPhases; j++)
-                            for (int k = 0; k < simDomain->numPhases; k++)
+                    for (long i = 0; i < simDomain->numPhases; i++)
+                        for (long j = 0; j < simDomain->numPhases; j++)
+                            for (long k = 0; k < simDomain->numPhases; k++)
                                 simParams->theta_ijk_host[i][j][k] = 0.0;
                     cudaMalloc((void**)&(simParams->theta_ijk_dev), sizeof(double)*simDomain->numPhases*simDomain->numPhases*simDomain->numPhases);
 
@@ -179,28 +180,28 @@ void readInput_MPI(domainInfo *simDomain, controls *simControls,
             }
             else if (strcmp(tmpstr1, "RESTART") == 0)
             {
-                simControls->restart = atoi(tmpstr2);
+                simControls->restart = atol(tmpstr2);
             }
             else if (strcmp(tmpstr1, "STARTTIME") == 0)
             {
-                simControls->startTime = atoi(tmpstr2);
-                fprintf(fp, "%s = %d\n", tmpstr1, simControls->startTime);
+                simControls->startTime = atol(tmpstr2);
+                fprintf(fp, "%s = %ld\n", tmpstr1, simControls->startTime);
                 simControls->count = simControls->startTime;
             }
             else if (strcmp(tmpstr1, "NTIMESTEPS") == 0)
             {
-                simControls->numSteps = atoi(tmpstr2);
-                fprintf(fp, "%s = %d\n", tmpstr1, simControls->numSteps);
+                simControls->numSteps = atol(tmpstr2);
+                fprintf(fp, "%s = %ld\n", tmpstr1, simControls->numSteps);
             }
             else if (strcmp(tmpstr1, "SAVET") == 0)
             {
-                simControls->saveInterval = atoi(tmpstr2);
-                fprintf(fp, "%s = %d\n", tmpstr1, simControls->saveInterval);
+                simControls->saveInterval = atol(tmpstr2);
+                fprintf(fp, "%s = %ld\n", tmpstr1, simControls->saveInterval);
             }
             else if (strcmp(tmpstr1, "TRACK_PROGRESS") == 0)
             {
-                simControls->trackProgress = atoi(tmpstr2);
-                fprintf(fp, "%s = %d\n", tmpstr1, simControls->trackProgress);
+                simControls->trackProgress = atol(tmpstr2);
+                fprintf(fp, "%s = %ld\n", tmpstr1, simControls->trackProgress);
             }
             else if (strcmp(tmpstr1, "WRITEFORMAT") == 0)
             {
@@ -209,13 +210,13 @@ void readInput_MPI(domainInfo *simDomain, controls *simControls,
                 else if (strcmp(tmpstr2, "BINARY") == 0)
                     simControls->writeFormat = 0;
                 else
-                    simControls->writeFormat = 1;
-                fprintf(fp, "%s = %d\n", tmpstr1, simControls->writeFormat);
+                    simControls->writeFormat = 2;
+                fprintf(fp, "%s = %ld\n", tmpstr1, simControls->writeFormat);
             }
             else if (strcmp(tmpstr1, "WRITEHDF5") == 0)
             {
                 simControls->writeHDF5 = atoi(tmpstr2);
-                fprintf(fp, "%s = %d\n", tmpstr1, simControls->writeHDF5);
+                fprintf(fp, "%s = %ld\n", tmpstr1, simControls->writeHDF5);
             }
 
             else if (strcmp(tmpstr1, "GAMMA") == 0)
@@ -286,25 +287,18 @@ void readInput_MPI(domainInfo *simDomain, controls *simControls,
             else if ((strcmp(tmpstr1, "Function_F") == 0) && simDomain->numPhases > 1 && simDomain->numComponents-1 > 0)
             {
                 simControls->FUNCTION_F = atoi(tmpstr2);
-                fprintf(fp, "%s = %d\n", tmpstr1, simControls->FUNCTION_F);
+                fprintf(fp, "%s = %ld\n", tmpstr1, simControls->FUNCTION_F);
             }
             else if (strcmp(tmpstr1, "A") == 0)
             {
                 populate_A_matrix(simParams->F0_A_host, tmpstr2, simDomain->numComponents);
-            }
-            else if (strcmp(tmpstr1, "BINARY") == 0)
-            {
-                if (atoi(tmpstr2) == 0)
-                    simControls->multiphase = 1;
-                else
-                    simControls->multiphase = 0;
             }
             else if ((strcmp(tmpstr1, "tdbfname") == 0) && (simDomain->numPhases > 1));
             else if (strcmp(tmpstr1, "num_thermo_phases") == 0) {
                 simDomain->numThermoPhases = atoi(tmpstr2);
                 simDomain->phases_tdb = (char**)malloc(sizeof(char*)*simDomain->numThermoPhases);
 
-                for(int i = 0; i < simDomain->numThermoPhases; i++)
+                for(long i = 0; i < simDomain->numThermoPhases; i++)
                     simDomain->phases_tdb[i] = (char*)malloc(sizeof(char)*51);
             }
             else if (strcmp(tmpstr1, "tdb_phases")==0  && simDomain->numThermoPhases > 0) {
@@ -337,7 +331,7 @@ void readInput_MPI(domainInfo *simDomain, controls *simControls,
             else if (strcmp(tmpstr1, "T_update") == 0 && simDomain->numPhases > 1)
             {
                 simControls->T_update = atoi(tmpstr2);
-                fprintf(fp, "%s = %d\n", tmpstr1, simControls->T_update);
+                fprintf(fp, "%s = %ld\n", tmpstr1, simControls->T_update);
             }
             else if (strcmp(tmpstr1, "SEED"))
             {
@@ -349,14 +343,17 @@ void readInput_MPI(domainInfo *simDomain, controls *simControls,
         }
     }
 
+    if (simControls->writeHDF5 == 1)
+        simControls->writeFormat = 2;
+
     fprintf(fp, "ceq\n");
-    for (int i = 0; i < simDomain->numPhases; i++)
+    for (long i = 0; i < simDomain->numPhases; i++)
     {
-        for (int j = 0; j < simDomain->numPhases; j++)
+        for (long j = 0; j < simDomain->numPhases; j++)
         {
-            for (int k = 0; k < simDomain->numComponents-1; k++)
+            for (long k = 0; k < simDomain->numComponents-1; k++)
             {
-                fprintf(fp, "%d %d %d\t%le\t", i, j, k, simParams->ceq_host[i][j][k]);
+                fprintf(fp, "%ld %ld %ld\t%le\t", i, j, k, simParams->ceq_host[i][j][k]);
             }
         }
         fprintf(fp, "\n");
@@ -381,7 +378,7 @@ void readFill(fillParameters *simFill, char *argv[], int rank)
             printf("\n File %s not found\n", argv[2]);
     }
 
-    int i;
+    long i;
     char tempbuff[1000];
     char tmpstr1[100], tmpstr2[100];
 
@@ -406,19 +403,19 @@ void readFill(fillParameters *simFill, char *argv[], int rank)
     fclose(fr);
 
     simFill->fillType   = (fill*)malloc(sizeof(fill)*simFill->countFill);
-    simFill->xC         = (int*)malloc(sizeof(int)*simFill->countFill);
-    simFill->yC         = (int*)malloc(sizeof(int)*simFill->countFill);
-    simFill->zC         = (int*)malloc(sizeof(int)*simFill->countFill);
-    simFill->zS         = (int*)malloc(sizeof(int)*simFill->countFill);
-    simFill->zE         = (int*)malloc(sizeof(int)*simFill->countFill);
-    simFill->radius     = (int*)malloc(sizeof(int)*simFill->countFill);
-    simFill->phase      = (int*)malloc(sizeof(int)*simFill->countFill);
+    simFill->xC         = (long*)malloc(sizeof(long)*simFill->countFill);
+    simFill->yC         = (long*)malloc(sizeof(long)*simFill->countFill);
+    simFill->zC         = (long*)malloc(sizeof(long)*simFill->countFill);
+    simFill->zS         = (long*)malloc(sizeof(long)*simFill->countFill);
+    simFill->zE         = (long*)malloc(sizeof(long)*simFill->countFill);
+    simFill->radius     = (long*)malloc(sizeof(long)*simFill->countFill);
+    simFill->phase      = (long*)malloc(sizeof(long)*simFill->countFill);
     simFill->seed       = (long*)malloc(sizeof(long)*simFill->countFill);
     simFill->volFrac    = (double*)malloc(sizeof(double)*simFill->countFill);
-    simFill->shieldDist = (int*)malloc(sizeof(int)*simFill->countFill);
+    simFill->shieldDist = (long*)malloc(sizeof(long)*simFill->countFill);
     simFill->radVar     = (double*)malloc(sizeof(double)*simFill->countFill);
 
-    int j = 0;
+    long j = 0;
 
     fr = fopen(argv[2], "rt");
 
@@ -446,12 +443,12 @@ void readFill(fillParameters *simFill, char *argv[], int rank)
                 }
 
                 simFill->fillType[j] = FILLCYLINDER;
-                simFill->phase[j]    = atoi(tmp[0]);
-                simFill->xC[j]       = atoi(tmp[1]);
-                simFill->yC[j]       = atoi(tmp[2]);
-                simFill->zS[j]       = atoi(tmp[3]);
-                simFill->zE[j]       = atoi(tmp[4]);
-                simFill->radius[j]   = atoi(tmp[5]);
+                simFill->phase[j]    = atol(tmp[0]);
+                simFill->xC[j]       = atol(tmp[1]);
+                simFill->yC[j]       = atol(tmp[2]);
+                simFill->zS[j]       = atol(tmp[3]);
+                simFill->zE[j]       = atol(tmp[4]);
+                simFill->radius[j]   = atol(tmp[5]);
 
                 j++;
 
@@ -478,11 +475,11 @@ void readFill(fillParameters *simFill, char *argv[], int rank)
                 }
 
                 simFill->fillType[j] = FILLSPHERE;
-                simFill->phase[j]    = atoi(tmp[0]);
-                simFill->xC[j]       = atoi(tmp[1]);
-                simFill->yC[j]       = atoi(tmp[2]);
-                simFill->zC[j]       = atoi(tmp[3]);
-                simFill->radius[j]   = atoi(tmp[4]);
+                simFill->phase[j]    = atol(tmp[0]);
+                simFill->xC[j]       = atol(tmp[1]);
+                simFill->yC[j]       = atol(tmp[2]);
+                simFill->zC[j]       = atol(tmp[3]);
+                simFill->radius[j]   = atol(tmp[4]);
 
                 j++;
 
@@ -509,10 +506,10 @@ void readFill(fillParameters *simFill, char *argv[], int rank)
                 }
 
                 simFill->fillType[j]   = FILLCYLINDERRANDOM;
-                simFill->phase[j]      = atoi(tmp[0]);
-                simFill->radius[j]     = atoi(tmp[1]);
+                simFill->phase[j]      = atol(tmp[0]);
+                simFill->radius[j]     = atol(tmp[1]);
                 simFill->volFrac[j]    = atof(tmp[2]);
-                simFill->shieldDist[j] = atoi(tmp[3]);
+                simFill->shieldDist[j] = atol(tmp[3]);
                 simFill->radVar[j]     = atof(tmp[4]);
 
                 j++;
@@ -540,10 +537,10 @@ void readFill(fillParameters *simFill, char *argv[], int rank)
                 }
 
                 simFill->fillType[j]   = FILLSPHERERANDOM;
-                simFill->phase[j]      = atoi(tmp[0]);
-                simFill->radius[j]     = atoi(tmp[1]);
+                simFill->phase[j]      = atol(tmp[0]);
+                simFill->radius[j]     = atol(tmp[1]);
                 simFill->volFrac[j]    = atof(tmp[2]);
-                simFill->shieldDist[j] = atoi(tmp[3]);
+                simFill->shieldDist[j] = atol(tmp[3]);
                 simFill->radVar[j]     = atof(tmp[4]);
 
                 j++;

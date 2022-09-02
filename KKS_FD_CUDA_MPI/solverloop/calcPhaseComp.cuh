@@ -7,6 +7,8 @@
 #include "structures.h"
 #include "utilityKernels.cuh"
 #include "Thermo.cuh"
+#include "utilityKernels.cuh"
+#include "functionH.cuh"
 
 #ifndef MAX_NUM_PHASES
 #define MAX_NUM_PHASES 5
@@ -24,40 +26,24 @@
  * Calculate phase compositions
  */
 __global__
-void __calcPhaseComp___(double **phi, double **comp,
-                             double **phaseComp,
-                             double *F0_A, double *F0_B, double *F0_C,
-                             int NUMPHASES, int NUMCOMPONENTS,
-                             int sizeX, int sizeY, int sizeZ);
+void __calcPhaseComp__(double **phi, double **comp,
+                       double **phaseComp,
+                       double *F0_A, double *F0_B, double *F0_C,
+                       long NUMPHASES, long NUMCOMPONENTS,
+                       long sizeX, long sizeY, long sizeZ);
 
 __global__
-void __calcPhaseCompBinary___(double **phi, double **comp,
-                                   double **phaseComp,
-                                   double *F0_A, double *F0_B, double *F0_C,
-                                   int NUMPHASES, int NUMCOMPONENTS,
-                                   int sizeX, int sizeY, int sizeZ);
-
-
-__global__
-void __initMu__(double **comp, double **mu,
-                double molarVolume, int *thermo_phase, double temperature,
-                int NUMPHASES, int NUMCOMPONENTS,
-                int sizeX, int sizeY, int sizeZ);
+void __initMu__(double **phi, double **comp, double **phaseComp, double **mu,
+                long *thermo_phase, double temperature,
+                long NUMPHASES, long NUMCOMPONENTS,
+                long sizeX, long sizeY, long sizeZ);
 
 __global__
 void __calcPhaseComp_02__(double **phi, double **comp,
                           double **phaseComp, double **mu, double *cguess,
-                          double molarVolume,
-                          double temperature, int *thermo_phase,
-                          int NUMPHASES, int NUMCOMPONENTS,
-                          int sizeX, int sizeY, int sizeZ);
-
-
-__global__
-void __calcPhaseCompBinary_02__(double **phi, double **comp,
-                                double **phaseComp,
-                                double temperature, int *thermo_phase,
-                                int sizeX, int sizeY, int sizeZ);
+                          double temperature, long *thermo_phase,
+                          long NUMPHASES, long NUMCOMPONENTS,
+                          long sizeX, long sizeY, long sizeZ);
 
 /*
  * Wrapper function for __calcPhaseComp__

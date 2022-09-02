@@ -1,87 +1,12 @@
 #include "initialize_variables.h"
 
-int LUPDecompose(double **A, int N, double Tol, int *P) {
-
-    int i, j, k, imax;
-    double maxA, *ptr, absA;
-
-    for (i = 0; i <= N; i++)
-        P[i] = i; //Unit permutation matrix, P[N] initialized with N
-
-    for (i = 0; i < N; i++) {
-        maxA = 0.0;
-        imax = i;
-
-        for (k = i; k < N; k++)
-            if ((absA = fabs(A[k][i])) > maxA) {
-                maxA = absA;
-                imax = k;
-            }
-
-        if (maxA < Tol) return 0; //failure, matrix is degenerate
-
-        if (imax != i) {
-            //pivoting P
-            j = P[i];
-            P[i] = P[imax];
-            P[imax] = j;
-
-            //pivoting rows of A
-            ptr = A[i];
-            A[i] = A[imax];
-            A[imax] = ptr;
-
-            //counting pivots starting from N (for determinant)
-            P[N]++;
-        }
-
-        for (j = i + 1; j < N; j++) {
-            A[j][i] /= A[i][i];
-
-            for (k = i + 1; k < N; k++)
-                A[j][k] -= A[j][i] * A[i][k];
-        }
-    }
-
-    return 1;  //decomposition done
-}
-
-void LUPInvert(double **A, int *P, int N, double **IA) {
-
-    for (int j = 0; j < N; j++) {
-        for (int i = 0; i < N; i++) {
-            IA[i][j] = P[i] == j ? 1.0 : 0.0;
-
-            for (int k = 0; k < i; k++)
-                IA[i][j] -= A[i][k] * IA[k][j];
-        }
-
-        for (int i = N - 1; i >= 0; i--) {
-            for (int k = i + 1; k < N; k++)
-                IA[i][j] -= A[i][k] * IA[k][j];
-
-            IA[i][j] /= A[i][i];
-        }
-    }
-}
-
-void matrixMultiply(double **A, double **B, double **C, int N)
-{
-    for (int i = 0; i < N; i++)
-    {
-        for (int j = 0; j < N; j++)
-        {
-            C[i][j] = 0.0;
-
-            for (int k = 0; k < N; k++)
-            {
-                C[i][j] += A[i][k]*B[k][j];
-            }
-        }
-    }
-}
-
-void decomposeDomain(domainInfo simDomain, subdomainInfo *subdomain,
+/*
+ *  Distributing the domain to all the MPI processes
+ *  The subdomain local and global coordinates will be initialized here
+ *  Each worker will be assigned its respective neighbours in this function
+ *  Decomposition is presently only done in 1 dimension (slab)
+ */
+void decomposeDomain(domainInfo simDomain, controls *simControls, subdomainInfo *subdomain,
                      int rank, int size)
 {
     subdomain->rank = rank;
@@ -186,43 +111,35 @@ void decomposeDomain(domainInfo simDomain, subdomainInfo *subdomain,
     subdomain->sizeX = subdomain->xE - subdomain->xS + 1;
     subdomain->sizeY = subdomain->yE - subdomain->yS + 1;
     subdomain->sizeZ = subdomain->zE - subdomain->zS + 1;
+
+    if (simDomain.DIMENSION == 2)
+    {
+        subdomain->shiftPointer = simControls->padding*subdomain->sizeX;
+        subdomain->sizeY += 2*simControls->padding;
+        subdomain->numCompCells = subdomain->numCells + 2*subdomain->shiftPointer;
+        subdomain->padding = simControls->padding;
+
+        subdomain->sizeZ = 1;
+    }
+    else if (simDomain.DIMENSION == 3)
+    {
+        subdomain->shiftPointer = simControls->padding*subdomain->sizeX*subdomain->sizeY;
+        subdomain->sizeZ += 2*simControls->padding;
+        subdomain->numCompCells = subdomain->numCells + 2*subdomain->shiftPointer;
+        subdomain->padding = simControls->padding;
+    }
+
 }
 
-void moveParamsToGPU(domainInfo *simDomain, simParameters *simParams)
+/*
+ *  All simulation constants are calculated here using parameters read from the input file
+ *
+ *  Since device-side data is best stored in 1-D contiguous arrays, the data transfer is also done here
+ *  in an element-by-element manner.
+ */
+void moveParamsToGPU(domainInfo *simDomain, controls *simControls, simParameters *simParams)
 {
-    double Tol = 1e-6;
-    int P[simDomain->numComponents];
-
-    double ***dmudc = malloc3M(simDomain->numPhases, simDomain->numComponents-1, simDomain->numComponents-1);
-    double **inverted = malloc2M(simDomain->numComponents-1, simDomain->numComponents-1);
-
-    for (int i = 0; i < simDomain->numPhases; i++)
-    {
-        for (int j = 0; j < simDomain->numComponents-1; j++)
-        {
-            for (int k = 0; k < simDomain->numComponents-1; k++)
-            {
-                if (j == k)
-                    dmudc[i][j][k] = 2.0*simParams->F0_A_host[i][j][k];
-                else
-                    dmudc[i][j][k] = simParams->F0_A_host[i][j][k];
-            }
-        }
-    }
-
-    for (int i = 0; i < simDomain->numPhases; i++)
-    {
-        LUPDecompose(dmudc[i], simDomain->numComponents-1, Tol, P);
-        LUPInvert(dmudc[i], P, simDomain->numComponents-1, inverted);
-
-        matrixMultiply(simParams->diffusivity_host[i], inverted, simParams->mobility_host[i], simDomain->numComponents-1);
-    }
-
-    free2M(inverted, simDomain->numComponents-1);
-    free3M(dmudc, simDomain->numPhases, simDomain->numComponents-1);
-
-    cudaMemcpy(simDomain->thermo_phase_dev, simDomain->thermo_phase_host, sizeof(int)*simDomain->numPhases, cudaMemcpyHostToDevice);
-
+    // Calculating kappa, theta
     for (int i = 0; i < simDomain->numPhases; i++)
     {
         simParams->theta_i_host[i] = 0.0;
@@ -231,11 +148,8 @@ void moveParamsToGPU(domainInfo *simDomain, simParameters *simParams)
         {
             if (i != j)
             {
-                simParams->kappaPhi_host[i][j] = 3.0/(2.0*simParams->alpha) * (simParams->gamma_host[i][j]*simParams->epsilon);
-
+                simParams->kappaPhi_host[i][j] =  (3.0*simParams->gamma_host[i][j]*simParams->epsilon)/(2.0*simParams->alpha);
                 simParams->relax_coeff_host[i][j] = 1.0/(simParams->Tau_host[i][j]*simParams->epsilon);
-
-                //printf("%le\t%d\t%d\n", simParams->relax_coeff_host[i][j], i, j);
                 simParams->theta_ij_host[i][j] = 6.0 * simParams->alpha * simParams->gamma_host[i][j] / simParams->epsilon;
             }
             else
@@ -246,6 +160,200 @@ void moveParamsToGPU(domainInfo *simDomain, simParameters *simParams)
             }
         }
     }
+
+    double Tol = 1e-6;
+    int P[simDomain->numComponents];
+
+    if (simControls->FUNCTION_F != 2)
+    {
+        double ***dmudc = malloc3M(simDomain->numPhases, simDomain->numComponents-1, simDomain->numComponents-1);
+        double **inverted = malloc2M(simDomain->numComponents-1, simDomain->numComponents-1);
+
+        for (long i = 0; i < simDomain->numPhases; i++)
+        {
+            for (long j = 0; j < simDomain->numComponents-1; j++)
+            {
+                for (long k = 0; k < simDomain->numComponents-1; k++)
+                {
+                    if (j == k)
+                        dmudc[i][j][k] = 2.0*simParams->F0_A_host[i][j][k];
+                    else
+                        dmudc[i][j][k] = simParams->F0_A_host[i][j][k];
+                }
+            }
+        }
+
+        // Mobility matrix
+        for (long i = 0; i < simDomain->numPhases; i++)
+        {
+            LUPDecompose(dmudc[i], simDomain->numComponents-1, Tol, P);
+            LUPInvert(dmudc[i], P, simDomain->numComponents-1, inverted);
+
+            matrixMultiply(simParams->diffusivity_host[i], inverted, simParams->mobility_host[i], simDomain->numComponents-1);
+        }
+
+        // Relaxation Coefficients
+        double **mobilityInv = malloc2M(simDomain->numComponents-1, simDomain->numComponents-1);
+        double deltac[simDomain->numComponents-1], deltamu[simDomain->numComponents-1];
+        double sum = 0.0;
+        double minTau = 1e12;
+
+        // Reusing inverted to hold mobility of the reference phase
+        for (long i = 0; i < simDomain->numComponents-1; i++)
+        {
+            for (long j = 0; j < simDomain->numComponents-1; j++)
+            {
+                inverted[i][j] = simParams->mobility_host[simDomain->numPhases-1][i][j];
+            }
+        }
+
+        LUPDecompose(inverted, simDomain->numComponents-1, Tol, P);
+        LUPInvert(inverted, P, simDomain->numComponents-1, mobilityInv);
+
+        for (long a = 0; a < simDomain->numPhases-1; a++)
+        {
+            for (long k = 0; k < simDomain->numComponents-1; k++)
+                deltac[k] = simParams->ceq_host[a][simDomain->numPhases-1][k] - simParams->ceq_host[a][a][k];
+
+            for (long i = 0; i < simDomain->numComponents-1; i++)
+            {
+                deltamu[i] = 0.0;
+
+                for (long j = 0; j < simDomain->numComponents-1; j++)
+                {
+                    deltamu[i] += deltac[j]*mobilityInv[i][j];
+                }
+            }
+
+            sum = 0.0;
+            for (long i = 0; i < simDomain->numComponents-1; i++)
+            {
+                sum += deltac[i]*deltamu[i];
+            }
+
+            simParams->Tau_host[a][simDomain->numPhases-1] = (6.0*0.783333*simParams->kappaPhi_host[a][simDomain->numPhases-1]*sum)/(simParams->theta_ij_host[a][simDomain->numPhases-1]*simParams->molarVolume);
+            simParams->Tau_host[simDomain->numPhases-1][a] = simParams->Tau_host[a][simDomain->numPhases-1];
+
+            if (a == 0)
+                minTau = simParams->Tau_host[a][simDomain->numPhases-1];
+
+            if (simParams->Tau_host[a][simDomain->numPhases-1] < minTau)
+                minTau = simParams->Tau_host[a][simDomain->numPhases-1];
+        }
+
+        for (long a = 0; a < simDomain->numPhases; a++)
+        {
+            for (long b = 0; b < simDomain->numPhases; b++)
+            {
+                simParams->Tau_host[a][b] = minTau;
+                simParams->relax_coeff_host[a][b] = 1.0/minTau;
+            }
+        }
+
+        free2M(mobilityInv, simDomain->numComponents-1);
+        free2M(inverted, simDomain->numComponents-1);
+        free3M(dmudc, simDomain->numPhases, simDomain->numComponents-1);
+    }
+    else if (simControls->FUNCTION_F == 2)
+    {
+        // Relaxation Coefficients
+        double **diffInv = malloc2M(simDomain->numComponents-1, simDomain->numComponents-1);
+        double **diff = malloc2M(simDomain->numComponents-1, simDomain->numComponents-1);
+        double dmudc[(simDomain->numComponents-1)*(simDomain->numComponents-1)];
+        double **mobilityInv = malloc2M(simDomain->numComponents-1, simDomain->numComponents-1);
+        double deltac[simDomain->numComponents-1], deltamu[simDomain->numComponents-1];
+        double y[simDomain->numComponents-1];
+        double sum = 0.0;
+        double minTau = 1e12;
+
+        // Get diffusivity of matrix phase
+        for (long i = 0; i < simDomain->numComponents-1; i++)
+        {
+            for (long j = 0; j < simDomain->numComponents-1; j++)
+            {
+                diff[i][j] = simParams->diffusivity_host[simDomain->numPhases-1][i][j];
+            }
+        }
+
+        // Get D^{-1}
+        LUPDecompose(diff, simDomain->numComponents-1, Tol, P);
+        LUPInvert(diff, P, simDomain->numComponents-1, diffInv);
+
+        // Get equilibrium compositions of matrix phase
+        for (long i = 0; i < simDomain->numComponents-1; i++)
+        {
+            y[i] = simParams->ceq_host[simDomain->numPhases-1][simDomain->numPhases-1][i];
+            sum += y[i];
+        }
+        y[simDomain->numComponents-1] = 1.0 - sum;
+
+        // Get dmudc in matrix
+        (*dmudc_tdb[simDomain->thermo_phase_host[simDomain->numPhases-1]])(simParams->T, y, dmudc);
+
+        // Get mobility inverse as dmudc*D^{-1}
+        for (long i = 0; i < simDomain->numComponents-1; i++)
+        {
+            for (long j = 0; j < simDomain->numComponents-1; j++)
+            {
+                mobilityInv[i][j] = 0.0;
+
+                for (long k = 0; k < simDomain->numComponents-1; k++)
+                {
+                    mobilityInv[i][j] += dmudc[i*(simDomain->numComponents-1) + k]*diffInv[k][j];
+                }
+            }
+        }
+
+        for (long a = 0; a < simDomain->numPhases-1; a++)
+        {
+            for (long k = 0; k < simDomain->numComponents-1; k++)
+                deltac[k] = simParams->ceq_host[a][simDomain->numPhases-1][k] - simParams->ceq_host[a][a][k];
+
+            for (long i = 0; i < simDomain->numComponents-1; i++)
+            {
+                deltamu[i] = 0.0;
+
+                for (long j = 0; j < simDomain->numComponents-1; j++)
+                {
+                    deltamu[i] += deltac[j]*mobilityInv[i][j];
+                }
+            }
+
+            sum = 0.0;
+            for (long i = 0; i < simDomain->numComponents-1; i++)
+            {
+                sum += deltac[i]*deltamu[i];
+            }
+
+            simParams->Tau_host[a][simDomain->numPhases-1] = (6.0*0.783333*simParams->kappaPhi_host[a][simDomain->numPhases-1]*sum)/(simParams->theta_ij_host[a][simDomain->numPhases-1]*simParams->molarVolume);
+            simParams->Tau_host[simDomain->numPhases-1][a] = simParams->Tau_host[a][simDomain->numPhases-1];
+
+            if (a == 0)
+                minTau = simParams->Tau_host[a][simDomain->numPhases-1];
+
+            if (simParams->Tau_host[a][simDomain->numPhases-1] < minTau)
+                minTau = simParams->Tau_host[a][simDomain->numPhases-1];
+        }
+
+        for (long a = 0; a < simDomain->numPhases; a++)
+        {
+            for (long b = 0; b < simDomain->numPhases; b++)
+            {
+                simParams->Tau_host[a][b] = minTau;
+                simParams->relax_coeff_host[a][b] = 1.0/minTau;
+            }
+        }
+
+        free2M(diff, simDomain->numComponents-1);
+        free2M(mobilityInv, simDomain->numComponents-1);
+        free2M(diffInv, simDomain->numComponents-1);
+    }
+
+    //printf("Relax coeff = %le\n", simParams->relax_coeff_host[0][1]);
+
+
+    // Move to GPU
+    cudaMemcpy(simDomain->thermo_phase_dev, simDomain->thermo_phase_host, sizeof(long)*simDomain->numPhases, cudaMemcpyHostToDevice);
 
     for (int i = 0; i < simDomain->numPhases; i++)
     {
@@ -286,6 +394,10 @@ void moveParamsToGPU(domainInfo *simDomain, simParameters *simParams)
     }
 }
 
+/*
+ *  Kernel launch parameters
+ *  Number of blocks, and size of each block is calculated here
+ */
 void calcKernelParams(dim3 *gridSize, dim3 *blockSize, domainInfo simDomain, controls simControls, subdomainInfo *subdomain)
 {
     if (simDomain.DIMENSION == 2)
@@ -293,24 +405,12 @@ void calcKernelParams(dim3 *gridSize, dim3 *blockSize, domainInfo simDomain, con
         blockSize->x = 16;
         blockSize->y = 16;
         blockSize->z = 1;
-
-        subdomain->shiftPointer = simControls.padding*subdomain->sizeX;
-        subdomain->sizeY += 2*simControls.padding;
-        subdomain->numCompCells = subdomain->numCells + 2*subdomain->shiftPointer;
-        subdomain->padding = simControls.padding;
-
-        subdomain->sizeZ = 1;
     }
     else if (simDomain.DIMENSION == 3)
     {
         blockSize->x = 8;
         blockSize->y = 8;
         blockSize->z = 4;
-
-        subdomain->shiftPointer = simControls.padding*subdomain->sizeX*subdomain->sizeY;
-        subdomain->sizeZ += 2*simControls.padding;
-        subdomain->numCompCells = subdomain->numCells + 2*subdomain->shiftPointer;
-        subdomain->padding = simControls.padding;
     }
 
     gridSize->x = ceil(subdomain->sizeX/blockSize->x);

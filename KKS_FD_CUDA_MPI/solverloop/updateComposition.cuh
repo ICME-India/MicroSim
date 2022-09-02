@@ -6,6 +6,9 @@
 #include <stdio.h>
 #include "structures.h"
 #include "Thermo.cuh"
+#include "utilityKernels.cuh"
+#include "functionH.cuh"
+
 
 #ifndef MAX_NUM_PHASES
 #define MAX_NUM_PHASES 5
@@ -28,21 +31,10 @@ void __updateComposition__(double **phi,
                            double **phaseComp,
                            double *F0_A, double *F0_B,
                            double *diffusivity,
-                           int NUMPHASES, int NUMCOMPONENTS,
-                           int sizeX, int sizeY, int sizeZ,
+                           long NUMPHASES, long NUMCOMPONENTS,
+                           long sizeX, long sizeY, long sizeZ,
                            double DELTA_X, double DELTA_Y, double DELTA_Z,
                            double DELTA_t);
-
-__global__
-void __updateCompositionBinary__(double **phi,
-                                 double **comp, double **compNew,
-                                 double **phaseComp,
-                                 double *F0_A, double *F0_B,
-                                 double *diffusivity,
-                                 int NUMPHASES, int NUMCOMPONENTS,
-                                 int sizeX, int sizeY, int sizeZ,
-                                 double DELTA_X, double DELTA_Y, double DELTA_Z,
-                                 double DELTA_t);
 
 /*
  * Host-side wrapper function for __updateComposition__

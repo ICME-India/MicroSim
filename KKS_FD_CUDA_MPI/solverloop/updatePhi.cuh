@@ -5,6 +5,9 @@
 #include <cuda_runtime.h>
 #include <stdio.h>
 #include "structures.h"
+#include "Thermo.cuh"
+#include "utilityKernels.cuh"
+
 
 #ifndef MAX_NUM_PHASES
 #define MAX_NUM_PHASES 5
@@ -23,18 +26,22 @@
  */
 __global__
 void __updatePhi__(double **phi, double **dfdphi, double **phiNew,
-                   double *relaxCoeff,
-                   int NUMPHASES, int NUMCOMPONENTS,
-                   int sizeX, int sizeY, int sizeZ,
+                   double *relaxCoeff, double *kappaPhi,
+                   long NUMPHASES, long NUMCOMPONENTS,
+                   long sizeX, long sizeY, long sizeZ,
+                   double DELTA_X, double DELTA_Y, double DELTA_Z,
                    double DELTA_t);
 
 __global__
-void __updatePhiBinary__(double **phi, double **dfdphi, double **phiNew,
-                         double *relaxCoeff, double kappaPhi,
-                         int NUMPHASES, int NUMCOMPONENTS,
-                         int sizeX, int sizeY, int sizeZ,
-                         double DELTA_X, double DELTA_Y, double DELTA_Z,
-                         double DELTA_t);
+void __updatePhi_02__(double **phi, double **dfdphi, double **phiNew, double **phaseComp,
+                      double *omega, double *kappaPhi,
+                      double *diffusivity, double molarVolume,
+                      long *thermo_phase, double temperature,
+                      double *relaxCoeff,
+                      long NUMPHASES, long NUMCOMPONENTS,
+                      long sizeX, long sizeY, long sizeZ,
+                      double DELTA_X, double DELTA_Y, double DELTA_Z,
+                      double DELTA_t);
 
 /*
  * Host-side wrapper function for __updatePhi__
@@ -42,7 +49,7 @@ void __updatePhiBinary__(double **phi, double **dfdphi, double **phiNew,
 #ifdef __cplusplus
 extern "C"
 #endif
-void updatePhi(double **phi, double **dfdphi, double **phiNew,
+void updatePhi(double **phi, double **dfdphi, double **phiNew, double **phaseComp,
                domainInfo* simDomain, controls* simControls,
                simParameters* simParams, subdomainInfo* subdomain,
                dim3 gridSize, dim3 blockSize);

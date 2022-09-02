@@ -1,0 +1,48 @@
+This solver solves precipitate growth probblems using a multiphase, multicomponent KKS-formulation.
+The code is written using CUDA and OpenMPI, and can be employ multiple GPUs in a multi-node setting.
+It has been tested using Nvidia Tesla V100s, Nvidia Tesla P100s, and Nvidia Tesla K80s, with CUDA 11.x and OpenMPI 4.0.x.
+
+System requirements:
+
+1. CUDA (11.x) [Note: While it has also been tested with CUDA 10.1, it is highly recommended to use the latest CUDA compilers]
+    a. CUB, a library that is packaged with CUDA. The makefile will automatically link this library, but in case it fails to do so,
+       it can be directed to your system's CUB installation by defining the Makefile variable "CUB_HOME" with the appropriate path.
+2. OpenMPI (4.0.x)
+    a. This module requires OpenMPI compiled against UCX (for CUDA-aware MPI call support), and GDRCopy (for improved multi-node support; optional).
+    b. To do so, one must first install UCX following the instructions listed here: https://www.open-mpi.org/faq/?category=buildcuda
+        i. The latest UCX builds can be obtained from https://github.com/openucx/ucx.
+        ii. GDRCopy is completely optional, especially for single-node systems.
+    c. Once UCX is installed, build OpenMPI with it, using the commands listed in the link from (2b).
+3. Nvidia HPC-SDK (alternative option)
+    a. NVHPC comes included with CUDA-aware OpenMPI and CUDA, and can be used directly instead of (1) and (2).
+    b. The Param supercomputers provide NVHPC package access through spack. This is the package of preference for compiling and running on these systems.
+4. HDF5 (1.12.x)
+    a. It is critical to build HDF5 with parallel MPI support and the compiler set as mpicxx or mpicc. Instructions to do so can be found in the HDF5 installation guide.
+    b. https://www.hdfgroup.org/downloads/hdf5/source-code/
+5. GSL (2.7.1)
+    a. GSL can be installed by following the instructions listed in their website: https://www.gnu.org/software/gsl/
+
+To compile the solver, simply open a terminal in the base directory of the module and run the command 'make'.
+$ make
+
+For usage on the PARAM supercomputers, one can use the SLURM script (ParamJobScript.sh) and Makefile (Makefile_Param) that are included.
+Since the packages may differ from platform to platform, some modifications to the above may be necessary.
+
+To run the solver, use:
+$ mpirun -n <Number of processes> ./microsim_kks_fd_cuda_mpi <name_of_infile> <name_of_FillingFile> <name_of_output_file>
+
+For .h5 files, with WRITEHDF5=1, output files need to be transformed in .xml format using the following command just above the DATA folder that is created upon execution
+$ make write_xdmf
+$ ./write_xdmf <name_of_infile> <name_of_output_file> <start_time> <end_time>
+
+For ASCII/BINARY files in .vtk format the consolidated output files needs to be reconstructed out of separate processor files that are written in the DATA folder that is created upon execution
+$ ./reconstruct <name_of_infile> <name_of_output_file> <Number of processes> <start_time> <end_time>
+
+
+
+ - GPU Phase-Field Developer Team @ IITH (Saurav Shenoy, Saswata Bhattacharya)
+
+The following contributors are acknowledged
+    Tushar Jogi
+    Pankaj
+    Hemanth Kumar Sandireddy
