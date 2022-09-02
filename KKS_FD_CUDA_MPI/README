@@ -1,4 +1,4 @@
-This solver solves precipitate growth probblems using a multiphase, multicomponent KKS-formulation.
+This solver solves precipitate growth problems using a multiphase, multicomponent KKS-formulation.
 The code is written using CUDA and OpenMPI, and can be employ multiple GPUs in a multi-node setting.
 It has been tested using Nvidia Tesla V100s, Nvidia Tesla P100s, and Nvidia Tesla K80s, with CUDA 11.x and OpenMPI 4.0.x.
 
