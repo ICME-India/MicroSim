@@ -121,27 +121,27 @@ The following contributers are acknowledged
 
 An OpenFOAM phase-field solver to simulate solidification of binary and ternary alloys
 
-# PFOFBinaryThermo / PFOFTernaryThermo
+### PFOFBinaryThermo / PFOFTernaryThermo
 
 It contains the source files of the solver.
 
-# multigrainAlZn
+#### multigrainAlZn
 
 It contains the OpenFOAM case files required to run the multigrain problem for AlZn alloy.
 
-# coolingAlZn
+### coolingAlZn
 
 It contains the OpenFOAM case files required to run the cooling problem for AlZn alloy.
 
-# multigrainNiNb
+### multigrainNiNb
 
 It contains the OpenFOAM case files required to run the multigrain problem for NiNb alloy.
 
-# multigrainNiAlMo
+### multigrainNiAlMo
 
 It contains the OpenFOAM case files required to run the multigrain problem for NiAlMo alloy.
 
-# coolingNiAlMo
+### coolingNiAlMo
 
 It contains the OpenFOAM case files required to run the cooling problem for NiAlMo alloy.
 
