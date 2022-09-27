@@ -11,3 +11,12 @@ It contains the OpenFOAM case files required to run the multigrain problem for N
 ## coolingNiAlMo
 
 It contains the OpenFOAM case files required to run the cooling problem for NiAlMo alloy.
+
+## coarseningNiAlMo
+
+It contains the OpenFOAM case files required to run the coarsening problem for NiAlMo alloy.
+
+## coolingCoarseningNiAlMo
+
+It contains the OpenFOAM case files required to run the coarsening problem while cooling for NiAlMo alloy.
+
