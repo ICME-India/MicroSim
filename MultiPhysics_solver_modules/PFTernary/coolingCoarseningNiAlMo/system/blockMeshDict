@@ -1,0 +1,171 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  4.0                                   |
+|   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      blockMeshDict;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+convertToMeters 2.0e-10;
+x_min 0;
+x_max 300; //direction of growth
+y_min 0;
+y_max 300;
+z_min 0;
+z_max 1;
+
+// should all be integers
+lx #calc "$x_max - $x_min";
+ly #calc "$y_max - $y_min";
+lz #calc "$z_max - $z_min"; // should all be integers
+vertices
+(
+	($x_min $y_min $z_min)
+    ($x_max $y_min $z_min)
+    ($x_max $y_max $z_min)
+    ($x_min $y_max $z_min)
+    ($x_min $y_min $z_max)
+    ($x_max $y_min $z_max)
+    ($x_max $y_max $z_max)
+    ($x_min $y_max $z_max)
+);
+
+blocks
+(
+    hex (0 1 2 3 4 5 6 7) ($lx $ly 1) simpleGrading (1 1 1)
+// for dx = 0.5: simpleGrading (2 2 2) or convertToMeters = 0.5
+);
+
+edges
+(
+);
+
+//================ FOR ZERO-FLUX BOUNDARY CONDITIONS ============
+/*boundary
+(
+    negXBound        //negative x dir
+    {
+        type wall;
+        faces
+        (
+            (0 4 7 3)
+        );
+    }
+    posXBound       //positive x dir
+    {
+        type wall;
+        faces
+        (
+            (1 2 6 5)
+        );
+    }
+    negYBound       // negative y dir
+    {
+        type wall;
+        faces
+        (
+                  (0 1 5 4)
+        );
+    }
+    posYBound        // positive y dir
+    {
+        type wall;
+        faces
+        (
+                  (2 3 7 6)
+        );
+    }
+    negZBound
+    {
+        type empty;
+        faces
+        (
+            (0 3 2 1)
+        );
+    }
+    posZBound
+    {
+        type empty;
+        faces
+        (
+            (4 5 6 7)
+        );
+    }
+);*/
+// 
+// mergePatchPairs
+// (
+//         
+// );
+
+
+//================= FOR CYCLIC BOUNDARY CONDITIONS ==============
+boundary
+(
+    negXBound        //negative x dir
+    {
+        type cyclic;
+        neighbourPatch posXBound;
+        faces
+        (
+            (0 4 7 3)
+        );
+    }
+    posXBound       //positive x dir
+    {
+        type cyclic;
+        neighbourPatch negXBound;
+
+        faces
+        (
+            (1 2 6 5)
+        );
+    }
+    negYBound       // negative y dir
+    {
+        type cyclic;
+        neighbourPatch posYBound;
+        faces
+        (
+                  (0 1 5 4)
+        );
+    }
+    posYBound        // positive y dir
+    {
+        type cyclic;
+        neighbourPatch negYBound;
+        faces
+        (
+                  (2 3 7 6)
+        );
+    }
+    negZBound
+    {
+        type empty;
+        faces
+        (
+            (0 3 2 1)
+        );
+    }
+    posZBound
+    {
+        type empty;
+        faces
+        (
+            (4 5 6 7)
+        );
+    }
+);
+
+mergePatchPairs
+(
+);
+
+// ************************************************************************* //
