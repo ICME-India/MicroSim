@@ -15,7 +15,7 @@ FoamFile
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * 
 
-application     orientationFieldTernary;
+application     phaseFieldTernary;
 
 startFrom       startTime; //latestTime;
 

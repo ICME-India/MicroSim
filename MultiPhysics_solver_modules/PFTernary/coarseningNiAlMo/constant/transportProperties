@@ -49,7 +49,7 @@ Vm              Vm [0 0 0 0 0 0 0] 1.0e-5; // Molar volume
 
 qdot         qdot [0 0 0 0 0 0 0] 4e5; //37.7e4; //Heat dissipation in J/mol-s
 
-//!Switch = 1 to enable cooling, else 0
+//Switch = 1 to enable cooling, else 0
 swcool 0;
 
 //Switch = 1 to enable orientaton field, 2 to model precipitate growth,

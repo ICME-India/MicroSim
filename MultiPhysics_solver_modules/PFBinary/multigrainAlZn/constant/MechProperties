@@ -1,0 +1,39 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  4.0                                   |
+|   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    location    "constant";
+    object      MechProperties;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+//sig             sig [0 0 1 0 0 0 0] 1;
+//sig1            sig1 [0 2 -2 0 0 0 0] 1;
+//sig2            sig2 [0 1 0 0 0 0 0] 1;
+//sigt            sigt [0 0 1 0 0 0 0] 1;
+//lambdas         lambdas [0 0 0 0 0 0 0] 1;
+//center_y        center_y [0 1 0 0 0 0 0] 0;
+//DTs        	DTs [0 2 -1 0 0 0 0] 1;
+cEigenStrain	cEigenStrain [0 0 0 0 0 0 0] (0.01 0 0 0.01 0 0.00); //(0.0 0 0 0.0 0 0.00);
+mu1_elast       mu1_elast [0 0 0 0 0 0 0] 13.5e9; //125e9;
+mu2_elast       mu2_elast [0 0 0 0 0 0 0] 27e9; 
+lambda1        	lambda1 [0 0 0 0 0 0 0] 20.19e9; //187.5e9;
+lambda2        	lambda2 [0 0 0 0 0 0 0] 40.38e9;
+mu1_elast_      mu1_elast_ [0 0 0 0 0 0 0] -17.95e9; //-166.125e9;
+mu2_elast_      mu1_elast_ [0 0 0 0 0 0 0] -35.9e9; //-166.125e9;
+//mu1_elast_      mu1_elast_ [0 0 0 0 0 0 0] 125;
+//mu2_elast_      mu2_elast_ [0 0 0 0 0 0 0] 250;
+//Gamma        	Gamma [0 0 0 0 0 0 0] 0.15;
+//Epsilon        	Epsilon [0 0 0 0 0 0 0] 4;
+//Tau        	Tau [0 0 0 0 0 0 0] 0.28;
+
+
+// ************************************************************************* //

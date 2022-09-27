@@ -42,7 +42,7 @@ solvers
         relTol                    0.1;
     }
 
-        theta
+    theta
     {
         solver                    GAMG;
         preconditioner            FDIC;
@@ -54,6 +54,18 @@ solvers
         relTol                    0.1;
     }
 
+    D
+    {
+        solver                    GAMG;
+        preconditioner            FDIC;
+        smoother                DICGaussSeidel;
+        mergeLevels                1;
+        agglomerator            faceAreaPair;
+        nCellsInCoarsestLevel    100;
+        tolerance               1e-5;
+        relTol                    0.9;
+    }
+    
 }
 /*{
 	mu
@@ -89,5 +101,11 @@ SIMPLE
     nNonOrthogonalCorrectors 0;
 }
 
+stressAnalysis
+{
+    compactNormalStress yes;
+    nCorrectors     1000;
+    D               1e-05;
+}
 
 // ************************************************************************* //

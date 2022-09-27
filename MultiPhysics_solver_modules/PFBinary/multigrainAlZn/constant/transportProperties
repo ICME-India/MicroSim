@@ -23,6 +23,7 @@ dimx        dimx [0 1 0 0 0 0 0] 1; //Dimension of position
 dimt        dimt [0 0 1 0 0 0 0] 1; //Dimension of time
 gamma       gamma [0 0 0 0 0 0 0] 0.1; //Surface Energy
 epsilon     epsilon [0 0 0 0 0 0 0] 4.0e-8; //Interface Width
+diff_Sol    diff_Sol [0 0 0 0 0 0 0] 0; //Diffusivity in solid
 diff_Liq    diff_Liq [0 0 0 0 0 0 0] 1.0e-9; //Diffusivity in liquid
 anti_trap   anti_trap [0 0 0 0 0 0 0] 0.35355; //Antitrapping coefficient
 G           G [0 0 0 0 0 0 0] 0.0; //Thermal gradient
@@ -41,10 +42,11 @@ T0               T0 [0 0 0 0 0 0 0] $T0; //Melting temperature
 
 qdot         qdot [0 0 0 0 0 0 0] 8e5; //37.7e4; //Heat dissipation in J/mol-s
 
-//!Switch = 1 to enable cooling, else 0
+//Switch = 1 to enable cooling, else 0
 swcool 0;
 
-//Switch = 1 to enable orientaton field, else 0
+//Switch = 1 to enable orientaton field, 2 to model precipitate growth,
+//else 0 for single dendrite solidification
 swch 1;
 
 M_Scale 0.4;

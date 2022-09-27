@@ -16,6 +16,16 @@ cp 0/mu_2.orig 0/mu_2
 
 cp 0/theta.orig 0/theta
 
+cp 0/D.orig 0/D
+
+cp 0/gradD.orig 0/gradD
+
+cp 0/strain.orig 0/strain
+
+cp 0/sigma.orig 0/sigma
+
+cp 0/deltaF.orig 0/deltaF
+
 touch ternary.foam
 
 #g++ -I/apps/gsl/include -c muInitial.cpp

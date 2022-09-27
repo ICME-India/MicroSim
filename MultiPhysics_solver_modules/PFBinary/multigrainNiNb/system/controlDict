@@ -15,7 +15,7 @@ FoamFile
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * 
 
-application     orientationFieldBinary;
+application     phaseFieldBinary;
 
 startFrom       startTime;
 
@@ -29,7 +29,7 @@ deltaT          324e-9;
 
 writeControl    runTime;
 
-writeInterval   162e-5;
+writeInterval   162e-7;
 
 purgeWrite      0;
 
