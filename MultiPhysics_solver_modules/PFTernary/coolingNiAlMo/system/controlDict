@@ -14,22 +14,23 @@ FoamFile
     object      controlDict;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * 
+#include "../generatedInput"
 
 application     phaseFieldTernary;
 
 startFrom       startTime; //latestTime;
 
-startTime       0; // the actual time i.e. runtime.value() or no. of iterations*deltaT
+startTime       $STARTTIME; //0; // the actual time i.e. runtime.value() or no. of iterations*deltaT
 
 stopAt          endTime;
 
-endTime         500e-4; //actual time = total_iterations*deltaT
+endTime         $NTIMESTEPS; //500e-4; //actual time = total_iterations*deltaT
 
-deltaT          33e-8;//0.10;//0.05;//0.20;
+deltaT          $DELTA_t; //33e-8;//0.10;//0.05;//0.20;
 
 writeControl    runTime;
 
-writeInterval   66e-6; //0.40;
+writeInterval   $SAVET; //66e-6; //0.40;
 
 purgeWrite      0;
 
