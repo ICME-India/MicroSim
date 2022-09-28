@@ -121,7 +121,7 @@ The following contributers are acknowledged
 
 An OpenFOAM phase-field solver to simulate solidification of binary and ternary alloys
 
-### PFOFBinaryThermo / PFOFTernaryThermo
+### PFBinary / PFTernary
 
 It contains the source files of the solver.
 
