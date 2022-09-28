@@ -1,6 +1,14 @@
-# MicroSim LAB
+# MicroSim
+MicroSim is a software stack that consists of phase-field codes that offer flexibility with discretization, models as 
+well as the high-performance computing hardware(CPU/GPU) that they can execute on. Along with this the stack also consists of Multi-physics solver modules 
+that are based on OpenFoam and AMRex libraries(will be added soon). The stack has an integrator interface that is built 
+using python that allows one to create the input and filling files required for the solvers as well as provides 
+a consolidated framework to choose the solver, compile, execute and visualize simulation results.
+The project is a consortium between (IISc Bangalore, IIT Hyderabad, IIT Bombay, IIT Madras, Savitribai Phule Pune University, C-DAC Pune).
+Following is a brief description of the different software modules and details on how to independently execute them.  
 
-
+ [Workshop-cum-demo](https://www.youtube.com/channel/UCnmLKb-kqQCNXWa0Oz6Ua_g)  
+ 
 ## Grand-Potential Model(SERIAL)
 This is multiphase multi-component phase-field solver based on the 
 grand-potential formalism. This is a 2D serial CPU version of the code.
@@ -111,87 +119,50 @@ The following contributers are acknowledged
 
 ## MultiPhysics Solver
 
-### Requirements
+An OpenFOAM phase-field solver to simulate solidification of binary and ternary alloys
 
-To build and run the solver modules, the users need OpenFOAM and GSL. The modules are tested using OpenFOAM-in-Box-20 in Ubuntu 18.04 and Ubuntu 20.04, and OpenFOAM-6 in Ubuntu 18.04. Installation image of Ubuntu 20.04 can be downloaded from the link below:
+### PFOFBinaryThermo / PFOFTernaryThermo
 
-* https://releases.ubuntu.com/20.04.4/ 
+It contains the source files of the solver.
 
-OpenFOAM-in-Box-20 is recommended for new users due to ease of installation, and can be downloaded from the links below:
+#### multigrainAlZn
 
-* Official link with installation guide: https://www.cfdsupport.com/openfoam-in-box.html
+It contains the OpenFOAM case files required to run the multigrain problem for AlZn alloy.
 
-* Unofficial link: https://drive.google.com/file/d/17gkbpQTK54Hq1A7GNk-s6rktQDfrtcnn/view?usp=sharing
+#### coolingAlZn
 
-The following commands can be used in the terminal to begin the installation (check official link above if needed):
+It contains the OpenFOAM case files required to run the cooling problem for AlZn alloy.
 
-> mkdir -p ~/OpenFOAM/OpenFOAM-in-Box
+#### multigrainNiNb
 
-> cp OpenFOAM-in-Box-20.09v2-linux64.sh ~/OpenFOAM/OpenFOAM-in-Box/
+It contains the OpenFOAM case files required to run the multigrain problem for NiNb alloy.
 
-> cd ~/OpenFOAM/OpenFOAM-in-Box/
+#### coarseningAlZn
 
-> bash OpenFOAM-in-Box-20.09v2-linux64.sh -install
+It contains the OpenFOAM case files required to run the coarsening problem for AlZn alloy.
 
-> echo "source ~/OpenFOAM/OpenFOAM-in-Box/OpenFOAM-in-Box-20.09v2-22-g178c07ee/OpenFOAM-dev/etc/bashrc" >> ~/.bashrc
+#### multigrainNiAlMo
 
-> source ~/.bashrc
+It contains the OpenFOAM case files required to run the multigrain problem for NiAlMo alloy.
 
-Cases can be run after creating the directory below:
+#### coolingNiAlMo
 
-> mkdir -p $FOAM_RUN
+It contains the OpenFOAM case files required to run the cooling problem for NiAlMo alloy.
 
-GSL can be installed using the following command in the terminal:
+#### coarseningNiAlMo
 
-> sudo apt install libgsl-dev
+It contains the OpenFOAM case files required to run the coarsening problem for NiAlMo alloy.
 
-For visualization and post-processing, ParaView 5.6 and 5.8 are tested. ParaView 5.8 comes along with OpenFOAM in Box 20 and can be launched using the command:
+#### coolingCoarseningNiAlMo
 
-> paraview
-
-To view the plots, gnuplot can be used, which can be installed using the following command in the terminal:
-
-> sudo apt install gnuplot-x11
-
-It can be launched using the command:
-
-> gnuplot
-
-It is advised to refer to the OpenFOAM documentions to understand the methods involved while using. The below link can be useful:
-
-* https://cfd.direct/openfoam/documentation/
+It contains the OpenFOAM case files required to run the coarsening problem while cooling for NiAlMo alloy.
 
 
-### OpenFOAM modules
-
-Copy the modules to the OpenFOAM run directory. For instance, to copy the directory PFBinary:
-
-> cp -r PFBinary $FOAM_RUN
-
-Solver has to be compiled from the corresponding solver directory. For instance:
-
-> cd $FOAM_RUN/PFBinary/PFOFBinaryThermo
-
-> wclean
-
-> wmake
-
-Finally, switch to the case directory, e.g. coolingAlZn:
-
-> cd $FOAM_RUN/PFBinary/coolingAlZn
-
-To run the case with the default parameters, execute the following:
-
-> ./Allclean
-
-> ./Allrun
-
-Note: Allclean and Allrun must be set as executables
-
-To check the results in ParaView:
-
-> paraview binary.foam
-
+The following contributers are acknowledged
+1. Swapnil Bhure
+2. Tanmay Dutta 
+3. Ravi Kumar Singh
+4. Bhalchandra Bhadak
 
 
 ## Infile Generator
