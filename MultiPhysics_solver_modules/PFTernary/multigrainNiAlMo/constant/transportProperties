@@ -18,6 +18,7 @@ FoamFile
 // and temperature at equilibrium (or melting)
 
 #include "temperature"
+#include "../generatedInput"
 
 dimx        dimx [0 1 0 0 0 0 0] 1; //Dimension of position
 dimt        dimt [0 0 1 0 0 0 0] 1; //Dimension of time
@@ -25,9 +26,9 @@ dimt        dimt [0 0 1 0 0 0 0] 1; //Dimension of time
 //m_1         m_1 [0 0 0 0 0 0 0] 0.45; //Slope liquidus
 //omega       omega [0 0 0 0 0 0 0] 1.687331;
 //omega       omega [0 0 0 0 0 0 0] 1.0; //Relaxation coefficient for phi (order parameter)
-gamma       gamma [0 0 0 0 0 0 0] 0.1; //Surface Energy
+gamma       gamma [0 0 0 0 0 0 0] $GAMMA; //0.1; //Surface Energy
 //epsilon     epsilon [0 0 0 0 0 0 0] 48;
-epsilon     epsilon [0 0 0 0 0 0 0] 12e-8; //Interface Width
+epsilon     epsilon [0 0 0 0 0 0 0] $epsilon; //12e-8; //Interface Width
 //c_Sol       c_Sol [0 0 0 0 0 0 0] 0.7815; //Composition of solid in equilibrium with liquid
 //c_Liq       c_Liq [0 0 0 0 0 0 0] 0.5; //Composition of liquid in equilibrium with solid
 //c_eq        c_eq [0 0 0 0 0 0 0] 0.5; //Equilibrium composition or average composition of alloy
@@ -36,23 +37,24 @@ epsilon     epsilon [0 0 0 0 0 0 0] 12e-8; //Interface Width
 anti_trap   anti_trap [0 0 0 0 0 0 0] 0.35355; //Antitrapping coefficient
 G           G [0 0 0 0 0 0 0] 0.0; //Thermal gradient
 v           v [0 0 0 0 0 0 0] 0.0; //Velocity
-noise_mag           noise_mag [0 0 0 0 0 0 0] 0.01; //Noise magnitude
+noise_mag           noise_mag [0 0 0 0 0 0 0] $Amp_Noise_Phase; //0.01; //Noise magnitude
 initial           initial [0 0 0 0 0 0 0] $initial; //Constant value from temperature profile
 T0         	 T0 [0 0 0 0 0 0 0] $T0; //Melting temperature
 //T         	 T0 [0 0 0 0 0 0 0] 0.95; //Operating temperature
-delta_01         delta_01 [0 0 0 0 0 0 0] 0.01; //Strength of anisotropy
+delta_01         delta_01 [0 0 0 0 0 0 0] $dab; //0.01; //Strength of anisotropy
 theta_val         theta_val [0 0 0 0 0 0 0] 0.785; //Constant orientation in radian
 eps         eps [0 0 0 0 0 0 0] 1e-3; // value added to denominator of g_phi
 mu_th          mu_th [0 0 0 0 0 0 0] 0.5; // mu^2 is the strength of the coupling in alpha equation
-Vm              Vm [0 0 0 0 0 0 0] 1.0e-5; // Molar volume
+Vm              Vm [0 0 0 0 0 0 0] $Vm; //1.0e-5; // Molar volume
 //A            A [0 0 0 0 0 0 0] 1;
 
 qdot         qdot [0 0 0 0 0 0 0] 4e5; //37.7e4; //Heat dissipation in J/mol-s
 
-//!Switch = 1 to enable cooling, else 0
+//Switch = 1 to enable cooling, else 0
 swcool 0;
 
-//Switch = 1 to enable orientaton field, else 0
+//Switch = 1 to enable orientaton field, 2 to model precipitate growth,
+//else 0 for single dendrite solidification
 swch 1;
 
 M_Scale 0.05;
@@ -72,13 +74,13 @@ dcdmu_2[0][1]  -0.3333;
 dcdmu_2[1][0]  -0.3333;
 dcdmu_2[1][1]   0.6666;
 */
-D_a[0][0]       0.0;
-D_a[1][1]       0.0;
+D_a[0][0]       $DIFFUSIVITY00; //0.0;
+D_a[1][1]       $DIFFUSIVITY01; //0.0;
 D_a[0][1]       0.0;
 D_a[1][0]       0.0;
 
-D_l[0][0]       1e-9;
-D_l[1][1]       0.5e-9;
+D_l[0][0]       $DIFFUSIVITY10; //1e-9;
+D_l[1][1]       $DIFFUSIVITY11; //0.5e-9;
 D_l[0][1]       0.0;
 D_l[1][0]       0.0;
 /*

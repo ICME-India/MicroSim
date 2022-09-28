@@ -1,4 +1,8 @@
 #!/bin/sh
+g++ readInputFile.cpp -o readInputFile
+
+./readInputFile Input_tdb_new.in Filling.in
+
 cd ${0%/*} || exit 1    # Run from this directory
 
 # Source tutorial run functions
@@ -13,6 +17,16 @@ cp 0/phi.orig 0/phi
 cp 0/mu.orig 0/mu
 
 cp 0/theta.orig 0/theta
+
+cp 0/D.orig 0/D
+
+cp 0/gradD.orig 0/gradD
+
+cp 0/strain.orig 0/strain
+
+cp 0/sigma.orig 0/sigma
+
+cp 0/deltaF.orig 0/deltaF
 
 touch binary.foam
 

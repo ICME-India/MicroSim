@@ -18,22 +18,24 @@ FoamFile
 // and temperature at equilibrium (or melting)
 
 #include "temperature"
+#include "../generatedInput"
 
 dimx        dimx [0 1 0 0 0 0 0] 1; //Dimension of position
 dimt        dimt [0 0 1 0 0 0 0] 1; //Dimension of time
-gamma       gamma [0 0 0 0 0 0 0] 0.1; //Surface Energy
-epsilon     epsilon [0 0 0 0 0 0 0] 4.0e-8; //Interface Width
-diff_Liq    diff_Liq [0 0 0 0 0 0 0] 1.0e-9; //Diffusivity in liquid
+gamma       gamma [0 0 0 0 0 0 0] $GAMMA; //0.1; //Surface Energy
+epsilon     epsilon [0 0 0 0 0 0 0] $epsilon; //4.0e-8; //Interface Width
+diff_Sol    diff_Sol [0 0 0 0 0 0 0] $DIFFUSIVITY0; //0; //Diffusivity in solid
+diff_Liq    diff_Liq [0 0 0 0 0 0 0] $DIFFUSIVITY1; //1.0e-9; //Diffusivity in liquid
 anti_trap   anti_trap [0 0 0 0 0 0 0] 0.35355; //Antitrapping coefficient
 G           G [0 0 0 0 0 0 0] 0.0; //Thermal gradient
 v           v [0 0 0 0 0 0 0] 0.0; //Velocity
-noise_mag           noise_mag [0 0 0 0 0 0 0] 0.01; //Noise magnitude
+noise_mag           noise_mag [0 0 0 0 0 0 0] $Amp_Noise_Phase; //0.01; //Noise magnitude
 initial           initial [0 0 0 0 0 0 0] $initial; //Constant value from temperature profile
-delta_01         delta_01 [0 0 0 0 0 0 0] 0.01; //Strength of anisotropy
+delta_01         delta_01 [0 0 0 0 0 0 0] $dab; //0.01; //Strength of anisotropy
 theta_val         theta_val [0 0 0 0 0 0 0] 0.785; //Constant orientation in radian
 eps         eps [0 0 0 0 0 0 0] 1e-3; // value added to denominator of g_phi
 mu_th          mu_th [0 0 0 0 0 0 0] 0.5; // mu^2 is the strength of the coupling in alpha equation
-Vm              Vm [0 0 0 0 0 0 0] 1.0e-5; // Molar volume
+Vm              Vm [0 0 0 0 0 0 0] $Vm; //1.0e-5; // Molar volume
 
 // TDB properties c_Sol, c_Liq, A_Sol, A_Liq at T are read directly
 
@@ -41,10 +43,11 @@ T0               T0 [0 0 0 0 0 0 0] $T0; //Melting temperature
 
 qdot         qdot [0 0 0 0 0 0 0] 8e5; //37.7e4; //Heat dissipation in J/mol-s
 
-//!Switch = 1 to enable cooling, else 0
+//Switch = 1 to enable cooling, else 0
 swcool 0;
 
-//Switch = 1 to enable orientaton field, else 0
+//Switch = 1 to enable orientaton field, 2 to model precipitate growth,
+//else 0 for single dendrite solidification
 swch 1;
 
 M_Scale 0.4;

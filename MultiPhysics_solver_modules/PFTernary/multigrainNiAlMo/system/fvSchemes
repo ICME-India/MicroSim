@@ -15,10 +15,11 @@ FoamFile
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-/*d2dt2Schemes
+d2dt2Schemes
 {
     default         steadyState;
-}*/
+}
+
 ddtSchemes
 {
     default         Euler;

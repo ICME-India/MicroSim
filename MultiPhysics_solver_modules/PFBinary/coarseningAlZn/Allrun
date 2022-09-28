@@ -1,0 +1,50 @@
+#!/bin/sh
+g++ readInputFile.cpp -o readInputFile
+
+./readInputFile Input_tdb_new_AlZn_ppt.in Filling.in
+
+cd ${0%/*} || exit 1    # Run from this directory
+
+# Source tutorial run functions
+. $WM_PROJECT_DIR/bin/tools/RunFunctions
+
+application=`getApplication`
+
+runApplication blockMesh
+
+cp 0/phi.orig 0/phi
+
+cp 0/mu.orig 0/mu
+
+cp 0/theta.orig 0/theta
+
+cp 0/D.orig 0/D
+
+cp 0/gradD.orig 0/gradD
+
+cp 0/strain.orig 0/strain
+
+cp 0/sigma.orig 0/sigma
+
+cp 0/deltaF.orig 0/deltaF
+
+touch binary.foam
+
+#g++ -I/apps/gsl/include -c muInitial.cpp
+g++ -c muInitial.cpp
+
+#g++ -L/apps/gsl/lib muInitial.o -lgsl -lgslcblas -o muInitial
+g++ muInitial.o -lgsl -lgslcblas -o muInitial
+
+./muInitial
+
+#rm muInitial muInitial.o
+
+#runApplication setFields -dict system/setFieldsDict
+
+runApplication decomposePar -cellDist
+
+runParallel `getApplication`
+#runApplication `getApplication`
+
+#------------------------------------------------------------------------------
