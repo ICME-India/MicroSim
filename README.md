@@ -129,26 +129,40 @@ It contains the source files of the solver.
 
 It contains the OpenFOAM case files required to run the multigrain problem for AlZn alloy.
 
-### coolingAlZn
+#### coolingAlZn
 
 It contains the OpenFOAM case files required to run the cooling problem for AlZn alloy.
 
-### multigrainNiNb
+#### multigrainNiNb
 
 It contains the OpenFOAM case files required to run the multigrain problem for NiNb alloy.
 
-### multigrainNiAlMo
+#### coarseningAlZn
+
+It contains the OpenFOAM case files required to run the coarsening problem for AlZn alloy.
+
+#### multigrainNiAlMo
 
 It contains the OpenFOAM case files required to run the multigrain problem for NiAlMo alloy.
 
-### coolingNiAlMo
+#### coolingNiAlMo
 
 It contains the OpenFOAM case files required to run the cooling problem for NiAlMo alloy.
+
+#### coarseningNiAlMo
+
+It contains the OpenFOAM case files required to run the coarsening problem for NiAlMo alloy.
+
+#### coolingCoarseningNiAlMo
+
+It contains the OpenFOAM case files required to run the coarsening problem while cooling for NiAlMo alloy.
 
 
 The following contributers are acknowledged
 1. Swapnil Bhure
 2. Tanmay Dutta 
+3. Ravi Kumar Singh
+4. Bhalchandra Bhadak
 
 
 ## Infile Generator
