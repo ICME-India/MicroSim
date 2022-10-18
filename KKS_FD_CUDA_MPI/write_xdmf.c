@@ -8,7 +8,8 @@
 #define  IS_LITTLE_ENDIAN  (!IS_BIG_ENDIAN)
 
 #include "structures.h"
-#include "inputReader.c"
+#include "reading_input_parameters.c"
+#include "matrix.cu"
 #include "utilityFunctions.c"
 
 domainInfo      simDomain;              // Global mesh size and cell size
@@ -30,7 +31,7 @@ int main(int argc, char *argv[])
         write_xdmf_xml(t, argv);
     }
 
-    freeVars(&simDomain, &simParams);
+    freeVars(&simDomain, &simControls, &simParams);
 
     return 0;
 }

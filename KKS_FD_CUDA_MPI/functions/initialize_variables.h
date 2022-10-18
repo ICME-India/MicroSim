@@ -9,6 +9,7 @@
 #include <cuda.h>
 #include <cuda_runtime.h>
 
+#include "functionTau.cuh"
 #include "structures.h"
 #include "utilityFunctions.h"
 

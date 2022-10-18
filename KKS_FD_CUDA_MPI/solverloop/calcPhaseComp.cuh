@@ -7,43 +7,39 @@
 #include "structures.h"
 #include "utilityKernels.cuh"
 #include "Thermo.cuh"
-#include "utilityKernels.cuh"
+#include "matrix.cuh"
 #include "functionH.cuh"
 
-#ifndef MAX_NUM_PHASES
-#define MAX_NUM_PHASES 5
-#endif
-
-#ifndef MAX_NUM_COMP
-#define MAX_NUM_COMP 5
-#endif
-
-#ifndef MAX_NUM_PHASE_COMP
-#define MAX_NUM_PHASE_COMP 16
-#endif
 
 /*
- * Calculate phase compositions
+ * Calculate phase compositions for Function_F != 2
  */
 __global__
 void __calcPhaseComp__(double **phi, double **comp,
                        double **phaseComp,
                        double *F0_A, double *F0_B, double *F0_C,
-                       long NUMPHASES, long NUMCOMPONENTS,
-                       long sizeX, long sizeY, long sizeZ);
+                       long NUMPHASES, long NUMCOMPONENTS, long DIMENSION,
+                       long sizeX, long sizeY, long sizeZ, long padding);
 
+/*
+ *  Initialise diffusion potentials for Function_F == 2
+ */
 __global__
 void __initMu__(double **phi, double **comp, double **phaseComp, double **mu,
                 long *thermo_phase, double temperature,
-                long NUMPHASES, long NUMCOMPONENTS,
-                long sizeX, long sizeY, long sizeZ);
+                long NUMPHASES, long NUMCOMPONENTS, long DIMENSION,
+                long sizeX, long sizeY, long sizeZ,
+                long yStep, long zStep, long padding);
 
+/*
+ * Calculate phase compositions for Function_F == 2
+ */
 __global__
 void __calcPhaseComp_02__(double **phi, double **comp,
                           double **phaseComp, double **mu, double *cguess,
                           double temperature, long *thermo_phase,
-                          long NUMPHASES, long NUMCOMPONENTS,
-                          long sizeX, long sizeY, long sizeZ);
+                          long NUMPHASES, long NUMCOMPONENTS, long DIMENSION,
+                          long sizeX, long sizeY, long sizeZ, long padding);
 
 /*
  * Wrapper function for __calcPhaseComp__

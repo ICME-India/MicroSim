@@ -1,104 +1,5 @@
 #include "utilityFunctions.h"
 
-/*
- *  LU Decomposition
- */
-int LUPDecompose(double **A, int N, double Tol, int *P)
-{
-
-    int i, j, k, imax;
-    double maxA, *ptr, absA;
-
-    for (i = 0; i <= N; i++)
-        P[i] = i; //Unit permutation matrix, P[N] initialized with N
-
-    for (i = 0; i < N; i++) {
-        maxA = 0.0;
-        imax = i;
-
-        for (k = i; k < N; k++)
-            if ((absA = fabs(A[k][i])) > maxA)
-            {
-                maxA = absA;
-                imax = k;
-            }
-
-        if (maxA < Tol) return 0; //failure, matrix is degenerate
-
-        if (imax != i)
-        {
-            //pivoting P
-            j = P[i];
-            P[i] = P[imax];
-            P[imax] = j;
-
-            //pivoting rows of A
-            ptr = A[i];
-            A[i] = A[imax];
-            A[imax] = ptr;
-
-            //counting pivots starting from N (for determinant)
-            P[N]++;
-        }
-
-        for (j = i + 1; j < N; j++)
-        {
-            A[j][i] /= A[i][i];
-
-            for (k = i + 1; k < N; k++)
-                A[j][k] -= A[j][i] * A[i][k];
-        }
-    }
-
-    return 1;  //decomposition done
-}
-
-/*
- *  Inversion after LU-decomposition
- */
-void LUPInvert(double **A, int *P, int N, double **IA)
-{
-    for (int j = 0; j < N; j++)
-    {
-        for (int i = 0; i < N; i++)
-        {
-            IA[i][j] = P[i] == j ? 1.0 : 0.0;
-
-            for (int k = 0; k < i; k++)
-                IA[i][j] -= A[i][k] * IA[k][j];
-        }
-
-        for (int i = N - 1; i >= 0; i--)
-        {
-            for (int k = i + 1; k < N; k++)
-                IA[i][j] -= A[i][k] * IA[k][j];
-
-            IA[i][j] /= A[i][i];
-        }
-    }
-}
-
-/*
- *  AB = C
- *  N is the dimension of all 3 matrices
- */
-void matrixMultiply(double **A, double **B, double **C, int N)
-{
-    for (int i = 0; i < N; i++)
-    {
-        for (int j = 0; j < N; j++)
-        {
-            C[i][j] = 0.0;
-
-            for (int k = 0; k < N; k++)
-            {
-                C[i][j] += A[i][k]*B[k][j];
-            }
-        }
-    }
-}
-
-
 #if THERMO == 1
 void testThermoFuncs(domainInfo simDomain, simParameters simParams)
 {
@@ -189,48 +90,48 @@ void populate_matrix(double **Mat, char *tmpstr, long NUMPHASES)
 }
 
 void populate_matrix3M(double ***Mat, char *tmpstr, long NUMPHASES) {
-  char **tmp;
-  char *str1, *str2, *token;
-  char *saveptr1, *saveptr2;
+    char **tmp;
+    char *str1, *str2, *token;
+    char *saveptr1, *saveptr2;
 
-  long i,j,k,l;
-  long len = NUMPHASES*(NUMPHASES-1)*(NUMPHASES-2)/6;
+    long i,j,k,l;
+    long len = NUMPHASES*(NUMPHASES-1)*(NUMPHASES-2)/6;
 
-  tmp = (char**)malloc(sizeof(char*)*len);
+    tmp = (char**)malloc(sizeof(char*)*len);
 
-  for (i = 0; i < len; ++i) {
-    tmp[i] = (char*)malloc(sizeof(char)*10);
-  }
-  for (i = 0, str1 = tmpstr; ; i++, str1 = NULL) {
-    token = strtok_r(str1, "{,}", &saveptr1);
-    if (token == NULL)
-        break;
-    strcpy(tmp[i],token);
-  }
-  l=0;
-  for(i=0; i < NUMPHASES; i++) {
-    for (j=i+1; j < NUMPHASES; j++) {
-      for (k=j+1; k < NUMPHASES; k++) {
-        Mat[i][i][i] = 0.0;
-        Mat[i][j][j] = 0.0;
-        Mat[i][k][k] = 0.0;
-
-        Mat[i][j][k] = atof(tmp[l]);
-        Mat[i][k][j] = Mat[i][j][k];
-        Mat[j][i][k] = Mat[i][j][k];
-        Mat[j][k][i] = Mat[i][j][k];
-        Mat[k][i][j] = Mat[i][j][k];
-        Mat[k][j][i] = Mat[i][j][k];
-
-        l++;
-      }
+    for (i = 0; i < len; ++i) {
+        tmp[i] = (char*)malloc(sizeof(char)*10);
     }
-  }
-  for (i = 0; i < len; ++i) {
-    free(tmp[i]);
-  }
-  free(tmp);
-  tmp = NULL;
+    for (i = 0, str1 = tmpstr; ; i++, str1 = NULL) {
+        token = strtok_r(str1, "{,}", &saveptr1);
+        if (token == NULL)
+            break;
+        strcpy(tmp[i],token);
+    }
+    l=0;
+    for(i=0; i < NUMPHASES; i++) {
+        for (j=i+1; j < NUMPHASES; j++) {
+            for (k=j+1; k < NUMPHASES; k++) {
+                Mat[i][i][i] = 0.0;
+                Mat[i][j][j] = 0.0;
+                Mat[i][k][k] = 0.0;
+
+                Mat[i][j][k] = atof(tmp[l]);
+                Mat[i][k][j] = Mat[i][j][k];
+                Mat[j][i][k] = Mat[i][j][k];
+                Mat[j][k][i] = Mat[i][j][k];
+                Mat[k][i][j] = Mat[i][j][k];
+                Mat[k][j][i] = Mat[i][j][k];
+
+                l++;
+            }
+        }
+    }
+    for (i = 0; i < len; ++i) {
+        free(tmp[i]);
+    }
+    free(tmp);
+    tmp = NULL;
 }
 
 void populate_thetaij_matrix(double **Mat, char *tmpstr, long NUMPHASES)
@@ -473,7 +374,133 @@ void populate_thermodynamic_matrix(double ***Mat, char *tmpstr, long NUMCOMPONEN
     tmp = NULL;
 }
 
-double** malloc2M(long a, long b)
+void get_Rotation_Matrix(double **R, double theta, int axis) {
+    double costheta, sintheta;
+
+    costheta = cos(theta*M_PI/180.0);
+    sintheta = sin(theta*M_PI/180.0);
+
+    if (axis == 0) {
+        R[0][0] = 1.0;
+        R[0][1] = 0.0;
+        R[0][2] = 0.0;
+        R[1][0] = 0.0;
+        R[2][0] = 0.0;
+
+        R[1][1] = costheta;
+        R[1][2] = -sintheta;
+        R[2][1] = sintheta;
+        R[2][2] = costheta;
+    }
+
+    if (axis == 1) {
+        R[0][0] = costheta;
+        R[0][1] = 0.0;
+        R[0][2] = sintheta;
+        R[1][0] = 0.0;
+        R[2][0] = -sintheta;
+
+        R[1][1] = 1.0;
+        R[1][2] = 0.0;
+        R[2][1] = 0.0;
+        R[2][2] = costheta;
+    }
+
+    if (axis == 2) {
+        R[0][0] = costheta;
+        R[0][1] = -sintheta;
+        R[0][2] = 0.0;
+        R[1][0] = sintheta;
+        R[2][0] = 0.0;
+
+        R[1][1] = costheta;
+        R[1][2] = 0.0;
+        R[2][1] = 0.0;
+        R[2][2] = 1.0;
+    }
+}
+
+void populate_rotation_matrix(double ****Mat, double ****Mat_Inv, char *tmpstr)
+{
+    char **tmp;
+    char *str1, *str2, *token;
+    char *saveptr1, *saveptr2;
+    int i,l,j;
+
+    long len = 5;
+    long phase1;
+    long phase2;
+    double thetax, thetay, thetaz;
+    double **Rx;
+    double **Ry;
+    double **Rz;
+    double **mult;
+
+    Rx     = MallocM(3,3);
+    Ry     = MallocM(3,3);
+    Rz     = MallocM(3,3);
+    mult   = MallocM(3,3);
+
+
+    tmp = (char**)malloc(sizeof(char*)*len);
+    for (i = 0; i < len; ++i) {
+        tmp[i] = (char*)malloc(sizeof(char)*10);
+    }
+
+    for (i = 0, str1 = tmpstr; ; i++, str1 = NULL) {
+        token = strtok_r(str1, "{,}", &saveptr1);
+        if (token == NULL)
+            break;
+        strcpy(tmp[i],token);
+    }
+
+    phase1 = atol(tmp[0]);
+    phase2 = atol(tmp[1]);
+
+    thetax = atof(tmp[2]);
+    thetay = atof(tmp[3]);
+    thetaz = atof(tmp[4]);
+
+    //   printf("phase1=%ld, phase2=%ld\n", phase1, phase2);
+
+    get_Rotation_Matrix(Rx, thetax, 0);
+    get_Rotation_Matrix(Ry, thetay, 1);
+    get_Rotation_Matrix(Rz, thetaz, 2);
+
+
+    matrixMultiply(Rx, Ry, mult, 3);
+
+    matrixMultiply(mult, Rz, Mat[phase1][phase2], 3);
+
+    int P[4];
+
+    LUPDecompose(Mat[phase1][phase2], 3, 0.000001, P);
+    LUPInvert(Mat[phase1][phase2], P, 3, Mat_Inv[phase1][phase2]);
+
+    for (i=0; i<3; i++) {
+        for (j=0; j<3; j++) {
+            Mat[phase2][phase1][i][j]     = Mat[phase1][phase2][i][j];
+            Mat_Inv[phase2][phase1][i][j] = Mat_Inv[phase1][phase2][i][j];
+            //       printf("%le ",Mat_Inv[phase2][phase1][i][j]);
+        }
+        //     printf("\n");
+    }
+
+    //   exit(0);
+
+    FreeM(Rx, 3);
+    FreeM(Ry, 3);
+    FreeM(Rz, 3);
+    FreeM(mult, 3);
+
+    for (i = 0; i < len; ++i) {
+        free(tmp[i]);
+    }
+    free(tmp);
+    tmp = NULL;
+}
+
+double** MallocM(long a, long b)
 {
     long i;
     double** Mat;
@@ -486,7 +513,7 @@ double** malloc2M(long a, long b)
     return Mat;
 }
 
-double*** malloc3M(long a, long b, long c)
+double*** Malloc3M(long a, long b, long c)
 {
     long i, j;
     double*** Mat;
@@ -503,7 +530,7 @@ double*** malloc3M(long a, long b, long c)
     return Mat;
 }
 
-double**** malloc4M(long a, long b, long c, long d)
+double**** Malloc4M(long a, long b, long c, long d)
 {
     long i, j, p;
     double**** Mat;
@@ -525,7 +552,7 @@ double**** malloc4M(long a, long b, long c, long d)
     return Mat;
 }
 
-void free2M(double **Mat, long a)
+void FreeM(double **Mat, long a)
 {
     long i;
 
@@ -536,7 +563,7 @@ void free2M(double **Mat, long a)
     Mat = NULL;
 }
 
-void free3M(double ***Mat, long a, long b)
+void Free3M(double ***Mat, long a, long b)
 {
     long i, j;
 
@@ -551,7 +578,7 @@ void free3M(double ***Mat, long a, long b)
     Mat = NULL;
 }
 
-void free4M(double ****Mat, long a, long b, long c)
+void Free4M(double ****Mat, long a, long b, long c)
 {
     long i, j, l;
 
@@ -587,54 +614,63 @@ void freeOnDev(double **arr, double ***arr2)
     free(*arr2);
 }
 
-void freeVars(domainInfo *simDomain, simParameters *simParams)
+void freeVars(domainInfo *simDomain, controls *simControls, simParameters *simParams)
 {
-    free3M(simParams->slopes, simDomain->numPhases, simDomain->numPhases);
-    free2M(simParams->DELTA_T, simDomain->numPhases);
+    Free3M(simParams->slopes, simDomain->numPhases, simDomain->numPhases);
+    FreeM(simParams->DELTA_T, simDomain->numPhases);
 
-    free2M(simParams->gamma_host, simDomain->numPhases);
+    FreeM(simParams->gamma_host, simDomain->numPhases);
     cudaFree(simParams->gamma_dev);
 
-    free2M(simParams->kappaPhi_host, simDomain->numPhases);
+    FreeM(simParams->kappaPhi_host, simDomain->numPhases);
     cudaFree(simParams->kappaPhi_dev);
 
-    free2M(simParams->relax_coeff_host, simDomain->numPhases);
+    FreeM(simParams->relax_coeff_host, simDomain->numPhases);
     cudaFree(simParams->relax_coeff_dev);
 
-    free2M(simParams->Tau_host, simDomain->numPhases);
+    FreeM(simParams->Tau_host, simDomain->numPhases);
 
-    free3M(simParams->diffusivity_host, simDomain->numPhases, simDomain->numComponents-1);
+    Free3M(simParams->diffusivity_host, simDomain->numPhases, simDomain->numComponents-1);
     cudaFree(simParams->diffusivity_dev);
 
-    free3M(simParams->mobility_host, simDomain->numPhases, simDomain->numComponents-1);
+    Free3M(simParams->mobility_host, simDomain->numPhases, simDomain->numComponents-1);
     cudaFree(simParams->mobility_dev);
 
-    free3M(simParams->F0_A_host, simDomain->numPhases, simDomain->numComponents-1);
+    Free3M(simParams->F0_A_host, simDomain->numPhases, simDomain->numComponents-1);
     cudaFree(simParams->F0_A_dev);
 
-    free2M(simParams->F0_B_host, simDomain->numPhases);
+    FreeM(simParams->F0_B_host, simDomain->numPhases);
     cudaFree(simParams->F0_B_dev);
 
     free(simParams->F0_C_host);
     cudaFree(simParams->F0_C_dev);
 
-    free3M(simParams->ceq_host, simDomain->numPhases, simDomain->numPhases);
+    Free3M(simParams->ceq_host, simDomain->numPhases, simDomain->numPhases);
     cudaFree(simParams->ceq_dev);
 
-    free3M(simParams->cfill_host, simDomain->numPhases, simDomain->numPhases);
+    Free3M(simParams->cfill_host, simDomain->numPhases, simDomain->numPhases);
     cudaFree(simParams->cfill_dev);
 
-    free3M(simParams->cguess_host, simDomain->numPhases, simDomain->numPhases);
+    Free3M(simParams->cguess_host, simDomain->numPhases, simDomain->numPhases);
     cudaFree(simParams->cguess_dev);
 
-    free3M(simParams->theta_ijk_host, simDomain->numPhases, simDomain->numPhases);
+    Free3M(simParams->theta_ijk_host, simDomain->numPhases, simDomain->numPhases);
     cudaFree(simParams->theta_ijk_dev);
 
-    free2M(simParams->theta_ij_host, simDomain->numPhases);
+    FreeM(simParams->theta_ij_host, simDomain->numPhases);
     cudaFree(simParams->theta_ij_dev);
 
     free(simParams->theta_i_host);
     cudaFree(simParams->theta_i_dev);
+
+    Free4M(simParams->Rotation_matrix_host, simDomain->numPhases, simDomain->numPhases, 3);
+    cudaFree(simParams->Rotation_matrix_dev);
+
+    Free4M(simParams->Inv_Rotation_matrix_host, simDomain->numPhases, simDomain->numPhases, 3);
+    cudaFree(simParams->Inv_Rotation_matrix_dev);
+
+    FreeM(simParams->dab_host, simDomain->numPhases);
+    cudaFree(simParams->dab_dev);
 
     for (long i = 0; i < simDomain->numThermoPhases; i++)
         free(simDomain->phases_tdb[i]);
@@ -655,4 +691,9 @@ void freeVars(domainInfo *simDomain, simParameters *simParams)
     free(simDomain->phase_map);
     free(simDomain->thermo_phase_host);
     cudaFree(simDomain->thermo_phase_dev);
+
+    for (long i = 0; i < 6; i++)
+    {
+        free(simControls->boundary[i]);
+    }
 }

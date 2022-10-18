@@ -29,10 +29,18 @@ void readInput_MPI(domainInfo *simDomain, controls *simControls,
                    char *argv[]);
 
 /*
+ * Read and assign boundary conditions from the specified input file.
+ */
+void read_boundary_conditions(domainInfo *simDomain, controls *simControls,
+                              simParameters *simParams, int rank, char *argv[]);
+
+/*
  * Reads filling parameters from the specified file.
  * The filling routines can be found in initialise.h and its
  * related files.
  */
 void readFill(fillParameters *fill, char *argv[], int rank);
 
+
 #endif
+

@@ -43,10 +43,10 @@ void function_F_04_init_propertymatrices(domainInfo *simDomain, controls *simCon
     }
     fclose(fp);
 
-    double ****comp_ES = malloc4M(simDomain->numThermoPhases, simDomain->numComponents-1, 2,                          numlines);
-    double ****ThF     = malloc4M(simDomain->numThermoPhases, simDomain->numComponents-1, simDomain->numComponents-1, numlines);
-    double   **T_ES    = malloc2M(simDomain->numThermoPhases, numlines);
-    double   **T_ThF   = malloc2M(simDomain->numThermoPhases, numlines);
+    double ****comp_ES = Malloc4M(simDomain->numThermoPhases, simDomain->numComponents-1, 2,                          numlines);
+    double ****ThF     = Malloc4M(simDomain->numThermoPhases, simDomain->numComponents-1, simDomain->numComponents-1, numlines);
+    double   **T_ES    = MallocM(simDomain->numThermoPhases, numlines);
+    double   **T_ThF   = MallocM(simDomain->numThermoPhases, numlines);
 
     for (a = 0; a < simDomain->numThermoPhases-1; a++)
     {
@@ -140,10 +140,10 @@ void function_F_04_init_propertymatrices(domainInfo *simDomain, controls *simCon
         }
     }
 
-    free4M(comp_ES, simDomain->numThermoPhases, simDomain->numComponents-1, 2);
-    free4M(ThF, simDomain->numThermoPhases, simDomain->numComponents-1, simDomain->numComponents-1);
-    free2M(T_ES, simDomain->numThermoPhases);
-    free2M(T_ThF, simDomain->numThermoPhases);
+    Free4M(comp_ES, simDomain->numThermoPhases, simDomain->numComponents-1, 2);
+    Free4M(ThF, simDomain->numThermoPhases, simDomain->numComponents-1, simDomain->numComponents-1);
+    FreeM(T_ES, simDomain->numThermoPhases);
+    FreeM(T_ThF, simDomain->numThermoPhases);
 
     // function_F_04_function_A
     for (a = 0; a < simDomain->numPhases; a++)
@@ -285,7 +285,7 @@ void calcFreeEnergyCoeffs(domainInfo *simDomain, controls *simControls, simParam
             double sum = 0.0;
 
             double *y = (double*)malloc(simDomain->numComponents);
-            dmudc_liqrix = malloc2M((simDomain->numComponents-1),(simDomain->numComponents-1));
+            dmudc_liqrix = MallocM((simDomain->numComponents-1),(simDomain->numComponents-1));
 
             double Tav = (simParams->T + simParams->Teq)*0.5;
 
@@ -572,7 +572,7 @@ void calcFreeEnergyCoeffs(domainInfo *simDomain, controls *simControls, simParam
                 simParams->F0_C_host[a] = sum_c;
             }
 
-            free2M(dmudc_liqrix, simDomain->numComponents-1);
+            FreeM(dmudc_liqrix, simDomain->numComponents-1);
             free(dmudc);
             free(y);
         }
@@ -582,7 +582,7 @@ void calcFreeEnergyCoeffs(domainInfo *simDomain, controls *simControls, simParam
             double y[simDomain->numComponents];
 
             double **dmudc_liqrix;
-            dmudc_liqrix = malloc2M((simDomain->numComponents-1),(simDomain->numComponents-1));
+            dmudc_liqrix = MallocM((simDomain->numComponents-1),(simDomain->numComponents-1));
 
             double *dmudc = (double*)malloc(sizeof(double)*(simDomain->numComponents-1)*(simDomain->numComponents-1));
 
@@ -676,11 +676,11 @@ void calcFreeEnergyCoeffs(domainInfo *simDomain, controls *simControls, simParam
                     sum_c = 0.0;
                 }
             }
-            free2M(dmudc_liqrix, simDomain->numComponents-1);
+            FreeM(dmudc_liqrix, simDomain->numComponents-1);
             free(dmudc);
         }
 
-       // printf("\n%le\t%le\t%le\t%le\t%le\t%le\n", simParams->F0_A_host[0][0][0], simParams->F0_B_host[0][0], simParams->F0_C_host[0], simParams->F0_A_host[1][0][0], simParams->F0_B_host[1][0], simParams->F0_C_host[1]);
+        //printf("\n%le\t%le\t%le\t%le\t%le\t%le\n", simParams->F0_A_host[0][0][0], simParams->F0_B_host[0][0], simParams->F0_C_host[0], simParams->F0_A_host[1][0][0], simParams->F0_B_host[1][0], simParams->F0_C_host[1]);
 
     }
     else if (simControls->FUNCTION_F == 4)

@@ -1,19 +1,21 @@
 #ifndef STRUCTURES_H_
 #define STRUCTURES_H_
 
+#include "defines.h"
+
 /*
  * Definition for a structure to hold information about the domain.
  */
 typedef struct domainInfo
 {
-// Domain size
+    // Domain size
     long MESH_X;
     long MESH_Y;
     long MESH_Z;
 
     long numCells;
 
-// Cell size
+    // Cell size
     double DELTA_X;
     double DELTA_Y;
     double DELTA_Z;
@@ -32,44 +34,68 @@ typedef struct domainInfo
 } domainInfo;
 
 /*
+ * Definition for a structure to boundary condition instructions
+ */
+typedef struct bc_scalars
+{
+    int type;
+    long points[3];
+    long proxy[3];
+    double value[3];
+} bc_scalars;
+
+/*
  * Definition for a structure to hold simulation controls
  */
 typedef struct controls
 {
-// Simulation parameters
+    // MPI information
+    long numworkers;
+
+    // Simulation parameters
     double DELTA_t;
     long startTime;
     long count;
 
-// Number of iterations for all of the following
+    // Number of iterations for all of the following
     long numSteps;
     long saveInterval;
     long trackProgress;
     long restart;
+    long nsmooth;
 
-// Extent of padding at the block boundaries
+    // Extent of padding at the block boundaries
     long padding;
 
-// Type of free-energy
+    // Type of free-energy
     long FUNCTION_F;
 
-// MPMC or binary
+    // MPMC or binary
     long multiphase;
 
-// Filewriting
+    // Filewriting
     long writeFormat;
     long writeHDF5;
 
-// Temperature behaviour
+    // Anisotropy
+    int FUNCTION_ANISOTROPY;
+    int FOLD;
+    int ANISOTROPY;
+    int ANISOTROPY_GRADIENT;
+    double Rth_phase;
+
+    // Temperature behaviour
     long ISOTHERMAL;
     double dTdt;
     long T_update;
 
+    // Boundary conditions
+    bc_scalars *boundary[6];
 } controls;
 
 typedef struct simParameters
 {
-// User input
+    // User input
     double **gamma_host, *gamma_dev;
     double ***diffusivity_host, *diffusivity_dev;
     double ***mobility_host, *mobility_dev;
@@ -105,7 +131,13 @@ typedef struct simParameters
 
     long SEED;
 
-// Calculated from user input
+    double **dab_host, *dab_dev;
+    double tilt_angle;
+    double Rtheta;
+    double ****Rotation_matrix_host, *Rotation_matrix_dev;
+    double ****Inv_Rotation_matrix_host, *Inv_Rotation_matrix_dev;
+
+    // Calculated from user input
     double **kappaPhi_host, *kappaPhi_dev;
 } simParameters;
 
@@ -124,6 +156,7 @@ typedef struct subdomainInfo
     long numCompCells;
     long shiftPointer;
     long padding;
+    long yStep, zStep;
 
     int rank;
 
@@ -153,7 +186,29 @@ typedef struct cylinder
     long phase;
 } cylinder;
 
-enum fill{FILLCYLINDER, FILLSPHERE, FILLCYLINDERRANDOM, FILLSPHERERANDOM};
+/*
+ * Definition for a structure to hold cube filling information
+ */
+typedef struct cube
+{
+    long xS, yS, zS;
+    long xE, yE, zE;
+    long phase;
+} cube;
+
+/*
+ * Definition for a structure to hold ellipse filling information
+ */
+typedef struct ellipse
+{
+    long xC, yC, zC;
+    double major_axis;
+    double eccentricity;
+    double rot_angle;
+    long phase;
+} ellipse;
+
+enum fill{FILLCYLINDER, FILLSPHERE, FILLCYLINDERRANDOM, FILLSPHERERANDOM, FILLCUBE, FILLELLIPSE};
 
 /*
  * Definition for a structure to hold all domain filling information
@@ -162,9 +217,11 @@ typedef struct fillParameters
 {
     enum fill *fillType;
     long *xC, *yC, *zC;
-    long *zS, *zE;
+    long *xS, *yS, *zS;
+    long *xE, *yE, *zE;
     long *radius;
     long *phase;
+    double *major_axis, *eccentricity, *rot_angle;
     long *seed;
     double *volFrac;
     long *shieldDist;

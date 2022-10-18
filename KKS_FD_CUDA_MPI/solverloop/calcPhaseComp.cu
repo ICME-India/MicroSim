@@ -3,22 +3,24 @@
 __global__
 void __initMu__(double **phi, double **comp, double **phaseComp, double **mu,
                 long *thermo_phase, double temperature,
-                long NUMPHASES, long NUMCOMPONENTS,
-                long sizeX, long sizeY, long sizeZ)
+                long NUMPHASES, long NUMCOMPONENTS, long DIMENSION,
+                long sizeX, long sizeY, long sizeZ,
+                long yStep, long zStep, long padding)
 {
     long i = threadIdx.x + blockIdx.x * blockDim.x;
     long j = threadIdx.y + blockIdx.y * blockDim.y;
     long k = threadIdx.z + blockIdx.z * blockDim.z;
 
-    long idx = (j + k*sizeY)*sizeX + i;
+    long idx = k*zStep + j*yStep + i;
 
-    if (i < sizeX && j < sizeY && k < sizeZ)
+    if (i < sizeX && ((j < sizeY && DIMENSION >= 2) || (DIMENSION == 1 && j == 0)) && ((k < sizeZ && DIMENSION == 3) || (DIMENSION < 3 && k == 0)))
     {
         double y[MAX_NUM_COMP], mu0[MAX_NUM_COMP];
         double sum = 0.0;
 
         for (long phase = 0; phase < NUMPHASES; phase++)
         {
+            // Bulk
             if (phi[phase][idx] == 1.0)
             {
                 sum = 0.0;
@@ -50,14 +52,15 @@ __global__
 void __calcPhaseComp__(double **phi, double **comp,
                        double **phaseComp,
                        double *F0_A, double *F0_B, double *F0_C,
-                       long NUMPHASES, long NUMCOMPONENTS,
-                       long sizeX, long sizeY, long sizeZ)
+                       long NUMPHASES, long NUMCOMPONENTS, long DIMENSION,
+                       long sizeX, long sizeY, long sizeZ,
+                       long yStep, long zStep, long padding)
 {
     long i = threadIdx.x + blockIdx.x * blockDim.x;
     long j = threadIdx.y + blockIdx.y * blockDim.y;
     long k = threadIdx.z + blockIdx.z * blockDim.z;
 
-    long idx = (j + k*sizeY)*sizeX + i;
+    long idx = k*zStep + j*yStep + i;
 
     // Number of phase compositions
     long N = NUMPHASES*(NUMCOMPONENTS-1);
@@ -76,7 +79,7 @@ void __calcPhaseComp__(double **phi, double **comp,
     // Tolerance for LU solver
     double tol = 1e-10;
 
-    if (i < sizeX && j < sizeY && k < sizeZ)
+    if (i < sizeX && ((j < sizeY && DIMENSION >= 2) || (DIMENSION == 1 && j == 0)) && ((k < sizeZ && DIMENSION == 3) || (DIMENSION < 3 && k == 0)))
     {
         // Calculate function vector using x^n
         for (iter1 = 0; iter1 < NUMCOMPONENTS-1; iter1++)
@@ -159,23 +162,23 @@ void __calcPhaseComp__(double **phi, double **comp,
             phaseComp[iter1][idx] = sol[iter1];
         }
     }
-    __syncthreads();
 }
 
 __global__
 void __calcPhaseComp_02__(double **phi, double **comp,
                           double **phaseComp, double **mu, double *cguess,
                           double temperature, long *thermo_phase,
-                          long NUMPHASES, long NUMCOMPONENTS,
-                          long sizeX, long sizeY, long sizeZ)
+                          long NUMPHASES, long NUMCOMPONENTS, long DIMENSION,
+                          long sizeX, long sizeY, long sizeZ,
+                          long yStep, long zStep, long padding)
 {
     long i = threadIdx.x + blockIdx.x * blockDim.x;
     long j = threadIdx.y + blockIdx.y * blockDim.y;
     long k = threadIdx.z + blockIdx.z * blockDim.z;
 
-    long idx = (j + k*sizeY)*sizeX + i;
+    long idx = k*zStep + j*yStep + i;
 
-    if (i < sizeX && j < sizeY && k < sizeZ)
+    if (i < sizeX && ((j < sizeY && DIMENSION >= 2) || (DIMENSION == 1 && j == 0)) && ((k < sizeZ && DIMENSION == 3) || (DIMENSION < 3 && k == 0)))
     {
         double fun[MAX_NUM_COMP], jacInv[MAX_NUM_COMP][MAX_NUM_COMP], cn[MAX_NUM_COMP], co[MAX_NUM_COMP];
         double tmp0, norm;
@@ -198,12 +201,17 @@ void __calcPhaseComp_02__(double **phi, double **comp,
 
         if (interface)
         {
-            long count = 0, is, is1, is2;
+            // Number of iterations for Newton-Raphson
+            long count = 0;
+            // Number of iterations for diffusion-potential correction
+            long count2 = 0;
+
+            long is, is1, is2;
             long maxCount = 10000;
 
+            // Permutation matrix required by LU decomposition routine
             int P[MAX_NUM_COMP];
 
-            long count2 = 0;
             double dmudc[(MAX_NUM_COMP)*(MAX_NUM_COMP)];
             double dcdmu[(MAX_NUM_COMP)*(MAX_NUM_COMP)];
             double Inv[MAX_NUM_COMP][MAX_NUM_COMP];
@@ -228,6 +236,7 @@ void __calcPhaseComp_02__(double **phi, double **comp,
 
                         tmp0 = 0.0;
 
+                        // Getting phase-compositions at the node
                         for (is = 0; is < NUMCOMPONENTS-1; is++)
                         {
                             co[is] = cn[is];
@@ -236,13 +245,17 @@ void __calcPhaseComp_02__(double **phi, double **comp,
                         }
                         y[NUMCOMPONENTS-1] = 1.0 - tmp0;
 
+                        // Getting local diffusion potential from tdb function
                         (*Mu_tdb_dev[thermo_phase[phase]])(temperature, y, mu0);
 
+                        // Deviation of mu obtained from evolution from mu obtained from tdb
                         for (is = 0; is < NUMCOMPONENTS-1; is++)
                             fun[is] = (mu0[is] - mu[is][idx]);
 
+                        // Second derivative of free-energy
                         (*dmudc_tdb_dev[thermo_phase[phase]])(temperature, y, retdmuphase);
 
+                        // Translating 2D array to 1D
                         for (is1 = 0; is1 < NUMCOMPONENTS-1; is1++)
                         {
                             for (is2 = 0; is2 < NUMCOMPONENTS-1; is2++)
@@ -251,9 +264,11 @@ void __calcPhaseComp_02__(double **phi, double **comp,
                             }
                         }
 
+                        // Inverting dmudc to get dcdmu
                         LUPDecomposeC1(retdmuphase2, NUMCOMPONENTS-1, tol, P);
                         LUPInvertC1(retdmuphase2, P, NUMCOMPONENTS-1, jacInv);
 
+                        // Newton-Raphson (-J^{-1}F)
                         for (is1 = 0; is1 < NUMCOMPONENTS-1; is1++)
                         {
                             tmp0 = 0.0;
@@ -265,17 +280,21 @@ void __calcPhaseComp_02__(double **phi, double **comp,
                             cn[is1] = co[is1] - tmp0;
                         }
 
+                        // L-inf norm
                         norm = 0.0;
                         for (is = 0; is < NUMCOMPONENTS-1; is++)
                             if (fabs(cn[is] - co[is]) > 1e-6)
                                 norm = 1.0;
                     } while (count < maxCount && norm > 0.0);
 
+                    if (count > 500)
+                        printf("%ld\t%ld\t%le\t%le\t%le\n", i, j, phaseComp[0][idx], phaseComp[1][idx], comp[0][idx]);
+
                     for (is = 0; is < NUMCOMPONENTS-1; is++)
                         phaseComp[is*NUMPHASES + phase][idx] = cn[is];
                 }
 
-
+                // Check conservation of comp
                 deltac_flag = 0;
                 for (is = 0; is < NUMCOMPONENTS-1; is++)
                 {
@@ -291,6 +310,9 @@ void __calcPhaseComp_02__(double **phi, double **comp,
                     if (fabs(deltac[is]) > 1e-6)
                         deltac_flag = 1;
                 }
+
+                // deltac_flag will be 1 if not conserved
+                // mu-correction will be carried out consequently, and the Newton-Raphson routine will be repeated
 
                 if (deltac_flag)
                 {
@@ -351,7 +373,6 @@ void __calcPhaseComp_02__(double **phi, double **comp,
             }
         }
     }
-    __syncthreads();
 }
 
 void calcPhaseComp(double **phi, double **comp,
@@ -365,8 +386,9 @@ void calcPhaseComp(double **phi, double **comp,
         __calcPhaseComp__<<<gridSize, blockSize>>>(phi, comp,
                                                    phaseComp,
                                                    simParams->F0_A_dev, simParams->F0_B_dev, simParams->F0_C_dev,
-                                                   simDomain->numPhases, simDomain->numComponents,
-                                                   subdomain->sizeX, subdomain->sizeY, subdomain->sizeZ);
+                                                   simDomain->numPhases, simDomain->numComponents, simDomain->DIMENSION,
+                                                   subdomain->sizeX, subdomain->sizeY, subdomain->sizeZ,
+                                                   subdomain->yStep, subdomain->zStep, subdomain->padding);
     }
     else if (simControls->FUNCTION_F == 2)
     {
@@ -374,13 +396,15 @@ void calcPhaseComp(double **phi, double **comp,
         {
             __initMu__<<<gridSize, blockSize>>>(phi, comp, phaseComp, mu,
                                                 simDomain->thermo_phase_dev, simParams->Teq,
-                                                simDomain->numPhases, simDomain->numComponents,
-                                                subdomain->sizeX, subdomain->sizeY, subdomain->sizeZ);
+                                                simDomain->numPhases, simDomain->numComponents, simDomain->DIMENSION,
+                                                subdomain->sizeX, subdomain->sizeY, subdomain->sizeZ,
+                                                subdomain->yStep, subdomain->zStep, subdomain->padding);
         }
         __calcPhaseComp_02__<<<gridSize, blockSize>>>(phi, comp,
                                                       phaseComp, mu, simParams->cguess_dev,
                                                       simParams->T, simDomain->thermo_phase_dev,
-                                                      simDomain->numPhases, simDomain->numComponents,
-                                                      subdomain->sizeX, subdomain->sizeY, subdomain->sizeZ);
+                                                      simDomain->numPhases, simDomain->numComponents, simDomain->DIMENSION,
+                                                      subdomain->sizeX, subdomain->sizeY, subdomain->sizeZ,
+                                                      subdomain->yStep, subdomain->zStep, subdomain->padding);
     }
 }

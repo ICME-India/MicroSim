@@ -7,8 +7,9 @@ void __computeDrivingForce__(double **phi, double **comp,
                              double *F0_A, double *F0_B, double *F0_C,
                              double molarVolume,
                              double *theta_i, double *theta_ij, double *theta_ijk,
-                             long NUMPHASES, long NUMCOMPONENTS,
-                             long sizeX, long sizeY, long sizeZ)
+                             long NUMPHASES, long NUMCOMPONENTS, long DIMENSION,
+                             long sizeX, long sizeY, long sizeZ,
+                             long yStep, long zStep, long padding)
 {
     /*
      * Get thread coordinates
@@ -17,14 +18,14 @@ void __computeDrivingForce__(double **phi, double **comp,
     long j = threadIdx.y + blockIdx.y * blockDim.y;
     long k = threadIdx.z + blockIdx.z * blockDim.z;
 
-    long idx = (j + k*sizeY)*sizeX + i;
+    long idx = k*zStep + j*yStep + i;
 
     /*
      * Calculate grand potential density for every phase
      */
     double psi = 0.0;
 
-    if (i < sizeX && j < sizeY && k < sizeZ)
+    if (i < sizeX && ((j < sizeY && DIMENSION >= 2) || (DIMENSION == 1 && j == 0)) && ((k < sizeZ && DIMENSION == 3) || (DIMENSION < 3 && k == 0)))
     {
         for (long phase = 0; phase < NUMPHASES; phase++)
         {
@@ -46,6 +47,7 @@ void __computeDrivingForce__(double **phi, double **comp,
                  * \frac{\delta F}{\delta\phi_{phase}} += \sum_{p=1}^{N} (\frac{\partial h(\phi_{p})}{\partial \phi_{phase}} \frac{\psi_{p}}{V_{m}})
                  */
                 psi *= calcInterp5thDiff(phi, p, phase, idx, NUMPHASES);
+
                 dfdphi[phase][idx] += psi/molarVolume;
             }
 
@@ -58,7 +60,6 @@ void __computeDrivingForce__(double **phi, double **comp,
                                                            idx, NUMPHASES);
         }
     }
-    __syncthreads();
 }
 
 __global__
@@ -68,9 +69,9 @@ void __computeDrivingForce_02__(double **phi, double **comp,
                                 double molarVolume,
                                 double *theta_i, double *theta_ij, double *theta_ijk,
                                 double temperature, long *thermo_phase,
-                                long NUMPHASES, long NUMCOMPONENTS,
+                                long NUMPHASES, long NUMCOMPONENTS, long DIMENSION,
                                 long sizeX, long sizeY, long sizeZ,
-                                double DELTA_X, double DELTA_Y, double DELTA_Z)
+                                long yStep, long zStep, long padding)
 {
     /*
      * Get thread coordinates
@@ -79,9 +80,9 @@ void __computeDrivingForce_02__(double **phi, double **comp,
     long j = threadIdx.y + blockIdx.y * blockDim.y;
     long k = threadIdx.z + blockIdx.z * blockDim.z;
 
-    long idx = (j + k*sizeY)*sizeX + i;
+    long idx = k*zStep + j*yStep + i;
 
-    if (i < sizeX && j < sizeY && k < sizeZ)
+    if (i < sizeX && ((j < sizeY && DIMENSION >= 2) || (DIMENSION == 1 && j == 0)) && ((k < sizeZ && DIMENSION == 3) || (DIMENSION < 3 && k == 0)))
     {
         /*
          * Calculate grand potential density for every phase
@@ -125,23 +126,6 @@ void __computeDrivingForce_02__(double **phi, double **comp,
                  */
                 psi *= calcInterp5thDiff(phi, p, phase, idx, NUMPHASES);
                 dfdphi[phase][idx] += psi/molarVolume;
-
-                //                 if (p == phase)
-                //                     continue;
-                //
-                //                 laplacian_p = (phi[p][xp] - 2.0*phi[p][idx] + phi[p][xm])/(DELTA_X*DELTA_X);
-                //                 if (sizeY > 1)
-                //                     laplacian_p += (phi[p][yp] - 2.0*phi[p][idx] + phi[p][ym])/(DELTA_Y*DELTA_Y);
-                //                 if (sizeZ > 1)
-                //                     laplacian_p += (phi[p][zp] - 2.0*phi[p][idx] + phi[p][zm])/(DELTA_Z*DELTA_Z);
-
-                //                 if (fabs(laplacian_p) > 0.0)
-                //                 {
-                //                     if (phi[phase][idx]*phi[p][idx] >= 0.0)
-                //                         dfdphi[phase][idx] += 1.6*phi[p][idx]/(3.14159*3.14159);
-                //                     else
-                //                         dfdphi[phase][idx] -= 1.6*phi[p][idx]/(3.14159*3.14159);
-                //                 }
             }
 
             /*
@@ -152,9 +136,7 @@ void __computeDrivingForce_02__(double **phi, double **comp,
                                                            theta_i, theta_ij, theta_ijk,
                                                            idx, NUMPHASES);
         }
-
     }
-    __syncthreads();
 }
 
 void computeDrivingForce(double **phi, double **comp,
@@ -173,8 +155,9 @@ void computeDrivingForce(double **phi, double **comp,
                                                          simParams->F0_A_dev, simParams->F0_B_dev, simParams->F0_C_dev,
                                                          simParams->molarVolume,
                                                          simParams->theta_i_dev, simParams->theta_ij_dev, simParams->theta_ijk_dev,
-                                                         simDomain->numPhases, simDomain->numComponents,
-                                                         subdomain->sizeX, subdomain->sizeY, subdomain->sizeZ);
+                                                         simDomain->numPhases, simDomain->numComponents, simDomain->DIMENSION,
+                                                         subdomain->sizeX, subdomain->sizeY, subdomain->sizeZ,
+                                                         subdomain->yStep, subdomain->zStep, subdomain->padding);
     }
     else if (simControls->FUNCTION_F == 2)
     {
@@ -184,8 +167,8 @@ void computeDrivingForce(double **phi, double **comp,
                                                             simParams->molarVolume,
                                                             simParams->theta_i_dev, simParams->theta_ij_dev, simParams->theta_ijk_dev,
                                                             simParams->T, simDomain->thermo_phase_dev,
-                                                            simDomain->numPhases, simDomain->numComponents,
+                                                            simDomain->numPhases, simDomain->numComponents, simDomain->DIMENSION,
                                                             subdomain->sizeX, subdomain->sizeY, subdomain->sizeZ,
-                                                            simDomain->DELTA_X, simDomain->DELTA_Y, simDomain->DELTA_Z);
+                                                            subdomain->yStep, subdomain->zStep, subdomain->padding);
     }
 }

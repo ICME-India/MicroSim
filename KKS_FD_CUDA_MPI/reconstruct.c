@@ -8,7 +8,8 @@
 #define  IS_LITTLE_ENDIAN  (!IS_BIG_ENDIAN)
 
 #include "structures.h"
-#include "inputReader.c"
+#include "reading_input_parameters.c"
+#include "matrix.cu"
 #include "utilityFunctions.c"
 
 double swap_bytes(double value)
@@ -495,7 +496,7 @@ int main(int argc, char *argv[])
     free(phi);
     free(comp);
     free(mu);
-    freeVars(&simDomain, &simParams);
+    freeVars(&simDomain, &simControls, &simParams);
 
     return 0;
 }

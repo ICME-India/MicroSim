@@ -18,8 +18,6 @@ void writeVTK_ASCII(double *phi, double *comp, double *mu,
 
     long t = simControls.count;
 
-    long layer_size = simDomain.MESH_X * simDomain.MESH_Y;
-
     sprintf(name, "DATA/Processor_%d/%s_%ld.vtk", rank, argv[3], t);
     fp = fopen(name, "w");
 
@@ -30,7 +28,7 @@ void writeVTK_ASCII(double *phi, double *comp, double *mu,
     fprintf(fp, "Microsim_fields\n");
     fprintf(fp, "ASCII\n");
     fprintf(fp, "DATASET STRUCTURED_POINTS\n");
-    fprintf(fp, "DIMENSIONS %ld %ld %ld\n", subdomain.xE-subdomain.xS+1, subdomain.yE-subdomain.yS+1, subdomain.zE-subdomain.zS+1);
+    fprintf(fp, "DIMENSIONS %ld %ld %ld\n", subdomain.sizeX-2*subdomain.padding, subdomain.sizeY-2*subdomain.padding, subdomain.sizeZ-2*subdomain.padding);
     fprintf(fp, "ORIGIN 0 0 0\n");
     fprintf(fp, "SPACING %le %le %le\n", simDomain.DELTA_X, simDomain.DELTA_Y, simDomain.DELTA_Z);
     fprintf(fp, "POINT_DATA %ld\n", subdomain.numCells);
@@ -41,13 +39,13 @@ void writeVTK_ASCII(double *phi, double *comp, double *mu,
         fprintf(fp, "LOOKUP_TABLE default\n");
 
 
-        for (long z = 0; z <= subdomain.zE - subdomain.zS; z++)
+        for (long z = subdomain.padding; z < subdomain.sizeZ-subdomain.padding; z++)
         {
-            for (long y = 0; y <= subdomain.yE - subdomain.yS; y++)
+            for (long y = subdomain.padding; y < subdomain.sizeY-subdomain.padding; y++)
             {
-                for (long x = 0; x <= subdomain.xE - subdomain.xS; x++)
+                for (long x = subdomain.padding; x < subdomain.sizeX-subdomain.padding; x++)
                 {
-                    fprintf(fp, "%le\n", phi[a*subdomain.numCells + z*layer_size + y*simDomain.MESH_X + x]);
+                    fprintf(fp, "%le\n", phi[a*subdomain.numCompCells + z*subdomain.zStep + y*subdomain.yStep + x]);
                 }
             }
         }
@@ -60,13 +58,13 @@ void writeVTK_ASCII(double *phi, double *comp, double *mu,
         fprintf(fp, "SCALARS Composition_%s double 1\n", simDomain.componentNames[b]);
         fprintf(fp, "LOOKUP_TABLE default\n");
 
-        for (long z = 0; z <= subdomain.zE - subdomain.zS; z++)
+        for (long z = subdomain.padding; z < subdomain.sizeZ-subdomain.padding; z++)
         {
-            for (long y = 0; y <= subdomain.yE - subdomain.yS; y++)
+            for (long y = subdomain.padding; y < subdomain.sizeY-subdomain.padding; y++)
             {
-                for (long x = 0; x <= subdomain.xE - subdomain.xS; x++)
+                for (long x = subdomain.padding; x < subdomain.sizeX-subdomain.padding; x++)
                 {
-                    fprintf(fp, "%le\n", comp[b*subdomain.numCells + z*layer_size + y*simDomain.MESH_X + x]);
+                    fprintf(fp, "%le\n", comp[b*subdomain.numCompCells + z*subdomain.zStep + y*subdomain.yStep + x]);
                 }
             }
         }
@@ -80,13 +78,13 @@ void writeVTK_ASCII(double *phi, double *comp, double *mu,
             fprintf(fp, "SCALARS Mu_%s double 1\n", simDomain.componentNames[b]);
             fprintf(fp, "LOOKUP_TABLE default\n");
 
-            for (long z = 0; z <= subdomain.zE - subdomain.zS; z++)
+            for (long z = subdomain.padding; z < subdomain.sizeZ-subdomain.padding; z++)
             {
-                for (long y = 0; y <= subdomain.yE - subdomain.yS; y++)
+                for (long y = subdomain.padding; y < subdomain.sizeY-subdomain.padding; y++)
                 {
-                    for (long x = 0; x <= subdomain.xE - subdomain.xS; x++)
+                    for (long x = subdomain.padding; x < subdomain.sizeX-subdomain.padding; x++)
                     {
-                        fprintf(fp, "%le\n", mu[b*subdomain.numCells + z*layer_size + y*simDomain.MESH_X + x]);
+                        fprintf(fp, "%le\n", comp[b*subdomain.numCompCells + z*subdomain.zStep + y*subdomain.yStep + x]);
                     }
                 }
             }
@@ -107,7 +105,7 @@ void writeVTK_BINARY(double *phi, double *comp, double *mu,
 
     long t = simControls.count;
 
-    long layer_size = simDomain.MESH_X * simDomain.MESH_Y;
+    long layer_size = subdomain.sizeX*subdomain.sizeY;
 
     double value;
 
@@ -121,7 +119,7 @@ void writeVTK_BINARY(double *phi, double *comp, double *mu,
     fprintf(fp, "Microsim_fields\n");
     fprintf(fp, "BINARY\n");
     fprintf(fp, "DATASET STRUCTURED_POINTS\n");
-    fprintf(fp, "DIMENSIONS %ld %ld %ld\n", subdomain.xE-subdomain.xS+1, subdomain.yE-subdomain.yS+1, subdomain.zE-subdomain.zS+1);
+    fprintf(fp, "DIMENSIONS %ld %ld %ld\n", subdomain.sizeX-2*subdomain.padding, subdomain.sizeY-2*subdomain.padding, subdomain.sizeZ-2*subdomain.padding);
     fprintf(fp, "ORIGIN 0 0 0\n");
     fprintf(fp, "SPACING %le %le %le\n", simDomain.DELTA_X, simDomain.DELTA_Y, simDomain.DELTA_Z);
     fprintf(fp, "POINT_DATA %ld\n", subdomain.numCells);
@@ -131,16 +129,16 @@ void writeVTK_BINARY(double *phi, double *comp, double *mu,
         fprintf(fp, "SCALARS %s double 1\n", simDomain.phaseNames[a]);
         fprintf(fp, "LOOKUP_TABLE default\n");
 
-        for (long z = 0; z <= subdomain.zE - subdomain.zS; z++)
+        for (long z = subdomain.padding; z < subdomain.sizeZ-subdomain.padding; z++)
         {
-            for (long y = 0; y <= subdomain.yE - subdomain.yS; y++)
+            for (long y = subdomain.padding; y < subdomain.sizeY-subdomain.padding; y++)
             {
-                for (long x = 0; x <= subdomain.xE - subdomain.xS; x++)
+                for (long x = subdomain.padding; x < subdomain.sizeX-subdomain.padding; x++)
                 {
                     if (IS_LITTLE_ENDIAN)
-                        value = swap_bytes(phi[a*subdomain.numCells + z*layer_size + y*simDomain.MESH_X + x]);
+                        value = swap_bytes(phi[a*subdomain.numCompCells + z*subdomain.zStep + y*subdomain.yStep + x]);
                     else
-                        value = phi[a*subdomain.numCells + z*layer_size + y*simDomain.MESH_X + x];
+                        value = phi[a*subdomain.numCompCells + z*subdomain.zStep + y*subdomain.yStep + x];
                     fwrite(&value, sizeof(double), 1, fp);
                 }
             }
@@ -154,16 +152,16 @@ void writeVTK_BINARY(double *phi, double *comp, double *mu,
         fprintf(fp, "SCALARS Composition_%s double 1\n", simDomain.componentNames[b]);
         fprintf(fp, "LOOKUP_TABLE default\n");
 
-        for (long z = 0; z <= subdomain.zE - subdomain.zS; z++)
+        for (long z = subdomain.padding; z < subdomain.sizeZ-subdomain.padding; z++)
         {
-            for (long y = 0; y <= subdomain.yE - subdomain.yS; y++)
+            for (long y = subdomain.padding; y < subdomain.sizeY-subdomain.padding; y++)
             {
-                for (long x = 0; x <= subdomain.xE - subdomain.xS; x++)
+                for (long x = subdomain.padding; x < subdomain.sizeX-subdomain.padding; x++)
                 {
                     if (IS_LITTLE_ENDIAN)
-                        value = swap_bytes(comp[b*subdomain.numCells + z*layer_size + y*simDomain.MESH_X + x]);
+                        value = swap_bytes(comp[b*subdomain.numCompCells + z*subdomain.zStep + y*subdomain.yStep + x]);
                     else
-                        value = comp[b*subdomain.numCells + z*layer_size + y*simDomain.MESH_X + x];
+                        value = comp[b*subdomain.numCompCells + z*subdomain.zStep + y*subdomain.yStep + x];
                     fwrite(&value, sizeof(double), 1, fp);
                 }
             }
@@ -178,16 +176,16 @@ void writeVTK_BINARY(double *phi, double *comp, double *mu,
             fprintf(fp, "SCALARS Mu_%s double 1\n", simDomain.componentNames[b]);
             fprintf(fp, "LOOKUP_TABLE default\n");
 
-            for (long z = 0; z <= subdomain.zE - subdomain.zS; z++)
+            for (long z = subdomain.padding; z < subdomain.sizeZ-subdomain.padding; z++)
             {
-                for (long y = 0; y <= subdomain.yE - subdomain.yS; y++)
+                for (long y = subdomain.padding; y < subdomain.sizeY-subdomain.padding; y++)
                 {
-                    for (long x = 0; x <= subdomain.xE - subdomain.xS; x++)
+                    for (long x = subdomain.padding; x < subdomain.sizeX-subdomain.padding; x++)
                     {
                         if (IS_LITTLE_ENDIAN)
-                            value = swap_bytes(mu[b*subdomain.numCells + z*layer_size + y*simDomain.MESH_X + x]);
+                            value = swap_bytes(mu[b*subdomain.numCompCells + z*subdomain.zStep + y*subdomain.yStep + x]);
                         else
-                            value = mu[b*subdomain.numCells + z*layer_size + y*simDomain.MESH_X + x];
+                            value = mu[b*subdomain.numCompCells + z*subdomain.zStep + y*subdomain.yStep + x];
                         fwrite(&value, sizeof(double), 1, fp);
                     }
                 }
@@ -209,7 +207,7 @@ int readVTK_ASCII(FILE *fp, double *phi, double *comp, double *mu,
 
     long temp_mx = 0, temp_my = 0, temp_mz = 0;
 
-    long layer_size = simDomain.MESH_X*simDomain.MESH_Y;
+    long layer_size = subdomain.sizeX*subdomain.sizeY;
 
     while(fscanf(fp, "%s", temp))
     {
@@ -244,13 +242,13 @@ int readVTK_ASCII(FILE *fp, double *phi, double *comp, double *mu,
         }
         else if (strcmp(temp, "default") == 0 && a < simDomain.numPhases)
         {
-            for (z = 0; z <= subdomain.zE - subdomain.zS; z++)
+            for (z = subdomain.padding; z < subdomain.sizeZ-subdomain.padding; z++)
             {
-                for (y = 0; y <= subdomain.yE - subdomain.yS; y++)
+                for (y = subdomain.padding; y < subdomain.sizeY-subdomain.padding; y++)
                 {
-                    for (x = 0; x <= subdomain.xE - subdomain.xS; x++)
+                    for (x = subdomain.padding; x < subdomain.sizeX-subdomain.padding; x++)
                     {
-                        if(fscanf(fp, "%le", &phi[a*subdomain.numCells + z*layer_size + y*simDomain.MESH_X + x]));
+                        if(fscanf(fp, "%le", &phi[a*subdomain.numCompCells + z*subdomain.zStep + y*subdomain.yStep + x]));
                     }
                 }
             }
@@ -258,13 +256,13 @@ int readVTK_ASCII(FILE *fp, double *phi, double *comp, double *mu,
         }
         else if (strcmp(temp, "default") == 0 && k1 < simDomain.numComponents-1 && a >= simDomain.numPhases)
         {
-            for (z = 0; z <= subdomain.zE - subdomain.zS; z++)
+            for (z = subdomain.padding; z < subdomain.sizeZ-subdomain.padding; z++)
             {
-                for (y = 0; y <= subdomain.yE - subdomain.yS; y++)
+                for (y = subdomain.padding; y < subdomain.sizeY-subdomain.padding; y++)
                 {
-                    for (x = 0; x <= subdomain.xE - subdomain.xS; x++)
+                    for (x = subdomain.padding; x < subdomain.sizeX-subdomain.padding; x++)
                     {
-                        if(fscanf(fp, "%le", &comp[k1*subdomain.numCells + z*layer_size + y*simDomain.MESH_X + x]));
+                        if(fscanf(fp, "%le", &comp[k1*subdomain.numCompCells + z*subdomain.zStep + y*subdomain.yStep + x]));
                     }
                 }
             }
@@ -272,13 +270,13 @@ int readVTK_ASCII(FILE *fp, double *phi, double *comp, double *mu,
         }
         else if (strcmp(temp, "default") == 0 && k2 < simDomain.numComponents-1 && k1 >= simDomain.numComponents-1 && a >= simDomain.numPhases && simControls.FUNCTION_F == 2)
         {
-            for (z = 0; z <= subdomain.zE - subdomain.zS; z++)
+            for (z = subdomain.padding; z < subdomain.sizeZ-subdomain.padding; z++)
             {
-                for (y = 0; y <= subdomain.yE - subdomain.yS; y++)
+                for (y = subdomain.padding; y < subdomain.sizeY-subdomain.padding; y++)
                 {
-                    for (x = 0; x <= subdomain.xE - subdomain.xS; x++)
+                    for (x = subdomain.padding; x < subdomain.sizeX-subdomain.padding; x++)
                     {
-                        if(fscanf(fp, "%le", &mu[k2*subdomain.numCells + z*layer_size + y*simDomain.MESH_X + x]));
+                        if(fscanf(fp, "%le", &mu[k2*subdomain.numCompCells + z*subdomain.zStep + y*subdomain.yStep + x]));
                     }
                 }
             }
@@ -301,7 +299,7 @@ int readVTK_BINARY(FILE *fp, double *phi, double *comp, double *mu,
 
     long temp_mx = 0, temp_my = 0, temp_mz = 0;
 
-    long layer_size = simDomain.MESH_X*simDomain.MESH_Y;
+    long layer_size = subdomain.sizeX*subdomain.sizeY;
 
     while(fscanf(fp, "%s", temp))
     {
@@ -334,17 +332,17 @@ int readVTK_BINARY(FILE *fp, double *phi, double *comp, double *mu,
         else if (strcmp(temp, "default") == 0 && a < simDomain.numPhases)
         {
             if(fscanf(fp, "%le", &value));
-            for (z = 0; z <= subdomain.zE - subdomain.zS; z++)
+            for (z = 1; z < subdomain.sizeZ-1; z++)
             {
-                for (y = 0; y <= subdomain.yE - subdomain.yS; y++)
+                for (y = 1; y < subdomain.sizeY-1; y++)
                 {
-                    for (x = 0; x <= subdomain.xE - subdomain.xS; x++)
+                    for (x = 1; x < subdomain.sizeX-1; x++)
                     {
                         if(fread(&value, sizeof(double), 1, fp));
                         if (IS_LITTLE_ENDIAN)
-                            phi[a*subdomain.numCells + z*layer_size + y*simDomain.MESH_X + x] = swap_bytes(value);
+                            phi[a*subdomain.numCompCells + z*subdomain.zStep + y*subdomain.yStep + x] = swap_bytes(value);
                         else
-                            phi[a*subdomain.numCells + z*layer_size + y*simDomain.MESH_X + x] = value;
+                            phi[a*subdomain.numCompCells + z*subdomain.zStep + y*subdomain.yStep + x] = value;
                     }
                 }
             }
@@ -353,17 +351,17 @@ int readVTK_BINARY(FILE *fp, double *phi, double *comp, double *mu,
         else if (strcmp(temp, "default") == 0 && k1 < simDomain.numComponents-1 && a >= simDomain.numPhases)
         {
             if(fscanf(fp, "%le", &value));
-            for (z = 0; z <= subdomain.zE - subdomain.zS; z++)
+            for (z = subdomain.padding; z < subdomain.sizeZ-subdomain.padding; z++)
             {
-                for (y = 0; y <= subdomain.yE - subdomain.yS; y++)
+                for (y = subdomain.padding; y < subdomain.sizeY-subdomain.padding; y++)
                 {
-                    for (x = 0; x <= subdomain.xE - subdomain.xS; x++)
+                    for (x = subdomain.padding; x < subdomain.sizeX-subdomain.padding; x++)
                     {
                         if(fread(&value, sizeof(double), 1, fp));
                         if (IS_LITTLE_ENDIAN)
-                            comp[k1*subdomain.numCells + z*layer_size + y*simDomain.MESH_X + x] = swap_bytes(value);
+                            comp[k1*subdomain.numCompCells + z*subdomain.zStep + y*subdomain.yStep + x] = swap_bytes(value);
                         else
-                            comp[k1*subdomain.numCells + z*layer_size + y*simDomain.MESH_X + x] = value;
+                            comp[k1*subdomain.numCompCells + z*subdomain.zStep + y*subdomain.yStep + x] = value;
                     }
                 }
             }
@@ -372,17 +370,17 @@ int readVTK_BINARY(FILE *fp, double *phi, double *comp, double *mu,
         else if (strcmp(temp, "default") == 0 && k2 < simDomain.numComponents-1 && k1 >= simDomain.numComponents-1 && a >= simDomain.numPhases && simControls.FUNCTION_F == 2)
         {
             if(fscanf(fp, "%le", &value));
-            for (z = 0; z <= subdomain.zE - subdomain.zS; z++)
+            for (z = subdomain.padding; z < subdomain.sizeZ-subdomain.padding; z++)
             {
-                for (y = 0; y <= subdomain.yE - subdomain.yS; y++)
+                for (y = subdomain.padding; y < subdomain.sizeY-subdomain.padding; y++)
                 {
-                    for (x = 0; x <= subdomain.xE - subdomain.xS; x++)
+                    for (x = subdomain.padding; x < subdomain.sizeX-subdomain.padding; x++)
                     {
                         if(fread(&value, sizeof(double), 1, fp));
                         if (IS_LITTLE_ENDIAN)
-                            comp[k2*subdomain.numCells + z*layer_size + y*simDomain.MESH_X + x] = swap_bytes(value);
+                            mu[k2*subdomain.numCompCells + z*subdomain.zStep + y*subdomain.yStep + x] = swap_bytes(value);
                         else
-                            comp[k2*subdomain.numCells + z*layer_size + y*simDomain.MESH_X + x] = value;
+                            mu[k2*subdomain.numCompCells + z*subdomain.zStep + y*subdomain.yStep + x] = value;
                     }
                 }
             }
@@ -554,25 +552,25 @@ void writeHDF5(double *phi, double *comp, double *mu,
     for (i = 0; i < size_fields; i++)
         buffer[i] = (double*)malloc(index_count*sizeof(double));
 
-    for (z = 0; z < count[0]; z++)
+    for (z = subdomain.padding; z < subdomain.sizeZ - subdomain.padding; z++)
     {
-        for (y = 0; y < count[1]; y++)
+        for (y = subdomain.padding; y < subdomain.sizeY - subdomain.padding; y++)
         {
-            for (x = 0; x < count[2]; x++)
+            for (x = subdomain.padding; x < subdomain.sizeX - subdomain.padding; x++)
             {
-                index    =  (y + z*count[1])*count[2] + x;
-                index_to =  (y + z*count[1])*count[2] + x;
+                index    =  z*subdomain.zStep + y*subdomain.yStep + x;
+                index_to =  ((z-1)*(count[1]) + y-1)*count[2] + x-1;
 
                 for (a = 0; a < simDomain.numPhases; a++)
-                    buffer[a][index_to] =  phi[a*subdomain.numCells + z*simDomain.MESH_X * simDomain.MESH_Y + y*simDomain.MESH_X + x];
+                    buffer[a][index_to] =  phi[a*subdomain.numCompCells + index];
 
                 for (k = 0; k < simDomain.numComponents-1; k++)
-                    buffer[simDomain.numPhases+k][index_to] = comp[k*subdomain.numCells + z*simDomain.MESH_X * simDomain.MESH_Y + y*simDomain.MESH_X + x];
+                    buffer[simDomain.numPhases+k][index_to] = comp[k*subdomain.numCompCells + index];
 
                 if (simControls.FUNCTION_F == 2)
                 {
                     for (k = 0; k < simDomain.numComponents-1; k++)
-                        buffer[simDomain.numPhases+simDomain.numComponents-1+k][index_to] = mu[k*subdomain.numCells + z*simDomain.MESH_X * simDomain.MESH_Y + y*simDomain.MESH_X + x];
+                        buffer[simDomain.numPhases+simDomain.numComponents-1+k][index_to] = mu[k*subdomain.numCompCells + index];
                 }
             }
         }
@@ -745,25 +743,25 @@ void readHDF5(double *phi, double *comp, double *mu,
         status_h = H5Pclose(plist_id);
     }
 
-    for (z = 0; z < count[0]; z++)
+    for (z = subdomain.padding; z < subdomain.sizeZ - subdomain.padding; z++)
     {
-        for (y = 0; y < count[1]; y++)
+        for (y = subdomain.padding; y < subdomain.sizeY - subdomain.padding; y++)
         {
-            for (x = 0; x < count[2]; x++)
+            for (x = subdomain.padding; x < subdomain.sizeX - subdomain.padding; x++)
             {
-                index    =  (y + z*count[1])*count[2] + x;
-                index_to =  (y + z*count[1])*count[2] + x;
+                index_to =  z*subdomain.zStep + y*subdomain.yStep + x;
+                index    =  ((z-1)*(count[1]) + y-1)*count[2] + x-1;
 
                 for (a = 0; a < simDomain.numPhases; a++)
-                    phi[a*subdomain.numCells + z*simDomain.MESH_X * simDomain.MESH_Y + y*simDomain.MESH_X + x] = buffer[a][index_to];
+                    phi[a*subdomain.numCompCells + index_to] = buffer[a][index];
 
                 for (k = 0; k < simDomain.numComponents-1; k++)
-                    comp[k*subdomain.numCells + z*simDomain.MESH_X * simDomain.MESH_Y + y*simDomain.MESH_X + x] = buffer[simDomain.numPhases+k][index_to];
+                    comp[k*subdomain.numCompCells + index_to] = buffer[simDomain.numPhases+k][index];
 
                 if (simControls.FUNCTION_F == 2)
                 {
                     for (k = 0; k < simDomain.numComponents-1; k++)
-                        mu[k*subdomain.numCells + z*simDomain.MESH_X * simDomain.MESH_Y + y*simDomain.MESH_X + x] = buffer[simDomain.numPhases+simDomain.numComponents-1+k][index_to];
+                        mu[k*subdomain.numCompCells + index_to] = buffer[simDomain.numPhases+simDomain.numComponents-1+k][index];
                 }
             }
         }

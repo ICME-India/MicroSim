@@ -7,22 +7,10 @@
 #include "structures.h"
 #include "utilityKernels.cuh"
 #include "Thermo.cuh"
-#include "utilityKernels.cuh"
-//#include "functionW_01.cuh"
+#include "matrix.cuh"
+#include "functionW_01.cuh"
 #include "functionW_02.cuh"
 #include "functionH.cuh"
-
-#ifndef MAX_NUM_PHASES
-#define MAX_NUM_PHASES 5
-#endif
-
-#ifndef MAX_NUM_COMP
-#define MAX_NUM_COMP 5
-#endif
-
-#ifndef MAX_NUM_PHASE_COMP
-#define MAX_NUM_PHASE_COMP 16
-#endif
 
 /*
  * Explicit calculation of the right-hand side of the Allen-Cahn equation.
@@ -35,8 +23,9 @@ void __computeDrivingForce__(double **phi, double **comp,
                              double *F0_A, double *F0_B, double *F0_C,
                              double molarVolume,
                              double *theta_i, double *theta_ij, double *theta_ijk,
-                             long NUMPHASES, long NUMCOMPONENTS,
-                             long sizeX, long sizeY, long sizeZ);
+                             long NUMPHASES, long NUMCOMPONENTS, long DIMENSION,
+                             long sizeX, long sizeY, long sizeZ,
+                             long yStep, long zStep, long padding);
 
 __global__
 void __computeDrivingForce_02__(double **phi, double **comp,
@@ -45,9 +34,9 @@ void __computeDrivingForce_02__(double **phi, double **comp,
                                 double molarVolume,
                                 double *theta_i, double *theta_ij, double *theta_ijk,
                                 double temperature, long *thermo_phase,
-                                long NUMPHASES, long NUMCOMPONENTS,
+                                long NUMPHASES, long NUMCOMPONENTS, long DIMENSION,
                                 long sizeX, long sizeY, long sizeZ,
-                                double DELTA_X, double DELTA_Y, double DELTA_Z);
+                                long yStep, long zStep, long padding);
 
 /*
  * Wrapper function for __computeDrivingForce__

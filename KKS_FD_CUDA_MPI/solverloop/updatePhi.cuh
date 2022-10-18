@@ -7,19 +7,11 @@
 #include "structures.h"
 #include "Thermo.cuh"
 #include "utilityKernels.cuh"
-
-
-#ifndef MAX_NUM_PHASES
-#define MAX_NUM_PHASES 5
-#endif
-
-#ifndef MAX_NUM_COMP
-#define MAX_NUM_COMP 5
-#endif
-
-#ifndef MAX_NUM_PHASE_COMP
-#define MAX_NUM_PHASE_COMP 16
-#endif
+#include "matrix.cuh"
+#include "functionA_01.cuh"
+#include "functionA_02.cuh"
+#include "functionTau.cuh"
+#include "boundary.cuh"
 
 /*
  * Kernel that solves d(\phi_{i})/dt = -L/N \sum_{j=1, i \neq j}^{N} (df/dphi_{i} - df/dphi_[j})
@@ -27,21 +19,12 @@
 __global__
 void __updatePhi__(double **phi, double **dfdphi, double **phiNew,
                    double *relaxCoeff, double *kappaPhi,
-                   long NUMPHASES, long NUMCOMPONENTS,
+                   double *dab, int FUNCTION_ANISOTROPY,
+                   long NUMPHASES, long NUMCOMPONENTS, long DIMENSION,
                    long sizeX, long sizeY, long sizeZ,
+                   long yStep, long zStep, long padding,
                    double DELTA_X, double DELTA_Y, double DELTA_Z,
                    double DELTA_t);
-
-__global__
-void __updatePhi_02__(double **phi, double **dfdphi, double **phiNew, double **phaseComp,
-                      double *omega, double *kappaPhi,
-                      double *diffusivity, double molarVolume,
-                      long *thermo_phase, double temperature,
-                      double *relaxCoeff,
-                      long NUMPHASES, long NUMCOMPONENTS,
-                      long sizeX, long sizeY, long sizeZ,
-                      double DELTA_X, double DELTA_Y, double DELTA_Z,
-                      double DELTA_t);
 
 /*
  * Host-side wrapper function for __updatePhi__

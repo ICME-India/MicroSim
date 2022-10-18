@@ -80,6 +80,23 @@ with open(sys.argv[1], 'r') as my_file:
     index = 0
     for line in flines:
         index += 1
+        searchstatus = re.match(r'\bPHASES\b', line)
+        if searchstatus:
+            flag = 1
+            break
+    if flag == 0:
+        print("#############################################")
+        print("# Error in Input file: No phase information #")
+        print("#############################################")
+    else:
+        nPHASESline = flines[index-1]
+        nphases1 = nPHASESline.split("=")[1].replace(';', '').strip()
+        nphases = re.sub(r"[{} ]","",nphases1).split(",")
+
+    flag = 0
+    index = 0
+    for line in flines:
+        index += 1
         searchstatus = re.match(r'\btdb_phases\b', line)
         if searchstatus:
             flag = 1
@@ -93,6 +110,20 @@ with open(sys.argv[1], 'r') as my_file:
         phases1 = PHASESline.split("=")[1].replace(';', '').strip()
         phases = re.sub(r"[{} ]","",phases1).split(",")
         #print(phases)
+
+nphadef = '#define MAX_NUM_PHASES ' + str(len(nphases)) + '\n'
+ncomdef = '#define MAX_NUM_COMP ' + str(len(components)) + '\n'
+numpc   = len(nphases)*(len(components)-1)
+npcdef  = '#define MAX_NUM_PHASE_COMP ' + str(numpc) + '\n'
+
+print(nphadef)
+print(ncomdef)
+print(npcdef)
+
+file = open("functions/defines.h", "w")
+file.write(nphadef)
+file.write(ncomdef)
+file.write(npcdef)
 
 comps=components+['VA']
 #print(comps)
@@ -339,50 +370,32 @@ with fileinput.FileInput('tdbs/Thermo.cuh', inplace=True) as file:
     for line in file:
         print(line.replace('#endif', 'static void(*dmudc_tdb[])(double T, double *y, double *Dmudc) = %s; \nstatic __device__ void(*dmudc_tdb_dev[])(double T, double *y, double *Dmudc) = %s;\n\n#endif '% (Hessian_functions, Hessian_functions)), end='')
 
-with fileinput.FileInput('tdbs/Thermo.cuh', inplace=True) as file:
-    for line in file:
-        print(line.replace('void GE_0(double T, double *y, double *Ge);', 'extern __device__ __host__ void GE_0(double T, double *y, double *Ge);'), end='')
+for i in range(0,len(nphases)):
+    with fileinput.FileInput('tdbs/Thermo.cuh', inplace=True) as file:
+        for line in file:
+            print(line.replace('void GE_%s(double T, double *y, double *Ge);' % str(i), 'extern __device__ __host__ void GE_%s(double T, double *y, double *Ge);' % str(i)), end='')
 
-with fileinput.FileInput('tdbs/Thermo.cuh', inplace=True) as file:
-    for line in file:
-        print(line.replace('void GE_1(double T, double *y, double *Ge);', 'extern __device__ __host__ void GE_1(double T, double *y, double *Ge);'), end='')
+for i in range(0,len(nphases)):
+    with fileinput.FileInput('tdbs/Thermo.cuh', inplace=True) as file:
+        for line in file:
+            print(line.replace('void Mu_%s(double T, double *y, double *Mu);' % str(i), 'extern __device__ __host__ void Mu_%s(double T, double *y, double *Mu);' % str(i)), end='')
 
-with fileinput.FileInput('tdbs/Thermo.cuh', inplace=True) as file:
-    for line in file:
-        print(line.replace('void Mu_0(double T, double *y, double *Mu);', 'extern __device__ __host__ void Mu_0(double T, double *y, double *Mu);'), end='')
+for i in range(0,len(nphases)):
+    with fileinput.FileInput('tdbs/Thermo.cuh', inplace=True) as file:
+        for line in file:
+            print(line.replace('void dmudc_%s(double T, double *y, double *Dmudc);' % str(i), 'extern __device__ __host__ void dmudc_%s(double T, double *y, double *Dmudc);' % str(i)), end='')
 
-with fileinput.FileInput('tdbs/Thermo.cuh', inplace=True) as file:
-    for line in file:
-        print(line.replace('void Mu_1(double T, double *y, double *Mu);', 'extern __device__ __host__ void Mu_1(double T, double *y, double *Mu);'), end='')
+for i in range(0,len(nphases)):
+    with fileinput.FileInput('tdbs/Thermo.cu', inplace=True) as file:
+        for line in file:
+            print(line.replace('void GE_%s(double T, double *y, double *Ge) {' % str(i), 'extern __device__ __host__ void GE_%s(double T, double *y, double *Ge) {' % str(i)), end='')
 
-with fileinput.FileInput('tdbs/Thermo.cuh', inplace=True) as file:
-    for line in file:
-        print(line.replace('void dmudc_0(double T, double *y, double *Dmudc);', 'extern __device__ __host__ void dmudc_0(double T, double *y, double *Dmudc);'), end='')
+for i in range(0,len(nphases)):
+    with fileinput.FileInput('tdbs/Thermo.cu', inplace=True) as file:
+        for line in file:
+            print(line.replace('void Mu_%s(double T, double *y, double *Mu) {' % str(i), 'extern __device__ __host__ void Mu_%s(double T, double *y, double *Mu) {' % str(i)), end='')
 
-with fileinput.FileInput('tdbs/Thermo.cuh', inplace=True) as file:
-    for line in file:
-        print(line.replace('void dmudc_1(double T, double *y, double *Dmudc);', 'extern __device__ __host__ void dmudc_1(double T, double *y, double *Dmudc);'), end='')
-
-with fileinput.FileInput('tdbs/Thermo.cu', inplace=True) as file:
-    for line in file:
-        print(line.replace('void GE_0(double T, double *y, double *Ge) {', 'extern __device__ __host__ void GE_0(double T, double *y, double *Ge) {'), end='')
-
-with fileinput.FileInput('tdbs/Thermo.cu', inplace=True) as file:
-    for line in file:
-        print(line.replace('void GE_1(double T, double *y, double *Ge) {', 'extern __device__ __host__ void GE_1(double T, double *y, double *Ge) {'), end='')
-
-with fileinput.FileInput('tdbs/Thermo.cu', inplace=True) as file:
-    for line in file:
-        print(line.replace('void Mu_0(double T, double *y, double *Mu) {', 'extern __device__ __host__ void Mu_0(double T, double *y, double *Mu) {'), end='')
-
-with fileinput.FileInput('tdbs/Thermo.cu', inplace=True) as file:
-    for line in file:
-        print(line.replace('void Mu_1(double T, double *y, double *Mu) {', 'extern __device__ __host__ void Mu_1(double T, double *y, double *Mu) {'), end='')
-
-with fileinput.FileInput('tdbs/Thermo.cu', inplace=True) as file:
-    for line in file:
-        print(line.replace('void dmudc_0(double T, double *y, double *Dmudc) {', 'extern __device__ __host__ void dmudc_0(double T, double *y, double *Dmudc) {'), end='')
-
-with fileinput.FileInput('tdbs/Thermo.cu', inplace=True) as file:
-    for line in file:
-        print(line.replace('void dmudc_1(double T, double *y, double *Dmudc) {', 'extern __device__ __host__ void dmudc_1(double T, double *y, double *Dmudc) {'), end='')
+for i in range(0,len(nphases)):
+    with fileinput.FileInput('tdbs/Thermo.cu', inplace=True) as file:
+        for line in file:
+            print(line.replace('void dmudc_%s(double T, double *y, double *Dmudc) {' % str(i), 'extern __device__ __host__ void dmudc_%s(double T, double *y, double *Dmudc) {' % str(i)), end='')

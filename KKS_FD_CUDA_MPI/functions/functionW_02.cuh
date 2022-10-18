@@ -3,6 +3,7 @@
 
 #include <cuda.h>
 #include <cuda_runtime.h>
+#include <stdio.h>
 
 /*
  * __device__ double calcDoubleWellDerivative

@@ -239,6 +239,7 @@ double calcInterp5thDiff(double **phi, long a, long b, long idx, long NUMPHASES)
     {
         if (NUMPHASES == 2)
         {
+            //ans = 0.0;
             ans = -30.0*phiValue*phiValue*(1.0-phiValue)*(1.0-phiValue);
         }
 

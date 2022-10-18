@@ -29,6 +29,9 @@ void readInput_MPI(domainInfo *simDomain, controls *simControls,
     simControls->multiphase = 1;
     simControls->restart = 0;
     simControls->writeHDF5 = 0;
+    simControls->FUNCTION_ANISOTROPY = 0;
+    simControls->ANISOTROPY = 0;
+    simControls->ANISOTROPY_GRADIENT = 0;
 
     while (fgets(tempbuff,1000,fr))
     {
@@ -108,52 +111,52 @@ void readInput_MPI(domainInfo *simDomain, controls *simControls,
 
                 if (simDomain->numComponents > 1 && simDomain->numPhases > 0)
                 {
-                    simParams->F0_Beq_host = malloc2M(simDomain->numPhases, simDomain->numComponents-1);
+                    simParams->F0_Beq_host = MallocM(simDomain->numPhases, simDomain->numComponents-1);
 
-                    simParams->DELTA_T = malloc2M(simDomain->numPhases, simDomain->numPhases);
-                    simParams->DELTA_C = malloc2M(simDomain->numPhases, simDomain->numComponents-1);
+                    simParams->DELTA_T = MallocM(simDomain->numPhases, simDomain->numPhases);
+                    simParams->DELTA_C = MallocM(simDomain->numPhases, simDomain->numComponents-1);
 
-                    simParams->dcbdT = malloc3M(simDomain->numPhases, simDomain->numPhases, simDomain->numComponents-1);
-                    simParams->dBbdT = malloc2M(simDomain->numPhases, simDomain->numComponents-1);
+                    simParams->dcbdT = Malloc3M(simDomain->numPhases, simDomain->numPhases, simDomain->numComponents-1);
+                    simParams->dBbdT = MallocM(simDomain->numPhases, simDomain->numComponents-1);
 
-                    simParams->slopes = malloc3M(simDomain->numPhases, simDomain->numPhases, simDomain->numPhases);
+                    simParams->slopes = Malloc3M(simDomain->numPhases, simDomain->numPhases, simDomain->numPhases);
 
-                    simParams->gamma_host = malloc2M(simDomain->numPhases, simDomain->numPhases);
+                    simParams->gamma_host = MallocM(simDomain->numPhases, simDomain->numPhases);
                     cudaMalloc((void**)&simParams->gamma_dev, sizeof(double)*simDomain->numPhases*simDomain->numPhases);
 
-                    simParams->Tau_host = malloc2M(simDomain->numPhases, simDomain->numPhases);
+                    simParams->Tau_host = MallocM(simDomain->numPhases, simDomain->numPhases);
 
-                    simParams->relax_coeff_host = malloc2M(simDomain->numPhases, simDomain->numPhases);
+                    simParams->relax_coeff_host = MallocM(simDomain->numPhases, simDomain->numPhases);
                     cudaMalloc((void**)&simParams->relax_coeff_dev, sizeof(double)*simDomain->numPhases*simDomain->numPhases);
 
-                    simParams->kappaPhi_host = malloc2M(simDomain->numPhases, simDomain->numPhases);
+                    simParams->kappaPhi_host = MallocM(simDomain->numPhases, simDomain->numPhases);
                     cudaMalloc((void**)&simParams->kappaPhi_dev, sizeof(double)*simDomain->numPhases*simDomain->numPhases);
 
-                    simParams->diffusivity_host = malloc3M(simDomain->numPhases, simDomain->numComponents-1, simDomain->numComponents-1);
+                    simParams->diffusivity_host = Malloc3M(simDomain->numPhases, simDomain->numComponents-1, simDomain->numComponents-1);
                     cudaMalloc((void**)&(simParams->diffusivity_dev), sizeof(double)*simDomain->numPhases*(simDomain->numComponents-1)*(simDomain->numComponents-1));
 
-                    simParams->mobility_host = malloc3M(simDomain->numPhases, simDomain->numComponents-1, simDomain->numComponents-1);
+                    simParams->mobility_host = Malloc3M(simDomain->numPhases, simDomain->numComponents-1, simDomain->numComponents-1);
                     cudaMalloc((void**)&(simParams->mobility_dev), sizeof(double)*simDomain->numPhases*(simDomain->numComponents-1)*(simDomain->numComponents-1));
 
-                    simParams->F0_A_host = malloc3M(simDomain->numPhases, simDomain->numComponents-1, simDomain->numComponents-1);
+                    simParams->F0_A_host = Malloc3M(simDomain->numPhases, simDomain->numComponents-1, simDomain->numComponents-1);
                     cudaMalloc((void**)&(simParams->F0_A_dev), sizeof(double)*simDomain->numPhases*(simDomain->numComponents-1)*(simDomain->numComponents-1));
 
-                    simParams->F0_B_host = malloc2M(simDomain->numPhases, simDomain->numComponents-1);
+                    simParams->F0_B_host = MallocM(simDomain->numPhases, simDomain->numComponents-1);
                     cudaMalloc((void**)&(simParams->F0_B_dev), sizeof(double)*simDomain->numPhases*(simDomain->numComponents-1));
 
                     simParams->F0_C_host = (double*)malloc(sizeof(double)*simDomain->numPhases);
                     cudaMalloc((void**)&(simParams->F0_C_dev), sizeof(double)*simDomain->numPhases);
 
-                    simParams->ceq_host = malloc3M(simDomain->numPhases, simDomain->numPhases, simDomain->numComponents-1);
+                    simParams->ceq_host = Malloc3M(simDomain->numPhases, simDomain->numPhases, simDomain->numComponents-1);
                     cudaMalloc((void**)&(simParams->ceq_dev), sizeof(double)*simDomain->numPhases*simDomain->numPhases*(simDomain->numComponents-1));
 
-                    simParams->cfill_host = malloc3M(simDomain->numPhases, simDomain->numPhases, simDomain->numComponents-1);
+                    simParams->cfill_host = Malloc3M(simDomain->numPhases, simDomain->numPhases, simDomain->numComponents-1);
                     cudaMalloc((void**)&(simParams->cfill_dev), sizeof(double)*simDomain->numPhases*simDomain->numPhases*(simDomain->numComponents-1));
 
-                    simParams->cguess_host = malloc3M(simDomain->numPhases, simDomain->numPhases, simDomain->numComponents-1);
+                    simParams->cguess_host = Malloc3M(simDomain->numPhases, simDomain->numPhases, simDomain->numComponents-1);
                     cudaMalloc((void**)&(simParams->cguess_dev), sizeof(double)*simDomain->numPhases*simDomain->numPhases*(simDomain->numComponents-1));
 
-                    simParams->theta_ijk_host = malloc3M(simDomain->numPhases, simDomain->numPhases, simDomain->numPhases);
+                    simParams->theta_ijk_host = Malloc3M(simDomain->numPhases, simDomain->numPhases, simDomain->numPhases);
 
                     for (long i = 0; i < simDomain->numPhases; i++)
                         for (long j = 0; j < simDomain->numPhases; j++)
@@ -161,12 +164,22 @@ void readInput_MPI(domainInfo *simDomain, controls *simControls,
                                 simParams->theta_ijk_host[i][j][k] = 0.0;
                     cudaMalloc((void**)&(simParams->theta_ijk_dev), sizeof(double)*simDomain->numPhases*simDomain->numPhases*simDomain->numPhases);
 
-                    simParams->theta_ij_host = malloc2M(simDomain->numPhases, simDomain->numPhases);
+                    simParams->theta_ij_host = MallocM(simDomain->numPhases, simDomain->numPhases);
                     cudaMalloc((void**)&(simParams->theta_ij_dev), sizeof(double)*simDomain->numPhases*simDomain->numPhases);
 
                     simParams->theta_i_host = (double*)malloc(sizeof(double)*simDomain->numPhases);
                     cudaMalloc((void**)&(simParams->theta_i_dev), sizeof(double)*simDomain->numPhases);
 
+                    simParams->Rotation_matrix_host = Malloc4M(simDomain->numPhases, simDomain->numPhases, 3, 3);
+                    cudaMalloc((void**)&(simParams->Rotation_matrix_dev), sizeof(double)*simDomain->numPhases*simDomain->numPhases*3*3);
+
+                    simParams->Inv_Rotation_matrix_host = Malloc4M(simDomain->numPhases, simDomain->numPhases, 3, 3);
+                    cudaMalloc((void**)&(simParams->Inv_Rotation_matrix_dev), sizeof(double)*simDomain->numPhases*simDomain->numPhases*3*3);
+
+                    for (long i = 0; i < 6; i++)
+                    {
+                        simControls->boundary[i] = (bc_scalars*)malloc(4*sizeof(*simControls->boundary[i])); //4=Number of scalar fields
+                    }
                 }
                 else
                     printf("Invalid number of components and/or phases\n");
@@ -192,6 +205,11 @@ void readInput_MPI(domainInfo *simDomain, controls *simControls,
             {
                 simControls->numSteps = atol(tmpstr2);
                 fprintf(fp, "%s = %ld\n", tmpstr1, simControls->numSteps);
+            }
+            else if (strcmp(tmpstr1, "NSMOOTH") == 0)
+            {
+                simControls->nsmooth = atol(tmpstr2);
+                fprintf(fp, "%s = %ld\n", tmpstr1, simControls->nsmooth);
             }
             else if (strcmp(tmpstr1, "SAVET") == 0)
             {
@@ -333,13 +351,31 @@ void readInput_MPI(domainInfo *simDomain, controls *simControls,
                 simControls->T_update = atoi(tmpstr2);
                 fprintf(fp, "%s = %ld\n", tmpstr1, simControls->T_update);
             }
-            else if (strcmp(tmpstr1, "SEED"))
+            else if (strcmp(tmpstr1, "SEED") == 0)
             {
                 simParams->SEED = atol(tmpstr2);
                 fprintf(fp, "%s = %ld\n", tmpstr1, simParams->SEED);
             }
-            else if (!(rank))
-                printf("Unrecognized parameter : \"%s\"\n", tmpstr1);
+            else if (strcmp(tmpstr1, "Function_anisotropy") == 0)
+            {
+                simControls->FUNCTION_ANISOTROPY = atoi(tmpstr2);
+            }
+            else if ((strcmp(tmpstr1, "Anisotropy_type") == 0) && (simControls->FUNCTION_ANISOTROPY != 0))
+            {
+                simControls->FOLD = atoi(tmpstr2);
+            }
+            else if ((strcmp(tmpstr1, "Rotation_matrix") == 0) && (simControls->FUNCTION_ANISOTROPY != 0))
+            {
+                populate_rotation_matrix(simParams->Rotation_matrix_host, simParams->Inv_Rotation_matrix_host, tmpstr2);
+            }
+            else if (strcmp(tmpstr1, "dab") == 0)
+            {
+                simParams->dab_host = MallocM(simDomain->numPhases, simDomain->numPhases);
+                cudaMalloc((void**)&(simParams->dab_dev), sizeof(double)*simDomain->numPhases*simDomain->numPhases);
+                populate_matrix(simParams->dab_host, tmpstr2, simDomain->numPhases);
+            }
+          //  else if (rank == 1)
+               // printf("Unrecognized parameter : \"%s\"\n", tmpstr1);
         }
     }
 
@@ -361,202 +397,4 @@ void readInput_MPI(domainInfo *simDomain, controls *simControls,
 
     fclose(fr);
     fclose(fp);
-}
-
-void readFill(fillParameters *simFill, char *argv[], int rank)
-{
-    FILE *fr;
-
-    if (fr = fopen(argv[2], "rt"))
-    {
-        if (!(rank))
-            printf("\nReading filling parameters from %s\n", argv[2]);
-    }
-    else
-    {
-        if (!(rank))
-            printf("\n File %s not found\n", argv[2]);
-    }
-
-    long i;
-    char tempbuff[1000];
-    char tmpstr1[100], tmpstr2[100];
-
-    char **tmp;
-    char *str1, *token;
-    char *saveptr1;
-
-    simFill->countFill = 0;
-
-    while (fgets(tempbuff, 1000, fr))
-    {
-        sscanf(tempbuff, "%100s = %100[^;];", tmpstr1, tmpstr2);
-        if (tmpstr1[0] != '#')
-        {
-            if ((strcmp(tmpstr1, "FILLCYLINDER") == 0) || (strcmp(tmpstr1, "FILLSPHERE") == 0) || (strcmp(tmpstr1, "FILLCYLINDERRANDOM") == 0) || (strcmp(tmpstr1, "FILLSPHERERANDOM") == 0))
-            {
-                simFill->countFill++;
-            }
-        }
-    }
-
-    fclose(fr);
-
-    simFill->fillType   = (fill*)malloc(sizeof(fill)*simFill->countFill);
-    simFill->xC         = (long*)malloc(sizeof(long)*simFill->countFill);
-    simFill->yC         = (long*)malloc(sizeof(long)*simFill->countFill);
-    simFill->zC         = (long*)malloc(sizeof(long)*simFill->countFill);
-    simFill->zS         = (long*)malloc(sizeof(long)*simFill->countFill);
-    simFill->zE         = (long*)malloc(sizeof(long)*simFill->countFill);
-    simFill->radius     = (long*)malloc(sizeof(long)*simFill->countFill);
-    simFill->phase      = (long*)malloc(sizeof(long)*simFill->countFill);
-    simFill->seed       = (long*)malloc(sizeof(long)*simFill->countFill);
-    simFill->volFrac    = (double*)malloc(sizeof(double)*simFill->countFill);
-    simFill->shieldDist = (long*)malloc(sizeof(long)*simFill->countFill);
-    simFill->radVar     = (double*)malloc(sizeof(double)*simFill->countFill);
-
-    long j = 0;
-
-    fr = fopen(argv[2], "rt");
-
-    while (fgets(tempbuff, 1000, fr))
-    {
-        sscanf(tempbuff, "%100s = %100[^;];", tmpstr1, tmpstr2);
-
-        if (tmpstr1[0] != '#')
-        {
-            if (j >= simFill->countFill)
-                break;
-
-            if (strcmp(tmpstr1, "FILLCYLINDER") == 0)
-            {
-                tmp = (char**)malloc(sizeof(char*)*6);
-                for (i = 0; i < 6; i++)
-                    tmp[i] = (char*)malloc(sizeof(char)*10);
-
-                for (i = 0, str1 = tmpstr2; ; i++, str1 = NULL)
-                {
-                    token = strtok_r(str1, "{,}", &saveptr1);
-                    if (token == NULL)
-                        break;
-                    strcpy(tmp[i],token);
-                }
-
-                simFill->fillType[j] = FILLCYLINDER;
-                simFill->phase[j]    = atol(tmp[0]);
-                simFill->xC[j]       = atol(tmp[1]);
-                simFill->yC[j]       = atol(tmp[2]);
-                simFill->zS[j]       = atol(tmp[3]);
-                simFill->zE[j]       = atol(tmp[4]);
-                simFill->radius[j]   = atol(tmp[5]);
-
-                j++;
-
-                if (!(rank))
-                    printf("Read cylinder parameters\n");
-
-                for (i = 0; i < 6; i++)
-                    free(tmp[i]);
-                free(tmp);
-            }
-
-            else if (strcmp(tmpstr1, "FILLSPHERE") == 0)
-            {
-                tmp = (char**)malloc(sizeof(char*)*5);
-                for (i = 0; i < 5; i++)
-                    tmp[i] = (char*)malloc(sizeof(char)*10);
-
-                for (i = 0, str1 = tmpstr2; ; i++, str1 = NULL)
-                {
-                    token = strtok_r(str1, "{,}", &saveptr1);
-                    if (token == NULL)
-                        break;
-                    strcpy(tmp[i],token);
-                }
-
-                simFill->fillType[j] = FILLSPHERE;
-                simFill->phase[j]    = atol(tmp[0]);
-                simFill->xC[j]       = atol(tmp[1]);
-                simFill->yC[j]       = atol(tmp[2]);
-                simFill->zC[j]       = atol(tmp[3]);
-                simFill->radius[j]   = atol(tmp[4]);
-
-                j++;
-
-                if (!(rank))
-                    printf("Read sphere parameters\n");
-
-                for (i = 0; i < 5; i++)
-                    free(tmp[i]);
-                free(tmp);
-            }
-
-            else if (strcmp(tmpstr1, "FILLCYLINDERRANDOM") == 0)
-            {
-                tmp = (char**)malloc(sizeof(char*)*6);
-                for (i = 0; i < 6; i++)
-                    tmp[i] = (char*)malloc(sizeof(char)*10);
-
-                for (i = 0, str1 = tmpstr2; ; i++, str1 = NULL)
-                {
-                    token = strtok_r(str1, "{,}", &saveptr1);
-                    if (token == NULL)
-                        break;
-                    strcpy(tmp[i],token);
-                }
-
-                simFill->fillType[j]   = FILLCYLINDERRANDOM;
-                simFill->phase[j]      = atol(tmp[0]);
-                simFill->radius[j]     = atol(tmp[1]);
-                simFill->volFrac[j]    = atof(tmp[2]);
-                simFill->shieldDist[j] = atol(tmp[3]);
-                simFill->radVar[j]     = atof(tmp[4]);
-
-                j++;
-
-                if (!(rank))
-                    printf("Read random cylinder filling parameters\n");
-
-                for (i = 0; i < 6; i++)
-                    free(tmp[i]);
-                free(tmp);
-            }
-
-            else if (strcmp(tmpstr1, "FILLSPHERERANDOM") == 0)
-            {
-                tmp = (char**)malloc(sizeof(char*)*6);
-                for (i = 0; i < 6; i++)
-                    tmp[i] = (char*)malloc(sizeof(char)*10);
-
-                for (i = 0, str1 = tmpstr2; ; i++, str1 = NULL)
-                {
-                    token = strtok_r(str1, "{,}", &saveptr1);
-                    if (token == NULL)
-                        break;
-                    strcpy(tmp[i],token);
-                }
-
-                simFill->fillType[j]   = FILLSPHERERANDOM;
-                simFill->phase[j]      = atol(tmp[0]);
-                simFill->radius[j]     = atol(tmp[1]);
-                simFill->volFrac[j]    = atof(tmp[2]);
-                simFill->shieldDist[j] = atol(tmp[3]);
-                simFill->radVar[j]     = atof(tmp[4]);
-
-                j++;
-
-                if (!(rank))
-                    printf("Read random sphere filling parameters\n");
-
-                for (i = 0; i < 6; i++)
-                    free(tmp[i]);
-                free(tmp);
-            }
-
-            else
-                printf("Did not find valid input in %s\n", argv[2]);
-        }
-    }
-
-    fclose(fr);
 }

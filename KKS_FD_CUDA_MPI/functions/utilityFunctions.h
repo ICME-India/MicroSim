@@ -17,11 +17,11 @@
 #endif
 #include "structures.h"
 
-int LUPDecompose(double **A, int N, double Tol, int *P);
-void LUPInvert(double **A, int *P, int N, double **IA);
-void matrixMultiply(double **A, double **B, double **C, int N);
+#include "matrix.cuh"
 
 void testThermoFuncs(domainInfo simDomain, simParameters simParams);
+
+void get_Rotation_Matrix(double **R, double theta, int axis);
 
 void populate_matrix(double **Mat, char *tmpstr, long NUMPHASES);
 void populate_matrix3M(double ***Mat, char *tmpstr, long NUMPHASES);
@@ -31,6 +31,7 @@ void populate_diffusivity_matrix(double ***Mat, char *tmpstr, long NUMCOMPONENTS
 void populate_A_matrix(double ***Mat, char *tmpstr, long NUMCOMPONENTS);
 void populate_thermodynamic_matrix(double ***Mat, char *tmpstr, long NUMCOMPONENTS);
 void populate_string_array(char **string, char *tmpstr, long size);
+void populate_rotation_matrix(double ****Mat, double ****Mat_Inv, char *tmpstr);
 
 /*
  * Generate random number using user-specified seed.
@@ -40,32 +41,32 @@ double ran(long *idum);
 /*
  * Allocate a 2d double array
  */
-double** malloc2M(long a, long b);
+double** MallocM(long a, long b);
 
 /*
  * Allocate a 3D double array
  */
-double*** malloc3M(long a, long b, long c);
+double*** Malloc3M(long a, long b, long c);
 
 /*
  * Allocate a 4D double array
  */
-double**** malloc4M(long a, long b, long c, long d);
+double**** Malloc4M(long a, long b, long c, long d);
 
 /*
  * Free a 2D double array
  */
-void free2M(double **Mat, long a);
+void FreeM(double **Mat, long a);
 
 /*
  * Free a 3D double array
  */
-void free3M(double ***Mat, long a, long b);
+void Free3M(double ***Mat, long a, long b);
 
 /*
  * Free a 4D double array
  */
-void free4M(double ****Mat, long a, long b, long c);
+void Free4M(double ****Mat, long a, long b, long c);
 
 /*
  * Allocate memory on GPU and create pointers to make access to each phase/component simpler
@@ -83,6 +84,6 @@ void freeOnDev(double **arr, double ***arr2);
 /*
  * Aggregation of all free() calls.
  */
-void freeVars(domainInfo *simDomain, simParameters *simParams);
+void freeVars(domainInfo *simDomain, controls *simControls, simParameters *simParams);
 
 #endif
