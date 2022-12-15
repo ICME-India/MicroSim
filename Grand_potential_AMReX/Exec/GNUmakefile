@@ -1,6 +1,6 @@
 # AMREX_HOME defines the directory in which we will find all the AMReX code.
-AMREX_HOME ?= ../../../../amrex		#Path to amrex home
-LIBRARY_LOCATIONS += /home/ext/apps/spack/opt/spack/linux-centos7-cascadelake/gcc-11.2.0/gsl-2.7-h5q52xdndmnqwjwnysbdt5c6ccbk4fv6/lib	#Path to GSL libs
+AMREX_HOME ?= ../../../AMREX/amrex
+LIBRARY_LOCATIONS += /home/ext/apps/spack/opt/spack/linux-centos7-cascadelake/gcc-11.2.0/gsl-2.7-h5q52xdndmnqwjwnysbdt5c6ccbk4fv6/lib
 XTRALIBS += -lgsl -lgslcblas -lm
 
 DEBUG        = FALSE
@@ -14,7 +14,7 @@ include $(AMREX_HOME)/Tools/GNUMake/Make.defs
 
 include ../Source/Make.package
 VPATH_LOCATIONS  += ../Source
-INCLUDE_LOCATIONS += ./Source /home/ext/apps/spack/opt/spack/linux-centos7-cascadelake/gcc-11.2.0/gsl-2.7-h5q52xdndmnqwjwnysbdt5c6ccbk4fv6/include	#Path to GSL headers
+INCLUDE_LOCATIONS += ./Source /home/ext/apps/spack/opt/spack/linux-centos7-cascadelake/gcc-11.2.0/gsl-2.7-h5q52xdndmnqwjwnysbdt5c6ccbk4fv6/include
 
 include $(AMREX_HOME)/Src/Base/Make.package
 
