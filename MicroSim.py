@@ -2,28 +2,22 @@
 #!/bin/bash
 
 print("Importing Files.......")
-import sys
-import os
-import glob
+import sys, os, glob
 from pathlib import Path
 from xml.dom import minidom
 from PyQt5.uic import loadUi
-from PyQt5 import QtWidgets
-from PyQt5.QtWidgets import QApplication
-from PyQt5.QtWidgets import QWidget
-from PyQt5.QtWidgets import QLineEdit
-from PyQt5.QtWidgets import QLabel
-from PyQt5.QtWidgets import QGridLayout
-from PyQt5.QtWidgets import QDialog
-from PyQt5.QtWidgets import QMessageBox
-from PyQt5.QtWidgets import QTableWidgetItem
-from PyQt5 import QtGui
-from PyQt5 import QtCore
+from PyQt5.QtWidgets import QStackedWidget,QGraphicsDropShadowEffect,QFileDialog,QHeaderView,QApplication, QVBoxLayout,QWidget,QLineEdit,QLabel,QGridLayout,QDialog,QMessageBox,QTableWidgetItem,QShortcut
+from PyQt5.QtCore import QRegExp,QPropertyAnimation,QPoint,QRect,QPointF,QSize,QDir,QTimer,Qt,pyqtSlot
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 import matplotlib.pyplot as plt
-#import matplotlib.gridspec as gridspec
-#from vtk.util import numpy_support
+from PyQt5.QtGui import QResizeEvent,QRegExpValidator,QIcon,QKeySequence,QColor,QPixmap,QFont,QFontDatabase
+from vtk import vtkUnstructuredGridReader
+from vtk import vtkDataSetReader
+
+if os.path.split(sys.argv[0])[0] != "":   
+    executeLoc  = os.getcwd()
+    os.chdir(os.path.split(sys.argv[0])[0])
 
 
 #importing PP tools
@@ -31,17 +25,21 @@ from resources.PP_tools.pptcount import *
 from resources.PP_tools.frontvelocity import *
 from resources.PP_tools.tipradius import *
 from resources.PP_tools.front_undercooling import *
-
 from resources.PP_tools.triple_point import *
-
+from resources.PP_tools.twoPointCorrelation import *
+from resources.PP_tools.shift import *
+from resources.PP_tools.contour import *
+from resources.functions.linux import *
+from resources.functions.linux import *
+#from resources.functions.windows import *
 
 print("Done")
 
-validator = QtGui.QRegExpValidator(QtCore.QRegExp(r'[0-9.]+'))
-validator2 = QtGui.QRegExpValidator(QtCore.QRegExp('^\d[0-9,.]+$'))
-validator2e = QtGui.QRegExpValidator(QtCore.QRegExp('^\d[0-9,.e-+]+$'))
-validatorName = QtGui.QRegExpValidator(QtCore.QRegExp(r'^[A-Za-z0-9_-.]*$'))
-validator2fill = QtGui.QRegExpValidator(QtCore.QRegExp(r'^\d{0-9}(\,\d{0-9})?$'))
+validator = QRegExpValidator(QRegExp(r'[0-9.]+'))
+validator2 = QRegExpValidator(QRegExp('^\d[0-9,.]+$'))
+validator2e = QRegExpValidator(QRegExp('^\d[0-9,.e-+]+$'))
+validatorName = QRegExpValidator(QRegExp(r'^[A-Za-z0-9_-.]*$'))
+validator2fill = QRegExpValidator(QRegExp(r'^\d{0-9}(\,\d{0-9})?$'))
 
 
 
@@ -49,27 +47,30 @@ class StartScreen(QDialog):
     def __init__(self):
         super(StartScreen,self).__init__()
         loadUi("resources/maincsreen.ui",self)
-        self.setWindowTitle("NSM - MLab")
+        self.setWindowTitle("MicroSim")
         self.logo.setStyleSheet("background-image : url(resources/img/MicroSim2.png)")
         self.logo_2.setStyleSheet("background-image : url(resources/img/MicroSim2.png)")
 
         #icons for MainFrame
-        self.sideBtn1.setIcon(QtGui.QIcon('resources/img/favicon.png'))
-        self.sideBtn2.setIcon(QtGui.QIcon('resources/img/phases.png'))
-        self.sideBtn3.setIcon(QtGui.QIcon('resources/img/time.png'))
-        self.sideBtn4.setIcon(QtGui.QIcon('resources/img/nacl.png'))
-        self.sideBtn5.setIcon(QtGui.QIcon('resources/img/shape.png'))
-        self.sideBtn6.setIcon(QtGui.QIcon('resources/img/domain.png'))
-        self.sideBtn7.setIcon(QtGui.QIcon('resources/img/pngegg.png'))
-        self.sideInfileBtn.setIcon(QtGui.QIcon('resources/img/previous.png'))
-        self.createN.setIcon(QtGui.QIcon('resources/img/createnew2.png'))
-        self.importF.setIcon(QtGui.QIcon('resources/img/import3.png'))
-        self.continueF.setIcon(QtGui.QIcon('resources/img/edit.png'))
-        self.postProcessingF.setIcon(QtGui.QIcon('resources/img/postProcessing.png'))
+        self.sideBtn1.setIcon(QIcon('resources/img/favicon.png'))
+        self.sideBtn2.setIcon(QIcon('resources/img/phases.png'))
+        self.sideBtn3.setIcon(QIcon('resources/img/time.png'))
+        self.sideBtn4.setIcon(QIcon('resources/img/nacl.png'))
+        self.sideBtn5.setIcon(QIcon('resources/img/shape.png'))
+        self.sideBtn6.setIcon(QIcon('resources/img/domain.png'))
+        self.sideBtn7.setIcon(QIcon('resources/img/pngegg.png'))
+        self.sideInfileBtn.setIcon(QIcon('resources/img/previous.png'))
+        self.createN.setIcon(QIcon('resources/img/createnew2.png'))
+        self.importF.setIcon(QIcon('resources/img/import3.png'))
+        self.continueF.setIcon(QIcon('resources/img/edit.png'))
+        self.postProcessingF.setIcon(QIcon('resources/img/postProcessing.png'))
         
         
-        #post Processing Hide And Show
-    
+        #post Processing initialization, Hide And Show  
+        
+        print("Display Size : ",width, height)
+        
+        
         self.SimulationDetail.hide()
         self.imgShow.hide()
         self.pptPlot.hide()
@@ -77,72 +78,89 @@ class StartScreen(QDialog):
         self.pptRadius.hide()
         self.table_plot_widget.hide()
         self.drawLineWidget.hide()
-        self.velocity_DrawLineWidget.hide()
+     
         self.h5tovtk_Screen.hide()
         self.PPimage_widge.hide()
         self.PPexport_widge.hide()
         self.triple_point_widget.hide()
         
         self.ppToolwidget.setEnabled(False)
+
+        self.widget_PC.setGeometry(0,0,0,0)
+        self.widget_velocity_over_line.setGeometry(0,0,0,0)
         
         #icons for post processing
-        self.PPhome.setIcon(QtGui.QIcon('resources/img/Mlogo.png'))
-        self.PPimport.setIcon(QtGui.QIcon('resources/img/file.png'))
-        self.PPimage.setIcon(QtGui.QIcon('resources/img/picture.png'))
-        self.PPexport.setIcon(QtGui.QIcon('resources/img/export.png'))
-        self.PPimportData.setIcon(QtGui.QIcon('resources/img/import.png'))
-        self.PP_clear.setIcon(QtGui.QIcon('resources/img/remove.png'))
-        self.pptarea.setIcon(QtGui.QIcon('resources/img/area.png'))
-        self.pptcount.setIcon(QtGui.QIcon('resources/img/abacus.png'))
-        self.pptsize.setIcon(QtGui.QIcon('resources/img/pptsize.png'))
-        self.fastNext.setIcon(QtGui.QIcon('resources/img/fastNext.png'))
-        self.nextView.setIcon(QtGui.QIcon('resources/img/nextView.png'))
-        self.preView.setIcon(QtGui.QIcon('resources/img/preView.png'))
-        self.fastPre.setIcon(QtGui.QIcon('resources/img/fastPre.png'))
-        self.PPplay.setIcon(QtGui.QIcon('resources/img/play.png'))
-        self.PPreload.setIcon(QtGui.QIcon('resources/img/reload.png'))
-        self.xyPLane.setIcon(QtGui.QIcon('resources/img/xyPlane.png'))
-        self.yzPlane.setIcon(QtGui.QIcon('resources/img/yzPlane.png'))
-        self.xzPlane.setIcon(QtGui.QIcon('resources/img/xzPlane.png'))
+        self.PPhome.setIcon(QIcon('resources/img/Mlogo.png'))
+        self.PPimport.setIcon(QIcon('resources/img/file.png'))
+        self.PPimage.setIcon(QIcon('resources/img/picture.png'))
+        self.PPexport.setIcon(QIcon('resources/img/export.png'))
+        self.PPimportData.setIcon(QIcon('resources/img/import.png'))
+        self.PP_clear.setIcon(QIcon('resources/img/remove.png'))
+        self.pptarea.setIcon(QIcon('resources/img/area.png'))
+        self.pptcount.setIcon(QIcon('resources/img/abacus.png'))
+        self.pptsize.setIcon(QIcon('resources/img/pptsize.png'))
+        self.fastNext.setIcon(QIcon('resources/img/fastNext.png'))
+        self.nextView.setIcon(QIcon('resources/img/nextView.png'))
+        self.preView.setIcon(QIcon('resources/img/preView.png'))
+        self.fastPre.setIcon(QIcon('resources/img/fastPre.png'))
+        self.PPplay.setIcon(QIcon('resources/img/play.png'))
+        self.PPreload.setIcon(QIcon('resources/img/reload.png'))
+        self.xyPLane.setIcon(QIcon('resources/img/xyPlane.png'))
+        self.yzPlane.setIcon(QIcon('resources/img/yzPlane.png'))
+        self.xzPlane.setIcon(QIcon('resources/img/xzPlane.png'))
         
-        self.tip_radiusbtn.setIcon(QtGui.QIcon('resources/img/tipradius.png'))
-        self.pptplot_import.setIcon(QtGui.QIcon('resources/img/down.png'))
-        self.surfaceAreabtn.setIcon(QtGui.QIcon('resources/img/particle.png'))
-        self.total_vol_btn.setIcon(QtGui.QIcon('resources/img/3dvolume.png'))
-        self.phase_frac_btn.setIcon(QtGui.QIcon('resources/img/Phasefrac.png'))
-        self.draw_Line.setIcon(QtGui.QIcon('resources/img/resize.png'))
-        self.velocity_OverLine.setIcon(QtGui.QIcon('resources/img/zigzag-line.png'))
-        self.fVelocitybtn.setIcon(QtGui.QIcon('resources/img/zigzag.png'))
-        self.front_undercoolbtn.setIcon(QtGui.QIcon('resources/img/layers.png'))
+        self.tip_radiusbtn.setIcon(QIcon('resources/img/tipradius.png'))
+        self.pptplot_import.setIcon(QIcon('resources/img/down.png'))
+        self.surfaceAreabtn.setIcon(QIcon('resources/img/particle.png'))
+        self.total_vol_btn.setIcon(QIcon('resources/img/3dvolume.png'))
+        self.phase_frac_btn.setIcon(QIcon('resources/img/Phasefrac.png'))
+        self.draw_Line.setIcon(QIcon('resources/img/resize.png'))
+        self.velocity_OverLine.setIcon(QIcon('resources/img/zigzag-line.png'))
+        self.fVelocitybtn.setIcon(QIcon('resources/img/zigzag.png'))
+        self.front_undercoolbtn.setIcon(QIcon('resources/img/layers.png'))
+        self.two_Point_correlationbtn.setIcon(QIcon('resources/img/point-correlation.png'))
+        self.contourPlotbtn.setIcon(QIcon('resources/img/contour.png'))
+        self.shiftPlotbtn.setIcon(QIcon('resources/img/puzzle.png'))
+        self.principalComponentbtn.setIcon(QIcon('resources/img/principal-component.png'))
         
         #post processing Animation
         
-        self.anim_h5toVTK = QtCore.QPropertyAnimation(self.h5tovtk_Screen, b"pos")
-        self.anim_h5toVTK.setStartValue(QtCore.QPoint(230, 30))
-        self.anim_h5toVTK.setEndValue(QtCore.QPoint(230,0))
+        self.anim_h5toVTK = QPropertyAnimation(self.h5tovtk_Screen, b"pos")
         self.anim_h5toVTK.setDuration(200)
         
-        self.anim_PPimage = QtCore.QPropertyAnimation(self.PPimage_widge, b"pos")
-        self.anim_PPimage.setStartValue(QtCore.QPoint(360, 30))
-        self.anim_PPimage.setEndValue(QtCore.QPoint(360,0))
+        self.anim_PPimage = QPropertyAnimation(self.PPimage_widge, b"pos")
+        self.anim_PPimage.setStartValue(QPoint(360, 30))
+        self.anim_PPimage.setEndValue(QPoint(360,0))
         self.anim_PPimage.setDuration(200)
         
         
-        self.anim_PPexport = QtCore.QPropertyAnimation(self.PPexport_widge, b"pos")
-        self.anim_PPexport.setStartValue(QtCore.QPoint(360, 30))
-        self.anim_PPexport.setEndValue(QtCore.QPoint(360,0))
+        self.anim_PPexport = QPropertyAnimation(self.PPexport_widge, b"pos")
         self.anim_PPexport.setDuration(200)
         
         
         #all graph declaration
         
+        
+        self.verticalLayout_ppt2 = QVBoxLayout()
+        self.verticalLayout_ppt = QVBoxLayout()
+        
         self.fig_ppt = plt.figure(facecolor='#77767B')
         self.canvas_ppt = FigureCanvas(self.fig_ppt)
         self.toolbar_ppt = NavigationToolbar(self.canvas_ppt, self)
+        
+        self.verticalLayout_ppt2.setGeometry(QRect(70,0,331,50))
+        self.verticalLayout_ppt.setGeometry(QRect(0,0,421,411))
+        
         self.verticalLayout_ppt2.addWidget(self.toolbar_ppt)
         self.verticalLayout_ppt.addWidget(self.canvas_ppt)
+        self.horizontalWidget.setLayout(self.verticalLayout_ppt)
+        self.horizontalWidget_2.setLayout(self.verticalLayout_ppt2)
         
         
+        
+        self.table_plot = QVBoxLayout()
+        self.table_plot2 = QVBoxLayout()
+    
         self.fig_table = plt.figure()  #For Post processing 77767B
         self.fig_table.tight_layout()
         self.canvas_table = FigureCanvas(self.fig_table)
@@ -150,14 +168,21 @@ class StartScreen(QDialog):
         self.toolbar_table = NavigationToolbar(self.canvas_table, self)
         self.table_plot2.addWidget(self.toolbar_table)
         self.table_plot.addWidget(self.canvas_table)
+        self.verticalWidget_4.setLayout(self.table_plot)
+        self.verticalWidget_5.setLayout(self.table_plot2)
         
         
         
+        
+        self.verticalLayout = QVBoxLayout()
         self.figure = plt.figure(facecolor='#77767B')  #For Post processing 77767B
+        self.verticalLayout.setGeometry(QRect(20,  10 , 350 , 350 ))
+        #self.figure.set_size_inches((3.8645*self.height())/650 , (3.8645*self.height())/650)
         self.canvas = FigureCanvas(self.figure)
         # adding canvas to the layout
         self.verticalLayout.addWidget(self.canvas)
         #self.canvas.mpl_connect('button_press_event',onclick)
+        self.SimPlotshow.setLayout(self.verticalLayout)
         
         
         self.ppt_Count_Plot_flag = 0;
@@ -169,6 +194,9 @@ class StartScreen(QDialog):
         self.tip_radius_flag = 0
         self.front_undercool_flag = 0
         self.triple_point_flag = 0
+        self.pointCorrelation_flag = 0
+        self.pricipalComponent_flag = 0
+        self.contourPlot_flag = 0
         
         self.infileLoad_Flag = 0
         self.vtkLoad_flag = 0
@@ -227,6 +255,12 @@ class StartScreen(QDialog):
         self.tip_radiusbtn.clicked.connect(self.tip_radiusbtnClicked)
         self.front_undercoolbtn.clicked.connect(self.front_undercoolbtnClicked)
         self.triple_pointbtn.clicked.connect(self.triple_pointbtnClicked)
+        self.contourPlotbtn.clicked.connect(self.contourPlotbtnClicked)
+        self.plotContour.clicked.connect(self.plotContourClicked)
+        self.shiftPlotbtn.clicked.connect(self.shiftPlotbtnClicked)
+
+        #radio toggle
+        #self.allCheck.toggled.connect(self.allCheckFunc)
         
         
         self.exportToCSV.clicked.connect(self.exportToCSVClicked)
@@ -239,6 +273,10 @@ class StartScreen(QDialog):
         self.surfaceAreabtn.clicked.connect(self.surfaceAreabtnClicked)
         self.total_vol_btn.clicked.connect(self.total_vol_btnClicked)
 
+        self.two_Point_correlationbtn.clicked.connect(self.two_Point_correlationbtnClicked)
+        self.principalComponentbtn.clicked.connect(self.principalComponentbtnClicked)
+        self.plotPC.clicked.connect(self.plot_PCClicked)
+
         self.iteration_step.valueChanged.connect(self.plotfig)
         self.depth_plot.valueChanged.connect(self.plotFig_3d)
         #self.POL_start.textChanged.connect(self.draw_line_on_Sim)
@@ -248,7 +286,7 @@ class StartScreen(QDialog):
 
 
         #disabling esc key
-        QtWidgets.QShortcut(QtGui.QKeySequence("Escape"), self, activated=self.on_Escape)
+        QShortcut(QKeySequence("Escape"), self, activated=self.on_Escape)
 
         #RESTRICTING STRING INPUT
         self.mesh_x.setValidator(validator)
@@ -343,6 +381,7 @@ class StartScreen(QDialog):
         self.Fifth_widget.hide()
         self.Sixth_widget.hide()
         self.Seven_widget.hide()
+        self.jobscriptFrame.hide()
         self.Func2.hide()
         self.shapeUpdate.hide()
         self.w1.hide()
@@ -353,7 +392,7 @@ class StartScreen(QDialog):
         self.widgetGammaABC.hide()
 
         self.postProcessingScreen.hide()
-       
+        
 
         #start ScreenFrame
         self.openFile.clicked.connect(self.openFileDir)
@@ -453,8 +492,13 @@ class StartScreen(QDialog):
         self.tableWidgetCHA.itemClicked.connect(self.tableItemClickedCHA)
         self.saveCH.hide()
 
+        self.jobscriptBtn.clicked.connect(self.clickedjobscriptBtn)
+        self.jobscript_close.clicked.connect(self.clickedjobscriptcloseBtn)
+        self.generate_scriptbtn.clicked.connect(self.clickedgenerate_scriptbtn)
+
         self.finish.clicked.connect(self.clickedfinish)
         self.runBtn.clicked.connect(self.clickedrunBtn)
+        self.runHelp.clicked.connect(self.clickedrunHelp)
         self.preview.clicked.connect(self.clickedpreview)
         self.paraviewErrorClose.clicked.connect(self.paraviewErrorCloseClicked)
         self.paraviewCancel.clicked.connect(self.paraviewErrorCloseClicked)
@@ -469,43 +513,44 @@ class StartScreen(QDialog):
         self.BCV_4.cursorPositionChanged.connect(self.BCV4fill)
 
         #shadow
-        shadow = QtWidgets.QGraphicsDropShadowEffect(self,
+        shadow = QGraphicsDropShadowEffect(self,
                                                      blurRadius=10.0,
-                                                     color=QtGui.QColor (63, 63, 63, 180),
-                                                     offset=QtCore.QPointF(3.0, 3.0)
+                                                     color=QColor (63, 63, 63, 180),
+                                                     offset=QPointF(3.0, 3.0)
                                                      )
-        self.frame_1.setGraphicsEffect(QtWidgets.QGraphicsDropShadowEffect(self,blurRadius=10.0,color=QtGui.QColor (63, 63, 63, 180),offset=QtCore.QPointF(3.0, 4.0)))
-        self.frame_2.setGraphicsEffect(QtWidgets.QGraphicsDropShadowEffect(self,blurRadius=10.0,color=QtGui.QColor (63, 63, 63, 180),offset=QtCore.QPointF(3.0, 4.0)))
-        self.frame_3.setGraphicsEffect(QtWidgets.QGraphicsDropShadowEffect(self,blurRadius=10.0,color=QtGui.QColor (63, 63, 63, 180),offset=QtCore.QPointF(3.0, 4.0)))
-        self.frame_4.setGraphicsEffect(QtWidgets.QGraphicsDropShadowEffect(self,blurRadius=10.0,color=QtGui.QColor (63, 63, 63, 180),offset=QtCore.QPointF(3.0, 4.0)))
-        self.frame_5.setGraphicsEffect(QtWidgets.QGraphicsDropShadowEffect(self,blurRadius=10.0,color=QtGui.QColor (63, 63, 63, 180),offset=QtCore.QPointF(3.0, 4.0)))
-        self.frame_6.setGraphicsEffect(QtWidgets.QGraphicsDropShadowEffect(self,blurRadius=10.0,color=QtGui.QColor (63, 63, 63, 180),offset=QtCore.QPointF(3.0, 4.0)))
-        self.frame_61.setGraphicsEffect(QtWidgets.QGraphicsDropShadowEffect(self,blurRadius=10.0,color=QtGui.QColor (63, 63, 63, 180),offset=QtCore.QPointF(3.0, 4.0)))
-        self.frame_62.setGraphicsEffect(QtWidgets.QGraphicsDropShadowEffect(self,blurRadius=10.0,color=QtGui.QColor (63, 63, 63, 180),offset=QtCore.QPointF(3.0, 4.0)))
-        self.frame_7.setGraphicsEffect(QtWidgets.QGraphicsDropShadowEffect(self,blurRadius=10.0,color=QtGui.QColor (63, 63, 63, 180),offset=QtCore.QPointF(3.0, 4.0)))
-        self.frame_8.setGraphicsEffect(QtWidgets.QGraphicsDropShadowEffect(self,blurRadius=10.0,color=QtGui.QColor (63, 63, 63, 180),offset=QtCore.QPointF(3.0, 4.0)))
-        self.frame_9.setGraphicsEffect(QtWidgets.QGraphicsDropShadowEffect(self,blurRadius=10.0,color=QtGui.QColor (63, 63, 63, 180),offset=QtCore.QPointF(3.0, 4.0)))
-        self.frame_10.setGraphicsEffect(QtWidgets.QGraphicsDropShadowEffect(self,blurRadius=10.0,color=QtGui.QColor (63, 63, 63, 180),offset=QtCore.QPointF(3.0, 4.0)))
-        self.frame_11.setGraphicsEffect(QtWidgets.QGraphicsDropShadowEffect(self,blurRadius=10.0,color=QtGui.QColor (63, 63, 63, 180),offset=QtCore.QPointF(3.0, 4.0)))
-        self.ShapeList.setGraphicsEffect(QtWidgets.QGraphicsDropShadowEffect(self,blurRadius=10.0,color=QtGui.QColor (63, 63, 63, 180),offset=QtCore.QPointF(3.0, 3.0)))
-        self.shapeframe.setGraphicsEffect(QtWidgets.QGraphicsDropShadowEffect(self,blurRadius=10.0,color=QtGui.QColor (63, 63, 63, 180),offset=QtCore.QPointF(3.0, 3.0)))
-        self.startNew.setGraphicsEffect(QtWidgets.QGraphicsDropShadowEffect(self,blurRadius=10.0,color=QtGui.QColor (63, 63, 63, 180),offset=QtCore.QPointF(4.0, 4.0)))
-        self.continueTab.setGraphicsEffect(QtWidgets.QGraphicsDropShadowEffect(self,blurRadius=10.0,color=QtGui.QColor (63, 63, 63, 180),offset=QtCore.QPointF(4.0, 4.0)))
-        self.importFile.setGraphicsEffect(QtWidgets.QGraphicsDropShadowEffect(self,blurRadius=10.0,color=QtGui.QColor (63, 63, 63, 180),offset=QtCore.QPointF(4.0, 4.0)))
-        self.postProcessing.setGraphicsEffect(QtWidgets.QGraphicsDropShadowEffect(self,blurRadius=10.0,color=QtGui.QColor (63, 63, 63, 180),offset=QtCore.QPointF(4.0, 4.0)))
-        self.w1.setGraphicsEffect(QtWidgets.QGraphicsDropShadowEffect(self,blurRadius=14.0,color=QtGui.QColor (63, 63, 63, 180),offset=QtCore.QPointF(4.0, 3.0)))
-        self.paraviewError.setGraphicsEffect(QtWidgets.QGraphicsDropShadowEffect(self,blurRadius=14.0,color=QtGui.QColor (63, 63, 63, 180),offset=QtCore.QPointF(4.0, 3.0)))
-        self.createN.setGraphicsEffect(QtWidgets.QGraphicsDropShadowEffect(self,blurRadius=14.0,color=QtGui.QColor (63, 63, 63, 180),offset=QtCore.QPointF(6.0, 6.0)))
-        self.continueF.setGraphicsEffect(QtWidgets.QGraphicsDropShadowEffect(self,blurRadius=14.0,color=QtGui.QColor (63, 63, 63, 180),offset=QtCore.QPointF(6.0, 6.0)))
-        self.importF.setGraphicsEffect(QtWidgets.QGraphicsDropShadowEffect(self,blurRadius=14.0,color=QtGui.QColor (63, 63, 63, 180),offset=QtCore.QPointF(6.0, 6.0)))
-        self.postProcessingF.setGraphicsEffect(QtWidgets.QGraphicsDropShadowEffect(self,blurRadius=14.0,color=QtGui.QColor (63, 63, 63, 180),offset=QtCore.QPointF(6.0, 6.0)))
-        self.pwidget.setGraphicsEffect(shadow)
-        self.pwidget_2.setGraphicsEffect(shadow)
-        self.Qbox.setGraphicsEffect(QtWidgets.QGraphicsDropShadowEffect(self,blurRadius=10.0,color=QtGui.QColor (76,35,45, 180),offset=QtCore.QPointF(2.0, -2.0)))
-        self.table_plot_widget.setGraphicsEffect(QtWidgets.QGraphicsDropShadowEffect(self,blurRadius=14.0,color=QtGui.QColor (63, 63, 63, 180),offset=QtCore.QPointF(4.0, 4.0)))
-        self.h5tovtk_Screen.setGraphicsEffect(QtWidgets.QGraphicsDropShadowEffect(self,blurRadius=14.0,color=QtGui.QColor (63, 63, 63, 180),offset=QtCore.QPointF(4.0, 4.0)))
-        self.PPimage_widge.setGraphicsEffect(QtWidgets.QGraphicsDropShadowEffect(self,blurRadius=14.0,color=QtGui.QColor (63, 63, 63, 180),offset=QtCore.QPointF(4.0, 4.0)))
-        self.PPexport_widge.setGraphicsEffect(QtWidgets.QGraphicsDropShadowEffect(self,blurRadius=14.0,color=QtGui.QColor (63, 63, 63, 180),offset=QtCore.QPointF(4.0, 4.0)))
+        self.frame_1.setGraphicsEffect(QGraphicsDropShadowEffect(self,blurRadius=10.0,color=QColor (63, 63, 63, 180),offset=QPointF(3.0, 4.0)))
+        self.frame_2.setGraphicsEffect(QGraphicsDropShadowEffect(self,blurRadius=10.0,color=QColor (63, 63, 63, 180),offset=QPointF(3.0, 4.0)))
+        self.frame_3.setGraphicsEffect(QGraphicsDropShadowEffect(self,blurRadius=10.0,color=QColor (63, 63, 63, 180),offset=QPointF(3.0, 4.0)))
+        self.frame_4.setGraphicsEffect(QGraphicsDropShadowEffect(self,blurRadius=10.0,color=QColor (63, 63, 63, 180),offset=QPointF(3.0, 4.0)))
+        self.frame_5.setGraphicsEffect(QGraphicsDropShadowEffect(self,blurRadius=10.0,color=QColor (63, 63, 63, 180),offset=QPointF(3.0, 4.0)))
+        self.frame_6.setGraphicsEffect(QGraphicsDropShadowEffect(self,blurRadius=10.0,color=QColor (63, 63, 63, 180),offset=QPointF(3.0, 4.0)))
+        self.frame_61.setGraphicsEffect(QGraphicsDropShadowEffect(self,blurRadius=10.0,color=QColor (63, 63, 63, 180),offset=QPointF(3.0, 4.0)))
+        self.frame_62.setGraphicsEffect(QGraphicsDropShadowEffect(self,blurRadius=10.0,color=QColor (63, 63, 63, 180),offset=QPointF(3.0, 4.0)))
+        self.frame_7.setGraphicsEffect(QGraphicsDropShadowEffect(self,blurRadius=10.0,color=QColor (63, 63, 63, 180),offset=QPointF(3.0, 4.0)))
+        self.frame_8.setGraphicsEffect(QGraphicsDropShadowEffect(self,blurRadius=10.0,color=QColor (63, 63, 63, 180),offset=QPointF(3.0, 4.0)))
+        self.frame_9.setGraphicsEffect(QGraphicsDropShadowEffect(self,blurRadius=10.0,color=QColor (63, 63, 63, 180),offset=QPointF(3.0, 4.0)))
+        self.frame_10.setGraphicsEffect(QGraphicsDropShadowEffect(self,blurRadius=10.0,color=QColor (63, 63, 63, 180),offset=QPointF(3.0, 4.0)))
+        self.frame_11.setGraphicsEffect(QGraphicsDropShadowEffect(self,blurRadius=10.0,color=QColor (63, 63, 63, 180),offset=QPointF(3.0, 4.0)))
+        self.jobScript_widget.setGraphicsEffect(QGraphicsDropShadowEffect(self,blurRadius=10.0,color=QColor (63, 63, 63, 180),offset=QPointF(3.0, 4.0)))
+        #self.ShapeList.setGraphicsEffect(QGraphicsDropShadowEffect(self,blurRadius=10.0,color=QColor (63, 63, 63, 180),offset=QPointF(3.0, 3.0)))
+        #self.shapeframe.setGraphicsEffect(QGraphicsDropShadowEffect(self,blurRadius=10.0,color=QColor (63, 63, 63, 180),offset=QPointF(3.0, 3.0)))
+        self.startNew.setGraphicsEffect(QGraphicsDropShadowEffect(self,blurRadius=10.0,color=QColor (63, 63, 63, 180),offset=QPointF(4.0, 4.0)))
+        self.continueTab.setGraphicsEffect(QGraphicsDropShadowEffect(self,blurRadius=10.0,color=QColor (63, 63, 63, 180),offset=QPointF(4.0, 4.0)))
+        self.importFile.setGraphicsEffect(QGraphicsDropShadowEffect(self,blurRadius=10.0,color=QColor (63, 63, 63, 180),offset=QPointF(4.0, 4.0)))
+        self.postProcessing.setGraphicsEffect(QGraphicsDropShadowEffect(self,blurRadius=10.0,color=QColor (63, 63, 63, 180),offset=QPointF(4.0, 4.0)))
+        self.w1.setGraphicsEffect(QGraphicsDropShadowEffect(self,blurRadius=14.0,color=QColor (63, 63, 63, 180),offset=QPointF(4.0, 3.0)))
+        self.paraviewError.setGraphicsEffect(QGraphicsDropShadowEffect(self,blurRadius=14.0,color=QColor (63, 63, 63, 180),offset=QPointF(4.0, 3.0)))
+        self.createN.setGraphicsEffect(QGraphicsDropShadowEffect(self,blurRadius=14.0,color=QColor (63, 63, 63, 180),offset=QPointF(6.0, 6.0)))
+        self.continueF.setGraphicsEffect(QGraphicsDropShadowEffect(self,blurRadius=14.0,color=QColor (63, 63, 63, 180),offset=QPointF(6.0, 6.0)))
+        self.importF.setGraphicsEffect(QGraphicsDropShadowEffect(self,blurRadius=14.0,color=QColor (63, 63, 63, 180),offset=QPointF(6.0, 6.0)))
+        self.postProcessingF.setGraphicsEffect(QGraphicsDropShadowEffect(self,blurRadius=14.0,color=QColor (63, 63, 63, 180),offset=QPointF(6.0, 6.0)))
+        #self.pwidget.setGraphicsEffect(QGraphicsDropShadowEffect(self,blurRadius=10.0,color=QColor (63, 63, 63, 180),offset=QPointF(3.0, 3.0)))
+        #self.pwidget_2.setGraphicsEffect(QGraphicsDropShadowEffect(self,blurRadius=10.0,color=QColor (63, 63, 63, 180),offset=QPointF(3.0, 3.0)))
+        self.Qbox.setGraphicsEffect(QGraphicsDropShadowEffect(self,blurRadius=10.0,color=QColor (76,35,45, 180),offset=QPointF(2.0, -2.0)))
+        self.table_plot_widget.setGraphicsEffect(QGraphicsDropShadowEffect(self,blurRadius=14.0,color=QColor (63, 63, 63, 180),offset=QPointF(4.0, 4.0)))
+        self.h5tovtk_Screen.setGraphicsEffect(QGraphicsDropShadowEffect(self,blurRadius=14.0,color=QColor (63, 63, 63, 180),offset=QPointF(4.0, 4.0)))
+        self.PPimage_widge.setGraphicsEffect(QGraphicsDropShadowEffect(self,blurRadius=14.0,color=QColor (63, 63, 63, 180),offset=QPointF(4.0, 4.0)))
+        self.PPexport_widge.setGraphicsEffect(QGraphicsDropShadowEffect(self,blurRadius=14.0,color=QColor (63, 63, 63, 180),offset=QPointF(4.0, 4.0)))
 
 
         #Animations
@@ -517,9 +562,9 @@ class StartScreen(QDialog):
         #self.anim2.setEndValue(QRect(240, 150, 530, 300))
         #self.anim2.setDuration(200)
 
-        self.anim12 = QtCore.QPropertyAnimation(self.w1, b"pos")
-        self.anim12.setStartValue(QtCore.QPoint(280, 160))
-        self.anim12.setEndValue(QtCore.QPoint(280,180))
+        self.anim12 = QPropertyAnimation(self.w1, b"pos")
+        self.anim12.setStartValue(QPoint(   int(240*self.width()/1100  ), int(180*self.height()/650 )   ))
+        self.anim12.setEndValue(QPoint(    int(240*self.width()/1100  ), int(210*self.height()/650 )   ))
         self.anim12.setDuration(300)
 
         
@@ -591,15 +636,15 @@ class StartScreen(QDialog):
         self.addShapeFile.clicked.connect(self.addShapeFileClicked)
 
 
-        self.cubeIcon.setPixmap(QtGui.QPixmap("resources/img/cube.JPG"))
-        self.cylinderIcon.setPixmap(QtGui.QPixmap("resources/img/cylinder.JPG"))
-        self.ellipseIcon.setPixmap(QtGui.QPixmap("resources/img/ellipse.png"))
-        self.sphereIcon.setPixmap(QtGui.QPixmap("resources/img/sphere.png"))
-        self.RsphereIcon.setPixmap(QtGui.QPixmap("resources/img/RandomS.png"))
-        self.RcylinderIcon.setPixmap(QtGui.QPixmap("resources/img/corsening.png"))
-        self.ashokchakra.setPixmap(QtGui.QPixmap("resources/img/ashokchakra.png"))
-        self.background.setPixmap(QtGui.QPixmap("resources/img/backImage.png"))
-        self.background2.setPixmap(QtGui.QPixmap("resources/img/back2.png"))
+        self.cubeIcon.setPixmap(QPixmap("resources/img/cube.JPG"))
+        self.cylinderIcon.setPixmap(QPixmap("resources/img/cylinder.JPG"))
+        self.ellipseIcon.setPixmap(QPixmap("resources/img/ellipse.png"))
+        self.sphereIcon.setPixmap(QPixmap("resources/img/sphere.png"))
+        self.RsphereIcon.setPixmap(QPixmap("resources/img/RandomS.png"))
+        self.RcylinderIcon.setPixmap(QPixmap("resources/img/corsening.png"))
+        self.ashokchakra.setPixmap(QPixmap("resources/img/ashokchakra.png"))
+        self.background.setPixmap(QPixmap("resources/img/backImage.png").scaledToWidth(self.height()))
+        self.background2.setPixmap(QPixmap("resources/img/back2.png"))
 
         #radio toggled
         self.diffR.toggled.connect(self.fMatrixToggled)
@@ -654,26 +699,26 @@ class StartScreen(QDialog):
             self.domainValue.append("")
 
         header = self.tableWidgetGP.horizontalHeader()
-        header.setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeToContents)
-        header.setSectionResizeMode(1, QtWidgets.QHeaderView.ResizeToContents)
+        header.setSectionResizeMode(0, QHeaderView.ResizeToContents)
+        header.setSectionResizeMode(1, QHeaderView.ResizeToContents)
         self.tableWidgetGP.setColumnHidden(5,True)
         '''
         headerKKS = self.tableWidgetKKS.horizontalHeader()
-        headerKKS.setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeToContents)
-        headerKKS.setSectionResizeMode(1, QtWidgets.QHeaderView.ResizeToContents)
+        headerKKS.setSectionResizeMode(0, QHeaderView.ResizeToContents)
+        headerKKS.setSectionResizeMode(1, QHeaderView.ResizeToContents)
 
         headerKKS2 = self.tableWidgetKKS2.horizontalHeader()
-        headerKKS2.setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeToContents)
-        headerKKS2.setSectionResizeMode(1, QtWidgets.QHeaderView.ResizeToContents)
+        headerKKS2.setSectionResizeMode(0, QHeaderView.ResizeToContents)
+        headerKKS2.setSectionResizeMode(1, QHeaderView.ResizeToContents)
 
         headerCH = self.tableWidgetCH.horizontalHeader()
-        headerCH.setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeToContents)
-        headerCH.setSectionResizeMode(1, QtWidgets.QHeaderView.ResizeToContents)
+        headerCH.setSectionResizeMode(0, QHeaderView.ResizeToContents)
+        headerCH.setSectionResizeMode(1, QHeaderView.ResizeToContents)
         '''
 
         headerCHA = self.tableWidgetCHA.horizontalHeader()
-        headerCHA.setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeToContents)
-        headerCHA.setSectionResizeMode(1, QtWidgets.QHeaderView.ResizeToContents)
+        headerCHA.setSectionResizeMode(0, QHeaderView.ResizeToContents)
+        headerCHA.setSectionResizeMode(1, QHeaderView.ResizeToContents)
         
         
         #setting table column names
@@ -683,11 +728,916 @@ class StartScreen(QDialog):
         ##post processing
         self.table_ppt_size.setColumnHidden(1, True)
         headerPPT = self.table_ppt_size.horizontalHeader()
-        headerPPT.setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents) 
+        headerPPT.setSectionResizeMode(QHeaderView.ResizeToContents) 
+
+        #Terminal access
+        #Changing dir to current dir 
+        if os.path.split(sys.argv[0])[0] != "":   
+            os.chdir(executeLoc)
+
+        if len(sys.argv) >2:
+
+            if sys.argv[1] == "gp" and sys.argv[2] != "":
+
+                self.errorStartScreen.setText("")
+                self.fileLabel.setText(os.path.abspath(sys.argv[2]))
+               
+                self.model_GP.setChecked(True)
+                
+                self.ReadfromFile()
+
+                
+            elif sys.argv[1] == "ch" and sys.argv[2] != "":
+
+                self.errorStartScreen.setText("")
+                self.fileLabel.setText(os.path.abspath(sys.argv[2]))
+                self.model_CH.setChecked(True)  
+                self.ReadfromFile()
+
+            elif sys.argv[1] == "opencl" and sys.argv[2] != "":
+                
+                self.errorStartScreen.setText("")
+                self.fileLabel.setText(os.path.abspath(sys.argv[2]))
+                self.model_KKS2.setChecked(True)  
+                self.ReadfromFile()
+
+            elif sys.argv[1] == "cuda" and sys.argv[2] != "":
+
+                self.errorStartScreen.setText("")
+                self.fileLabel.setText(os.path.abspath(sys.argv[2]))
+                self.model_KKS.setChecked(True)  
+                self.ReadfromFile()
+
+            elif sys.argv[1] == "pp" and sys.argv[2] != "" and sys.argv[3] != "":
+
+                self.PPdataDir = os.path.abspath(sys.argv[3])
+                self.PPinfileDir = os.path.abspath(sys.argv[2])
+
+                self.PPimportRun()
+                self.PPdataRun()
+                
+                self.postProcessingScreen.show()
+                self.vtkLoad_flag = 1
+                self.infileLoad_Flag == 1
+                self.ppToolwidget.setEnabled(True)
+            else:
+                print("Command error")
+
+        if len(sys.argv) == 4:
+            try:
+                fileType = sys.argv[3][-3:]
+             
+                if fileType == ".in" :
+                    self.ShapefileDir = os.path.abspath(sys.argv[3])
+                    self.shapeFileReader()
+                
+                elif fileType == "vtk" :
+                    
+                    self.PPdataDir = os.path.abspath(sys.argv[3])
+                    self.PPinfileDir = os.path.abspath(sys.argv[2])
+
+                    self.PPdataRun()
+                    self.PPimportRun()
+
+                    self.postProcessingScreen.show()
+                    self.vtkLoad_flag = 1
+                    self.infileLoad_Flag == 1
+                    self.ppToolwidget.setEnabled(True)
+
+            except:
+                print("arg 4 error : File type should be .in or .vtk")
+
+        
+        if os.path.split(sys.argv[0])[0] != "":   
+            os.chdir(os.path.split(sys.argv[0])[0]) #changing to original dir
+        
+        
+    #resize window functions
+    def resizeEvent(self, event: QResizeEvent):
+        
+        self.display_W = self.width()/1100
+        self.display_H = self.height()/650
+
+        #HOME Screen
+
+        self.StartFrame.setGeometry(0,0,self.width(),self.height())
+        self.jobscriptFrame.setGeometry(0,0,self.width(),self.height())
+
+        self.background.setPixmap(QPixmap("resources/img/backImage.png").scaledToWidth(self.height()))
+        self.background.setGeometry( int( self.width() - int((600*self.display_H))  ) , int((0*self.display_H)) , int((650*self.display_H)) , int((650*self.display_H)  ))
+        self.background2.setGeometry( int((380*self.display_W)) , int((0*self.display_H)) , 346, 160 )
+
+        self.label_95.setGeometry( 410 + (int((380*self.display_W)) -380 ) , -10 , 51, 81 )
+        self.label_96.setGeometry( 530 + (int((380*self.display_W)) -380 ) , 60 , 41, 81 )
+        self.label_86.setGeometry( 630 + (int((380*self.display_W)) -380 ) , -10 , 71, 81 )
+
+        #Main Screen 
+        self.NSMheading.setGeometry( int((370*self.display_W)) , 0,561,101)
+
+        self.jobScript_widget.setGeometry( ( self.width() - 825 )/2 , (self.height() - 461)/2 , 825, 461  )
+
+
+        
+        #Post Processing
+        self.postProcessingScreen.setGeometry(0,0,self.width(),self.height())
+        self.widget_5.setGeometry(0,0, self.width() , int((60*self.display_H) ))
+        self.ppToolwidget.setGeometry(0,  int((60*self.display_H)),  int((240*self.display_W)) , int((550*self.display_H) ))
+        self.Screen1.setGeometry(int((240*self.display_W)) , int((60*self.display_H)) , int((845*self.display_W)) , int((550*self.display_H)  ))
+        
+        self.PPhome.setGeometry( int((10*self.display_W)) , int((5*self.display_H)) , int((50*self.display_H)) , int((50*self.display_H)  ))
+        self.PPhome.setIconSize( QSize(    int((50*self.display_H)) , int((50*self.display_H))  ))
+
+        self.line_13.setGeometry( int((70*self.display_W)) , 0 , int((3*self.display_H)) , int((61*self.display_H)  ))
+
+        
+        self.label_162.setGeometry( int((130*self.display_W)) , int((14*self.display_H)) , int((47*self.display_W)) , int((17*self.display_H))  )
+        self.showTime.setGeometry( int((180*self.display_W)) , int((10*self.display_H)) , int((101*self.display_W)) , int((25*self.display_H))  )
+        self.iteration_step.setGeometry( int((293*self.display_W)) , int((5*self.display_H)) , int((51*self.display_W)) , int((35*self.display_H))  )
+        
+        self.fastPre.setGeometry( int((350*self.display_W)) , int((5*self.display_H)) , int((35*self.display_H)) , int((35*self.display_H))  )
+    
+        self.preView.setGeometry( int((390*self.display_W)) , int((5*self.display_H)) , int((35*self.display_H)) , int((35*self.display_H))  )
+
+        self.PPpause.setGeometry( int((430*self.display_W)) , int((5*self.display_H)) , int((35*self.display_H)) , int((35*self.display_H))  )
+
+        self.PPplay.setGeometry( int((430*self.display_W)) , int((5*self.display_H)) , int((35*self.display_H)) , int((35*self.display_H))  )
+
+        self.nextView.setGeometry( int((470*self.display_W)) , int((5*self.display_H)) , int((35*self.display_H)) , int((35*self.display_H))  )
+
+        self.fastNext.setGeometry( int((510*self.display_W)) , int((5*self.display_H)) , int((35*self.display_H)) , int((35*self.display_H))  )
+        
+
+        self.PPreload.setGeometry( int((550*self.display_W)) , int((5*self.display_H)) , int((35*self.display_H)) , int((35*self.display_H))  )
+        
+        self.draw_Line.setGeometry( int((605*self.display_W)) , int((5*self.display_H)) , int((35*self.display_H)) , int((35*self.display_H))  )
         
 
 
-    @QtCore.pyqtSlot()
+        self.line_14.setGeometry( int((585*self.display_W)) , int((5*self.display_H)) , int((16*self.display_W)) , int((31*self.display_H))  )
+        self.line_15.setGeometry( int((640*self.display_W)) , int((5*self.display_H)) , int((16*self.display_W)) , int((31*self.display_H))  )
+        
+        self.widget_3d.setGeometry( int((650*self.display_W)) , int((0*self.display_H)) , int((191*self.display_W)) , int((41*self.display_H))  )
+
+
+        self.xyPLane.setGeometry( int((2*self.display_W)) , int((4*self.display_H)) , int((37*self.display_H)) , int((37*self.display_H))  )
+        
+
+        self.yzPlane.setGeometry( int((40*self.display_W)) , int((4*self.display_H)) , int((37*self.display_H)) , int((37*self.display_H))  )
+        
+
+        self.xzPlane.setGeometry( int((80*self.display_W)) , int((4*self.display_H)) , int((37*self.display_H)) , int((37*self.display_H))  )
+        
+
+        self.depth_plot.setGeometry( int((125*self.display_W)) , int((4*self.display_H)) , int((61*self.display_W)) , int((35*self.display_H))  )
+        self.PP_tool_loadind_label.setGeometry( int((250*self.display_W)) , int((616*self.display_H)) , int((461*self.display_W)) , int((31*self.display_H))  )
+        
+        self.loding_label.setGeometry( int((260*self.display_W)) , int((620*self.display_H)) , int((811*self.display_W)) , int((25*self.display_H))  )
+        
+
+        self.label_160.setMinimumSize(  int((222*self.display_W)) , int((30*self.display_H))  )
+
+        self.SimulationDetail.setGeometry( int((510*self.display_W)) , int((120*self.display_H)) , int((321*self.display_W)) , int((351*self.display_H))  )
+
+        self.triple_point_widget.setGeometry( int((420*self.display_W)) , int((70*self.display_H)) , int((350*self.display_W)) , int((450*self.display_H))  )
+        self.table_triplePoint.setGeometry( int((10*self.display_W)) , int((40*self.display_H)) , int((331)) , int((361*self.display_H))  )
+        self.triple_point_save.setGeometry( int(248) , int((410*self.display_H)) , 91 , 31 )
+
+        
+
+        self.sideInfileBtn.setGeometry( int((60*self.display_W)) , int((600*self.display_H)) , int((91*self.display_W)) , int((35*self.display_H))  )
+
+        #Qbox
+        QboxHidden = 0
+        if self.Qbox.isHidden():
+            QboxHidden =1
+            
+        self.drawMesh()
+
+        if QboxHidden == 1:
+            self.Qbox.hide()
+
+    
+        if self.height() >850:
+
+            self.vline1.setGeometry( int((270*0.85*self.display_W)) , int((10*self.display_H)) , 2 , int((632*self.display_H))  )
+
+            #Home Screen
+            self.anim12.setStartValue(QPoint(   int(240*1.25*self.width()/1100  ), int(180*self.height()/650 )   ))
+            self.anim12.setEndValue(QPoint(    int(240*1.25*self.width()/1100  ), int(210*self.height()/650 )   ))
+            self.w1.setGeometry( int((240*1.25*self.display_W)) , int((210*self.display_H)) , 621, 320 )
+            self.widget_10.setGeometry( int((240*1.25*self.display_W)) , int((240*self.display_H)) , 621, 170 )
+
+
+            self.ppToolwidget.setGeometry(0,  int((60*self.display_H)),  int((240*self.display_W*0.8)) , int((550*self.display_H) ))
+            self.Screen1.setGeometry(int((240*self.display_W*0.8)) , int((60*self.display_H)) , int((845*self.display_W)) + int((240*self.display_W*0.2))  , int((550*self.display_H)  ))
+            self.widget_12.setGeometry(1, 0,  int((845*self.display_W)) + int((240*self.display_W*0.2)) , int((43*self.display_H) ))   
+        
+
+            #Main Screen 
+            self.Side_widget.setGeometry( 0 , 0 , int((261*self.display_W)) , int((601*self.display_H)  ))
+            self.sideBtn1.setGeometry( 0 , int((120*0.85*self.display_H)) , int((231*0.85*self.display_W)) , int((65*0.85*self.display_H)  ))
+            self.sideBtn2.setGeometry( 0 , int((185*0.85*self.display_H)) , int((231*0.85*self.display_W)) , int((65*0.85*self.display_H)  ))
+            self.sideBtn3.setGeometry( 0 , int((250*0.85*self.display_H)) , int((231*0.85*self.display_W)) , int((65*0.85*self.display_H)  ))
+            self.sideBtn4.setGeometry( 0 , int((315*0.85*self.display_H)) , int((231*0.85*self.display_W)) , int((65*0.85*self.display_H)  ))
+            self.sideBtn5.setGeometry( 0 , int((380*0.85*self.display_H)) , int((231*0.85*self.display_W)) , int((65*0.85*self.display_H)  ))
+            self.sideBtn6.setGeometry( 0 , int((445*0.85*self.display_H)) , int((231*0.85*self.display_W)) , int((65*0.85*self.display_H)  ))
+            self.sideBtn7.setGeometry( 0 , int((510*0.85*self.display_H)) , int((231*0.85*self.display_W)) , int((65*0.85*self.display_H)  ))
+
+            self.sideBtn1.setFont(QFont('Ubuntu', int((8*self.display_H))))
+            self.sideBtn2.setFont(QFont('Ubuntu', int((8*self.display_H))))
+            self.sideBtn3.setFont(QFont('Ubuntu', int((8*self.display_H))))
+            self.sideBtn4.setFont(QFont('Ubuntu', int((8*self.display_H))))
+            self.sideBtn5.setFont(QFont('Ubuntu', int((8*self.display_H))))
+            self.sideBtn6.setFont(QFont('Ubuntu', int((8*self.display_H))))
+            self.sideBtn7.setFont(QFont('Ubuntu', int((8*self.display_H))))
+
+
+            
+            #First Widget
+
+            self.First_widget.setGeometry( int((280*1.2*self.display_W)) , int((110*self.display_H)) , int((800*self.display_W)) , int((450*self.display_H))  )
+            self.btn1.setGeometry( int((60*0.85*self.display_W)) , int((20*0.85*self.display_H)) , int((325*0.85*self.display_W)) , int((70*0.85*self.display_H))  )
+            self.btn2.setGeometry( int((385*0.85*self.display_W)) , int((20*0.85*self.display_H)) , int((325*0.85*self.display_W)) , int((70*0.85*self.display_H))  )
+            
+            self.frame_1.setGeometry( int((60*0.85*self.display_W)) , int((90*0.85*self.display_H)) , int((650*0.85*self.display_W)) , int((350*0.85*self.display_H))  )
+            self.frame1_widget.setGeometry( int((290*self.display_W)) , int((50*1.25*self.display_H)) , 341 , 211  )
+            self.error1.setGeometry( int((40*self.display_W)) , int((300*0.85*self.display_H)) , 441 , 31  )
+
+            self.frame_2.setGeometry( int((60*0.85*self.display_W)) , int((90*0.85*self.display_H)) , int((650*0.85*self.display_W)) , int((350*0.85*self.display_H))  )
+            self.frame2_widget.setGeometry( int((280*self.display_W)) , int((40*1.25*self.display_H)) , 341 , 231  )
+            self.next1.setGeometry( int((460*0.9*self.display_W)) , int((290*0.85*self.display_H)) , 141 , 41  )
+            self.error2.setGeometry( int((30*self.display_W)) , int((300*0.85*self.display_H)) , 331 , 31  )   
+
+            #second Widget
+            self.Second_widget.setGeometry( int((280*1.2*self.display_W)) , int((110*self.display_H)) , int((800*self.display_W)) , int((450*self.display_H))  )
+            self.frame_3.setGeometry( int((60*0.85*self.display_W)) , int((20*0.85*self.display_H)) , int((650*0.85*self.display_W)) , int((420*0.85*self.display_H))  )
+            self.pwidget.setGeometry( int((180*0.85*self.display_W)) , int((110*self.display_H)) , 311 , 211  )
+            self.pwidget_2.setGeometry( int((180*0.85*self.display_W)) , int((110*self.display_H)) , 311 , 211  )
+            self.frame3_widget.setGeometry( int((100*self.display_W)) , int((110*self.display_H)) , 491 , 241  )
+            self.next2.setGeometry( int((460*0.9*self.display_W)) , int((360*0.85*self.display_H)) , 141 , 41  )
+            self.error3.setGeometry( int((70*self.display_W)) , int((370*0.85*self.display_H)) , 341 , 31  )
+
+            #Third Widget
+            self.Third_widget.setGeometry( int((280*1.2*self.display_W)) , int((110*self.display_H)) , int((800*self.display_W)) , int((450*self.display_H))  )
+            self.frame_4.setGeometry( int((60*0.85*self.display_W)) , int((20*0.85*self.display_H)) , int((650*0.85*self.display_W)) , int((420*0.85*self.display_H))  )
+            self.frame4_widget.setGeometry( int((50*2*self.display_W)) , int((100*1.1*self.display_H)) , 561 , 221  )
+            self.error4.setGeometry( int((40*self.display_W)) , int((360*0.85*self.display_H)) , 397 , 31  )
+            self.next3.setGeometry( int((460*0.9*self.display_W)) , int((360*0.85*self.display_H)) , 141 , 41  )
+
+            #Forth Widget
+            self.Four_widget.setGeometry( int((280*1.2*self.display_W)) , int((110*self.display_H)) , int((800*self.display_W)) , int((450*self.display_H))  )
+            self.btn3.setGeometry( int((60*0.85*self.display_W)) , int((20*0.85*self.display_H)) , int((162*0.85*self.display_W)) , int((70*0.85*self.display_H))  )
+            self.btn4.setGeometry( int((222*0.85*self.display_W)) , int((20*0.85*self.display_H)) , int((163*0.85*self.display_W)) , int((70*0.85*self.display_H))  )
+            self.btn41.setGeometry( int((385*0.85*self.display_W)) , int((20*0.85*self.display_H)) , int((162*0.85*self.display_W)) , int((70*0.85*self.display_H))  )
+            self.btn42.setGeometry( int((547*0.85*self.display_W)) , int((20*0.85*self.display_H)) , int((163*0.85*self.display_W)) , int((70*0.85*self.display_H))  )
+
+
+            self.frame_5.setGeometry( int((60*0.85*self.display_W)) , int((90*0.85*self.display_H)) , int((650*0.85*self.display_W)) , int((350*0.85*self.display_H))  )
+            self.frame5_widget.setGeometry( int((330*self.display_W)) , int((20*1.5*self.display_H)) , 311 , 301  )
+            self.pDropdown.setGeometry( int((30*0.85*self.display_W)) , int((10*0.85*self.display_H)) , int((131*0.85*self.display_W)) , int((31*0.85*self.display_H))  )
+            self.allCheck.setGeometry( int((170*0.85*self.display_W)) , int((10*0.85*self.display_H)) , int((141*0.85*self.display_W)) , int((31*0.85*self.display_H))  )
+            self.error5.setGeometry( int((10*self.display_W)) , int((300*0.85*self.display_H)) , 561 , 31  )
+
+            k = self.noC.value()-1
+
+            if k<5:
+                self.diffMat.setGeometry(  int((160-(28*k))*0.85*self.display_W) , int((150-(23*k))*0.85*self.display_H), int(56*k*0.85*self.display_W) , int(46*k*0.85*self.display_H))
+                self.line_2.setGeometry(0, int((46*k-2)*0.85*self.display_H),int(10*0.85*self.display_W),2)
+                self.line_3.setGeometry( int((56*k-10)*0.85*self.display_W),0,int(10*0.85*self.display_W),2)
+                self.line_4.setGeometry( int((56*k-10)*0.85*self.display_W),int((46*k-2)*0.85*self.display_H),int(10*0.85*self.display_W),2)
+            else:
+                self.diffMat.setGeometry( int((48*0.85*self.display_W)) , int((58*0.85*self.display_H)) , int((224*0.85*self.display_W)) , int((184*0.85*self.display_H))  )
+                self.line_2.setGeometry( 0 , int((182*0.85*self.display_H)) , int((10*0.85*self.display_W)) , 2 )
+                self.line_3.setGeometry( int((214*0.85*self.display_W)) ,0 , int((10*0.85*self.display_W)) , 2  )
+                self.line_4.setGeometry( int((214*0.85*self.display_W)) , int((182*0.85*self.display_H)) , int((10*0.85*self.display_W)) , 2  )
+
+
+            self.frame_6.setGeometry( int((60*0.85*self.display_W)) , int((90*0.85*self.display_H)) , int((650*0.85*self.display_W)) , int((350*0.85*self.display_H))  )
+            self.widgetGamma.setGeometry( int((100*0.85*self.display_W)) , int((70*0.85*self.display_H)) , 121 , 111  )
+            self.frame6_widget.setGeometry( int((310*self.display_W)) , int((50*0.85*self.display_H)) , 321 , 201  )
+            self.error6.setGeometry( int((40*self.display_W)) , int((290*0.85*self.display_H)) , 421 , 41 )
+            
+
+            self.frame_61.setGeometry( int((60*0.85*self.display_W)) , int((90*0.85*self.display_H)) , int((650*0.85*self.display_W)) , int((350*0.85*self.display_H))  )
+            self.frame61_widget.setGeometry( int((50*self.display_W)) , int((110*self.display_H)) , 201 , 80 )
+            self.error62.setGeometry( int((30*self.display_W)) , int((290*0.85*self.display_H)) , 451 , 41 )
+            self.Func1.setGeometry( int((330*self.display_W)) , int((80*self.display_H)) , 281 , 171 )
+            self.Func2.setGeometry( int((290*self.display_W)) , int((40*1.25*self.display_H)) , 341 , 231 )
+
+            self.frame_62.setGeometry( int((60*0.85*self.display_W)) , int((90*0.85*self.display_H)) , int((650*0.85*self.display_W)) , int((350*0.85*self.display_H))  )
+            self.frame62_widget.setGeometry( int((80*1.5*self.display_W)) , int((70*self.display_H)) , int((591*0.85*self.display_W)) , int((201*0.8*self.display_H))  )
+            self.next4.setGeometry( int((480*0.9*self.display_W)) , int((300*0.85*self.display_H)) , 141 , 41  )
+
+
+            #Fifth Widget
+            self.Fifth_widget.setGeometry( int((280*1.2*self.display_W)) , int((110*self.display_H)) , int((800*self.display_W)) , int((450*self.display_H))  )
+            self.frame_7.setGeometry( int((60*0.85*self.display_W)) , int((20*0.85*self.display_H)) , int((650*0.85*self.display_W)) , int((420*0.85*self.display_H))  )
+            self.frame7_widget.setGeometry( int((320*0.9*self.display_W)) , int((60*1.2*self.display_H)) , int((301*0.85*self.display_W)) , int((291*0.8*self.display_H))  )
+            self.next5.setGeometry( int((460*0.9*self.display_W)) , int((360*0.85*self.display_H)) , 141 , 41  )
+
+            #sixth Widget
+            self.Sixth_widget.setGeometry( int((280*1.2*self.display_W)) , int((110*self.display_H)) , int((800*self.display_W)) , int((450*self.display_H))  )
+            self.frame_10.setGeometry( int((60*0.85*self.display_W)) , int((20*0.85*self.display_H)) , int((650*0.85*self.display_W)) , int((420*0.85*self.display_H))  )
+            self.ShapeList.setGeometry( int((50*self.display_W)) , int((85*0.85*self.display_H)) , int((256*0.85*self.display_W)) , int((291*0.85*self.display_H))  )
+            self.widget_2.setGeometry( int((50*self.display_W)) , int((345*0.85*self.display_H)) , int((254*0.85*self.display_W)) , int((31*0.85*self.display_H))  )
+            self.shapeedit.setGeometry( int((40*self.display_W)) , int((5*0.85*self.display_H)) , int((80*0.85*self.display_W)) , int((22*0.85*self.display_H))  )
+            self.shapedelete.setGeometry( int((130*self.display_W)) , int((5*0.85*self.display_H)) , int((80*0.85*self.display_W)) , int((22*0.85*self.display_H))  )
+            self.frame10_widget.setGeometry( int((340*self.display_W)) , int((90*0.85*self.display_H)) , 281 , 241  )
+            self.error10.setGeometry( int((10*self.display_W)) , int((385*0.85*self.display_H)) , 401 , 31  )
+            self.next6.setGeometry( int((460*0.9*self.display_W)) , int((360*0.85*self.display_H)) , 141 , 41  )
+            self.shapeframe.setGeometry( int((70*1.5*self.display_W)) , int((100*1.2*self.display_H)) , 501 , 281  )
+
+            #seven Widget
+
+
+            self.Seven_widget.setGeometry( int((280*1.2*self.display_W)) , int((110*self.display_H)) , int((800*self.display_W)) , int((450*self.display_H))  )
+            self.btn5.setGeometry( int((60*0.85*self.display_W)) , int((20*0.85*self.display_H)) , int((217*0.85*self.display_W)) , int((70*0.85*self.display_H))  )
+            self.btn6.setGeometry( int((277*0.85*self.display_W)) , int((20*0.85*self.display_H)) , int((216*0.85*self.display_W)) , int((70*0.85*self.display_H))  )
+            self.btn7.setGeometry( int((493*0.85*self.display_W)) , int((20*0.85*self.display_H)) , int((217*0.85*self.display_W)) , int((70*0.85*self.display_H))  )
+
+
+            self.frame_8.setGeometry( int((60*0.85*self.display_W)) , int((90*0.85*self.display_H)) , int((650*0.85*self.display_W)) , int((350*0.85*self.display_H))  )
+            self.label_135.setGeometry( int((260*0.85*self.display_W)) , int((30*0.85*self.display_H)) , 141 , 31  )
+            self.frame8_widget.setGeometry( int((70*0.85*self.display_W)) , int((60*0.85*self.display_H)) , int((531*0.85*self.display_W)) , int((221*0.85*self.display_H))  )
+            self.error8.setGeometry( int((50*self.display_W)) , int((300*0.85*self.display_H)) , 361 , 31  )
+            self.next7.setGeometry( int((460*0.9*self.display_W)) , int((290*0.85*self.display_H)) , 141 , 41  )
+
+            self.frame_9.setGeometry( int((60*0.85*self.display_W)) , int((90*0.85*self.display_H)) , int((650*0.85*self.display_W)) , int((350*0.85*self.display_H))  )
+
+            self.frame_9CH.setGeometry( 0 , 0 , int((650*0.85*self.display_W)) , int((350*0.85*self.display_H))  )
+            self.stackedWidgetCH.setGeometry( 0 , int((8*1.5*self.display_H)) , int((641*0.85*self.display_W)) , int((290*0.85*self.display_H))  )
+            self.CH_next.setGeometry( int((330*0.85*self.display_W)) , int((300*0.85*self.display_H)) ,  51 , 30  )
+            self.CH_pre.setGeometry( int((270*0.85*self.display_W)) , int((300*0.85*self.display_H)) , 51 , 30  )
+            self.saveCH.setGeometry( int((520*0.85*self.display_W)) , int((300*0.85*self.display_H)) , 101 , 35  )
+            self.errorCH.setGeometry( int((20*self.display_W)) , int((300*0.85*self.display_H)) , 251 , 31 )
+            self.label_102.setGeometry( int((560*0.85*self.display_W)) , 0 , 71 , 25 )
+            self.label_103.setGeometry( int((560*0.85*self.display_W)) , 0 , 71 , 25 )
+
+            self.frame9CH_widget1.setGeometry( int((40*1.5*self.display_W)) , int((30*1.5*self.display_H)) , 291 , 251 ) 
+            self.frame9CH_widget2.setGeometry( int((340*self.display_W)) , int((30*1.5*self.display_H)) , 291 , 251 ) 
+            self.tableWidgetCHA.setGeometry( int((200*self.display_W)) , int((100*self.display_H)) , 241 , 111 ) 
+
+
+            self.frame_9GP.setGeometry( 0 , 0 , int((650*0.85*self.display_W)) , int((350*0.85*self.display_H))  )
+            self.stackedWidgetGP.setGeometry( 0 , int((8*1.5*self.display_H)) , int((641*0.85*self.display_W)) , int((290*0.85*self.display_H))  )
+            self.GP_next.setGeometry( int((330*0.85*self.display_W)) , int((300*0.85*self.display_H)) ,  51 , 30  )
+            self.GP_pre.setGeometry( int((270*0.85*self.display_W)) , int((300*0.85*self.display_H)) , 51 , 30  )
+            self.saveGP.setGeometry( int((520*0.85*self.display_W)) , int((300*0.85*self.display_H)) , 101 , 35  )
+            self.errorGP.setGeometry( int((30*self.display_W)) , int((300*0.85*self.display_H)) , 241 , 31 )
+            self.label_80.setGeometry( int((560*0.85*self.display_W)) , 0 , 71 , 25 )
+            self.label_81.setGeometry( int((560*0.85*self.display_W)) , 0 , 71 , 25 )
+            self.label_82.setGeometry( int((560*0.85*self.display_W)) , 0 , 71 , 25 )
+            self.label_154.setGeometry( int((560*0.85*self.display_W)) , 0 , 71 , 25 )
+
+            self.frame9GP_widget1.setGeometry( int((150*self.display_W)) , int((60*self.display_H)) , 341 , 231 )  
+            self.frame9GP_widget2.setGeometry( int((30*1.5*self.display_W)) , int((30*1.5*self.display_H)) , 271 , 241 )
+            self.frame9GP_widget3.setGeometry( int((300*self.display_W)) , int((30*1.5*self.display_H)) , 331 , 241 )
+            self.frame9GP_widget4.setGeometry( int((30*1.5*self.display_W)) , int((30*1.5*self.display_H)) , 331 , 241 )
+            self.frame9GP_widget5.setGeometry( int((310*self.display_W)) , int((30*1.5*self.display_H)) , 331 , 251 )
+            self.frame9GP_widget6.setGeometry( int((40*1.5*self.display_W)) , int((30*1.5*self.display_H)) , 261 , 251 )
+            self.frame9GP_widget7.setGeometry( int((300*self.display_W)) , int((30*1.5*self.display_H)) , 341 , 251 )
+            
+
+            self.frame_9KKS.setGeometry( 0 , 0 , int((650*0.85*self.display_W)) , int((350*0.85*self.display_H))  )
+            self.stackedWidgetKKS.setGeometry( 0 , int((8*1.5*self.display_H)) , int((641*0.85*self.display_W)) , int((290*0.85*self.display_H))  )
+            self.KKS_next.setGeometry( int((330*0.85*self.display_W)) , int((300*0.85*self.display_H)) ,  51 , 30  )
+            self.KKS_pre.setGeometry( int((270*0.85*self.display_W)) , int((300*0.85*self.display_H)) , 51 , 30  )
+            self.saveKKS.setGeometry( int((520*0.85*self.display_W)) , int((300*0.85*self.display_H)) , 101 , 35  )
+            self.errorKKS.setGeometry( int((30*self.display_W)) , int((300*0.85*self.display_H)) , 231 , 31 )
+            self.label_100.setGeometry( int((560*0.85*self.display_W)) , 0 , 71 , 25 )
+            self.frame9KKS_widget1.setGeometry( int((40*1.5*self.display_W)) , int((30*1.5*self.display_H)) , 301 , 251 )
+            self.frame9KKS_widget2.setGeometry( int((350*self.display_W)) , int((30*1.5*self.display_H)) , 281 , 251 )
+
+            self.frame_9KKS2.setGeometry( 0 , 0 , int((650*0.85*self.display_W)) , int((350*0.85*self.display_H))  )
+            self.stackedWidgetKKS2.setGeometry( 0 , int((8*1.5*self.display_H)) , int((641*0.85*self.display_W)) , int((290*0.85*self.display_H))  )
+            self.KKS2_next.setGeometry( int((330*0.85*self.display_W)) , int((300*0.85*self.display_H)) ,  51 , 30  )
+            self.KKS2_pre.setGeometry( int((270*0.85*self.display_W)) , int((300*0.85*self.display_H)) , 51 , 30  )
+            self.saveKKS2.setGeometry( int((520*0.85*self.display_W)) , int((300*0.85*self.display_H)) , 101 , 35  )
+            self.errorKKS2.setGeometry( int((20*self.display_W)) , int((300*0.85*self.display_H)) , 251 , 31 )
+            self.label_109.setGeometry( int((560*0.85*self.display_W)) , 0 , 71 , 25 )
+            self.label_119.setGeometry( int((560*0.85*self.display_W)) , 0 , 71 , 25 )
+            self.label_151.setGeometry( int((560*0.85*self.display_W)) , 0 , 71 , 25 )
+            self.frame9KKS2_widget.setGeometry( int((150*1.1*self.display_W)) , int((60*1.2*self.display_H)) , 361 , 221 )
+            self.frame9KKS2_widget2.setGeometry( int((30*1.5*self.display_W)) , int((30*1.5*self.display_H)) , 315 , 251 )
+            self.frame9KKS2_widget3.setGeometry( int((345*self.display_W)) , int((30*1.5*self.display_H)) , 291 , 251 )
+            self.frame9KKS2_widget4.setGeometry( int((30*1.5*self.display_W)) , int((40*1.4*self.display_H)) , 301 , 241 )
+            self.frame9KKS2_widget5.setGeometry( int((340*self.display_W)) , int((40*1.4*self.display_H)) , 291 , 251 )
+    
+
+            self.frame_11.setGeometry( int((60*0.85*self.display_W)) , int((90*0.85*self.display_H)) , int((650*0.85*self.display_W)) , int((350*0.85*self.display_H))  )
+            self.frame11_widget1.setGeometry( int((20*1.25*self.display_W)) , int((40*self.display_H)) , int((608*0.85*self.display_W)) , int((249*0.75*self.display_H))  )
+            self.finish_error.setGeometry( int((50*self.display_W)) , int((300*0.85*self.display_H)) , 421 , 31 )
+
+        
+            #Post Processing popups
+            self.h5tovtk_Screen.setGeometry(int( (230*1.25*self.display_W)),0,601,351)
+            self.PPexport_widge.setGeometry(int( (360*1.25*self.display_W)),0,461,161)
+            self.PPimage_widge.setGeometry(int( (360*1.25*self.display_W)),0,461,161)
+
+            #PP top icons
+
+            self.PPimport.setGeometry( int((100*0.8*self.display_W)) , int((12*self.display_H)) , int((47*0.8*self.display_H)) , int((47*0.8*self.display_H))  )
+            self.PPimport.setIconSize( QSize(    int((40*0.8*self.display_H)) , int((40*0.8*self.display_H))  ))
+            
+            self.PPimportData.setGeometry( int((160*0.8*self.display_W)) , int((12*self.display_H)) , int((47*0.8*self.display_H)) , int((47*0.8*self.display_H) ) )
+            self.PPimportData.setIconSize( QSize(    int((40*0.8*self.display_H)) , int((40*0.8*self.display_H))  ))
+            
+            self.PPimage.setGeometry(int((220*0.8*self.display_W)) , int((12*self.display_H)) , int((47*0.8*self.display_H)) , int((47*0.8*self.display_H))  )
+            self.PPimage.setIconSize( QSize(    int((40*0.8*self.display_H)) , int((40*0.8*self.display_H))  ))
+            
+            self.PPexport.setGeometry( int((285*0.8*self.display_W)) , int((12*self.display_H)) , int((47*0.8*self.display_H)) , int((47*0.8*self.display_H))   )
+            self.PPexport.setIconSize( QSize(    int((40*0.8*self.display_H)) , int((40*0.8*self.display_H))  ))
+            
+            self.h5tovtkbtn.setGeometry( int((350*0.8*self.display_W)) , int((12*self.display_H)) , int((60*0.8*self.display_W)) , int((47*0.8*self.display_H))   )
+            self.h5tovtkbtn.setIconSize( QSize( int((56*0.8*self.display_W)) , int((35*0.8*self.display_H)) ))
+            
+            self.PP_clear.setGeometry( int((425*0.8*self.display_W)) , int((12*self.display_H)) , int((47*0.8*self.display_H)) , int((47*0.8*self.display_H))  )
+            self.PP_clear.setIconSize( QSize(    int((35*0.8*self.display_H)) , int((35*0.8*self.display_H))  ))
+
+
+            #tool box
+
+            self.pptarea.setGeometry( 0 , int((0*self.display_H)) , int((206*self.display_W)) , int((41*0.75*self.display_H))   )
+            self.pptarea.setIconSize( QSize(    int((25*0.9*self.display_H)) , int((25*0.9*self.display_H))  ))
+            self.pptarea.setFont(QFont('Ubuntu', int((8*self.display_H))))
+
+            self.pptsize.setGeometry( 0 , int((41*0.75*self.display_H)) , int((206*self.display_W)) , int((41*0.75*self.display_H))   )
+            self.pptsize.setIconSize( QSize(    int((25*0.9*self.display_H)) , int((25*0.9*self.display_H))  ))
+            self.pptsize.setFont(QFont('Ubuntu', int((8*self.display_H))))
+
+            self.pptcount.setGeometry( 0 , int((80*0.75*self.display_H)) , int((206*self.display_W)) , int((41*0.75*self.display_H))   )
+            self.pptcount.setIconSize( QSize(    int((25*0.9*self.display_H)) , int((25*0.9*self.display_H))  ))
+            self.pptcount.setFont(QFont('Ubuntu', int((8*self.display_H))))
+
+            self.fVelocitybtn.setGeometry( 0 , int((203*0.75*self.display_H)) , int((206*self.display_W)) , int((41*0.75*self.display_H))   )
+            self.fVelocitybtn.setIconSize( QSize(    int((25*0.9*self.display_H)) , int((25*0.9*self.display_H))  ))
+            self.fVelocitybtn.setFont(QFont('Ubuntu', int((8*self.display_H))))
+
+            self.velocity_OverLine.setGeometry( 0 , int((250*0.75*self.display_H)) , int((206*self.display_W)) , int((41*0.75*self.display_H))   )
+            self.velocity_OverLine.setIconSize( QSize(    int((25*0.9*self.display_H)) , int((25*0.9*self.display_H))  ))
+            self.velocity_OverLine.setFont(QFont('Ubuntu', int((8*self.display_H))))
+
+            self.tip_radiusbtn.setGeometry( 0 , int((328*0.75*self.display_H)) , int((206*self.display_W)) , int((41*0.75*self.display_H))   )
+            self.tip_radiusbtn.setIconSize( QSize(    int((25*0.9*self.display_H)) , int((25*0.9*self.display_H))  ))
+            self.tip_radiusbtn.setFont(QFont('Ubuntu', int((8*self.display_H))))
+
+            self.front_undercoolbtn.setGeometry( 0 , int((406*0.75*self.display_H)) , int((206*self.display_W)) , int((41*0.75*self.display_H))   )
+            self.front_undercoolbtn.setIconSize( QSize(    int((25*0.9*self.display_H)) , int((25*0.9*self.display_H))  ))
+            self.front_undercoolbtn.setFont(QFont('Ubuntu', int((8*self.display_H))))
+
+            self.triple_pointbtn.setGeometry( 0 , int((474*0.75*self.display_H)) , int((206*self.display_W)) , int((41*0.75*self.display_H))   )
+            self.triple_pointbtn.setIconSize( QSize(    int((25*0.9*self.display_H)) , int((25*0.9*self.display_H))  ))
+            self.triple_pointbtn.setFont(QFont('Ubuntu', int((8*self.display_H))))
+
+            self.phase_frac_btn.setGeometry( 0 , int((666*0.75*self.display_H)) , int((206*self.display_W)) , int((41*0.75*self.display_H))   )
+            self.phase_frac_btn.setIconSize( QSize(    int((25*0.9*self.display_H)) , int((25*0.9*self.display_H))  ))
+            self.phase_frac_btn.setFont(QFont('Ubuntu', int((8*self.display_H))))
+
+            self.total_vol_btn.setGeometry( 0 , int((731*0.75*self.display_H)) , int((206*self.display_W)) , int((41*0.75*self.display_H))   )
+            self.total_vol_btn.setIconSize( QSize(    int((25*0.9*self.display_H)) , int((25*0.9*self.display_H))  ))
+            self.total_vol_btn.setFont(QFont('Ubuntu', int((8*self.display_H))))
+
+            self.surfaceAreabtn.setGeometry( 0 , int((796*0.75*self.display_H)) , int((206*self.display_W)) , int((41*0.75*self.display_H))   )
+            self.surfaceAreabtn.setIconSize( QSize(    int((25*0.9*self.display_H)) , int((25*0.9*self.display_H))  ))
+            self.surfaceAreabtn.setFont(QFont('Ubuntu', int((8*self.display_H))))
+
+
+            #Post Processing
+            self.scalerValue.setGeometry( int((10*self.display_W)) , int((6*1.75*self.display_H)) , int((111*self.display_W)) , 35  )
+
+            #setting icons
+            self.xzPlane.setIconSize( QSize(    int((30*self.display_H)) , int((30*self.display_H))  ))
+            self.yzPlane.setIconSize( QSize(    int((30*self.display_H)) , int((30*self.display_H))  ))
+            self.xyPLane.setIconSize( QSize(    int((30*self.display_H)) , int((30*self.display_H))  ))
+            self.draw_Line.setIconSize( QSize(    int((25*self.display_H)) , int((25*self.display_H))  ))
+            self.PPreload.setIconSize( QSize(    int((25*self.display_H)) , int((25*self.display_H))  ))
+            self.PPpause.setIconSize( QSize(    int((25*self.display_H)) , int((25*self.display_H))  ))
+            self.fastPre.setIconSize( QSize(    int((25*self.display_H)) , int((25*self.display_H))  ))
+            self.preView.setIconSize( QSize(    int((25*self.display_H)) , int((25*self.display_H))  ))
+            self.PPplay.setIconSize( QSize(    int((25*self.display_H)) , int((25*self.display_H))  ))
+            self.nextView.setIconSize( QSize(    int((25*self.display_H)) , int((25*self.display_H))  ))
+            self.fastNext.setIconSize( QSize(    int((25*self.display_H)) , int((25*self.display_H))  ))
+            
+           
+            self.label_160.setFont(QFont('Ubuntu', int((8*self.display_H))))
+            self.scalerValue.setFont(QFont('Ubuntu', int((8*self.display_H))))
+            self.showTime.setFont(QFont('Ubuntu', int((8*self.display_H))))
+            self.iteration_step.setFont(QFont('Ubuntu', int((8*self.display_H))))
+            self.depth_plot.setFont(QFont('Ubuntu', int((8*self.display_H))))
+            self.PP_tool_loadind_label.setFont(QFont('Ubuntu', int((8*self.display_H))))
+            self.SimulationDetail.setFont(QFont('Ubuntu', int((8*self.display_H))))
+
+            self.pushButton.setFont(QFont('Ubuntu', int((8*self.display_H))))
+            self.pushButton_2.setFont(QFont('Ubuntu', int((8*self.display_H))))
+            self.pushButton_3.setFont(QFont('Ubuntu', int((8*self.display_H))))
+            self.pushButton_4.setFont(QFont('Ubuntu', int((8*self.display_H))))
+            self.pushButton_5.setFont(QFont('Ubuntu', int((8*self.display_H))))
+            self.pushButton_6.setFont(QFont('Ubuntu', int((8*self.display_H))))
+            self.pushButton_7.setFont(QFont('Ubuntu', int((8*self.display_H))))
+            self.pushButton_8.setFont(QFont('Ubuntu', int((8*self.display_H))))
+            self.pushButton_9.setFont(QFont('Ubuntu', int((8*self.display_H))))
+            self.pushButton_10.setFont(QFont('Ubuntu', int((8*self.display_H))))
+            self.pushButton_11.setFont(QFont('Ubuntu', int((8*self.display_H))))
+            self.pushButton_12.setFont(QFont('Ubuntu', int((8*self.display_H))))
+            self.pushButton_13.setFont(QFont('Ubuntu', int((8*self.display_H))))
+            self.pushButton_14.setFont(QFont('Ubuntu', int((8*self.display_H))))
+            self.pushButton_16.setFont(QFont('Ubuntu', int((8*self.display_H))))
+            self.pushButton_17.setFont(QFont('Ubuntu', int((8*self.display_H))))
+            self.pushButton_18.setFont(QFont('Ubuntu', int((8*self.display_H))))
+            self.pushButton_19.setFont(QFont('Ubuntu', int((8*self.display_H))))
+
+
+        else:
+
+            self.vline1.setGeometry( int((270*self.display_W)) , int((10*self.display_H)) , 2 , int((632*self.display_H))  )
+
+            #homeScreen
+
+            self.anim12.setStartValue(QPoint(   int(240*self.width()/1100  ), int(180*self.height()/650 )   ))
+            self.anim12.setEndValue(QPoint(    int(240*self.width()/1100  ), int(210*self.height()/650 )   ))
+            self.w1.setGeometry( int((240*self.display_W)) , int((210*self.display_H)) , 621, 320 )
+
+            self.widget_10.setGeometry( int((240*self.display_W)) , int((240*self.display_H)) , 621, 170 )
+
+
+            self.ppToolwidget.setGeometry(0,  int((60*self.display_H)),  int((240*self.display_W)) , int((550*self.display_H) ))
+            self.Screen1.setGeometry(int((240*self.display_W)) , int((60*self.display_H)) , int((845*self.display_W))   , int((550*self.display_H)  ))
+            self.widget_12.setGeometry(1, 0,  int((845*self.display_W))  , int((43*self.display_H) ))   
+        
+
+            #Main Screen 
+            self.Side_widget.setGeometry( 0 , 0 , int((261*self.display_W)) , int((601*self.display_H)  ))
+            self.sideBtn1.setGeometry( 0 , int((120*self.display_H)) , int((231*self.display_W)) , int((65*self.display_H)  ))
+            self.sideBtn2.setGeometry( 0 , int((185*self.display_H)) , int((231*self.display_W)) , int((65*self.display_H)  ))
+            self.sideBtn3.setGeometry( 0 , int((250*self.display_H)) , int((231*self.display_W)) , int((65*self.display_H)  ))
+            self.sideBtn4.setGeometry( 0 , int((315*self.display_H)) , int((231*self.display_W)) , int((65*self.display_H)  ))
+            self.sideBtn5.setGeometry( 0 , int((380*self.display_H)) , int((231*self.display_W)) , int((65*self.display_H)  ))
+            self.sideBtn6.setGeometry( 0 , int((445*self.display_H)) , int((231*self.display_W)) , int((65*self.display_H)  ))
+            self.sideBtn7.setGeometry( 0 , int((510*self.display_H)) , int((231*self.display_W)) , int((65*self.display_H)  ))
+
+            self.sideBtn1.setFont(QFont('Ubuntu', 9))
+            self.sideBtn2.setFont(QFont('Ubuntu',9))
+            self.sideBtn3.setFont(QFont('Ubuntu', 9))
+            self.sideBtn4.setFont(QFont('Ubuntu',9))
+            self.sideBtn5.setFont(QFont('Ubuntu', 9))
+            self.sideBtn6.setFont(QFont('Ubuntu', 9))
+            self.sideBtn7.setFont(QFont('Ubuntu', 9))
+
+
+            #First Frame
+
+            self.First_widget.setGeometry( int((280*self.display_W)) , int((110*self.display_H)) , int((800*self.display_W)) , int((450*self.display_H))  )
+            self.btn1.setGeometry( int((60*self.display_W)) , int((20*self.display_H)) , int((325*self.display_W)) , int((70*self.display_H))  )
+            self.btn2.setGeometry( int((385*self.display_W)) , int((20*self.display_H)) , int((325*self.display_W)) , int((70*self.display_H))  )
+            self.frame_1.setGeometry( int((60*self.display_W)) , int((90*self.display_H)) , int((650*self.display_W)) , int((350*self.display_H))  )
+            self.error1.setGeometry( int((40*self.display_W)) , int((300*self.display_H)) , int((441*self.display_W)) , int((31*self.display_H))  )
+
+            self.frame1_widget.setGeometry( int((290*self.display_W)) , int((50*self.display_H)) , 341 , 211  )
+            self.error1.setGeometry( int((40*self.display_W)) , int((300*self.display_H)) , 441 , 31  )
+
+            self.frame_2.setGeometry( int((60*self.display_W)) , int((90*self.display_H)) , int((650*self.display_W)) , int((350*self.display_H))  )
+            self.frame2_widget.setGeometry( int((280*self.display_W)) , int((40*self.display_H)) , 341 , 231  )
+            self.next1.setGeometry( int((460*self.display_W)) , int((290*self.display_H)) , 141 , 41  )
+            self.error2.setGeometry( int((30*self.display_W)) , int((300*0.85*self.display_H)) , 331 , 31  )
+
+
+            #second Frame
+            self.Second_widget.setGeometry( int((280*self.display_W)) , int((110*self.display_H)) , int((800*self.display_W)) , int((450*self.display_H))  )
+            self.frame_3.setGeometry( int((60*self.display_W)) , int((20*self.display_H)) , int((650*self.display_W)) , int((420*self.display_H))  )
+            self.pwidget.setGeometry( int((180*self.display_W)) , int((110*self.display_H)) , 311 , 211  )
+            self.pwidget_2.setGeometry( int((180*self.display_W)) , int((110*self.display_H)) , 311 , 211  )
+            self.frame3_widget.setGeometry( int((100*self.display_W)) , int((110*self.display_H)) , 491 , 241  )
+            self.next2.setGeometry( int((460*self.display_W)) , int((360*self.display_H)) , 141 , 41  )
+            self.error3.setGeometry( int((70*self.display_W)) , int((370*self.display_H)) , 341 , 31  )
+
+            #Third frame
+            self.Third_widget.setGeometry( int((280*self.display_W)) , int((110*self.display_H)) , int((800*self.display_W)) , int((450*self.display_H))  )
+            self.frame_4.setGeometry( int((60*self.display_W)) , int((20*self.display_H)) , int((650*self.display_W)) , int((420*self.display_H))  )
+            self.frame4_widget.setGeometry( int((50*self.display_W)) , int((100*self.display_H)) , 561 , 221  )
+            self.error4.setGeometry( int((40*self.display_W)) , int((360*self.display_H)) , 397 , 31  )
+            self.next3.setGeometry( int((460*self.display_W)) , int((360*self.display_H)) , 141 , 41  )
+
+            #Forth Frame
+            self.Four_widget.setGeometry( int((280*self.display_W)) , int((110*self.display_H)) , int((800*self.display_W)) , int((450*self.display_H))  )
+            self.btn3.setGeometry( int((60*self.display_W)) , int((20*self.display_H)) , int((162*self.display_W)) , int((70*self.display_H))  )
+            self.btn4.setGeometry( int((222*self.display_W)) , int((20*self.display_H)) , int((163*self.display_W)) , int((70*self.display_H))  )
+            self.btn41.setGeometry( int((385*self.display_W)) , int((20*self.display_H)) , int((162*self.display_W)) , int((70*self.display_H))  )
+            self.btn42.setGeometry( int((547*self.display_W)) , int((20*self.display_H)) , int((163*self.display_W)) , int((70**self.display_H))  )
+
+
+            self.frame_5.setGeometry( int((60*self.display_W)) , int((90*self.display_H)) , int((650*self.display_W)) , int((350*self.display_H))  )
+            self.frame5_widget.setGeometry( int((330*self.display_W)) , int((20*self.display_H)) , 311 , 301  )
+            self.pDropdown.setGeometry( int((30*self.display_W)) , int((10*self.display_H)) , int((131*self.display_W)) , int((31*self.display_H))  )
+            self.allCheck.setGeometry( int((170*self.display_W)) , int((10*self.display_H)) , int((141*self.display_W)) , int((31*self.display_H))  )
+            self.error5.setGeometry( int((10*self.display_W)) , int((300*self.display_H)) , 561 , 31  )
+
+
+            k = self.noC.value()-1
+
+            if k<5:
+                self.diffMat.setGeometry(  int((160-(28*k))*self.display_W) , int((150-(23*k))*self.display_H), int(56*k*self.display_W) , int(46*k*self.display_H))
+                self.line_2.setGeometry(0, int((46*k-2)*self.display_H),int(10*self.display_W),2)
+                self.line_3.setGeometry( int((56*k-10)*self.display_W),0,int(10*self.display_W),2)
+                self.line_4.setGeometry( int((56*k-10)*self.display_W),int((46*k-2)*self.display_H),int(10*self.display_W),2)
+            else:
+                self.diffMat.setGeometry( int((48*self.display_W)) , int((58*self.display_H)) , int((224*self.display_W)) , int((184*self.display_H))  )
+                self.line_2.setGeometry( 0 , int((182*self.display_H)) , int((10*self.display_W)) , 2 )
+                self.line_3.setGeometry( int((214*self.display_W)) ,0 , int((10*self.display_W)) , 2  )
+                self.line_4.setGeometry( int((214*self.display_W)) , int((182*self.display_H)) , int((10*self.display_W)) , 2  )
+
+
+
+            self.frame_6.setGeometry( int((60*self.display_W)) , int((90*self.display_H)) , int((650*self.display_W)) , int((350*self.display_H))  )
+            self.widgetGamma.setGeometry( int((100*self.display_W)) , int((70*self.display_H)) , 121 , 111  )
+            self.frame6_widget.setGeometry( int((310*self.display_W)) , int((50*self.display_H)) , 321 , 201  )
+            self.error6.setGeometry( int((40*self.display_W)) , int((290*self.display_H)) , 421 , 41 )
+
+            self.frame_61.setGeometry( int((60*self.display_W)) , int((90*self.display_H)) , int((650*self.display_W)) , int((350*self.display_H))  )
+            self.frame61_widget.setGeometry( int((50*self.display_W)) , int((110*self.display_H)) , 201 , 80 )
+            self.error62.setGeometry( int((30*self.display_W)) , int((290*self.display_H)) , 451 , 41 )
+            self.Func1.setGeometry( int((330*self.display_W)) , int((80*self.display_H)) , 281 , 171 )
+            self.Func2.setGeometry( int((290*self.display_W)) , int((40*self.display_H)) , 341 , 231 )
+
+            self.frame_62.setGeometry( int((60*self.display_W)) , int((90*self.display_H)) , int((650*self.display_W)) , int((350*self.display_H))  )
+            self.frame62_widget.setGeometry( int((80*self.display_W)) , int((70*self.display_H)) , int((591*self.display_W)) , int((201*self.display_H))  )
+            self.next4.setGeometry( int((480*self.display_W)) , int((300*self.display_H)) , 141 , 41  )
+
+            #Fifth frame
+            self.Fifth_widget.setGeometry( int((280*self.display_W)) , int((110*self.display_H)) , int((800*self.display_W)) , int((450*self.display_H))  )
+            self.frame_7.setGeometry( int((60*self.display_W)) , int((20*self.display_H)) , int((650*self.display_W)) , int((420*self.display_H))  )
+            self.frame7_widget.setGeometry( int((320*self.display_W)) , int((60*self.display_H)) , int((301*self.display_W)) , int((291*self.display_H))  )
+            self.next5.setGeometry( int((460*self.display_W)) , int((360*self.display_H)) , 141 , 41  )
+
+            #sixth Widget
+            self.Sixth_widget.setGeometry( int((280*self.display_W)) , int((110*self.display_H)) , int((800*self.display_W)) , int((450*self.display_H))  )
+            self.frame_10.setGeometry( int((60*self.display_W)) , int((20*self.display_H)) , int((650*self.display_W)) , int((420*self.display_H))  )
+            self.ShapeList.setGeometry( int((50*self.display_W)) , int((85*self.display_H)) , int((256*self.display_W)) , int((291*self.display_H))  )
+            self.widget_2.setGeometry( int((50*self.display_W)) , int((345*self.display_H)) , int((254*self.display_W)) , int((31*self.display_H))  )
+            self.shapeedit.setGeometry( int((40*self.display_W)) , int((5*self.display_H)) , int((80*self.display_W)) , int((22*self.display_H))  )
+            self.shapedelete.setGeometry( int((130*self.display_W)) , int((5*self.display_H)) , int((80*self.display_W)) , int((22*self.display_H))  )
+            self.frame10_widget.setGeometry( int((340*self.display_W)) , int((90*self.display_H)) , 281 , 241  )
+            self.error10.setGeometry( int((10*self.display_W)) , int((385*self.display_H)) , 401 , 31  )
+            self.next6.setGeometry( int((460*self.display_W)) , int((360*self.display_H)) , 141 , 41  )
+            self.shapeframe.setGeometry( int((70*self.display_W)) , int((100*self.display_H)) , 501 , 281  )
+
+            #seven Widget
+            #self.jobScript_widget.setGeometry( int((170*self.display_W)) , int((110*self.display_H)) , 825, 461  )
+
+
+            self.Seven_widget.setGeometry( int((280*self.display_W)) , int((110*self.display_H)) , int((800*self.display_W)) , int((450*self.display_H))  )
+            self.btn5.setGeometry( int((60*self.display_W)) , int((20*self.display_H)) , int((217*self.display_W)) , int((70*self.display_H))  )
+            self.btn6.setGeometry( int((277*self.display_W)) , int((20*self.display_H)) , int((216*self.display_W)) , int((70*self.display_H))  )
+            self.btn7.setGeometry( int((493*self.display_W)) , int((20*self.display_H)) , int((217*self.display_W)) , int((70*self.display_H))  )
+
+
+            self.frame_8.setGeometry( int((60*self.display_W)) , int((90*self.display_H)) , int((650*self.display_W)) , int((350*self.display_H))  )
+            self.label_135.setGeometry( int((260*self.display_W)) , int((30*self.display_H)) , 141 , 31  )
+            self.frame8_widget.setGeometry( int((70*self.display_W)) , int((60*self.display_H)) , int((531*self.display_W)) , int((221*self.display_H))  )
+            self.error8.setGeometry( int((50*self.display_W)) , int((300*self.display_H)) , 361 , 31  )
+            self.next7.setGeometry( int((460*self.display_W)) , int((290*self.display_H)) , 141 , 41  )
+
+            self.frame_9.setGeometry( int((60*self.display_W)) , int((90*self.display_H)) , int((650*self.display_W)) , int((350*self.display_H))  )
+
+
+            self.frame_9CH.setGeometry( 0 , 0 , int((650*self.display_W)) , int((350*self.display_H))  )
+            self.stackedWidgetCH.setGeometry( 0 , int((8*self.display_H)) , int((641*self.display_W)) , int((290*self.display_H))  )
+            self.CH_next.setGeometry( int((330*self.display_W)) , int((300*self.display_H)) ,  51 , 30  )
+            self.CH_pre.setGeometry( int((270*self.display_W)) , int((300*self.display_H)) , 51 , 30  )
+            self.saveCH.setGeometry( int((520*self.display_W)) , int((300*self.display_H)) , 101 , 35  )
+            self.errorCH.setGeometry( int((20*self.display_W)) , int((300*self.display_H)) , 251 , 31 )
+            self.label_102.setGeometry( int((560*self.display_W)) , 0 , 71 , 25 )
+            self.label_103.setGeometry( int((560*self.display_W)) , 0 , 71 , 25 )
+
+            self.frame9CH_widget1.setGeometry( int((40*self.display_W)) , int((30*self.display_H)) , 291 , 251 ) 
+            self.frame9CH_widget2.setGeometry( int((340*self.display_W)) , int((30*self.display_H)) , 291 , 251 ) 
+            self.tableWidgetCHA.setGeometry( int((200*self.display_W)) , int((100*self.display_H)) , 241 , 111 ) 
+
+
+
+            self.frame_9GP.setGeometry( 0 , 0 , int((650*self.display_W)) , int((350*self.display_H))  )
+            self.stackedWidgetGP.setGeometry( 0 , int((8*self.display_H)) , int((641*self.display_W)) , int((290*self.display_H))  )
+            self.GP_next.setGeometry( int((330*self.display_W)) , int((300*self.display_H)) ,  51 , 30  )
+            self.GP_pre.setGeometry( int((270*self.display_W)) , int((300*self.display_H)) , 51 , 30  )
+            self.saveGP.setGeometry( int((520*self.display_W)) , int((300*self.display_H)) , 101 , 35  )
+            self.errorGP.setGeometry( int((30*self.display_W)) , int((300*self.display_H)) , 241 , 31 )
+            self.label_80.setGeometry( int((560*self.display_W)) , 0 , 71 , 25 )
+            self.label_81.setGeometry( int((560*self.display_W)) , 0 , 71 , 25 )
+            self.label_82.setGeometry( int((560*self.display_W)) , 0 , 71 , 25 )
+            self.label_154.setGeometry( int((560*self.display_W)) , 0 , 71 , 25 )
+
+            self.frame9GP_widget1.setGeometry( int((150*self.display_W)) , int((60*self.display_H)) , 341 , 231 )  
+            self.frame9GP_widget2.setGeometry( int((30*self.display_W)) , int((30*self.display_H)) , 271 , 241 )
+            self.frame9GP_widget3.setGeometry( int((300*self.display_W)) , int((30*self.display_H)) , 331 , 241 )
+            self.frame9GP_widget4.setGeometry( int((30*self.display_W)) , int((30*self.display_H)) , 331 , 241 )
+            self.frame9GP_widget5.setGeometry( int((310*self.display_W)) , int((30*self.display_H)) , 331 , 251 )
+            self.frame9GP_widget6.setGeometry( int((40*self.display_W)) , int((30*self.display_H)) , 261 , 251 )
+            self.frame9GP_widget7.setGeometry( int((300*self.display_W)) , int((30*self.display_H)) , 341 , 251 )
+            
+
+
+            self.frame_9KKS.setGeometry( 0 , 0 , int((650*self.display_W)) , int((350*self.display_H))  )
+            self.stackedWidgetKKS.setGeometry( 0 , int((8*self.display_H)) , int((641*self.display_W)) , int((290*self.display_H))  )
+            self.KKS_next.setGeometry( int((330*self.display_W)) , int((300*self.display_H)) ,  51 , 30  )
+            self.KKS_pre.setGeometry( int((270*self.display_W)) , int((300*self.display_H)) , 51 , 30  )
+            self.saveKKS.setGeometry( int((520*self.display_W)) , int((300*self.display_H)) , 101 , 35  )
+            self.errorKKS.setGeometry( int((30*self.display_W)) , int((300*self.display_H)) , 231 , 31 )
+            self.label_100.setGeometry( int((560*self.display_W)) , 0 , 71 , 25 )
+            self.frame9KKS_widget1.setGeometry( int((40*self.display_W)) , int((30*self.display_H)) , 301 , 251 )
+            self.frame9KKS_widget2.setGeometry( int((350*self.display_W)) , int((30*self.display_H)) , 281 , 251 )
+
+
+            self.frame_9KKS2.setGeometry( 0 , 0 , int((650*self.display_W)) , int((350*self.display_H))  )
+            self.stackedWidgetKKS2.setGeometry( 0 , int((8*self.display_H)) , int((641*self.display_W)) , int((290*self.display_H))  )
+            self.KKS2_next.setGeometry( int((330*self.display_W)) , int((300*self.display_H)) ,  51 , 30  )
+            self.KKS2_pre.setGeometry( int((270*self.display_W)) , int((300*self.display_H)) , 51 , 30  )
+            self.saveKKS2.setGeometry( int((520*self.display_W)) , int((300*self.display_H)) , 101 , 35  )
+            self.errorKKS2.setGeometry( int((20*self.display_W)) , int((300*self.display_H)) , 251 , 31 )
+            self.label_109.setGeometry( int((560*self.display_W)) , 0 , 71 , 25 )
+            self.label_119.setGeometry( int((560*self.display_W)) , 0 , 71 , 25 )
+            self.label_151.setGeometry( int((560*self.display_W)) , 0 , 71 , 25 )
+            self.frame9KKS2_widget.setGeometry( int((150*self.display_W)) , int((60*self.display_H)) , 361 , 221 )
+            self.frame9KKS2_widget2.setGeometry( int((30*self.display_W)) , int((30*self.display_H)) , 315 , 251 )
+            self.frame9KKS2_widget3.setGeometry( int((345*self.display_W)) , int((30*self.display_H)) , 291 , 251 )
+            self.frame9KKS2_widget4.setGeometry( int((30*self.display_W)) , int((40*self.display_H)) , 301 , 241 )
+            self.frame9KKS2_widget5.setGeometry( int((340*self.display_W)) , int((40*self.display_H)) , 291 , 251 )
+
+            self.frame_11.setGeometry( int((60*self.display_W)) , int((90*self.display_H)) , int((650*self.display_W)) , int((350*self.display_H))  )
+            self.frame11_widget1.setGeometry( int((20*self.display_W)) , int((40*self.display_H)) , int((608*self.display_W)) , int((249*self.display_H))  )
+            self.finish_error.setGeometry( int((50*self.display_W)) , int((300*self.display_H)) , 421 , 31 )
+
+            #Post Processing popups
+            self.h5tovtk_Screen.setGeometry(int( (230*self.display_W)),0,601,351)
+            self.PPexport_widge.setGeometry(int( (360*self.display_W)),0,461,161)
+            self.PPimage_widge.setGeometry(int( (360*self.display_W)),0,461,161)
+
+            #PP top icons
+
+            self.PPimport.setGeometry( int((100*self.display_W)) , int((7*self.display_H)) , int((47*self.display_H)) , int((47*self.display_H))  )
+            self.PPimport.setIconSize( QSize(    int((40*self.display_H)) , int((40*self.display_H))  ))
+            #self.PPimport.setToolButtonStyle(Qt.ToolButtonTextUnderIcon)
+            
+            self.PPimportData.setGeometry( int((160*self.display_W)) , int((7*self.display_H)) , int((47*self.display_H)) , int((47*self.display_H) ) )
+            self.PPimportData.setIconSize( QSize(    int((40*self.display_H)) , int((40*self.display_H))  ))
+            
+            self.PPimage.setGeometry(int((220*self.display_W)) , int((7*self.display_H)) , int((47*self.display_H)) , int((47*self.display_H))  )
+            self.PPimage.setIconSize( QSize(    int((40*self.display_H)) , int((40*self.display_H))  ))
+            
+            self.PPexport.setGeometry( int((285*self.display_W)) , int((7*self.display_H)) , int((47*self.display_H)) , int((47*self.display_H))   )
+            self.PPexport.setIconSize( QSize(    int((40*self.display_H)) , int((40*self.display_H))  ))
+            
+            self.h5tovtkbtn.setGeometry( int((350*self.display_W)) , int((7*self.display_H)) , int((60*self.display_W)) , int((47*self.display_H))   )
+            self.h5tovtkbtn.setIconSize( QSize( int((56*self.display_W)) , int((35*self.display_H)) ))
+            
+            self.PP_clear.setGeometry( int((425*self.display_W)) , int((7*self.display_H)) , int((47*self.display_H)) , int((47*self.display_H))  )
+            self.PP_clear.setIconSize( QSize(    int((35*self.display_H)) , int((35*self.display_H))  ))
+
+
+            #tool box
+
+            self.pptarea.setGeometry( 0 , int((0*self.display_H)) , int((206*self.display_W)) , int((41*self.display_H))   )
+            self.pptarea.setIconSize( QSize(    int((25*self.display_H)) , int((25*self.display_H))  ))
+            self.pptarea.setFont(QFont('Ubuntu', int((11*self.display_H))))
+
+            self.pptsize.setGeometry( 0 , int((40*self.display_H)) , int((206*self.display_W)) , int((41*self.display_H))   )
+            self.pptsize.setIconSize( QSize(    int((25*self.display_H)) , int((25*self.display_H))  ))
+            self.pptsize.setFont(QFont('Ubuntu', int((11*self.display_H))))
+
+            self.pptcount.setGeometry( 0 , int((80*self.display_H)) , int((206*self.display_W)) , int((41*self.display_H))   )
+            self.pptcount.setIconSize( QSize(    int((25*self.display_H)) , int((25*self.display_H))  ))
+            self.pptcount.setFont(QFont('Ubuntu', int((11*self.display_H))))
+
+            self.fVelocitybtn.setGeometry( 0 , int((203*self.display_H)) , int((206*self.display_W)) , int((41*self.display_H))   )
+            self.fVelocitybtn.setIconSize( QSize(    int((25*self.display_H)) , int((25*self.display_H))  ))
+            self.fVelocitybtn.setFont(QFont('Ubuntu', int((11*self.display_H))))
+
+            self.velocity_OverLine.setGeometry( 0 , int((250*self.display_H)) , int((206*self.display_W)) , int((41*self.display_H))   )
+            self.velocity_OverLine.setIconSize( QSize(    int((25*self.display_H)) , int((25*self.display_H))  ))
+            self.velocity_OverLine.setFont(QFont('Ubuntu', int((11*self.display_H))))
+
+            self.tip_radiusbtn.setGeometry( 0 , int((328*self.display_H)) , int((206*self.display_W)) , int((41*self.display_H))   )
+            self.tip_radiusbtn.setIconSize( QSize(    int((25*self.display_H)) , int((25*self.display_H))  ))
+            self.tip_radiusbtn.setFont(QFont('Ubuntu', int((11*self.display_H))))
+
+            self.front_undercoolbtn.setGeometry( 0 , int((406*self.display_H)) , int((206*self.display_W)) , int((41*self.display_H))   )
+            self.front_undercoolbtn.setIconSize( QSize(    int((25*self.display_H)) , int((25*self.display_H))  ))
+            self.front_undercoolbtn.setFont(QFont('Ubuntu', int((11*self.display_H))))
+
+            self.triple_pointbtn.setGeometry( 0 , int((474*self.display_H)) , int((206*self.display_W)) , int((41*self.display_H))   )
+            self.triple_pointbtn.setIconSize( QSize(    int((25*self.display_H)) , int((25*self.display_H))  ))
+            self.triple_pointbtn.setFont(QFont('Ubuntu', int((11*self.display_H))))
+
+            self.phase_frac_btn.setGeometry( 0 , int((666*self.display_H)) , int((206*self.display_W)) , int((41*self.display_H))   )
+            self.phase_frac_btn.setIconSize( QSize(    int((25*self.display_H)) , int((25*self.display_H))  ))
+            self.phase_frac_btn.setFont(QFont('Ubuntu', int((11*self.display_H))))
+
+            self.total_vol_btn.setGeometry( 0 , int((731*self.display_H)) , int((206*self.display_W)) , int((41*self.display_H))   )
+            self.total_vol_btn.setIconSize( QSize(    int((25*self.display_H)) , int((25*self.display_H))  ))
+            self.total_vol_btn.setFont(QFont('Ubuntu', int((11*self.display_H))))
+
+            self.surfaceAreabtn.setGeometry( 0 , int((796*self.display_H)) , int((206*self.display_W)) , int((41*self.display_H))   )
+            self.surfaceAreabtn.setIconSize( QSize(    int((25*self.display_H)) , int((25*self.display_H))  ))
+            self.surfaceAreabtn.setFont(QFont('Ubuntu', int((11*self.display_H))))
+
+            #Post Processing
+            self.scalerValue.setGeometry( int((10*self.display_W)) , int((5*self.display_H)) , int((111*self.display_W)) , 35  )
+
+            #setting icons
+
+            self.xzPlane.setIconSize( QSize(  30 , 30))
+            self.yzPlane.setIconSize( QSize(   30 , 30))
+            self.xyPLane.setIconSize( QSize(   30 , 30))
+            self.draw_Line.setIconSize( QSize(    25 , 25))
+            self.PPreload.setIconSize( QSize(  25 , 25))
+            self.PPpause.setIconSize( QSize(   25 , 25))
+            self.fastPre.setIconSize( QSize( 25 , 25))
+            self.preView.setIconSize( QSize(   25 , 25))
+            self.PPplay.setIconSize( QSize( 25 , 25))
+            self.nextView.setIconSize( QSize(  25 , 25))
+            self.fastNext.setIconSize( QSize(  25 , 25))
+            
+            self.label_160.setFont(QFont('Ubuntu', 11))
+            self.scalerValue.setFont(QFont('Ubuntu', 11))
+            self.showTime.setFont(QFont('Ubuntu', 11))
+            self.iteration_step.setFont(QFont('Ubuntu', 11))
+            self.depth_plot.setFont(QFont('Ubuntu',11))
+            self.PP_tool_loadind_label.setFont(QFont('Ubuntu', 11))
+            self.PPexport_widge.setFont(QFont('Ubuntu', 11))
+            self.SimulationDetail.setFont(QFont('Ubuntu', 11 ))
+
+            self.pushButton.setFont(QFont('Ubuntu', int((11*self.display_H))))
+            self.pushButton_2.setFont(QFont('Ubuntu', int((11*self.display_H))))
+            self.pushButton_3.setFont(QFont('Ubuntu', int((11*self.display_H))))
+            self.pushButton_4.setFont(QFont('Ubuntu', int((11*self.display_H))))
+            self.pushButton_5.setFont(QFont('Ubuntu', int((11*self.display_H))))
+            self.pushButton_6.setFont(QFont('Ubuntu', int((11*self.display_H))))
+            self.pushButton_7.setFont(QFont('Ubuntu', int((11*self.display_H))))
+            self.pushButton_8.setFont(QFont('Ubuntu', int((11*self.display_H))))
+            self.pushButton_9.setFont(QFont('Ubuntu', int((11*self.display_H))))
+            self.pushButton_10.setFont(QFont('Ubuntu', int((11*self.display_H))))
+            self.pushButton_11.setFont(QFont('Ubuntu', int((11*self.display_H))))
+            self.pushButton_12.setFont(QFont('Ubuntu', int((11*self.display_H))))
+            self.pushButton_13.setFont(QFont('Ubuntu', int((11*self.display_H))))
+            self.pushButton_14.setFont(QFont('Ubuntu', int((11*self.display_H))))
+            self.pushButton_16.setFont(QFont('Ubuntu', int((11*self.display_H))))
+            self.pushButton_17.setFont(QFont('Ubuntu', int((11*self.display_H))))
+            self.pushButton_18.setFont(QFont('Ubuntu', int((11*self.display_H))))
+            self.pushButton_19.setFont(QFont('Ubuntu', int((11*self.display_H))))
+
+
+
+        self.pptRadius.setGeometry( int((400*self.display_W)) , int((70*self.display_H)) , int((441*self.display_W)) , int((450*self.display_H))  )
+        self.error_table_plot.setGeometry( int((20*self.display_W)), int((380*self.display_H)), int((381*self.display_W)), int((21*self.display_H))  )
+        self.exportToCSV.setGeometry( int((20*self.display_W)), int((330*self.display_H)), int((121*self.display_W)), int((35*self.display_H))  )
+        self.plotwrtTime.setGeometry( int((160*self.display_W)), int((330*self.display_H)), int((141*self.display_W)), int((35*self.display_H))  )
+        self.plotwrtTimeAll.setGeometry( int((320*self.display_W)), int((330*self.display_H)), int((101*self.display_W)), int((35*self.display_H))  )
+        self.table_ppt_size.setGeometry( int((10*self.display_W)), int((70*self.display_H)), int((400*self.display_W)), int((241*self.display_H))  )
+
+        
+        
+        #plot and imshow
+        
+        self.imgShow.setGeometry( int((10*self.display_W)) , int((70*self.display_H)) , int((371*self.display_H)) , int((471*self.display_H))  )
+        self.SimPlotshow.setGeometry( 0 , int((10*self.display_H)) , int((371*self.display_H)) , int((371*self.display_H))  )
+        self.verticalLayout.setGeometry(QRect( int((20*self.display_W)) , int((10*self.display_H)) ,int((350*self.display_H)) , int((350*self.display_H))  ))
+        self.canvas.draw()
+        
+        self.pptPlot.setGeometry( int((390*self.display_W)) , int((70*self.display_H)) , int((451*self.display_H)) , int((451*self.display_H))  )
+        self.horizontalWidget_2.setGeometry( int((70*self.display_W)) , 0 , int((331*self.display_W)) , int((50*self.display_H))  )
+        self.horizontalWidget.setGeometry( 0 , int((50*self.display_H)) , int((421*self.display_W)) , int((411*self.display_H))  )
+        
+        self.verticalLayout_ppt2.setGeometry(QRect( 0 ,0 ,int((331*self.display_W)) , int((50*self.display_H))  ))
+        self.verticalLayout_ppt.setGeometry(QRect( 0 ,0 ,int((421*self.display_W)) , int((411*self.display_H))  ))
+        
+        self.canvas_ppt.draw()
+        
+        self.pptplot_import.setGeometry(int((370*self.display_H)) , int((10*self.display_H)) , int((61*self.display_W)) , int((30*self.display_H))  )
+        
+        
+        
+        #ppt table plot
+        
+        self.table_plot_widget.setGeometry(int((60*self.display_W) ), int((90*self.display_H) ) ,int((741*self.display_W) ),int((421*self.display_H) ))
+        self.label_163.setGeometry(int((330*self.display_W) ), int((390*self.display_H) ) ,int((111*self.display_W) ),int((17*self.display_H) ))
+        self.table_close.setGeometry(int((711*self.display_W) ), 0 ,int((30*self.display_W) ),int((30*self.display_H) ))
+        
+        self.verticalWidget_4.setGeometry( 0, int((40*self.display_H) ) , int((691*self.display_W)) , int((351*self.display_H))  )
+        self.verticalWidget_5.setGeometry( 0 , 0 , int((591*self.display_W)) , int((41*self.display_H))  )
+        
+        self.canvas_table.draw()
+     
+        
+        
+        #Draw overline
+        self.drawLineWidget.setGeometry( int((30*self.display_W))  , int((390*self.display_H)) , int((320*self.display_H)) , int((50*self.display_H))  )
+        
+
+        #text fonts
+
+        
+
+
+
+    @pyqtSlot()
     def on_Escape(self):
         return
 
@@ -698,7 +1648,7 @@ class StartScreen(QDialog):
         self.model_KKS2.setChecked(False)
         self.w1.show()
         self.anim12.start()
-
+ 
     def close_btnClicked(self):
         self.w1.hide()
 
@@ -706,12 +1656,6 @@ class StartScreen(QDialog):
         self.StartFrame.show()
         self.continueTab.show()
         self.continueF.show()
-        self.createN.setGeometry(260,250,110,110)
-        self.startNew.setGeometry(260,360,110,61)
-        self.importF.setGeometry(510,250,110,110)
-        self.importFile.setGeometry(510,360,110,60)
-        self.postProcessingF.setGeometry(630,250,110,110)
-        self.postProcessing.setGeometry(630,360,101,60)
         self.w1.hide()
 
     def postProcessingClicked(self):
@@ -724,7 +1668,7 @@ class StartScreen(QDialog):
     ##____________________________Post processing Func ________________#
 
     def PPimportClicked(self):
-        self.PPinfileDir, _ = QtWidgets.QFileDialog.getOpenFileName(self, 'Single File', QtCore.QDir.currentPath() , 'InFile(*.in)')
+        self.PPinfileDir, _ = QFileDialog.getOpenFileName(self, 'Single File', QDir.currentPath() , 'InFile(*.in)')
         self.PPimportRun()
         self.infileLoad_Flag = 1
         if self.vtkLoad_flag ==1:
@@ -755,6 +1699,15 @@ class StartScreen(QDialog):
                     elif entries[0] == "NTIMESTEPS":
                         self.PP_timeSteps = entries[1]
 
+                    elif entries[0] == "MESH_X":
+                        self.PP_dimX = int(entries[1])
+                        
+                    elif entries[0] == "MESH_Y":
+                        self.PP_dimY = int(entries[1])
+                        
+                    elif entries[0] == "MESH_Z":
+                        self.PP_dimZ = int(entries[1])
+
                     elif entries[0] == "SAVET":
                         self.PP_savet = entries[1]
 
@@ -778,6 +1731,7 @@ class StartScreen(QDialog):
                         
 
             self.SimulationDetail.show()
+            self.PPimportData.setEnabled(True)
             self.PP_fileData.setText("Number of components : "+  self.PP_NoC  + "\nComponents : " + (",").join(self.PP_Cnames) + "\nNumber of phases  : " + self.PP_NoP + "\n Phases : " + (",").join(self.PP_Pnames) )
 
         except IOError:
@@ -788,7 +1742,7 @@ class StartScreen(QDialog):
 
     def PPimportDataClicked(self):
         try:
-            self.PPdataDir, _ = QtWidgets.QFileDialog.getOpenFileName(self, 'Single File', QtCore.QDir.currentPath() , 'VTK(*.vtk)' )
+            self.PPdataDir, _ = QFileDialog.getOpenFileName(self, 'Single File', QDir.currentPath() , 'VTK(*.vtk)' )
             self.PPdataRun()
             self.vtkLoad_flag = 1
             if self.infileLoad_Flag == 1:
@@ -806,7 +1760,17 @@ class StartScreen(QDialog):
     # PPimage Func
         
     def PPimageClicked(self):
-        self.PPimage_widge.setGeometry(360,0,461,161)
+        if self.height() > 850 :
+            self.PPimage_widge.setGeometry(int( (360*1.25*self.width()/1100)),0,461,161)
+            self.anim_PPimage.setStartValue(QPoint(int( (360*1.25*self.width()/1100)), 30))
+            self.anim_PPimage.setEndValue(QPoint(int( (360*1.25*self.width()/1100)),0))
+
+        else:
+            self.PPimage_widge.setGeometry(int( (360*self.width()/1100)),0,461,161)
+            self.anim_PPimage.setStartValue(QPoint(int( (360*self.width()/1100)), 30))
+            self.anim_PPimage.setEndValue(QPoint(int( (360*self.width()/1100)),0))
+
+        #self.PPimage_widge.setGeometry(int( (360*self.width())/1100),0,int((461*self.width())/1100),int((161*self.height())/650 ))
         self.PPimage_error.setText("")
         self.PPimagedir.setText("")
         
@@ -828,8 +1792,8 @@ class StartScreen(QDialog):
     def PPimageLocbtnClicked(self):
         self.PPimage_error.setText("")
         
-        dlg = QtWidgets.QFileDialog()
-        dlg.setFileMode(QtWidgets.QFileDialog.Directory)
+        dlg = QFileDialog()
+        dlg.setFileMode(QFileDialog.Directory)
         if dlg.exec_():
             self.PPimage_outputdir =  ''.join(dlg.selectedFiles())
             self.PPimagedir.setText(self.PPimage_outputdir)
@@ -880,7 +1844,19 @@ class StartScreen(QDialog):
     # PPexort func
     
     def PPexportClicked(self):
-        self.PPexport_widge.setGeometry(360,0,461,161)
+
+        if self.height() > 850 :
+            self.PPexport_widge.setGeometry(int( (360*1.25*self.width()/1100)),0,461,161)
+            self.anim_PPexport.setStartValue(QPoint(int( (360*1.25*self.width()/1100)), 30))
+            self.anim_PPexport.setEndValue(QPoint(int( (360*1.25*self.width()/1100)),0))
+
+        else:
+            self.PPexport_widge.setGeometry(int( (360*self.width()/1100)),0,461,161)
+            self.anim_PPexport.setStartValue(QPoint(int( (360*self.width()/1100)), 30))
+            self.anim_PPexport.setEndValue(QPoint(int( (360*self.width()/1100)),0))
+
+        
+        #self.PPexport_widge.setGeometry(int( (360*self.width())/1100),0,int((461*self.width())/1100),int((161*self.height())/650 ))
         self.PPexport_error.setText("")
         self.PPexportdir.setText("")
         
@@ -902,8 +1878,8 @@ class StartScreen(QDialog):
     def PPexportLocbtnClicked(self):
         self.PPexport_error.setText("")
         
-        dlg = QtWidgets.QFileDialog()
-        dlg.setFileMode(QtWidgets.QFileDialog.Directory)
+        dlg = QFileDialog()
+        dlg.setFileMode(QFileDialog.Directory)
         if dlg.exec_():
             self.PPexport_outputdir =  ''.join(dlg.selectedFiles())
             self.PPexportdir.setText(self.PPexport_outputdir)
@@ -931,45 +1907,29 @@ class StartScreen(QDialog):
                 scalar_name_plot = self.scalerValue.currentText()
             
                 # plot data
+                if(self.dataset == "UNSTRUCTURED_GRID"):
+                    grid_shape = [self.PP_dimX , self.PP_dimY, self.PP_dimZ]
+                    vtkPointData = self.vtkData[iteration_value_plot].GetCellData().GetArray(scalar_name_plot)
+                else:
+                    grid_shape = self.vtkData[0].GetDimensions()
+                    vtkPointData = self.vtkData[iteration_value_plot].GetPointData().GetArray(scalar_name_plot)
                 
                 if self.data_3D_flag == 0:
-                
-                    vtkPointData = self.vtkData[iteration_value_plot].GetPointData().GetArray(scalar_name_plot)
-                    
                     pf = np.copy(np.reshape(vtkPointData, self.grid_reshape))
                     
                 elif self.data_3D_flag == 1:
-                    if self.xyplane_flag == 1 :
-                        vtkPointData = self.vtkData[iteration_value_plot].GetPointData().GetArray(scalar_name_plot)
-                        
-                        grid_shape = self.vtkData[0].GetDimensions()
-                        
 
+                    if self.xyplane_flag == 1 :
                         pf = np.copy(np.reshape(vtkPointData,  (grid_shape[2], grid_shape[1], grid_shape[0])))
-                        
                         pf = pf[self.depth_plot.value(),:,:]
-                        
         
                     
                     elif self.yzplane_flag == 1 :
-                        vtkPointData = self.vtkData[iteration_value_plot].GetPointData().GetArray(scalar_name_plot)
-                        
-                        grid_shape = self.vtkData[0].GetDimensions()
-                        
-
                         pf = np.copy(np.reshape(vtkPointData,  (grid_shape[2], grid_shape[1], grid_shape[0])))
-                        
                         pf = pf[:,self.depth_plot.value(),:]
                         
-                    
                     elif self.xzplane_flag == 1 :
-                        vtkPointData = self.vtkData[iteration_value_plot].GetPointData().GetArray(scalar_name_plot)
-                        
-                        grid_shape = self.vtkData[0].GetDimensions()
-                        
-
                         pf = np.copy(np.reshape(vtkPointData,  (grid_shape[2], grid_shape[1], grid_shape[0])))
-                        
                         pf = pf[:,:,self.depth_plot.value()]
                         
                 #Saving File
@@ -993,45 +1953,34 @@ class StartScreen(QDialog):
             scalar_name_plot = self.scalerValue.currentText()
         
             # plot data
-            
-            if self.data_3D_flag == 0:
-            
+            if(self.dataset == "UNSTRUCTURED_GRID"):
+                grid_shape = [self.PP_dimX , self.PP_dimY, self.PP_dimZ]
+                vtkPointData = self.vtkData[iteration_value_plot].GetCellData().GetArray(scalar_name_plot)
+            else:
+                grid_shape = self.vtkData[0].GetDimensions()
                 vtkPointData = self.vtkData[iteration_value_plot].GetPointData().GetArray(scalar_name_plot)
-                
+
+
+            
+            if self.data_3D_flag == 0:                
                 pf = np.copy(np.reshape(vtkPointData, self.grid_reshape))
                 
             elif self.data_3D_flag == 1:
-                if self.xyplane_flag == 1 :
-                    vtkPointData = self.vtkData[iteration_value_plot].GetPointData().GetArray(scalar_name_plot)
-                    
-                    grid_shape = self.vtkData[0].GetDimensions()
-                    
 
+
+                if self.xyplane_flag == 1 :
                     pf = np.copy(np.reshape(vtkPointData,  (grid_shape[2], grid_shape[1], grid_shape[0])))
-                    
                     pf = pf[self.depth_plot.value(),:,:]
                     
     
                 
                 elif self.yzplane_flag == 1 :
-                    vtkPointData = self.vtkData[iteration_value_plot].GetPointData().GetArray(scalar_name_plot)
-                    
-                    grid_shape = self.vtkData[0].GetDimensions()
-                    
-
                     pf = np.copy(np.reshape(vtkPointData,  (grid_shape[2], grid_shape[1], grid_shape[0])))
-                    
                     pf = pf[:,self.depth_plot.value(),:]
                     
                 
                 elif self.xzplane_flag == 1 :
-                    vtkPointData = self.vtkData[iteration_value_plot].GetPointData().GetArray(scalar_name_plot)
-                    
-                    grid_shape = self.vtkData[0].GetDimensions()
-                    
-
                     pf = np.copy(np.reshape(vtkPointData,  (grid_shape[2], grid_shape[1], grid_shape[0])))
-                    
                     pf = pf[:,:,self.depth_plot.value()]
             
             finalDir = saveimagedir + "_" + self.showTime.text() + ".csv"
@@ -1052,10 +2001,13 @@ class StartScreen(QDialog):
         self.SimulationDetail.hide()
         self.pptPlot.hide()
         self.triple_point_widget.hide()
+        self.pptRadius.hide()
+        self.table_plot_widget.hide()
 
         self.ppToolwidget.setEnabled(False)
+        self.PPimportData.setEnabled(False)
         
-        self.ppt_Count_Plot_flag = 0;
+        self.ppt_Count_Plot_flag = 0
         self.ppt_size_flag = 0
         self.velocity_flag = 0
         self.volume_SA_flag = 0
@@ -1064,6 +2016,9 @@ class StartScreen(QDialog):
         self.tip_radius_flag = 0
         self.front_undercool_flag = 0
         self.triple_point_flag = 0
+        self.pointCorrelation_flag = 0
+        self.pricipalComponent_flag = 0
+        self.contourPlot_flag = 0
         
         self.infileLoad_Flag = 0
         self.vtkLoad_flag = 0
@@ -1088,7 +2043,18 @@ class StartScreen(QDialog):
         
         
     def h5tovtkbtnClicked(self):
-        self.h5tovtk_Screen.setGeometry(230,0,601,351)
+        
+        if self.height() > 850:
+            self.h5tovtk_Screen.setGeometry(int( (230*1.5*self.width())/1100),0,601,351)
+            self.anim_h5toVTK.setStartValue(QPoint(int( (230*1.5*self.width())/1100), 30))
+            self.anim_h5toVTK.setEndValue(QPoint(int( (230*1.5*self.width())/1100),0))
+
+        else:
+            self.h5tovtk_Screen.setGeometry(int( (230*1.25*self.width())/1100),0,601,351)
+            self.anim_h5toVTK.setStartValue(QPoint(int( (230*1.25*self.width())/1100), 30))
+            self.anim_h5toVTK.setEndValue(QPoint(int( (230*1.25*self.width())/1100),0))
+
+        #self.h5tovtk_Screen.setGeometry(int( (230*self.width())/1100),0,int((601*self.width())/1100),int((351*self.height())/650 ))
         
         self.widget_5.setEnabled(False)
         self.ppToolwidget.setEnabled(False)
@@ -1097,7 +2063,7 @@ class StartScreen(QDialog):
         self.anim_h5toVTK.start()
         
     def h5tovtkCloseClicked(self):
-        self.h5tovtk_Screen.setGeometry(230,0,0,351)
+        self.h5tovtk_Screen.setGeometry(0,0,0,0)
         self.widget_5.setEnabled(True)
         self.ppToolwidget.setEnabled(True)
         self.Screen1.setEnabled(True)
@@ -1108,7 +2074,7 @@ class StartScreen(QDialog):
         self.h5tovtk_error.setText("")
         
         try:
-            self.h5tovtk_infileDir, _ = QtWidgets.QFileDialog.getOpenFileName(self, 'Single File', QtCore.QDir.currentPath() , 'Infile(*.in)' )
+            self.h5tovtk_infileDir, _ = QFileDialog.getOpenFileName(self, 'Single File', QDir.currentPath() , 'Infile(*.in)' )
             
             self.h5tovtk_infileLoc.setText(self.h5tovtk_infileDir)
         
@@ -1125,7 +2091,7 @@ class StartScreen(QDialog):
         
         if self.h5tovtk_h5radio.isChecked():
             try:
-                self.h5tovtk_outputDir, _ = QtWidgets.QFileDialog.getOpenFileName(self, 'Single File', QtCore.QDir.currentPath() , 'H5(*.h5)' )
+                self.h5tovtk_outputDir, _ = QFileDialog.getOpenFileName(self, 'Single File', QDir.currentPath() , 'H5(*.h5)' )
                 
                 self.h5tovtk_outputloc.setText(self.h5tovtk_outputDir)
                 
@@ -1139,7 +2105,7 @@ class StartScreen(QDialog):
             
         elif self.h5tovtk_xmfradio.isChecked():
             try:
-                self.h5tovtk_outputDir, _ = QtWidgets.QFileDialog.getOpenFileName(self, 'Multiple File', QtCore.QDir.currentPath() , 'XMF(*.xmf)' )
+                self.h5tovtk_outputDir, _ = QFileDialog.getOpenFileName(self, 'Multiple File', QDir.currentPath() , 'XMF(*.xmf)' )
                 
                 self.h5tovtk_outputloc.setText(self.h5tovtk_outputDir)
                 
@@ -1150,12 +2116,21 @@ class StartScreen(QDialog):
             except UnicodeDecodeError:
                 print("could not read")
                 return
+        
+        elif self.h5tovtk_pltradio.isChecked():
+
+            dlg = QFileDialog()
+            dlg.setFileMode(QFileDialog.Directory)
+            if dlg.exec_():
+                self.h5tovtk_outputDir =  ''.join(dlg.selectedFiles())
+                self.h5tovtk_outputloc.setText(self.h5tovtk_outputDir)
+
             
     def h5tovtk_vtkoutputbtnClicked(self):
         self.h5tovtk_error.setText("")
         
-        dlg = QtWidgets.QFileDialog()
-        dlg.setFileMode(QtWidgets.QFileDialog.Directory)
+        dlg = QFileDialog()
+        dlg.setFileMode(QFileDialog.Directory)
         if dlg.exec_():
             self.h5tovtk_vtkoutputdir =  ''.join(dlg.selectedFiles())
             self.h5tovtk_vtkoutput.setText(self.h5tovtk_vtkoutputdir)
@@ -1182,107 +2157,10 @@ class StartScreen(QDialog):
         else:
             self.h5tovtk_error.setText("")
             
-            
         
-        if self.h5tovtk_h5radio.isChecked():
-            
-            h5_outhead, h5_outtail = os.path.split(self.h5tovtk_outputloc.text())
-            
-            split_text = "_" + self.h5tovtk_sTime.text()+".h5"
-            
-            h5_outputfilename = h5_outtail.split(split_text)
-            
-            #reading vtk output file dir
-            
-            if self.h5tovtk_vtkoutput.text() == "":
-                vtk_output_fname = h5_outhead + "/" + h5_outputfilename[0]+ ".vtk"
-            
-            elif os.path.isdir(self.h5tovtk_vtkoutput.text()):
-                vtk_output_fname = self.h5tovtk_vtkoutput.text() + "/" + h5_outputfilename[0]+ ".vtk"
-                
-            else:
-                return False
-                
-            
-            h5toxmf_cmd = "cd " +h5_outhead + "; cd ..;" + "cp ~/MicroSim/Grand_potential_Finite_difference_2D_MPI/write_xdmf write_xdmf ; ./write_xdmf " + self.h5tovtk_infileLoc.text() + " "+ h5_outputfilename[0] + " " +  self.h5tovtk_sTime.text() + " "+ self.h5tovtk_eTime.text() 
-            
-
-            os.system("gnome-terminal -e 'bash -c \""+h5toxmf_cmd+";\"'")
-            
-            
-            xmlfile = minidom.parse( h5_outhead +"/" + h5_outputfilename[0] +"_" +self.h5tovtk_sTime.text() + ".xmf")
-            models = xmlfile.getElementsByTagName('Attribute')
-            scalar_names_xml = []
-            
-            for elem in models:
-                scalar_names_xml.append(elem.attributes['Name'].value)
-                
-                
-            source_files = glob.glob(h5_outhead +"/"+ h5_outputfilename[0] +'*.xmf')
-            xmf_names = []
-            for files in source_files:
-                xmf_names.append(str(files))
-                
-            xmf_names = sorted(xmf_names,key=lambda x: int(x.split('_')[-1].split('.')[0]))
-                
-                
-            python_script_for_vtk = "from paraview.simple import *\nparaview.simple._DisableFirstRenderCameraReset()\noutput = XDMFReader(FileNames=" +str(xmf_names) +")\noutput.PointArrayStatus = " +str(scalar_names_xml) + "\nanimationScene1 = GetAnimationScene()\nanimationScene1.UpdateAnimationUsingDataTimeSteps()\nprint('Converting to vtk. Please wait...')\nSaveData('" + vtk_output_fname + "', proxy=output, Writetimestepsasfileseries=1,Firsttimestep=0, Lasttimestep=-1,Timestepstride="+  str(int(self.h5tovtk_eskip.text()) + 1) +")\nprint('Done')"
-            
-            fileName = h5_outhead + "/h5tovtk.py"
-            f = open(fileName, "w")
-            f.write( python_script_for_vtk )
-            f.close()
-            
-            xmftovtk_cmd = "cd " +h5_outhead + ";pvpython h5tovtk.py;rm h5tovtk.py;cd ..;rm write_xdmf"
-            os.system("gnome-terminal -e 'bash -c \""+xmftovtk_cmd+";\"'")
-            
-        elif self.h5tovtk_xmfradio.isChecked():
-            
-            h5_outhead, h5_outtail = os.path.split(self.h5tovtk_outputloc.text())
-            
-            split_text = "_"+self.h5tovtk_sTime.text()+".xmf"
-            
-            h5_outputfilename = h5_outtail.split(split_text)
-            
-            #reading vtk output file dir
-            
-            if self.h5tovtk_vtkoutput.text() == "":
-                vtk_output_fname = h5_outhead + "/" + h5_outputfilename[0]+ "_.vtk"
-            
-            elif os.path.isdir(self.h5tovtk_vtkoutput.text()):
-                vtk_output_fname = self.h5tovtk_vtkoutput.text() + "/" + h5_outputfilename[0]+ "_.vtk"
-                
-            else:
-                return False
-            
-            
-            xmlfile = minidom.parse( h5_outhead +"/" + h5_outputfilename[0] + "_" +self.h5tovtk_sTime.text() + ".xmf")
-            models = xmlfile.getElementsByTagName('Attribute')
-            scalar_names_xml = []
-            
-            for elem in models:
-                scalar_names_xml.append(elem.attributes['Name'].value)
-            
-            source_files = glob.glob(h5_outhead +"/"+ h5_outputfilename[0] +'*.xmf')
-            xmf_names = []
-            for files in source_files:
-                xmf_names.append(str(files))
-                
-            xmf_names = sorted(xmf_names,key=lambda x: int(x.split('_')[-1].split('.')[0]))
-            
-            python_script_for_vtk = "from paraview.simple import *\nparaview.simple._DisableFirstRenderCameraReset()\noutput = XDMFReader(FileNames=" +str(xmf_names) +")\noutput.PointArrayStatus = " +str(scalar_names_xml) + "\nanimationScene1 = GetAnimationScene()\nanimationScene1.UpdateAnimationUsingDataTimeSteps()\nprint('Converting to vtk. Please wait...')\nSaveData('" + vtk_output_fname + "', proxy=output, Writetimestepsasfileseries=1,Firsttimestep=0, Lasttimestep=-1,Timestepstride="+  str(int(self.h5tovtk_eskip.text()) + 1) +")\nprint('Done')"
-            
-            fileName = h5_outhead + "/h5tovtk.py"
-            f = open(fileName, "w")
-            f.write( python_script_for_vtk )
-            f.close()
-            
-            xmftovtk_cmd = "cd " +h5_outhead + ";pvpython h5tovtk.py;rm h5tovtk.py;cd ..;rm write_xdmf"
-            os.system("gnome-terminal -e 'bash -c \""+xmftovtk_cmd+";\"'")
+        H5toVTK_Func(self)
         
        
-        
-
     def plotfig(self):
         if self.scalerValue.currentIndex() >= 0:
             
@@ -1296,45 +2174,33 @@ class StartScreen(QDialog):
             self.ax.axis('off')
 
             # plot data
+            if(self.dataset == "UNSTRUCTURED_GRID"):
+                grid_shape = [self.PP_dimX , self.PP_dimY, self.PP_dimZ]
+                vtkPointData = self.vtkData[iteration_value_plot].GetCellData().GetArray(scalar_name_plot)
+            else:
+                grid_shape = self.vtkData[0].GetDimensions()
+                vtkPointData = self.vtkData[iteration_value_plot].GetPointData().GetArray(scalar_name_plot)
+
+            
             
             if self.data_3D_flag == 0:
-            
-                vtkPointData = self.vtkData[iteration_value_plot].GetPointData().GetArray(scalar_name_plot)
                 
                 pf = np.copy(np.reshape(vtkPointData, self.grid_reshape))
                 
             elif self.data_3D_flag == 1:
+                
                 if self.xyplane_flag == 1 :
-                    vtkPointData = self.vtkData[iteration_value_plot].GetPointData().GetArray(scalar_name_plot)
-                    
-                    grid_shape = self.vtkData[0].GetDimensions()
-                    
-
                     pf = np.copy(np.reshape(vtkPointData,  (grid_shape[2], grid_shape[1], grid_shape[0])))
-                    
                     pf = pf[self.depth_plot.value(),:,:]
                     
        
-                
                 elif self.yzplane_flag == 1 :
-                    vtkPointData = self.vtkData[iteration_value_plot].GetPointData().GetArray(scalar_name_plot)
-                    
-                    grid_shape = self.vtkData[0].GetDimensions()
-                    
-
                     pf = np.copy(np.reshape(vtkPointData,  (grid_shape[2], grid_shape[1], grid_shape[0])))
-                    
                     pf = pf[:,self.depth_plot.value(),:]
                     
                 
                 elif self.xzplane_flag == 1 :
-                    vtkPointData = self.vtkData[iteration_value_plot].GetPointData().GetArray(scalar_name_plot)
-                    
-                    grid_shape = self.vtkData[0].GetDimensions()
-                    
-
                     pf = np.copy(np.reshape(vtkPointData,  (grid_shape[2], grid_shape[1], grid_shape[0])))
-                    
                     pf = pf[:,:,self.depth_plot.value()]
                     
                     
@@ -1360,7 +2226,7 @@ class StartScreen(QDialog):
             self.canvas_ppt.draw()
             
         elif self.ppt_size_flag == 1:
-            self.pptPlot.show()
+            self.pptRadius.show()
             k = int(self.iteration_step.value())
             self.table_ppt_size.setRowCount(self.ppt_count[k])
             
@@ -1507,6 +2373,44 @@ class StartScreen(QDialog):
             for i in self.triple_point_value[self.iteration_step.value()]:
                 self.ax.scatter(i[1],i[0],marker='o')
             self.canvas.draw()
+
+        elif self.contourPlot_flag == 1:
+
+            self.pptPlot.show()
+            self.fig_ppt.clear()
+            self.ax_ppt = self.fig_ppt.add_subplot(111)
+    
+
+            if self.contour_original_plot.isChecked():
+                self.ax_ppt.imshow(pf,interpolation='none', cmap=plt.get_cmap('viridis') )
+                self.ax_ppt.invert_yaxis() 
+
+                for contour in self.contour_data[self.iteration_step.value()]:
+                    self.ax_ppt.plot(contour[:, 1], contour[:, 0], linewidth=1.5, c='red')
+
+            else:
+                for contour in self.contour_data[self.iteration_step.value()]:
+                    self.ax_ppt.plot(contour[:, 1], contour[:, 0], linewidth=1.5, c='red')
+                self.ax_ppt.set_xlim(0, self.grid_reshape[0])
+                self.ax_ppt.set_ylim(0, self.grid_reshape[1]) 
+                self.ax_ppt.set_facecolor('#ffffff')
+
+
+            self.fig_ppt.subplots_adjust(top=0.905,bottom=0.149,left=0.209,right=0.955,hspace=0.2,wspace=0.2)
+           # self.ax_ppt.axis('off')
+            
+            self.canvas_ppt.draw()  
+
+
+        elif self.pointCorrelation_flag == 1:
+            self.pptPlot.show()
+            self.fig_ppt.clear()
+            self.ax_ppt = self.fig_ppt.add_subplot(111)
+            
+            self.ax_ppt.imshow(self.pointCorrelation[self.iteration_step.value()],interpolation='none', cmap=plt.get_cmap('viridis') )
+            self.fig_ppt.subplots_adjust(top=0.905,bottom=0.149,left=0.209,right=0.955,hspace=0.2,wspace=0.2)
+            self.ax_ppt.axis('off')
+            self.canvas_ppt.draw()
   
             
     
@@ -1516,9 +2420,9 @@ class StartScreen(QDialog):
         return
             
     def pptplot_importClicked(self):
-        options = QtWidgets.QFileDialog.Options()
-        options |= QtWidgets.QFileDialog.DontUseNativeDialog
-        fileName, _ = QtWidgets.QFileDialog.getSaveFileName(self,"QFileDialog.getSaveFileName()","","CSV(*.csv)", options=options)
+        options = QFileDialog.Options()
+        options |= QFileDialog.DontUseNativeDialog
+        fileName, _ = QFileDialog.getSaveFileName(self,"QFileDialog.getSaveFileName()","","CSV(*.csv)", options=options)
         
         if fileName != "":
             fileName = fileName + ".csv"
@@ -1662,7 +2566,19 @@ class StartScreen(QDialog):
                 Submitmsg.setText("\n Sucessfully created csv file at :\n\n      "+fileName  )
                 Submitmsg.exec_()
                 return
-            
+
+            elif self.contourPlot_flag == 1:
+                np.savetxt(fileName, np.squeeze(self.contour_data[self.iteration_step.value()]), delimiter = ",")
+                f.close()
+                
+                Submitmsg = QMessageBox()
+                Submitmsg.setWindowTitle("File Created")
+                Submitmsg.setText("\n Sucessfully created csv file at :\n\n      "+fileName  )
+                Submitmsg.exec_()
+                return
+
+            elif self.pointCorrelation_flag ==1:
+                print(0)
             
                 
             
@@ -1717,7 +2633,7 @@ class StartScreen(QDialog):
         self.iteration_step.setValue(0)
         self.PPplay.hide()
         self.PPpause.show()
-        self.timer = QtCore.QTimer(self)
+        self.timer = QTimer(self)
         self.timer.timeout.connect(self.Runanimation)
         self.timer.start(1)
     
@@ -1824,8 +2740,13 @@ class StartScreen(QDialog):
         phi_Value = []
         iteration_value_plot = self.iteration_step.value()
         scalar_name_plot = self.scalerValue.currentText()
-        Phi_data = self.vtkData[iteration_value_plot].GetPointData().GetArray(scalar_name_plot)
-            
+
+        if(self.dataset == "UNSTRUCTURED_GRID"):
+            Phi_data = self.vtkData[iteration_value_plot].GetCellData().GetArray(scalar_name_plot)
+        else:
+            Phi_data = self.vtkData[iteration_value_plot].GetPointData().GetArray(scalar_name_plot)
+
+           
 
         Phi_data = np.copy(np.reshape(Phi_data, self.grid_reshape))
             
@@ -1847,6 +2768,7 @@ class StartScreen(QDialog):
         self.tip_radius_flag = 0
         self.front_undercool_flag = 0
         self.triple_point_flag = 0
+        self.contourPlot_flag = 0
 
         self.pptPlot.show()
         self.fig_ppt.clear()
@@ -1880,9 +2802,38 @@ class StartScreen(QDialog):
             self.finish_error.setText("Sorry, DATA or Infile directory not found.")
 
 
+    
+
+    def getDataSet(self):
+
+        def isfloat(num):
+            try:
+                float(num)
+                return True
+            except ValueError:
+                return False
+
+
+        with open(self.PPdataDir,errors='ignore') as myfile:
+            head = [next(myfile) for x in range(15)]
+
+        for line in head:
+            b= line.strip().split(" ")
+            if(isfloat(b[0]) == False):
+                if(b[0] == "DATASET"):
+                    self.dataset = b[1]
+                    break
+
+        
+
     def PPdataRun(self):
         
         if os.path.isfile(self.PPdataDir):
+
+            self.getDataSet()
+
+            print(self.dataset)
+
             DatafilePath = self.PPdataDir[:-5]
 
             self.timeItretion = []
@@ -1902,25 +2853,36 @@ class StartScreen(QDialog):
                 datahead, datatail = os.path.split(vtk_read)
                 self.loding_label.setText("Loading : " + datatail )
                 self.loding_label.repaint()
+
+                if(self.dataset == "UNSTRUCTURED_GRID"):
+                    reader = vtkUnstructuredGridReader()
+                    
+                else:
+                    reader = vtkDataSetReader()
+                    
                 
-                reader = vtkDataSetReader()
                 reader.SetFileName(vtk_read)
                 reader.ReadAllVectorsOn()
                 reader.ReadAllScalarsOn()  # Activate the reading of all scalars
                 reader.Update()
+
                 self.vtkData[count] = reader.GetOutput()
                 
                 count = count + 1
             
             self.loding_label.setText("")
             self.loding_label.repaint()
-                
+
             Number_of_Scalers = self.vtkData[0].GetPointData().GetNumberOfArrays()
             scalar_names = [self.vtkData[0].GetPointData().GetArrayName(i) for i in range(0, Number_of_Scalers)]
+
             
+
             
-            
-            grid_shape = self.vtkData[0].GetDimensions()
+            if(self.dataset == "UNSTRUCTURED_GRID"):
+                grid_shape = [self.PP_dimX , self.PP_dimY, self.PP_dimZ]
+            else:
+                grid_shape = self.vtkData[0].GetDimensions()
           
             if grid_shape[0] == 1:
                 self.data_3D_flag = 0
@@ -1971,7 +2933,10 @@ class StartScreen(QDialog):
             return
         
     def xyPLaneClicked(self):
-        grid_shape = self.vtkData[0].GetDimensions()
+        if(self.dataset == "UNSTRUCTURED_GRID"):
+            grid_shape = [self.PP_dimX , self.PP_dimY, self.PP_dimZ]
+        else:
+            grid_shape = self.vtkData[0].GetDimensions()
   
         self.depth_plot.setRange(0,(grid_shape[2]-1))
         self.grid_reshape = ( grid_shape[0], grid_shape[1]  )
@@ -1988,7 +2953,10 @@ class StartScreen(QDialog):
         return
     
     def yzPlaneClicked(self):
-        grid_shape = self.vtkData[0].GetDimensions()
+        if(self.dataset == "UNSTRUCTURED_GRID"):
+            grid_shape = [self.PP_dimX , self.PP_dimY, self.PP_dimZ]
+        else:
+            grid_shape = self.vtkData[0].GetDimensions()
   
         self.depth_plot.setRange(0,(grid_shape[0]-1))
         self.grid_reshape = ( grid_shape[1], grid_shape[2]  )
@@ -2005,7 +2973,10 @@ class StartScreen(QDialog):
         return
     
     def xzPlaneClicked(self):
-        grid_shape = self.vtkData[0].GetDimensions()
+        if(self.dataset == "UNSTRUCTURED_GRID"):
+            grid_shape = [self.PP_dimX , self.PP_dimY, self.PP_dimZ]
+        else:
+            grid_shape = self.vtkData[0].GetDimensions()
   
         self.depth_plot.setRange(0,(grid_shape[1]-1))
         self.grid_reshape = ( grid_shape[0], grid_shape[2]  )
@@ -2029,18 +3000,7 @@ class StartScreen(QDialog):
         self.SimulationDetail.hide()
         self.pptRadius.hide()
         self.triple_point_widget.hide()
-        
-        self.ppt_Count_Plot_flag = 1
-        self.ppt_size_flag = 0
-        self.velocity_flag = 0
-        self.volume_SA_flag = 0
-        self.plot_over_line_flag = 0
-        self.velocity_over_line_flag = 0
-        self.tip_radius_flag = 0
-        self.front_undercool_flag = 0
-        self.triple_point_flag = 0
-        
-       
+
         if self.data_3D_flag == 0:
             
             Is3d = 0
@@ -2058,9 +3018,32 @@ class StartScreen(QDialog):
             elif self.xzplane_flag == 1 :
                 
                 Is3d = 3
+
+
+        if self.ppt_Count_Plot_flag ==0 and self.ppt_size_flag == 0:
+
+            if(self.dataset == "UNSTRUCTURED_GRID"):
+                grid_shape = [self.PP_dimX , self.PP_dimY, self.PP_dimZ]
+            else:
+                grid_shape = self.vtkData[0].GetDimensions()
+                
+            self.ppt_area, self.ppt_radius, self.ppt_coords, self.ppt_major_axis , self.ppt_minor_axis , self.ppt_count , self.ppt_perimeter = load_ppt_property(self.timeItretion,self.dataset,grid_shape, self.vtkData ,self.scalerValue.currentText(), Is3d, self.depth_plot.value())
         
         
-        self.ppt_area, self.ppt_radius, self.ppt_coords, self.ppt_major_axis , self.ppt_minor_axis , self.ppt_count , self.ppt_perimeter = load_ppt_property(self.timeItretion, self.vtkData ,self.scalerValue.currentText(), Is3d, self.depth_plot.value())
+        self.ppt_Count_Plot_flag = 1
+        self.ppt_size_flag = 0
+        self.velocity_flag = 0
+        self.volume_SA_flag = 0
+        self.plot_over_line_flag = 0
+        self.velocity_over_line_flag = 0
+        self.tip_radius_flag = 0
+        self.front_undercool_flag = 0
+        self.triple_point_flag = 0
+        self.pointCorrelation_flag = 0
+        self.pricipalComponent_flag = 0
+        self.contourPlot_flag = 0
+        
+        
         self.pptPlot.show()
         
         self.fig_ppt.clear()
@@ -2083,16 +3066,7 @@ class StartScreen(QDialog):
         self.triple_point_widget.hide()
         
         self.table_ppt_size.setColumnHidden(1, True)
-        self.ppt_size_flag = 1
-        self.ppt_Count_Plot_flag = 0
-        self.velocity_flag = 0
-        self.volume_SA_flag = 0
-        self.plot_over_line_flag = 0
-        self.velocity_over_line_flag = 0
-        self.tip_radius_flag = 0
-        self.front_undercool_flag = 0
-        self.triple_point_flag = 0
-        
+
         if self.data_3D_flag == 0:
             
             Is3d = 0
@@ -2110,10 +3084,32 @@ class StartScreen(QDialog):
             elif self.xzplane_flag == 1 :
                 
                 Is3d = 3
+
+        if self.ppt_Count_Plot_flag ==0 and self.ppt_size_flag == 0:
+
+            if(self.dataset == "UNSTRUCTURED_GRID"):
+                grid_shape = [self.PP_dimX , self.PP_dimY, self.PP_dimZ]
+            else:
+                grid_shape = self.vtkData[0].GetDimensions()
+
+            self.ppt_area, self.ppt_radius, self.ppt_coords, self.ppt_major_axis , self.ppt_minor_axis , self.ppt_count , self.ppt_perimeter = load_ppt_property(self.timeItretion,self.dataset,grid_shape, self.vtkData ,self.scalerValue.currentText(), Is3d, self.depth_plot.value())
         
         
-        self.ppt_area, self.ppt_radius, self.ppt_coords, self.ppt_major_axis , self.ppt_minor_axis , self.ppt_count , self.ppt_perimeter = load_ppt_property(self.timeItretion, self.vtkData ,self.scalerValue.currentText(), Is3d, self.depth_plot.value())
         
+        self.ppt_Count_Plot_flag = 0
+        self.ppt_size_flag = 1
+        self.velocity_flag = 0
+        self.volume_SA_flag = 0
+        self.plot_over_line_flag = 0
+        self.velocity_over_line_flag = 0
+        self.tip_radius_flag = 0
+        self.front_undercool_flag = 0
+        self.triple_point_flag = 0
+        self.pointCorrelation_flag = 0
+        self.pricipalComponent_flag = 0
+        self.contourPlot_flag = 0
+        
+       
         k = int(self.iteration_step.value())
         self.table_ppt_size.setRowCount(self.ppt_count[k])
         
@@ -2136,9 +3132,9 @@ class StartScreen(QDialog):
             self.table_ppt_size.setColumnHidden(1, False)
             
     def exportToCSVClicked(self):
-        options = QtWidgets.QFileDialog.Options()
-        options |= QtWidgets.QFileDialog.DontUseNativeDialog
-        fileName, _ = QtWidgets.QFileDialog.getSaveFileName(self,"QFileDialog.getSaveFileName()","","CSV(*.csv)", options=options)
+        options = QFileDialog.Options()
+        options |= QFileDialog.DontUseNativeDialog
+        fileName, _ = QFileDialog.getSaveFileName(self,"QFileDialog.getSaveFileName()","","CSV(*.csv)", options=options)
         
         if fileName != "":
             fileName = fileName + ".csv"
@@ -2159,7 +3155,7 @@ class StartScreen(QDialog):
             
     def plotwrtTimeClicked(self):
         self.table_plot_widget.show()
-        self.table_plot_widget.setGeometry(60,90,741,421)
+        self.table_plot_widget.setGeometry(int((60*self.width())/1100 ), int((90*self.height())/650 ) ,int((741*self.width())/1100 ),int((421*self.height())/650 ))
         
         self.fig_table.clear()
         self.ax_table = self.fig_table.add_subplot(111)
@@ -2253,7 +3249,7 @@ class StartScreen(QDialog):
         
         
         self.table_plot_widget.show()
-        self.table_plot_widget.setGeometry(60,90,741,421)
+        self.table_plot_widget.setGeometry(int((60*self.width())/1100 ), int((90*self.height())/650 ) ,int((741*self.width())/1100 ),int((421*self.height())/650 ))
         
         self.fig_table.clear()
         
@@ -2304,7 +3300,13 @@ class StartScreen(QDialog):
                 
                 Is3d = 3
         
-        self.front_velocity_data = front_Velocity(len(self.timeItretion), self.vtkData ,self.scalerValue.currentText(), self.PP_dt, self.PP_savet, self.PP_dx, Is3d, self.depth_plot.value())
+        if(self.dataset == "UNSTRUCTURED_GRID"):
+            grid_shape = [self.PP_dimX , self.PP_dimY, self.PP_dimZ]
+        else:
+            grid_shape = self.vtkData[0].GetDimensions()
+
+
+        self.front_velocity_data = front_Velocity(len(self.timeItretion), self.vtkData,self.dataset,grid_shape ,self.scalerValue.currentText(), self.PP_dt, self.PP_savet, self.PP_dx, Is3d, self.depth_plot.value())
         self.front_velocity_data[0] = [0]
         
         self.arr_velocity = np.empty(len(self.timeItretion))
@@ -2328,6 +3330,9 @@ class StartScreen(QDialog):
         self.tip_radius_flag = 0
         self.front_undercool_flag = 0
         self.triple_point_flag = 0
+        self.pointCorrelation_flag = 0
+        self.pricipalComponent_flag = 0
+        self.contourPlot_flag = 0
         
         self.pptPlot.show()
         
@@ -2345,10 +3350,10 @@ class StartScreen(QDialog):
         self.canvas_ppt.draw()
         
     def velocity_OverLineClicked(self):
-        self.velocity_DrawLineWidget.show()
+        self.widget_velocity_over_line.setMinimumSize(0,140)
         
     def velocity_Plot_over_lineBtnClicked(self):
-        
+        self.widget_velocity_over_line.setMinimumSize(0,0)
         startPoints = self.POL_start_Velocity.text().split(",")
         endPoints = self.POL_end_Velocity.text().split(",")
         
@@ -2390,7 +3395,10 @@ class StartScreen(QDialog):
         if rev:
             points.reverse()
         
-        grid_shape = self.vtkData[0].GetDimensions()
+        if(self.dataset == "UNSTRUCTURED_GRID"):
+            grid_shape = [self.PP_dimX , self.PP_dimY, self.PP_dimZ]
+        else:
+            grid_shape = self.vtkData[0].GetDimensions()
         
         if grid_shape[0] == 1:
             grid_reshape = ( grid_shape[1], grid_shape[2]  )
@@ -2427,12 +3435,14 @@ class StartScreen(QDialog):
  
             scalar_name_plot = self.scalerValue.currentText()
             
-            vtkPointData = self.vtkData[n].GetPointData().GetArray(scalar_name_plot)
+            if(self.dataset == "UNSTRUCTURED_GRID"):
+                vtkPointData = self.vtkData[n].GetCellData().GetArray(scalar_name_plot)
+            else:
+                vtkPointData = self.vtkData[n].GetPointData().GetArray(scalar_name_plot)
             
             if Is3d == 0:
                 Phi_data = np.copy(np.reshape(vtkPointData, grid_reshape))
                 
-        
             elif Is3d == 1 :
                 Phi_data = np.copy(np.reshape(vtkPointData,  (grid_shape[2], grid_shape[1], grid_shape[0])))
                 Phi_data = Phi_data[depth_plot,:,:]
@@ -2474,6 +3484,9 @@ class StartScreen(QDialog):
         self.tip_radius_flag = 0
         self.front_undercool_flag = 0
         self.triple_point_flag = 0
+        self.pointCorrelation_flag = 0
+        self.pricipalComponent_flag = 0
+        self.contourPlot_flag = 0
         
         self.pptPlot.show()
         
@@ -2490,7 +3503,6 @@ class StartScreen(QDialog):
         #self.ax_ppt.grid()
         
         self.canvas_ppt.draw()
-        self.velocity_DrawLineWidget.hide()
         
     def tip_radiusbtnClicked(self):
         
@@ -2500,19 +3512,20 @@ class StartScreen(QDialog):
             
         elif self.data_3D_flag == 1:
             if self.xyplane_flag == 1 :
-                
                 Is3d = 1
             
             elif self.yzplane_flag == 1 :
-                
                 Is3d = 2
-                
             
             elif self.xzplane_flag == 1 :
-                
                 Is3d = 3
         
-        self.tip_radius_data= tip_radius_calculate( self.vtkData ,self.timeItretion,self.scalerValue.currentText(), self.PP_dx, Is3d, self.depth_plot.value())
+        if(self.dataset == "UNSTRUCTURED_GRID"):
+            grid_shape = [self.PP_dimX , self.PP_dimY, self.PP_dimZ]
+        else:
+            grid_shape = self.vtkData[0].GetDimensions()
+            
+        self.tip_radius_data= tip_radius_calculate( self.vtkData,self.dataset,grid_shape ,self.timeItretion,self.scalerValue.currentText(), self.PP_dx, Is3d, self.depth_plot.value())
         
         self.pptPlot.show()
         self.SimulationDetail.hide()
@@ -2528,12 +3541,17 @@ class StartScreen(QDialog):
         self.tip_radius_flag = 1
         self.front_undercool_flag = 0
         self.triple_point_flag = 0
+        self.pointCorrelation_flag = 0
+        self.pricipalComponent_flag = 0
+        self.contourPlot_flag = 0
         
         self.pptPlot.show()
         self.fig_ppt.clear()
         self.ax_ppt = self.fig_ppt.add_subplot(111)
         
         self.ax_ppt.plot(self.timeItretion[1:],self.tip_radius_data[1:])
+
+        
         
         if self.iteration_step.value() != 0:
             self.ax_ppt.scatter(self.timeItretion[self.iteration_step.value()], self.tip_radius_data[self.iteration_step.value()], marker ='o')
@@ -2567,8 +3585,13 @@ class StartScreen(QDialog):
                 Is3d = 3
                 
         AllItems = [self.scalerValue.itemText(i) for i in range(self.scalerValue.count())]
+
+        if(self.dataset == "UNSTRUCTURED_GRID"):
+            grid_shape = [self.PP_dimX , self.PP_dimY, self.PP_dimZ]
+        else:
+            grid_shape = self.vtkData[0].GetDimensions()
         
-        self.front_undercooling= front_undercooling_cal( self.vtkData ,self.timeItretion,self.scalerValue.currentText(),AllItems,  Is3d, self.depth_plot.value())
+        self.front_undercooling= front_undercooling_cal( self.vtkData,self.dataset,grid_shape ,self.timeItretion,self.scalerValue.currentText(),AllItems,  Is3d, self.depth_plot.value())
         
         self.pptPlot.show()
         self.SimulationDetail.hide()
@@ -2584,6 +3607,9 @@ class StartScreen(QDialog):
         self.tip_radius_flag = 0
         self.front_undercool_flag = 1
         self.triple_point_flag = 0
+        self.pointCorrelation_flag = 0
+        self.pricipalComponent_flag = 0
+        self.contourPlot_flag = 0
         
         self.pptPlot.show()
         self.fig_ppt.clear()
@@ -2610,7 +3636,6 @@ class StartScreen(QDialog):
         self.pptRadius.hide()
         
         
-        
         self.ppt_size_flag = 0
         self.ppt_Count_Plot_flag = 0
         self.velocity_flag = 0
@@ -2620,6 +3645,9 @@ class StartScreen(QDialog):
         self.tip_radius_flag = 0
         self.front_undercool_flag = 0
         self.triple_point_flag = 1
+        self.pointCorrelation_flag = 0
+        self.pricipalComponent_flag = 0
+        self.contourPlot_flag = 0
         
         k = int(self.iteration_step.value())
         self.table_triplePoint.setRowCount(len(self.triple_point_value[k]))
@@ -2635,7 +3663,128 @@ class StartScreen(QDialog):
         self.canvas.draw()
             
 
-    
+    def contourPlotbtnClicked(self):
+        self.widget_contour.setMinimumSize(0,140)
+
+    def plotContourClicked(self):
+        
+        
+        if self.data_3D_flag == 0:
+            
+            Is3d = 0
+            
+        elif self.data_3D_flag == 1:
+            if self.xyplane_flag == 1 :
+                
+                Is3d = 1
+            
+            elif self.yzplane_flag == 1 :
+                
+                Is3d = 2
+                            
+            elif self.xzplane_flag == 1 :
+                
+                Is3d = 3
+
+        if(self.dataset == "UNSTRUCTURED_GRID"):
+            grid_shape = [self.PP_dimX , self.PP_dimY, self.PP_dimZ]
+        else:
+            grid_shape = self.vtkData[0].GetDimensions()
+
+        self.contour_data = getContourData( self.vtkData,self.dataset,grid_shape ,len(self.timeItretion),self.scalerValue.currentText(),float(self.contour_value.text()), Is3d, self.depth_plot.value())
+        
+        
+        self.pptPlot.show()
+        self.SimulationDetail.hide()
+        self.pptRadius.hide()
+        self.triple_point_widget.hide()
+        
+        self.ppt_size_flag = 0
+        self.ppt_Count_Plot_flag = 0
+        self.velocity_flag = 0
+        self.volume_SA_flag = 0
+        self.plot_over_line_flag = 0
+        self.velocity_over_line_flag = 0
+        self.tip_radius_flag = 0
+        self.front_undercool_flag = 0
+        self.triple_point_flag = 0
+        self.pointCorrelation_flag = 0
+        self.pricipalComponent_flag = 0
+        self.contourPlot_flag = 1
+        self.widget_contour.setMinimumSize(0,0)
+
+        self.plotfig()
+        
+    def shiftPlotbtnClicked(self):
+
+        if self.data_3D_flag == 0:
+            
+            Is3d = 0
+            
+        elif self.data_3D_flag == 1:
+            if self.xyplane_flag == 1 :
+                
+                Is3d = 1
+            
+            elif self.yzplane_flag == 1 :
+                
+                Is3d = 2
+                            
+            elif self.xzplane_flag == 1 :
+                
+                Is3d = 3
+        
+
+        shift_file_dir = os.path.split(self.PPdataDir)[0] + "/shift.dat"
+
+        if os.path.isfile(shift_file_dir):
+            contour_array = np.loadtxt(shift_file_dir,delimiter=" ", dtype=str)
+        else:
+            Shiftmsg = QMessageBox()
+            Shiftmsg.setWindowTitle("Error | File not found")
+            Shiftmsg.setText("\n\n Error.. Unable to locate shift.dat file.\nshift.dat file should be located inside the DATA folder\n\n ")
+            Shiftmsg.exec_()
+            return
+
+        if(self.dataset == "UNSTRUCTURED_GRID"):
+            grid_shape = [self.PP_dimX , self.PP_dimY, self.PP_dimZ]
+        else:
+            grid_shape = self.vtkData[0].GetDimensions()
+
+        self.shift_data = getShiftData( self.vtkData,self.dataset,grid_shape ,self.timeItretion,self.scalerValue.currentText(),int(self.PP_savet),contour_array, Is3d, self.depth_plot.value())
+        
+        
+        self.pptPlot.show()
+        self.SimulationDetail.hide()
+        self.pptRadius.hide()
+        self.triple_point_widget.hide()
+        
+        self.ppt_size_flag = 0
+        self.ppt_Count_Plot_flag = 0
+        self.velocity_flag = 0
+        self.volume_SA_flag = 0
+        self.plot_over_line_flag = 0
+        self.velocity_over_line_flag = 0
+        self.tip_radius_flag = 0
+        self.front_undercool_flag = 0
+        self.triple_point_flag = 0
+        self.pointCorrelation_flag = 0
+        self.pricipalComponent_flag = 0
+        self.contourPlot_flag = 0
+        self.shiftPlot_flag = 1
+        
+        self.pptPlot.show()
+        self.fig_ppt.clear()
+        self.ax_ppt = self.fig_ppt.add_subplot(111)
+        
+        self.ax_ppt.imshow(self.shift_data ,interpolation='none', cmap=plt.get_cmap('viridis') )
+        self.fig_ppt.subplots_adjust(top=0.905,bottom=0.149,left=0.209,right=0.955,hspace=0.2,wspace=0.2)
+        self.ax_ppt.axis('off')
+        self.canvas_ppt.draw()
+
+        
+
+
     def phasefracClicked(self):
         
         if self.data_3D_flag == 0:
@@ -2656,7 +3805,11 @@ class StartScreen(QDialog):
                 
                 Is3d = 3
         
-        self.total_volume, self.volume_fraction , self.total_SA = volFrac_SA_Vol(self.timeItretion, self.vtkData ,self.scalerValue.currentText(), Is3d, self.depth_plot.value())
+        if(self.dataset == "UNSTRUCTURED_GRID"):
+            grid_shape = [self.PP_dimX , self.PP_dimY, self.PP_dimZ]
+        else:
+            grid_shape = self.vtkData[0].GetDimensions()
+        self.total_volume, self.volume_fraction , self.total_SA = volFrac_SA_Vol(self.timeItretion,self.dataset,grid_shape, self.vtkData ,self.scalerValue.currentText(), Is3d, self.depth_plot.value())
         
         self.pptPlot.show()
         self.SimulationDetail.hide()
@@ -2672,6 +3825,9 @@ class StartScreen(QDialog):
         self.tip_radius_flag = 0
         self.front_undercool_flag = 0
         self.triple_point_flag = 0
+        self.pointCorrelation_flag = 0
+        self.pricipalComponent_flag = 0
+        self.contourPlot_flag = 0
         
         self.pptPlot.show()
         self.fig_ppt.clear()
@@ -2707,8 +3863,13 @@ class StartScreen(QDialog):
             elif self.xzplane_flag == 1 :
                 
                 Is3d = 3
+
+        if(self.dataset == "UNSTRUCTURED_GRID"):
+            grid_shape = [self.PP_dimX , self.PP_dimY, self.PP_dimZ]
+        else:
+            grid_shape = self.vtkData[0].GetDimensions()
         
-        self.total_volume, self.volume_fraction , self.total_SA = volFrac_SA_Vol(self.timeItretion, self.vtkData ,self.scalerValue.currentText(), Is3d, self.depth_plot.value())
+        self.total_volume, self.volume_fraction , self.total_SA = volFrac_SA_Vol(self.timeItretion,self.dataset,grid_shape, self.vtkData ,self.scalerValue.currentText(), Is3d, self.depth_plot.value())
         
         self.pptPlot.show()
         self.SimulationDetail.hide()
@@ -2724,6 +3885,9 @@ class StartScreen(QDialog):
         self.tip_radius_flag = 0
         self.front_undercool_flag = 0
         self.triple_point_flag = 0
+        self.pointCorrelation_flag = 0
+        self.pricipalComponent_flag = 0
+        self.contourPlot_flag = 0
         
         self.pptPlot.show()
         self.fig_ppt.clear()
@@ -2757,8 +3921,12 @@ class StartScreen(QDialog):
             elif self.xzplane_flag == 1 :
                 
                 Is3d = 3
-        
-        self.total_volume, self.volume_fraction , self.total_SA = volFrac_SA_Vol(self.timeItretion, self.vtkData ,self.scalerValue.currentText(), Is3d, self.depth_plot.value())
+        if(self.dataset == "UNSTRUCTURED_GRID"):
+            grid_shape = [self.PP_dimX , self.PP_dimY, self.PP_dimZ]
+        else:
+            grid_shape = self.vtkData[0].GetDimensions()
+
+        self.total_volume, self.volume_fraction , self.total_SA = volFrac_SA_Vol(self.timeItretion,self.dataset,grid_shape, self.vtkData ,self.scalerValue.currentText(), Is3d, self.depth_plot.value())
         
         self.pptPlot.show()
         self.SimulationDetail.hide()
@@ -2774,6 +3942,9 @@ class StartScreen(QDialog):
         self.tip_radius_flag = 0
         self.front_undercool_flag = 0
         self.triple_point_flag = 0
+        self.pointCorrelation_flag = 0
+        self.pricipalComponent_flag = 0
+        self.contourPlot_flag = 0
         
         self.pptPlot.show()
         self.fig_ppt.clear()
@@ -2787,8 +3958,139 @@ class StartScreen(QDialog):
         #self.ax_ppt.grid()
         self.canvas_ppt.draw()
 
+
+    def two_Point_correlationbtnClicked(self):
+
+        if self.data_3D_flag == 0:
+            
+            Is3d = 0
+            
+        elif self.data_3D_flag == 1:
+            if self.xyplane_flag == 1 :
+                
+                Is3d = 1
+            
+            elif self.yzplane_flag == 1 :
+                
+                Is3d = 2
+                            
+            elif self.xzplane_flag == 1 :
+                
+                Is3d = 3
+        
+        if(self.dataset == "UNSTRUCTURED_GRID"):
+            grid_shape = [self.PP_dimX , self.PP_dimY, self.PP_dimZ]
+        else:
+            grid_shape = self.vtkData[0].GetDimensions()
+        
+        if self.pointCorrelation_flag == 0 and self.pricipalComponent_flag == 0 :
+            self.pointCorrelation, self.pricipalComponent = two_point_correlation( self.vtkData,self.dataset,grid_shape ,len(self.timeItretion),self.scalerValue.currentText(), Is3d, self.depth_plot.value())
+
+        
+        self.pptPlot.show()
+        self.SimulationDetail.hide()
+        self.pptRadius.hide()
+        self.triple_point_widget.hide()
+        
+        self.ppt_size_flag = 0
+        self.ppt_Count_Plot_flag = 0
+        self.velocity_flag = 0
+        self.volume_SA_flag = 0
+        self.plot_over_line_flag = 0
+        self.velocity_over_line_flag = 0
+        self.tip_radius_flag = 0
+        self.front_undercool_flag = 0
+        self.triple_point_flag = 0
+        self.pointCorrelation_flag = 1
+        self.pricipalComponent_flag = 0
+        self.contourPlot_flag = 0
+        
+        self.pptPlot.show()
+        self.fig_ppt.clear()
+        self.ax_ppt = self.fig_ppt.add_subplot(111)
+        
+        self.ax_ppt.imshow(self.pointCorrelation[self.iteration_step.value()],interpolation='none', cmap=plt.get_cmap('viridis') )
+        self.fig_ppt.subplots_adjust(top=0.905,bottom=0.149,left=0.209,right=0.955,hspace=0.2,wspace=0.2)
+        self.ax_ppt.axis('off')
+        
+
+        #cax = self.fig_ppt.add_axes([0, 0.15, 0.035, 0.75])
+        #cbar = self.fig_ppt.colorbar( self.im , cax=cax)
+        
+        self.canvas_ppt.draw()
+
+    def principalComponentbtnClicked(self):
+        self.widget_PC.setMinimumSize(0,140)
+    
+    def plot_PCClicked(self):
+        self.widget_PC.setMinimumSize(0,0)
+        
+        if self.data_3D_flag == 0:
+            
+            Is3d = 0
+            
+        elif self.data_3D_flag == 1:
+            if self.xyplane_flag == 1 :
+                
+                Is3d = 1
+            
+            elif self.yzplane_flag == 1 :
+                
+                Is3d = 2
+                
+            
+            elif self.xzplane_flag == 1 :
+                
+                Is3d = 3
+
+        if(self.dataset == "UNSTRUCTURED_GRID"):
+            grid_shape = [self.PP_dimX , self.PP_dimY, self.PP_dimZ]
+        else:
+            grid_shape = self.vtkData[0].GetDimensions()
+        
+        if self.pointCorrelation_flag == 0 and self.pricipalComponent_flag == 0 :
+            self.pointCorrelation, self.pricipalComponent = two_point_correlation( self.vtkData,self.dataset,grid_shape ,len(self.timeItretion),self.scalerValue.currentText(),  Is3d, self.depth_plot.value())
+        
+        self.pptPlot.show()
+        self.SimulationDetail.hide()
+        self.pptRadius.hide()
+        self.triple_point_widget.hide()
+        
+        self.ppt_size_flag = 0
+        self.ppt_Count_Plot_flag = 0
+        self.velocity_flag = 0
+        self.volume_SA_flag = 0
+        self.plot_over_line_flag = 0
+        self.velocity_over_line_flag = 0
+        self.tip_radius_flag = 0
+        self.front_undercool_flag = 0
+        self.triple_point_flag = 0
+        self.pointCorrelation_flag = 0
+        self.pricipalComponent_flag = 1
+        self.contourPlot_flag = 0
+        
+        self.pptPlot.show()
+        self.fig_ppt.clear()
+        self.ax_ppt = self.fig_ppt.add_subplot(111)
         
         
+        
+        if self.checkBox_pc1.isChecked():
+            self.ax_ppt.plot(self.timeItretion, self.pricipalComponent[:,0], '-o', label="PC = " + str(1))
+        
+        if self.checkBox_pc2.isChecked():
+            self.ax_ppt.plot(self.timeItretion, self.pricipalComponent[:,1], '-o', label="PC = " + str(2))
+
+        if self.checkBox_pc3.isChecked():
+            self.ax_ppt.plot(self.timeItretion, self.pricipalComponent[:,2], '-o', label="PC = " + str(3))
+
+        self.ax_ppt.set_xlabel('Simulation time')
+        self.ax_ppt.set_ylabel('PC score')
+        self.fig_ppt.subplots_adjust(top=0.905,bottom=0.149,left=0.209,right=0.955,hspace=0.2,wspace=0.2)
+        #self.ax_ppt.grid()
+        self.ax_ppt.legend()
+        self.canvas_ppt.draw()
+
 
     ##______________________Reset All Func__________________________#
 
@@ -2812,6 +4114,8 @@ class StartScreen(QDialog):
         self.sideBtn6.setEnabled(False)
         self.sideBtn7.setEnabled(False)
 
+        '''
+
         self.sideBtn2.setGeometry(0,185,211,65)
         self.sideBtn3.setGeometry(0,250,211,65)
         self.sideBtn4.setGeometry(0,315,211,65)
@@ -2819,23 +4123,25 @@ class StartScreen(QDialog):
         self.sideBtn6.setGeometry(0,445,211,65)
         self.sideBtn7.setGeometry(0,510,211,65)
 
-        self.btn1.setGeometry(60, 20, 325, 70)
-        self.btn2.setGeometry(385, 30, 325, 60)
+        '''
+
+        #self.btn1.setGeometry(60, 20, 325, 70)
+        #self.btn2.setGeometry(385, 30, 325, 60)
         self.btn1.setStyleSheet("background-color: rgb(64, 140, 191); border:none ;color:#fff ")
         self.btn2.setStyleSheet("background-color: rgb(238, 238, 236)")
 
-        self.btn3.setGeometry(60, 20, 162, 70)
-        self.btn4.setGeometry(222, 30, 163, 60)
-        self.btn41.setGeometry(385, 30, 162, 60)
-        self.btn42.setGeometry(547, 30, 163, 60)
+        #self.btn3.setGeometry(60, 20, 162, 70)
+        #self.btn4.setGeometry(222, 30, 163, 60)
+        #self.btn41.setGeometry(385, 30, 162, 60)
+        #self.btn42.setGeometry(547, 30, 163, 60)
         self.btn3.setStyleSheet("background-color: rgb(64, 140, 191); border:none ;color:#fff ")
         self.btn4.setStyleSheet("background-color: rgb(238, 238, 236)")
         self.btn41.setStyleSheet("background-color: rgb(238, 238, 236)")
         self.btn42.setStyleSheet("background-color: rgb(238, 238, 236)")
 
-        self.btn5.setGeometry(60, 20, 217, 70)
-        self.btn6.setGeometry(277, 30, 216, 60)
-        self.btn7.setGeometry(493, 30, 217, 60)
+        #self.btn5.setGeometry(60, 20, 217, 70)
+        #self.btn6.setGeometry(277, 30, 216, 60)
+        #self.btn7.setGeometry(493, 30, 217, 60)
         self.btn5.setStyleSheet("background-color: rgb(64, 140, 191); border:none ;color:#fff ")
         self.btn6.setStyleSheet("background-color: rgb(238, 238, 236)")
         self.btn7.setStyleSheet("background-color: rgb(238, 238, 236)")
@@ -2894,7 +4200,11 @@ class StartScreen(QDialog):
         self.radio_KKR.setChecked(False)
         self.radio_KKS2.setChecked(False)
         
-        self.Qbox.setGeometry(360,260,0,0)
+        if self.height() > 850:
+            self.Qbox.setGeometry( int(360*0.85*self.width()/1100 ), int(260*0.85*self.height()/650 ) ,0,0)
+        else:
+            self.Qbox.setGeometry( int(360*self.width()/1100 ), int(260*self.height()/650 ) ,0,0)
+
         self.Qbox.hide()
 
         #Model sepecific parameters
@@ -2961,11 +4271,9 @@ class StartScreen(QDialog):
 
         self.writeFormatKKS.setCurrentIndex(0)
         self.trackprogressKKS.setText("")
-        #self.elastIntKKS.setText("")
-        self.temperatureKKS.setText("")
+        self.TKKS.setText("")
         self.TauKKS.setText("")
-        self.epsilonKKS.setText("")
-        #self.SeedKKS.setText("")
+        self.EpsilonKKS.setText("")
         self.equTKKS.setText("")
     
 
@@ -3026,7 +4334,11 @@ class StartScreen(QDialog):
 
 
     def addShapeFileClicked(self):
-        self.ShapefileDir, _ = QtWidgets.QFileDialog.getOpenFileName(self, 'Single File', QtCore.QDir.currentPath() )
+        self.ShapefileDir, _ = QFileDialog.getOpenFileName(self, 'Single File', QDir.currentPath(),  'Filling(*.in)' )
+        self.shapeFileReader()
+    
+
+    def shapeFileReader(self):
         try:
                 shapeFileDir = open(self.ShapefileDir, 'r')
                 ShapeLines = shapeFileDir.readlines()
@@ -3057,7 +4369,7 @@ class StartScreen(QDialog):
     def openFileDir(self):
         if self.model_GP.isChecked() or self.model_CH.isChecked() or self.model_KKS.isChecked() or self.model_KKS2.isChecked() :
             self.errorStartScreen.setText("")
-            self.fileNameDir, _ = QtWidgets.QFileDialog.getOpenFileName(self, 'Single File', QtCore.QDir.currentPath() , 'InFile(*.in)')
+            self.fileNameDir, _ = QFileDialog.getOpenFileName(self, 'Single File', QDir.currentPath() , 'InFile(*.in)')
             self.fileLabel.setText(self.fileNameDir)
             self.ReadfromFile()
         else:
@@ -3066,9 +4378,14 @@ class StartScreen(QDialog):
 
 
     def drawMesh(self):
-
+      
         if self.mesh_x.text() !="":
-            self.Qbox.setGeometry(380,350,200,4)
+            if self.height()> 850:
+                self.Qbox.setGeometry( int(380*1.1*self.width()/1100 ), int(340*0.85*self.height()/650),int(200*self.width()/1100),4)
+            else:
+                self.Qbox.setGeometry( int(380*self.width()/1100 ), int(340*self.height()/650),int(200*self.width()/1100),4)
+
+
             self.Qbox.show()
             self.error1.setText("")
         else:
@@ -3093,11 +4410,26 @@ class StartScreen(QDialog):
                 return
 
             if x_dim > y_dim:
-                self.Qbox.setGeometry(380,370 - round((y_dim/x_dim)*90),200,round((y_dim/x_dim)*200))
+                if self.height() >850:
+                    self.Qbox.setGeometry( int(380*1.1*self.width()/1100) , int( (360 - (y_dim/x_dim)*90)*0.85*self.height()/650 ),int(200*self.width()/1100),round((y_dim/x_dim)*200*self.height()/650))
+                else:
+                    self.Qbox.setGeometry( int(380*self.width()/1100), int( (360 - (y_dim/x_dim*90))*self.height()/650 ),int(200*self.width()/1100),round((y_dim/x_dim)*200*self.height()/650))
+
             elif x_dim < y_dim:
-                self.Qbox.setGeometry(490 - round((x_dim/y_dim)*90) ,270,  round((x_dim/y_dim)*200),200)
+                if self.height() > 850:
+                    self.Qbox.setGeometry( int( (490 - (x_dim/y_dim)*90)*1.1*self.width()/1100 ) ,int(260*0.85*self.width()/1100), int((x_dim/y_dim)*200*self.width()/1100) ,int(200*self.height()/650))
+                else:
+                    self.Qbox.setGeometry( int( (490 - (x_dim/y_dim)*90)*self.width()/1100 ) ,int(260*self.width()/1100), int((x_dim/y_dim)*200*self.width()/1100) ,int(200*self.height()/650))
+                
+
             else:
-                self.Qbox.setGeometry(380,270,200,200)
+                if self.height() >850:
+                   
+                    self.Qbox.setGeometry( int(380*1.1*self.width()/1100 ), int(260*0.85*self.height()/650),int(200*self.width()/1100),int(200*self.height()/650) )
+                else:
+                    
+                    self.Qbox.setGeometry( int(380*self.width()/1100 ), int(260*self.height()/650),int(200*self.width()/1100),int(200*self.height()/650) )
+                
 
             self.Qbox.show()
 
@@ -3357,20 +4689,20 @@ class StartScreen(QDialog):
         for i in range(noP_value):
 
             self.tableWidgetGPA.setItem(i,0, QTableWidgetItem(str(i)))
-            self.tableWidgetGPA.item(i,0).setTextAlignment(QtCore.Qt.AlignCenter)
-            self.tableWidgetGPA.item(i,0).setFlags(self.tableWidgetGPA.item(i,0).flags() & ~QtCore.Qt.ItemIsEditable)
+            self.tableWidgetGPA.item(i,0).setTextAlignment(Qt.AlignCenter)
+            self.tableWidgetGPA.item(i,0).setFlags(self.tableWidgetGPA.item(i,0).flags() & ~Qt.ItemIsEditable)
 
             #self.tableWidgetKKSF.setItem(i,0, QTableWidgetItem(str(i)))
-            #self.tableWidgetKKSF.item(i,0).setTextAlignment(QtCore.Qt.AlignCenter)
-            #self.tableWidgetKKSF.item(i,0).setFlags(self.tableWidgetKKSF.item(i,0).flags() & ~QtCore.Qt.ItemIsEditable)
+            #self.tableWidgetKKSF.item(i,0).setTextAlignment(Qt.AlignCenter)
+            #self.tableWidgetKKSF.item(i,0).setFlags(self.tableWidgetKKSF.item(i,0).flags() & ~Qt.ItemIsEditable)
 
             self.tableWidgetCHA.setItem(i,0, QTableWidgetItem(str(i)))
-            self.tableWidgetCHA.item(i,0).setTextAlignment(QtCore.Qt.AlignCenter)
-            self.tableWidgetCHA.item(i,0).setFlags(self.tableWidgetCHA.item(i,0).flags() & ~QtCore.Qt.ItemIsEditable)
+            self.tableWidgetCHA.item(i,0).setTextAlignment(Qt.AlignCenter)
+            self.tableWidgetCHA.item(i,0).setFlags(self.tableWidgetCHA.item(i,0).flags() & ~Qt.ItemIsEditable)
 
             self.tableWidgetCHA.setItem(i,1, QTableWidgetItem(str("DM")))
-            self.tableWidgetCHA.item(i,1).setTextAlignment(QtCore.Qt.AlignCenter)
-            self.tableWidgetCHA.item(i,1).setFlags(self.tableWidgetCHA.item(i,0).flags() & ~QtCore.Qt.ItemIsEditable)
+            self.tableWidgetCHA.item(i,1).setTextAlignment(Qt.AlignCenter)
+            self.tableWidgetCHA.item(i,1).setFlags(self.tableWidgetCHA.item(i,0).flags() & ~Qt.ItemIsEditable)
 
 
 
@@ -3378,11 +4710,11 @@ class StartScreen(QDialog):
                 #Phase-composition Table 
                 self.tableWidgetGP.setItem(rcount,0, QTableWidgetItem(str(i)))
                 self.tableWidgetGP.setItem(rcount,1, QTableWidgetItem(str(j)))
-                self.tableWidgetGP.item(rcount,0).setTextAlignment(QtCore.Qt.AlignCenter)
-                self.tableWidgetGP.item(rcount,1).setTextAlignment(QtCore.Qt.AlignCenter)
+                self.tableWidgetGP.item(rcount,0).setTextAlignment(Qt.AlignCenter)
+                self.tableWidgetGP.item(rcount,1).setTextAlignment(Qt.AlignCenter)
 
-                self.tableWidgetGP.item(rcount,0).setFlags(self.tableWidgetGP.item(rcount,0).flags() & ~QtCore.Qt.ItemIsEditable)
-                self.tableWidgetGP.item(rcount,1).setFlags(self.tableWidgetGP.item(rcount,1).flags() & ~QtCore.Qt.ItemIsEditable)
+                self.tableWidgetGP.item(rcount,0).setFlags(self.tableWidgetGP.item(rcount,0).flags() & ~Qt.ItemIsEditable)
+                self.tableWidgetGP.item(rcount,1).setFlags(self.tableWidgetGP.item(rcount,1).flags() & ~Qt.ItemIsEditable)
 
                 
                 
@@ -3487,8 +4819,8 @@ class StartScreen(QDialog):
         self.First_widget.show()
 
         #Btn Animation
-        self.btn1.setGeometry(60, 20, 325, 70)
-        self.btn2.setGeometry(385, 30, 325, 60)
+        #self.btn1.setGeometry(60, 20, 325, 70)
+        #self.btn2.setGeometry(385, 30, 325, 60)
 
 
         self.btn1.setStyleSheet("background-color: rgb(64, 140, 191); border:none ;color:#fff ")
@@ -3528,8 +4860,8 @@ class StartScreen(QDialog):
         self.Seven_widget.hide()
         self.First_widget.show()
 
-        self.btn1.setGeometry(60, 30, 325, 60)
-        self.btn2.setGeometry(385, 20, 325, 70)
+        #self.btn1.setGeometry(60, 30, 325, 60)
+        #self.btn2.setGeometry(385, 20, 325, 70)
 
         self.btn2.setStyleSheet("background-color: rgb(64, 140, 191); border:none ;color:#fff ")
         self.btn1.setStyleSheet("background-color: rgb(238, 238, 236)")
@@ -3557,10 +4889,10 @@ class StartScreen(QDialog):
         
         
         #Btn Animation
-        self.btn3.setGeometry(60, 20, 162, 70)
-        self.btn4.setGeometry(222, 30, 163, 60)
-        self.btn41.setGeometry(385, 30, 162, 60)
-        self.btn42.setGeometry(547, 30, 163, 60)
+        #self.btn3.setGeometry(60, 20, 162, 70)
+        #self.btn4.setGeometry(222, 30, 163, 60)
+        #self.btn41.setGeometry(385, 30, 162, 60)
+        #self.btn42.setGeometry(547, 30, 163, 60)
         self.btn3.setStyleSheet("background-color: rgb(64, 140, 191); border:none ;color:#fff ")
         self.btn4.setStyleSheet("background-color: rgb(238, 238, 236)")
         self.btn41.setStyleSheet("background-color: rgb(238, 238, 236)")
@@ -3615,10 +4947,10 @@ class StartScreen(QDialog):
 
 
         #Btn Animation
-        self.btn3.setGeometry(60, 30, 162, 60)
-        self.btn4.setGeometry(222, 20, 163, 70)
-        self.btn41.setGeometry(385, 30, 162, 60)
-        self.btn42.setGeometry(547, 30, 163, 60)
+        #self.btn3.setGeometry(60, 30, 162, 60)
+        #self.btn4.setGeometry(222, 20, 163, 70)
+        #self.btn41.setGeometry(385, 30, 162, 60)
+        #self.btn42.setGeometry(547, 30, 163, 60)
         self.btn3.setStyleSheet("background-color: rgb(238, 238, 236)")
         self.btn4.setStyleSheet("background-color: rgb(64, 140, 191); border:none ;color:#fff ")
         self.btn41.setStyleSheet("background-color: rgb(238, 238, 236)")
@@ -3670,10 +5002,10 @@ class StartScreen(QDialog):
 
 
         #Btn Animation
-        self.btn3.setGeometry(60, 30, 162, 60)
-        self.btn4.setGeometry(222, 30, 163, 60)
-        self.btn41.setGeometry(385, 20, 162, 70)
-        self.btn42.setGeometry(547, 30, 163, 60)
+        #self.btn3.setGeometry(60, 30, 162, 60)
+        #self.btn4.setGeometry(222, 30, 163, 60)
+        #self.btn41.setGeometry(385, 20, 162, 70)
+        #self.btn42.setGeometry(547, 30, 163, 60)
         self.btn3.setStyleSheet("background-color: rgb(238, 238, 236)")
         self.btn41.setStyleSheet("background-color: rgb(64, 140, 191); border:none ;color:#fff ")
         self.btn4.setStyleSheet("background-color: rgb(238, 238, 236)")
@@ -3732,10 +5064,10 @@ class StartScreen(QDialog):
 
 
         #Btn Animation
-        self.btn3.setGeometry(60, 30, 162, 60)
-        self.btn4.setGeometry(222, 30, 163, 60)
-        self.btn41.setGeometry(385, 30, 162, 60)
-        self.btn42.setGeometry(547, 20, 163, 70)
+        #self.btn3.setGeometry(60, 30, 162, 60)
+        #self.btn4.setGeometry(222, 30, 163, 60)
+        #self.btn41.setGeometry(385, 30, 162, 60)
+        #self.btn42.setGeometry(547, 20, 163, 70)
         self.btn4.setStyleSheet("background-color: rgb(238, 238, 236)")
         self.btn3.setStyleSheet("background-color: rgb(238, 238, 236)")
         self.btn42.setStyleSheet("background-color: rgb(64, 140, 191); border:none ;color:#fff ")
@@ -3759,9 +5091,9 @@ class StartScreen(QDialog):
         self.Qbox.hide()
 
         #Btn Animation
-        self.btn5.setGeometry(60, 20, 217, 70)
-        self.btn6.setGeometry(277, 30, 216, 60)
-        self.btn7.setGeometry(493, 30, 217, 60)
+        #self.btn5.setGeometry(60, 20, 217, 70)
+        #self.btn6.setGeometry(277, 30, 216, 60)
+        #self.btn7.setGeometry(493, 30, 217, 60)
 
 
         self.btn5.setStyleSheet("background-color: rgb(64, 140, 191); border:none ;color:#fff ")
@@ -3795,9 +5127,9 @@ class StartScreen(QDialog):
 
 
         #Btn Animation
-        self.btn5.setGeometry(60, 30, 217, 60)
-        self.btn6.setGeometry(277, 20, 216, 70)
-        self.btn7.setGeometry(493, 30, 217, 60)
+        #self.btn5.setGeometry(60, 30, 217, 60)
+        #self.btn6.setGeometry(277, 20, 216, 70)
+        #self.btn7.setGeometry(493, 30, 217, 60)
 
 
         self.btn6.setStyleSheet("background-color: rgb(64, 140, 191); border:none ;color:#fff ")
@@ -3825,9 +5157,9 @@ class StartScreen(QDialog):
 
 
             #Btn Animation
-            self.btn5.setGeometry(60, 30, 217, 60)
-            self.btn6.setGeometry(277, 30, 216, 60)
-            self.btn7.setGeometry(493, 20, 217, 70)
+            #self.btn5.setGeometry(60, 30, 217, 60)
+            #self.btn6.setGeometry(277, 30, 216, 60)
+            #self.btn7.setGeometry(493, 20, 217, 70)
 
 
             self.btn7.setStyleSheet("background-color: rgb(64, 140, 191); border:none ;color:#fff ")
@@ -3866,8 +5198,8 @@ class StartScreen(QDialog):
         self.Qbox.hide()
         self.Second_widget.show()
 
-        self.sideBtn2.setGeometry(0,185,231,65)
-        self.sideBtn2.setStyleSheet('background-color: rgb(171, 196, 223);font: 10pt "Ubuntu";')
+        #self.sideBtn2.setGeometry(0,185,231,65)
+        self.sideBtn2.setStyleSheet('background-color: rgb(171, 196, 223); text-align : left;padding-left:10px;')
         self.sideBtn2.setEnabled(True)
 
 
@@ -3880,8 +5212,8 @@ class StartScreen(QDialog):
         self.Seven_widget.hide()
         self.Third_widget.show()
 
-        self.sideBtn3.setGeometry(0,250,231,65)
-        self.sideBtn3.setStyleSheet('background-color: rgb(171, 196, 223);font: 10pt "Ubuntu";')
+        #self.sideBtn3.setGeometry(0,250,231,65)
+        self.sideBtn3.setStyleSheet('background-color: rgb(171, 196, 223); text-align : left;padding-left:10px;')
         self.sideBtn3.setEnabled(True)
         self.Qbox.hide()
 
@@ -3914,23 +5246,23 @@ class StartScreen(QDialog):
         self.Sixth_widget.hide()
         self.Seven_widget.hide()
 
-        self.sideBtn4.setGeometry(0,315,231,65)
-        self.sideBtn4.setStyleSheet('background-color: rgb(171, 196, 223);font: 10pt "Ubuntu";')
+        #self.sideBtn4.setGeometry(0,315,231,65)
+        self.sideBtn4.setStyleSheet('background-color: rgb(171, 196, 223); text-align : left;padding-left:10px;')
         self.sideBtn4.setEnabled(True)
         self.Qbox.hide()
 
         k = self.noC.value()-1
 
         if k<5:
-            self.diffMat.setGeometry(160-(28*k), 150-(23*k), 56*k, 46*k)
-            self.line_2.setGeometry(0,46*k-2,10,2)
-            self.line_3.setGeometry(56*k-10,0,10,2)
-            self.line_4.setGeometry(56*k-10,46*k-2,10,2)
+            self.diffMat.setGeometry(  int((160-(28*k))*self.width()/1100) , int((150-(23*k))*self.height()/650), int(56*k*self.width()/1100) , int(46*k*self.height()/650))
+            self.line_2.setGeometry(0, int((46*k-2)*self.height()/650),int(10*self.width()/1100),2)
+            self.line_3.setGeometry( int((56*k-10)*self.width()/1100),0,int(10*self.width()/1100),2)
+            self.line_4.setGeometry( int((56*k-10)*self.width()/1100),int((46*k-2)*self.height()/650),int(10*self.width()/1100),2)
         else:
-            self.diffMat.setGeometry(48, 58, 224, 184)
-            self.line_2.setGeometry(0,182,10,2)
-            self.line_3.setGeometry(214,0,10,2)
-            self.line_4.setGeometry(214,182,10,2)
+            self.diffMat.setGeometry( int((48*self.width()/1100)) , int((58*self.height()/650)) , int((224*self.width()/1100)) , int((184*self.height()/650))  )
+            self.line_2.setGeometry( 0 , int((182*self.height()/650)) , int((10*self.width()/1100)) , 2 )
+            self.line_3.setGeometry( int((214*self.width()/1100)) ,0 , int((10*self.width()/1100)) , 2  )
+            self.line_4.setGeometry( int((214*self.width()/1100)) , int((182*self.height()/650)) , int((10*self.width()/1100)) , 2  )
 
 
         Wlen = (len(self.diffMat.children()) - 5)**0.5
@@ -3942,7 +5274,7 @@ class StartScreen(QDialog):
                 for j in range(k):
                     self.diffMatIn[i][j] = QLabel()
                     self.diffMatIn[i][j].setText("D"+str(i+1)+str(j+1))
-                    self.diffMatIn[i][j].setAlignment(QtCore.Qt.AlignCenter)
+                    self.diffMatIn[i][j].setAlignment(Qt.AlignCenter)
                     self.diffMatIn[i][j].setStyleSheet("color : #fff ; font: 75 11pt 'Ubuntu';")
                     if k<5:
                         self.diffMatIn[i][j].setFixedHeight(40)
@@ -3973,7 +5305,7 @@ class StartScreen(QDialog):
                             self.diffMatIn[i][j].setText("D"+str(i+1)+str(j+1))
 
 
-                        self.diffMatIn[i][j].setAlignment(QtCore.Qt.AlignCenter)
+                        self.diffMatIn[i][j].setAlignment(Qt.AlignCenter)
                         self.diffMatIn[i][j].setStyleSheet("color : #fff ; font: 75 11pt 'Ubuntu';")
                         if k<5:
                             self.diffMatIn[i][j].setFixedHeight(40)
@@ -4012,10 +5344,6 @@ class StartScreen(QDialog):
 
 
     def NextBtn4(self):
-        
-        
-
-        
 
         self.First_widget.hide()
         self.Second_widget.hide()
@@ -4025,8 +5353,8 @@ class StartScreen(QDialog):
         self.Seven_widget.hide()
         self.Fifth_widget.show()
 
-        self.sideBtn5.setGeometry(0,380,231,65)
-        self.sideBtn5.setStyleSheet('background-color: rgb(171, 196, 223);font: 10pt "Ubuntu";')
+        #self.sideBtn5.setGeometry(0,380,231,65)
+        self.sideBtn5.setStyleSheet('background-color: rgb(171, 196, 223); text-align : left;padding-left:10px;')
         self.sideBtn5.setEnabled(True)
         self.Qbox.show()
 
@@ -4063,8 +5391,8 @@ class StartScreen(QDialog):
         self.Seven_widget.hide()
         self.Sixth_widget.show()
 
-        self.sideBtn6.setGeometry(0,445,231,65)
-        self.sideBtn6.setStyleSheet('background-color: rgb(171, 196, 223);font: 10pt "Ubuntu";')
+        #self.sideBtn6.setGeometry(0,445,231,65)
+        self.sideBtn6.setStyleSheet('background-color: rgb(171, 196, 223); text-align : left;padding-left:10px;')
         self.sideBtn6.setEnabled(True)
         self.Qbox.hide()
 
@@ -4097,17 +5425,17 @@ class StartScreen(QDialog):
         self.frame_9.hide()
         self.frame_11.hide()
         #Btn Animation
-        self.btn5.setGeometry(60, 20, 217, 70)
-        self.btn6.setGeometry(277, 30, 216, 60)
-        self.btn7.setGeometry(493, 30, 217, 60)
+        #self.btn5.setGeometry(60, 20, 217, 70)
+        #self.btn6.setGeometry(277, 30, 216, 60)
+        #self.btn7.setGeometry(493, 30, 217, 60)
 
 
         self.btn5.setStyleSheet("background-color: rgb(64, 140, 191); border:none ;color:#fff ")
         self.btn6.setStyleSheet("background-color: rgb(238, 238, 236)")
         self.btn7.setStyleSheet("background-color: rgb(238, 238, 236)")
 
-        self.sideBtn7.setGeometry(0,510,231,65)
-        self.sideBtn7.setStyleSheet('background-color: rgb(171, 196, 223);font: 10pt "Ubuntu";')
+        #self.sideBtn7.setGeometry(0,510,231,65)
+        self.sideBtn7.setStyleSheet('background-color: rgb(171, 196, 223); text-align : left;padding-left:10px;')
         self.sideBtn7.setEnabled(True)
         self.Qbox.hide()
 
@@ -5299,9 +6627,9 @@ class StartScreen(QDialog):
 
 
             #Btn Animation
-            self.btn5.setGeometry(60, 30, 217, 60)
-            self.btn6.setGeometry(277, 30, 216, 60)
-            self.btn7.setGeometry(493, 20, 217, 70)
+            #self.btn5.setGeometry(60, 30, 217, 60)
+            #self.btn6.setGeometry(277, 30, 216, 60)
+            #self.btn7.setGeometry(493, 20, 217, 70)
 
 
             self.btn7.setStyleSheet("background-color: rgb(64, 140, 191); border:none ;color:#fff ")
@@ -5318,29 +6646,29 @@ class StartScreen(QDialog):
             self.Func2.hide()
             self.tableWidgetGP.setColumnHidden(4, False)
             self.tableWidgetGP.setColumnHidden(5, True)
-            self.tableWidgetGP.setGeometry(60,50,681,181)
+            self.tableWidgetGP.setGeometry(0,0,681,181)
 
-            
+        
         elif self.funcF.value() == 2:
             self.Func1.hide()
             self.Func2.show()
             self.tableWidgetGP.setColumnHidden(4, True)
             self.tableWidgetGP.setColumnHidden(5, False)
-            self.tableWidgetGP.setGeometry(55,50,681,181)
+            self.tableWidgetGP.setGeometry(0,0,681,181)
         
         elif self.funcF.value() == 3:
             self.Func1.hide()
             self.Func2.show()
             self.tableWidgetGP.setColumnHidden(4, True)
             self.tableWidgetGP.setColumnHidden(5, False)
-            self.tableWidgetGP.setGeometry(50,50,681,181)
+            self.tableWidgetGP.setGeometry(0,0,681,181)
         
         elif self.funcF.value() == 4:
             self.Func1.hide()
             self.Func2.show()
             self.tableWidgetGP.setColumnHidden(4, True)
             self.tableWidgetGP.setColumnHidden(5, False)
-            self.tableWidgetGP.setGeometry(55,50,681,181)
+            self.tableWidgetGP.setGeometry(0,0,681,181)
 
 
     def saveGPChack(self):
@@ -5478,9 +6806,9 @@ class StartScreen(QDialog):
 
 
             #Btn Animation
-            self.btn5.setGeometry(60, 30, 217, 60)
-            self.btn6.setGeometry(277, 30, 216, 60)
-            self.btn7.setGeometry(493, 20, 217, 70)
+            #self.btn5.setGeometry(60, 30, 217, 60)
+            #self.btn6.setGeometry(277, 30, 216, 60)
+            #self.btn7.setGeometry(493, 20, 217, 70)
 
 
             self.btn7.setStyleSheet("background-color: rgb(64, 140, 191); border:none ;color:#fff ")
@@ -5511,7 +6839,7 @@ class StartScreen(QDialog):
             self.errorKKS.setText("Please fill Track Progress Size ")
             return False
         
-        elif self.epsilonKKS.text() == "":
+        elif self.EpsilonKKS.text() == "":
             self.errorKKS.setText("Please fill relaxCoeff value")
             return False
 
@@ -5524,12 +6852,12 @@ class StartScreen(QDialog):
             return False
 
         elif self.equTKKS.text() == "":
-            self.errorKKS.setText("Please fill Equilibrium Temperature")
+            self.errorKKS.setText("Please fill Equ. T value")
             return False
       
 
-        elif self.temperatureKKS.text() == "":
-            self.errorKKS.setText("Please fill Temperature 'T' value")
+        elif self.TKKS.text() == "":
+            self.errorKKS.setText("Please fill T value")
             return False
 
         else:
@@ -5577,9 +6905,9 @@ class StartScreen(QDialog):
 
 
             #Btn Animation
-            self.btn5.setGeometry(60, 30, 217, 60)
-            self.btn6.setGeometry(277, 30, 216, 60)
-            self.btn7.setGeometry(493, 20, 217, 70)
+            #self.btn5.setGeometry(60, 30, 217, 60)
+            #self.btn6.setGeometry(277, 30, 216, 60)
+            #self.btn7.setGeometry(493, 20, 217, 70)
 
 
             self.btn7.setStyleSheet("background-color: rgb(64, 140, 191); border:none ;color:#fff ")
@@ -5718,9 +7046,9 @@ class StartScreen(QDialog):
 
 
             #Btn Animation
-            self.btn5.setGeometry(60, 30, 217, 60)
-            self.btn6.setGeometry(277, 30, 216, 60)
-            self.btn7.setGeometry(493, 20, 217, 70)
+            #self.btn5.setGeometry(60, 30, 217, 60)
+            #self.btn6.setGeometry(277, 30, 216, 60)
+            #self.btn7.setGeometry(493, 20, 217, 70)
 
 
             self.btn7.setStyleSheet("background-color: rgb(64, 140, 191); border:none ;color:#fff ")
@@ -5810,6 +7138,117 @@ class StartScreen(QDialog):
         else:
             return
 
+    def clickedjobscriptBtn(self):
+        self.jobscriptFrame.show()
+
+    def clickedjobscriptcloseBtn(self):
+        self.jobscriptFrame.hide()
+
+    def clickedgenerate_scriptbtn(self):
+
+        if self.checkJobscript() : 
+            self.error_jobscript.setText("")
+            self.jobscriptFrame.hide()
+
+            if self.radio_GP.isChecked():
+                jobmodel = "microsim_gp"
+
+            elif self.radio_CH.isChecked():
+                jobmodel = "microsim_ch_fft"
+
+            elif self.radio_KKR.isChecked():
+                jobmodel = "microsim_kks_cufft"
+
+            elif self.radio_KKS2.isChecked():
+                jobmodel = "microsim_kks_opencl"
+
+            
+            if os.path.exists(self.runDir + "/JOB_FILE/") == False: 
+                os.makedirs(self.runDir + "/JOB_FILE/")
+
+            jobfilename =  self.runDir + "/JOB_FILE/jobscript_" + self.jobcript_name.text() + ".sh"
+
+            f = open(jobfilename, "w")
+
+            if self.SLUM_radio.isChecked():
+                f.write("#!/bin/sh\n\n"
+                    "#SBATCH -N "+ self.jobscript_nodes.text() +"\n"
+                    "#SBATCH --ntasks-per-node="+ self.jobscript_tpn.text() +"\n"
+                    "#SBATCH --time="+ self.jobscript_time.text() +"\n"
+                    "#SBATCH --job-name="+ self.jobcript_name.text() +"\n"
+                    "#SBATCH --error=job.%J.err\n"
+                    "#SBATCH --output=job.%J.out\n"
+                    "#SBATCH --partition="+ self.jobscript_partition.currentText() +"\n\n"
+                    "export I_MPI_FALLBACK=disable\n"
+                    "export I_MPI_FABRICS=shm:dapl\n"
+                    "export I_MPI_DEBUG=9\n\n"
+                    "cd $SLURM_SUBMIT_DIR\n\n"
+                    "nprocs="+ self.jobcript_nprocs.text() +"\n"
+                    "xworkers="+ self.jobscript_xworkers.text() +"\n"
+                    "yworkers="+ self.jobscript_yworkers.text() +"\n\n"
+                    "ulimit -aH\n"
+                    "ulimit -c unlimited\n"
+                    "ulimit -s unlimited\n\n"
+                    "mpiexec.hydra -n $nprocs ./"+jobmodel +" "  +self.infile.text()+" "+self.filling.text()+" "+self.output.text()+"  $xworkers $yworkers > output.log\n")
+
+            elif self.PBS_radio.isChecked():    
+                f.write("#!/bin/sh\n\n"
+                    "#PBS -N "+ self.jobcript_name.text() +"\n"
+                    "#PBS -l walltime="+ self.jobscript_time.text() +"\n"
+                    "#PBS -q "+ self.jobscript_partition.currentText()  +"\n"
+                    "#PBS -j oe\n"
+                    "#PBS -l nodes="+ self.jobscript_nodes.text() +":ppn="+self.jobscript_tpn.text()+" \n\n"
+                    "cd $$PBS_O_WORKDIR\n\n"
+                    "nprocs="+ self.jobcript_nprocs.text() +"\n"
+                    "xworkers="+ self.jobscript_xworkers.text() +"\n"
+                    "yworkers="+ self.jobscript_yworkers.text() +"\n\n"
+                    "export LD_LIBRARY_PATH=/apps/gsl/lib:$LD_LIBRARY_PATH\n\n"
+                    "mpirun -np $nprocs ./"+jobmodel +" "  +self.infile.text()+" "+self.filling.text()+" "+self.output.text()+"  $xworkers $yworkers > output.log\n")
+
+            f.close()
+
+            generateJobscript(self)
+
+            JobScriptmsg = QMessageBox()
+            JobScriptmsg.setWindowTitle("Script file Created")
+            JobScriptmsg.setText("\n\n Script file is created successfully. You may directly upload the JOB_FILE for running on cluster. ")
+            JobScriptmsg.exec_()
+
+
+        
+    
+    def checkJobscript(self):
+
+        if self.jobscript_nodes.text() == "":
+            self.error_jobscript.setText("Please fill number of Nodes ")
+            return False
+
+        elif self.jobscript_tpn.text() == "":
+            self.error_jobscript.setText("Please fill Task per Nodes")
+            return False
+
+        elif self.jobcript_name.text() == "":
+            self.error_jobscript.setText("Please specify name of the Job")
+            return False
+
+        elif self.jobscript_time.text() == "":
+            self.error_jobscript.setText("Please specify runtime for the Job")
+            return False
+
+        elif self.jobcript_nprocs.text() == "":
+            self.error_jobscript.setText("Please specify number of processor")
+            return False
+
+        elif self.jobscript_xworkers.text() == "":
+            self.error_jobscript.setText("Please specify number of workers in X-direction")
+            return False
+
+        elif self.jobscript_yworkers.text() == "":
+            self.error_jobscript.setText("Please specify number of workers in Y-direction")
+            return False
+        
+        else :
+            return True
 
     def clickedfinish(self):  ##code for finish btn operation. it firstly varifies the data then generate file
 
@@ -5999,8 +7438,8 @@ class StartScreen(QDialog):
 
         ## WRITING ON FILE
 
-        dlg = QtWidgets.QFileDialog()
-        dlg.setFileMode(QtWidgets.QFileDialog.Directory)
+        dlg = QFileDialog()
+        dlg.setFileMode(QFileDialog.Directory)
         if dlg.exec_():
             self.runDir =  ''.join(dlg.selectedFiles())
             infilename =  self.runDir + "/" + self.infile.text()
@@ -6159,9 +7598,9 @@ class StartScreen(QDialog):
                 f.write("WRITEFORMAT = "+self.writeFormatKKS.currentText()+";\n"
                         "TRACK_PROGRESS = " + self.trackprogressKKS.text()+";\n"
                         "Tau = {" + self.TauKKS.text()+"};\n"
-                        "epsilon = " + self.epsilonKKS.text()+";\n"
+                        "epsilon = " + self.EpsilonKKS.text()+";\n"
                         "Equilibrium_temperature = " + self.equTKKS.text()+";\n"
-                        "T = " + self.temperatureKKS.text()+";\n"
+                        "T = " + self.TKKS.text()+";\n"
                     )
                 
                 '''
@@ -6509,35 +7948,16 @@ class StartScreen(QDialog):
         Submitmsg.exec_()
 
         self.runBtn.setEnabled(True)
+        self.jobscriptBtn.setEnabled(True)
+        self.runHelp.setEnabled(True)
         self.preview.setEnabled(True)
         self.PPbutton.setEnabled(True)
 
     def clickedpreview(self):
         if os.path.isdir(self.runDir + "/DATA/"):  ##checking data file status
 
-            if os.path.isfile("/opt/paraviewopenfoam56/bin/paraview"):  ##checking paraview installation status
-                list_of_files = glob.glob(self.runDir + "/DATA/"+ self.output.text() +"*.*")
-                if len(list_of_files) == 0:
-                    self.finish_error.setText("Sorry, output file not found.")
-                    return
-                latest_file = max(list_of_files, key=os.path.getctime)
-
-                paraviewcmd = "gnome-terminal -e 'bash -c \"/opt/paraviewopenfoam56/bin/paraview " +latest_file +"; bash\" '"
-                os.system(paraviewcmd)
-            elif os.path.isfile(os.path.expanduser("~/MicroSim/.Paraview")): ## Checking for paraview saved path
-                readPath = open(os.path.expanduser('~/MicroSim/.Paraview'), "r")
-                readPathParaview = readPath.read().replace("\n", "")
-                list_of_files = glob.glob(self.runDir + "/DATA/"+ self.output.text() +"*.*")
-                if len(list_of_files) == 0:
-                    self.finish_error.setText("Sorry, output file not found.")
-                    return
-                latest_file = max(list_of_files, key=os.path.getctime)
-
-                paraviewcmd = "gnome-terminal -e 'bash -c \"" + readPathParaview +" " +latest_file +"; bash\" '"
-                os.system(paraviewcmd)
-
-            else:
-                self.paraviewError.show()
+            paraviewFunc(self)
+            
         else:
             self.finish_error.setText("Sorry, DATA directory not found.")
             
@@ -6548,8 +7968,8 @@ class StartScreen(QDialog):
     def paraviewBrowseClicked(self):
 
         ## WRITING ON FILE
-        dlgParaview = QtWidgets.QFileDialog()
-        dlgParaview.setFileMode(QtWidgets.QFileDialog.AnyFile)
+        dlgParaview = QFileDialog()
+        dlgParaview.setFileMode(QFileDialog.AnyFile)
         if dlgParaview.exec_():
             self.paraviewDir =  ''.join(dlgParaview.selectedFiles())
             self.paraviewPath.setText(self.paraviewDir)
@@ -6597,27 +8017,11 @@ class StartScreen(QDialog):
             self.finish_error.setText("Sorry, " + self.filling.text() + " file not found." )
             return
 
-        if self.radio_GP.isChecked():
-            
+        SolverExecute(self)
 
-            commandLine ="cd ~/MicroSim/Grand_potential_Finite_difference_2D_MPI/; python3 GEdata_writer.py " +self.runDir +"/"+self.infile.text() + " ;make clean;make; cp microsim_gp ~/MicroSim/bin/;cd " + self.runDir + ";mpirun.mpich -np 4 ~/MicroSim/bin/microsim_gp "  +self.infile.text()+" "+self.filling.text()+" "+self.output.text() + " 2 2"
-            
-            os.system("gnome-terminal -e 'bash -c  \""+commandLine+";bash\"'")
-        
-        elif self.radio_KKR.isChecked():
-            commandLine ="cd ~/MicroSim/KKS_CuFFT/; python3 GEdata_writer.py " +self.runDir +"/"+self.infile.text() + " ;make clean;make; cp microsim_kks_cufft ~/MicroSim/bin/;cd " + self.runDir + ";mpirun -n 4 ~/MicroSim/bin/microsim_kks_cufft "  +self.infile.text()+" "+self.filling.text()+" "+self.output.text()
-            
-            os.system("gnome-terminal -e 'bash -c \""+commandLine+";bash\"'")
+    def clickedrunHelp(self):
+        SolverExecuteHelp(self)
 
-        elif self.radio_KKS2.isChecked():
-            commandLine ="cd ~/MicroSim/KKS_OpenCl/; python3 GEdata_writer.py " +self.runDir +"/"+self.infile.text() + " ;make clean;make; cp microsim_kks_opencl ~/MicroSim/bin/;cd " + self.runDir + ";~/MicroSim/bin/microsim_kks_opencl "  +self.infile.text()+" "+self.filling.text()+" "+self.output.text()
-            
-            os.system("gnome-terminal -e 'bash -c  \""+commandLine+";bash\"'")
-
-        elif self.radio_CH.isChecked():
-            commandLine ="cd ~/MicroSim/Cahn_Hilliard_FFT_2D/; python3 GEdata_writer.py " +self.runDir +"/"+self.infile.text() + " ;make clean;make; cp cp microsim_ch_fft ~/MicroSim/bin/;cd " + self.runDir + ";~/MicroSim/bin/microsim_ch_fft "  +self.infile.text()+" "+self.filling.text()+" "+self.output.text()
-            
-            os.system("gnome-terminal -e 'bash -c \""+commandLine+";bash\"'")
 
 
     def startNewClicked(self):
@@ -6690,7 +8094,7 @@ class StartScreen(QDialog):
                         CHmsg.exec_()
 
                 if self.model_KKS.isChecked():
-                    kksVariables =["DIMENSION", "MESH_X" ,"MESH_Y", "MESH_Z", "DELTA_X" ,"DELTA_Y", "DELTA_Z", "DELTA_t", "NUMPHASES", "NUMCOMPONENTS", "NTIMESTEPS", "NSMOOTH", "SAVET", "COMPONENTS", "PHASES", "GAMMA", "DIFFUSIVITY", "R", "V", "EIGEN_STRAIN", "Elastic Constant","BOUNDARY Phi","BOUNDARY mu/c","BOUNDARY T","BOUNDARY_VALUE Phi","BOUNDARY_VALUE mu/c","BOUNDARY_VALUE T"," WRITEFORMAT", "TRACK_PROGRESS", "T","relax_coeff" ,"Equilibrium_temperature", "alpha", "lambda","Tau","epsilon"]
+                    kksVariables =["DIMENSION", "MESH_X" ,"MESH_Y", "MESH_Z", "DELTA_X" ,"DELTA_Y", "DELTA_Z", "DELTA_t", "NUMPHASES", "NUMCOMPONENTS", "NTIMESTEPS", "NSMOOTH", "SAVET", "COMPONENTS", "PHASES", "GAMMA", "DIFFUSIVITY", "R", "V", "EIGEN_STRAIN", "Elastic Constant","BOUNDARY Phi","BOUNDARY mu/c","BOUNDARY T","BOUNDARY_VALUE Phi","BOUNDARY_VALUE mu/c","BOUNDARY_VALUE T"," WRITEFORMAT", "TRACK_PROGRESS", "ELAST_INT","relax_coeff" ,"seed", "alpha", "lambda","Tau","Epsilon"]
                     kksmsgFlag =0
                     kkserror = "Oops ! we have noticed some missing parameters in your Infile\n"
                     for i in range(36):
@@ -6719,28 +8123,28 @@ class StartScreen(QDialog):
                         
                         
 
-                self.sideBtn2.setGeometry(0,185,231,65)
-                self.sideBtn2.setStyleSheet('background-color: rgb(171, 196, 223);font: 10pt "Ubuntu";')
+                #self.sideBtn2.setGeometry(0,185,231,65)
+                self.sideBtn2.setStyleSheet('background-color: rgb(171, 196, 223); text-align : left;padding-left:10px;')
                 self.sideBtn2.setEnabled(True)
 
-                self.sideBtn3.setGeometry(0,250,231,65)
-                self.sideBtn3.setStyleSheet('background-color: rgb(171, 196, 223);font: 10pt "Ubuntu";')
+                #self.sideBtn3.setGeometry(0,250,231,65)
+                self.sideBtn3.setStyleSheet('background-color: rgb(171, 196, 223); text-align : left;padding-left:10px;')
                 self.sideBtn3.setEnabled(True)
 
-                self.sideBtn4.setGeometry(0,315,231,65)
-                self.sideBtn4.setStyleSheet('background-color: rgb(171, 196, 223);font: 10pt "Ubuntu";')
+                #self.sideBtn4.setGeometry(0,315,231,65)
+                self.sideBtn4.setStyleSheet('background-color: rgb(171, 196, 223); text-align : left;padding-left:10px;')
                 self.sideBtn4.setEnabled(True)
 
-                self.sideBtn5.setGeometry(0,380,231,65)
-                self.sideBtn5.setStyleSheet('background-color: rgb(171, 196, 223);font: 10pt "Ubuntu";')
+                #self.sideBtn5.setGeometry(0,380,231,65)
+                self.sideBtn5.setStyleSheet('background-color: rgb(171, 196, 223); text-align : left;padding-left:10px;')
                 self.sideBtn5.setEnabled(True)
 
-                self.sideBtn6.setGeometry(0,445,231,65)
-                self.sideBtn6.setStyleSheet('background-color: rgb(171, 196, 223);font: 10pt "Ubuntu";')
+                #self.sideBtn6.setGeometry(0,445,231,65)
+                self.sideBtn6.setStyleSheet('background-color: rgb(171, 196, 223); text-align : left;padding-left:10px;')
                 self.sideBtn6.setEnabled(True)
 
-                self.sideBtn7.setGeometry(0,510,231,65)
-                self.sideBtn7.setStyleSheet('background-color: rgb(171, 196, 223);font: 10pt "Ubuntu";')
+                #self.sideBtn7.setGeometry(0,510,231,65)
+                self.sideBtn7.setStyleSheet('background-color: rgb(171, 196, 223); text-align : left;padding-left:10px;')
                 self.sideBtn7.setEnabled(True)
 
             except IOError:
@@ -7677,7 +9081,7 @@ class StartScreen(QDialog):
             self.kksFlag[28] = 1
 
         elif entryname == "T":
-            self.temperatureKKS.setText(entryvalue)
+            self.TKKS.setText(entryvalue)
             self.kksFlag[29] = 1
 
 
@@ -7691,8 +9095,8 @@ class StartScreen(QDialog):
             self.TauKKS.setText(entryvalue)
             self.kksFlag[34] = 1
             
-        elif entryname == "epsilon":
-            self.epsilonKKS.setText(entryvalue)
+        elif entryname == "Epsilon":
+            self.EpsilonKKS.setText(entryvalue)
             self.kksFlag[35] = 1
 
         
@@ -8194,18 +9598,21 @@ class StartScreen(QDialog):
 app = QApplication(sys.argv)
 
 screen_resolution = app.desktop().screenGeometry()
+#available_screen_size =  app.desktop().availableGeometry()
 width, height = screen_resolution.width(), screen_resolution.height()
 
-dir_ = QtCore.QDir("Ubuntu")
-QtGui.QFontDatabase.addApplicationFont("resources/font/Ubuntu-Bold.ttf")
-QtGui.QFontDatabase.addApplicationFont("resources/font/Ubuntu-Regular.ttf")
+dir_ = QDir("Ubuntu")
+
+QFontDatabase.addApplicationFont("resources/font/Ubuntu-Bold.ttf")
+QFontDatabase.addApplicationFont("resources/font/Ubuntu-Regular.ttf")
 mainScreen = StartScreen()
-widget = QtWidgets.QStackedWidget()
+widget = QStackedWidget()
 widget.addWidget(mainScreen)
-widget.setFixedHeight(650)
-widget.setFixedWidth(1100)
+widget.setMinimumHeight(650)
+widget.setMinimumWidth(1100)
+#widget.setGeometry(0,0,available_screen_size.width(),available_screen_size.height())
 widget.setWindowTitle("MicroSim - Microstructure Simulator")
-widget.setWindowIcon(QtGui.QIcon('resources/img/Mlogo.png'))
+widget.setWindowIcon(QIcon('resources/img/Mlogo.png'))
 widget.show()
 
 try:

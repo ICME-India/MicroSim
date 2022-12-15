@@ -1,15 +1,20 @@
 import numpy as np
 from vtk import vtkDataSetReader
-import vtk
 
 
-def triple_point(vtkData,timeItretion,Scalar_name):
+def triple_point(vtkData,dataset,infileDimension,timeItretion,Scalar_name):
     overall_tp = np.empty(len(timeItretion) ,  dtype = object)
     
     for t in range(len(timeItretion)):
+
+        if(dataset == "UNSTRUCTURED_GRID"):
+            grid_shape = infileDimension
+            pf2 = vtkData[t].GetCellData().GetArray(Scalar_name)
+        else:
+            grid_shape = vtkData[t].GetDimensions()
+            pf2 = vtkData[t].GetPointData().GetArray(Scalar_name)
+
         
-        pf2 = vtkData[t].GetPointData().GetArray(Scalar_name)
-        grid_shape = vtkData[t].GetDimensions()
         if grid_shape[0] == 1:
             grid_reshape = ( grid_shape[1], grid_shape[2]  )
 

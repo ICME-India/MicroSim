@@ -1,17 +1,23 @@
 import numpy as np
 from skimage import measure
 from vtk import vtkDataSetReader
-import vtk
 
-def front_Velocity(timeItretion, vtkData ,scalerValue,dt,saveT,dx, Is3d,depth_plot):
+def front_Velocity(timeItretion, vtkData,dataset,infileDimension ,scalerValue,dt,saveT,dx, Is3d,depth_plot):
     ppt_major_axis =  [ [] for _ in range(timeItretion) ]
     ppt_count = np.empty(timeItretion)
     fvelocity = [ [] for _ in range(timeItretion) ]
 
 
     for t in range(timeItretion):
-        grid_shape = vtkData[t].GetDimensions()
-        
+
+        if(dataset == "UNSTRUCTURED_GRID"):
+            grid_shape = infileDimension
+            vtkPointData = vtkData[t].GetCellData().GetArray(scalerValue)
+        else:
+            grid_shape = vtkData[t].GetDimensions()
+            vtkPointData = vtkData[t].GetPointData().GetArray(scalerValue)
+
+
         if grid_shape[0] == 1:
             grid_reshape = ( grid_shape[2], grid_shape[1]  )
             
@@ -21,7 +27,6 @@ def front_Velocity(timeItretion, vtkData ,scalerValue,dt,saveT,dx, Is3d,depth_pl
         elif grid_shape[2] == 1:
             grid_reshape = ( grid_shape[1], grid_shape[0]  )
         
-        vtkPointData = vtkData[t].GetPointData().GetArray(scalerValue)
         
         if Is3d == 0:
             pf = np.copy(np.reshape(vtkPointData, grid_reshape))
@@ -62,5 +67,5 @@ def front_Velocity(timeItretion, vtkData ,scalerValue,dt,saveT,dx, Is3d,depth_pl
         for v in range(int(ppt_count[t])):
             velocitylist.append( float(dx)*  ((ppt_major_axis[t][v] - ppt_major_axis[t-1][v])/(2*float(dt)*float(saveT)))  )
     
-    return fvelocity;
+    return fvelocity
         
