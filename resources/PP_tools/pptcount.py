@@ -1,11 +1,10 @@
 import numpy as np
-from skimage import io
 from skimage import measure
 import matplotlib.pyplot as plt
 from vtk import vtkDataSetReader
-from vtkmodules.vtkIOLegacy import vtkUnstructuredGridReader
 
-def load_ppt_property(timeItretion, vtkData ,scalerValue ,Is3d,depth_plot):
+
+def load_ppt_property(timeItretion,dataset,infileDimension, vtkData ,scalerValue ,Is3d,depth_plot):
     ppt_count = np.empty(len(timeItretion) ,  dtype = int)
     ppt_area = [ [] for _ in range(len(timeItretion)) ]
     ppt_radius = [ [] for _ in range(len(timeItretion)) ]
@@ -16,7 +15,12 @@ def load_ppt_property(timeItretion, vtkData ,scalerValue ,Is3d,depth_plot):
 
     for t in range(len(timeItretion)):
         
-        grid_shape = vtkData[t].GetDimensions()
+        if(dataset == "UNSTRUCTURED_GRID"):
+            grid_shape = infileDimension
+            vtkPointData = vtkData[t].GetCellData().GetArray(scalerValue)
+        else:
+            grid_shape = vtkData[t].GetDimensions()
+            vtkPointData = vtkData[t].GetPointData().GetArray(scalerValue)
         
         if grid_shape[0] == 1:
             grid_reshape = ( grid_shape[2], grid_shape[1]  )
@@ -27,9 +31,6 @@ def load_ppt_property(timeItretion, vtkData ,scalerValue ,Is3d,depth_plot):
         elif grid_shape[2] == 1:
             grid_reshape = ( grid_shape[1], grid_shape[0]  )
         
-
-        #pf = np.copy(np.reshape(pf, grid_reshape))
-        vtkPointData = vtkData[t].GetPointData().GetArray(scalerValue)
         
         if Is3d == 0:
             pf = np.copy(np.reshape(vtkPointData, grid_reshape))
@@ -81,7 +82,7 @@ def load_ppt_property(timeItretion, vtkData ,scalerValue ,Is3d,depth_plot):
 
 
 
-def volFrac_SA_Vol(timeItretion, vtkData ,scalerValue ,Is3d,depth_plot):
+def volFrac_SA_Vol(timeItretion,dataset,infileDimension, vtkData ,scalerValue ,Is3d,depth_plot):
    
     ppt_area = [ [] for _ in range(len(timeItretion)) ]
     ppt_perimeter = [ [] for _ in range(len(timeItretion)) ]
@@ -92,7 +93,12 @@ def volFrac_SA_Vol(timeItretion, vtkData ,scalerValue ,Is3d,depth_plot):
 
     for t in range(len(timeItretion)):
         
-        grid_shape = vtkData[t].GetDimensions()
+        if(dataset == "UNSTRUCTURED_GRID"):
+            grid_shape = infileDimension
+            vtkPointData = vtkData[t].GetCellData().GetArray(scalerValue)
+        else:
+            grid_shape = vtkData[t].GetDimensions()
+            vtkPointData = vtkData[t].GetPointData().GetArray(scalerValue)
         
         if grid_shape[0] == 1:
             grid_reshape = ( grid_shape[2], grid_shape[1]  )
@@ -104,8 +110,6 @@ def volFrac_SA_Vol(timeItretion, vtkData ,scalerValue ,Is3d,depth_plot):
             grid_reshape = ( grid_shape[1], grid_shape[0]  )
             
         
-        vtkPointData = vtkData[t].GetPointData().GetArray(scalerValue)
-            
         if Is3d == 0:
             pf_blob = np.copy(np.reshape(vtkPointData, grid_reshape))
             

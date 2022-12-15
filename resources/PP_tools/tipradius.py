@@ -3,12 +3,19 @@ from skimage import measure
 from vtk import vtkDataSetReader
 import math
 
-def tip_radius_calculate(vtkData, timeItretion ,Scalar_name,dx, Is3d, depth_plot):
+def tip_radius_calculate(vtkData,dataset,infileDimension, timeItretion ,Scalar_name,dx, Is3d, depth_plot):
     tip_radius = np.empty(len(timeItretion) ,  dtype = float)
     
     
     for t in range(len(timeItretion)):
-        grid_shape = vtkData[t].GetDimensions()
+
+        if(dataset == "UNSTRUCTURED_GRID"):
+            grid_shape = infileDimension
+            vtkPointData = vtkData[t].GetCellData().GetArray(Scalar_name)
+        else:
+            grid_shape = vtkData[t].GetDimensions()
+            vtkPointData = vtkData[t].GetPointData().GetArray(Scalar_name)
+
         
         if grid_shape[0] == 1:
             grid_reshape = ( grid_shape[2], grid_shape[1]  )
@@ -19,8 +26,6 @@ def tip_radius_calculate(vtkData, timeItretion ,Scalar_name,dx, Is3d, depth_plot
         elif grid_shape[2] == 1:
             grid_reshape = ( grid_shape[1], grid_shape[0]  )
 
-        vtkPointData = vtkData[t].GetPointData().GetArray(Scalar_name)
-        
         
         if Is3d == 0:
             pf = np.copy(np.reshape(vtkPointData, grid_reshape))

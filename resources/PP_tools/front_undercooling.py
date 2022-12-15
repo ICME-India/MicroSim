@@ -1,12 +1,14 @@
 import numpy as np
 from skimage import measure
 from vtk import vtkDataSetReader
-import math
 
-def front_undercooling_cal(vtkData, timeItretion ,Scalar_name,Scalar_name_all, Is3d,depth_plot):
+def front_undercooling_cal(vtkData, dataset, infileDimension, timeItretion ,Scalar_name,Scalar_name_all, Is3d,depth_plot):
     front_undercooling = np.empty(len(timeItretion) ,  dtype = float)
-    
-    grid_shape = vtkData[0].GetDimensions()
+
+    if(dataset == "UNSTRUCTURED_GRID"):
+        grid_shape = infileDimension
+    else:
+        grid_shape = vtkData[0].GetDimensions()
 
     if grid_shape[0] == 1:
         grid_reshape = ( grid_shape[2], grid_shape[1]  )
@@ -19,17 +21,37 @@ def front_undercooling_cal(vtkData, timeItretion ,Scalar_name,Scalar_name_all, I
     
         
     for t in timeItretion:
- 
-        pf1 = vtkData[t].GetPointData().GetArray(Scalar_name)
+        #reading solid phase
+        if(dataset == "UNSTRUCTURED_GRID"):
+            pf1 = vtkData[t].GetCellData().GetArray(Scalar_name)
+        else:
+            pf1 = vtkData[t].GetPointData().GetArray(Scalar_name)
         
-        if('liquid' in Scalar_name_all):
-            pf3 = vtkData[t].GetPointData().GetArray('liquid')
-        elif('LIQUID' in Scalar_name_all):
-            pf3 = vtkData[t].GetPointData().GetArray('LIQUID')
-        elif('liq' in Scalar_name_all):
-            pf3 = vtkData[t].GetPointData().GetArray('liq')
-        elif('LIQ' in Scalar_name_all):
-            pf3 = vtkData[t].GetPointData().GetArray('LIQ')
+        if('liquid' in Scalar_name_all): #if liquid phase is named as liquid
+            if(dataset == "UNSTRUCTURED_GRID"):
+                pf3 = vtkData[t].GetCellData().GetArray('liquid')
+            else:
+                pf3 = vtkData[t].GetPointData().GetArray('liquid')
+
+        elif('LIQUID' in Scalar_name_all): #if liquid phase is named as LIQUID
+            if(dataset == "UNSTRUCTURED_GRID"):
+                pf3 = vtkData[t].GetCellData().GetArray('LIQUID')
+            else:
+                pf3 = vtkData[t].GetPointData().GetArray('LIQUID')
+
+        elif('liq' in Scalar_name_all): #if liquid phase is named as liq
+            if(dataset == "UNSTRUCTURED_GRID"):
+                pf3 = vtkData[t].GetCellData().GetArray('liq')
+            else:
+                pf3 = vtkData[t].GetPointData().GetArray('liq')
+
+
+        elif('LIQ' in Scalar_name_all): #if liquid phase is named as LIQ
+            if(dataset == "UNSTRUCTURED_GRID"):
+                pf3 = vtkData[t].GetCellData().GetArray('LIQ')
+            else:
+                pf3 = vtkData[t].GetPointData().GetArray('LIQ')
+
         else:
             print("liquid , liq, LIQ or LIQUID phase not present")
             return False
@@ -77,7 +99,10 @@ def front_undercooling_cal(vtkData, timeItretion ,Scalar_name,Scalar_name_all, I
                 contours_data = np.vstack(( contours_data,np.array(contour) ))
 
 
-        pf5 = vtkData[t].GetPointData().GetArray('T')
+        if(dataset == "UNSTRUCTURED_GRID"):
+            pf5 = vtkData[t].GetCellData().GetArray('T')
+        else:
+            pf5 = vtkData[t].GetPointData().GetArray('T')
         
         
         if Is3d == 0:
