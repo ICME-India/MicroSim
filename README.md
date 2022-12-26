@@ -217,8 +217,14 @@ To Install PIP3(For Python 3+):
      sudo -H pip3 install --upgrade pip
 
 
-### Installing pyqt5 using pip
-     pip install pyqt5 
+### Installing required modules using pip
+     pip install pyqt5
+     pip install scikit-image
+     pip install vtk
+     pip install tinydb
+     pip install sympy==1.8
+     pip install --upgrade scikit-image
+     pip install pycalphad==0.9.2 
      
 To run the code use 
      python ./InfileGenerator.py
