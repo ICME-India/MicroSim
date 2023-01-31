@@ -57,7 +57,7 @@ Copy the modules to the OpenFOAM run directory. For instance, to copy the direct
 
 Solver has to be compiled from the corresponding solver directory. For instance:
 
-> cd $FOAM_RUN/PFBinary/PFOFBinaryThermo
+> cd $FOAM_RUN/PFBinary/PFBinary
 
 > wclean
 

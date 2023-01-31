@@ -13,7 +13,8 @@ Random randNum(clock::getTime());
 volVectorField grad_theta = dimx*fvc::grad(theta);
 volScalarField grad_theta_sqr = magSqr(grad_theta);
 
-
+if (swch == 2)
+    {
 strain = ((gradD-phi*phi*(3-2*phi)*cEigenStrain)&&symmTensor(1,0,0,0,0,0))*symmTensor(1,0,0,0,0,0)
        + ((gradD-phi*phi*(3-2*phi)*cEigenStrain)&&symmTensor(0,0,0,1,0,0))*symmTensor(0,0,0,1,0,0)
        + ((gradD-phi*phi*(3-2*phi)*cEigenStrain)&&symmTensor(0,0,0,0,0,1))*symmTensor(0,0,0,0,0,1);
@@ -27,7 +28,7 @@ Sigma = (2*(mu1_elast*phi*phi*(3-2*phi) + mu2_elast*(1-phi)*(1-phi)*(1+2*phi))*(
 deltaSigmaD = ((mu1_elast-mu2_elast)*twoSymm(fvc::grad(D))           + (lambda1-lambda2)*(I*tr(fvc::grad(D))) 
             - 2*(mu1_elast-mu2_elast)*phi*phi*(3-2*phi)*cEigenStrain - (lambda1-lambda2)*(I*tr(phi*phi*(3-2*phi)*cEigenStrain)))
             + (mu1_elast_-mu2_elast_)*strain;
-            
+}            
 
 //! Implicit discretization using fvm class for time derivative and laplacian.
 //! Explicit discretization using fvc class for divergence.
@@ -52,7 +53,9 @@ omega*epsilon*dimt*fvm::ddt(phi)     //alpha=1 liquid phase
 
 );
 
-alphaEqn.solve();
+//alphaEqn.solve();
+
+InitialResidual_0 = alphaEqn.solve().max().initialResidual();
 
     // Writing into the log file
     Info<< "Min/max phi:" << min(phi).value() << ' ' << max(phi).value() << endl;
@@ -68,7 +71,9 @@ fvScalarMatrix muEqn
     (0.5)*((hphi/A_Sol) + ((1-hphi)/A_Liq))*dimt*fvm::ddt(mu) == dimx*dimx*fvm::laplacian(diff_Sol*0.5*(1/A_Sol)*phi + diff_Liq*0.5*(1/A_Liq)*(1-phi), mu) - 0.5*((mu - B_Sol)/A_Sol - (mu - B_Liq)/A_Liq)*dimt*fvc::ddt(phi)*30.0*phi*phi*(1.0-phi)*(1.0-phi) - Tdot*(((-dBdT)/(2*A_Sol) + (mu - B_Sol)*A_SoldT/(-2*A_Sol*A_Sol))*hphi + (mu - B_Liq)*A_LiqdT*(1-hphi)/(-2*A_Liq*A_Liq)) - anti_trap*epsilon*0.5*((mu - B_Sol)/A_Sol - (mu - B_Liq)/A_Liq)*dimx*fvc::div((n*dimt*fvc::ddt(phi)))
 );
 
-muEqn.solve();
+//muEqn.solve();
+
+InitialResidual_1 = muEqn.solve().max().initialResidual();
 
     Info<< "Min/max mu:" << min(mu).value() << ' ' << max(mu).value() << endl;
 
@@ -91,7 +96,9 @@ fvScalarMatrix thetaEqn
     dimt*fvm::ddt(theta)  == 2*M_theta_func*mu_th*mu_th*(dimx*dimx*fvm::laplacian(g_phi,theta))
 );
 
-thetaEqn.solve();
+//thetaEqn.solve();
+
+InitialResidual_2 = thetaEqn.solve().max().initialResidual();
 }
 
     // Writing into the log file

@@ -13,6 +13,7 @@ int main(int argc, char *argv[])
     double DELTA_X, DELTA_t, NTIMESTEPS, SAVET, STARTTIME, DIFFUSIVITY00, DIFFUSIVITY01;
     double GAMMA, V, DIFFUSIVITY[4], EIGEN_STRAIN[7], VOIGT0[6], VOIGT1[6], T, epsilon;
     double DIFFUSIVITY10, DIFFUSIVITY11, dab, Amp_Noise_Phase, Equilibrium_temperature, Filling_temperature;
+    double theta_x, theta_y, theta_z;
     
     //ifstream inpf("Input_tdb_new.in");
     ifstream inpf(argv[1]);
@@ -254,6 +255,26 @@ int main(int argc, char *argv[])
     
     dab = stod(line_value2);
     }
+
+    else if (line_value1 == "Rotation_matrix")
+    {
+    istringstream ss2(line_value2);
+    getline(ss2, line_value2, '{');
+    getline(ss2, line_value2, ',');
+    getline(ss2, line_value2, ' ');
+    getline(ss2, line_value2, ',');
+    getline(ss2, line_value2, ' ');
+    getline(ss2, line_value2, ',');
+    theta_x = stod(line_value2);
+
+    getline(ss2, line_value2, ' ');
+    getline(ss2, line_value2, ',');
+    theta_y = stod(line_value2);
+
+    getline(ss2, line_value2, ' ');
+    getline(ss2, line_value2, '}');
+    theta_z = stod(line_value2);
+    }
     
     else if (line_value1 == "Amp_Noise_Phase")
     {
@@ -280,6 +301,9 @@ int main(int argc, char *argv[])
 
 	NTIMESTEPS = NTIMESTEPS*DELTA_t;
     SAVET = SAVET*DELTA_t;
+    theta_x = theta_x*3.14159/180;
+    theta_y = theta_y*3.14159/180;
+    theta_z = theta_z*3.14159/180;
 	
 	//writing to include in openfoam dictionaries
     outpf.precision(15);
@@ -299,6 +323,9 @@ int main(int argc, char *argv[])
     outpf << "GAMMA " << GAMMA << ";" << endl;
     outpf << "epsilon " << epsilon << ";" << endl;
     outpf << "dab " << dab << ";" << endl;
+    outpf << "theta_x " << theta_x << ";" << endl;
+    outpf << "theta_y " << theta_y << ";" << endl;
+    outpf << "theta_z " << theta_z << ";" << endl;
     outpf << "Amp_Noise_Phase " << Amp_Noise_Phase << ";" << endl;
     outpf << "Vm " << V << ";" << endl;
     

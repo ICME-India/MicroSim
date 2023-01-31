@@ -16,11 +16,11 @@ if ((swcool == 1)&&(swch == 1))
     cEigenStrain = 0*cEigenStrain;
     //NS = 1;
     
-    dimensionedScalar prob = Foam::exp(-0.5*(log(T0-initial)/0.5)*(log(T0-initial)/0.5))/(0.5*Foam::sqrt(2*pi)*(T0-initial));
-    Info << "Probability of nucleation: " << prob.value() << endl;
+    //dimensionedScalar prob = Foam::exp(-0.5*(log(T0-initial)/0.5)*(log(T0-initial)/0.5))/(0.5*Foam::sqrt(2*pi)*(T0-initial));
+    //Info << "Probability of nucleation: " << prob.value() << endl;
     
-for(int i=0; i<numSeeds; i++){
-    Info<< "creating a new seed" << endl;
+//for(int i=0; i<numSeeds; i++){
+    /*Info<< "creating a new seed" << endl;
     xCenter = randNumber.globalScalar01()*xMax;
     yCenter = randNumber.globalScalar01()*yMax;
     //xCenter = 0.5*xMax;
@@ -32,11 +32,11 @@ for(int i=0; i<numSeeds; i++){
     Info<< "Filling phi and theta fields in seeds" << endl;
     volScalarField gaussianSeed = (1-phi)*exp(-((mesh.C().component(vector::X)/dimx-xCenter)*(mesh.C().component(vector::X)/dimx-xCenter) + (mesh.C().component(vector::Y)/dimx-yCenter)*(mesh.C().component(vector::Y)/dimx-yCenter))/(seedRadius*seedRadius));
 
-    if (prob.value() > randNumber.globalScalar01()){
+    //if (prob.value() > randNumber.globalScalar01()){
     theta = theta + randTheta*gaussianSeed;
-    phi = phi + gaussianSeed;
-    }
-}
+    phi = phi + gaussianSeed;*/
+    //}
+//}
 }
 
 //! Initial conditions for multigrain simulation
