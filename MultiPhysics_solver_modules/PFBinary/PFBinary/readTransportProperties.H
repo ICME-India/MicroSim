@@ -57,7 +57,11 @@
         dimensionedScalar v(transportProperties.lookup("v"));
         //!Strength of anisotropy
         dimensionedScalar delta_01(transportProperties.lookup("delta_01"));
-        //!Constant orientation in radian
+        //!Constant orientation in radian about x
+        dimensionedScalar theta_x(transportProperties.lookup("theta_x"));
+        //!Constant orientation in radian about y
+        dimensionedScalar theta_y(transportProperties.lookup("theta_y"));
+        //!Constant orientation in radian about z
         dimensionedScalar theta_val(transportProperties.lookup("theta_val"));
         //!mu^2 is the strength of the coupling in f_ori equation
         dimensionedScalar mu_th(transportProperties.lookup("mu_th"));             
@@ -96,7 +100,12 @@
         
         //! Maximum number depending on probability of nucleation
         scalar numSeeds(readScalar(transportProperties.lookup("numSeeds")));
+
+        //! Temperature parameters in probability of nucleation
+        scalar dt_0(readScalar(transportProperties.lookup("dt_0")));
+        scalar dt_s(readScalar(transportProperties.lookup("dt_s")));
         
+        scalar nucleation_interval(readScalar(transportProperties.lookup("nucleation_interval")));
         
         //!Properties for incorporating elasticity
         

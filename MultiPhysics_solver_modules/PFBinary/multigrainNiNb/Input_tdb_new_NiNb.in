@@ -14,7 +14,7 @@ NUMCOMPONENTS = 2;
 #Running and saving information
 NTIMESTEPS = 2000000;
 NSMOOTH = 10;
-SAVET = 50;
+SAVET = 200;
 STARTTIME = 0;
 RESTART = 0;
 numworkers = 4;

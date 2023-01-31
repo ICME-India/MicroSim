@@ -42,7 +42,9 @@ initial           initial [0 0 0 0 0 0 0] $initial; //Constant value from temper
 T0         	 T0 [0 0 0 0 0 0 0] $T0; //Melting temperature
 //T         	 T0 [0 0 0 0 0 0 0] 0.95; //Operating temperature
 delta_01         delta_01 [0 0 0 0 0 0 0] $dab; //0.00; //Strength of anisotropy
-theta_val         theta_val [0 0 0 0 0 0 0] 0.0; //Constant orientation in radian
+theta_x         theta_x [0 0 0 0 0 0 0] $theta_x; //0.785; //Constant orientation in radian about x
+theta_y         theta_y [0 0 0 0 0 0 0] $theta_y; //0.785; //Constant orientation in radian about y
+theta_val         theta_val [0 0 0 0 0 0 0] $theta_z; //0.785; //Constant orientation in radian about z
 eps         eps [0 0 0 0 0 0 0] 1e-3; // value added to denominator of g_phi
 mu_th          mu_th [0 0 0 0 0 0 0] 0.5; // mu^2 is the strength of the coupling in alpha equation
 Vm              Vm [0 0 0 0 0 0 0] $Vm; //1.0e-5; // Molar volume
@@ -62,6 +64,11 @@ M_Scale 0.05;
 seedRadius 3.2e-9;
 
 numSeeds 6; //Maximum number depending on probability of nucleation
+
+dt_0 3.0;
+dt_s 1.0; // Temperature parameters in probability of nucleation
+
+nucleation_interval 1000;
 
 /*
 dcdmu_1[0][0]   0.6666;

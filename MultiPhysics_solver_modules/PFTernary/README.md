@@ -1,8 +1,12 @@
 An OpenFOAM phase-field solver to simulate solidification of ternary alloys
 
-## PFOFTernaryThermo
+## PFTernary
 
 It contains the source files of the solver.
+
+## dendriteAlZn
+
+It contains the OpenFOAM case files required to run the single dendrite problem for NiAlMo alloy.
 
 ## multigrainNiAlMo
 

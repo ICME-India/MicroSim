@@ -4,6 +4,14 @@ An OpenFOAM phase-field solver to simulate solidification of binary alloys
 
 It contains the source files of the solver.
 
+## dendriteAlZn
+
+It contains the OpenFOAM case files required to run the single dendrite problem for AlZn alloy.
+
+## dendriteNiNb
+
+It contains the OpenFOAM case files required to run the single dendrite problem for NiNb alloy.
+
 ## multigrainAlZn
 
 It contains the OpenFOAM case files required to run the multigrain problem for AlZn alloy.

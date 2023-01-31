@@ -75,7 +75,7 @@ Function_anisotropy = 1;
 Anisotropy_type = 4; 
 dab = {0.00};
 #Rotation_matrix = {0, 1, Euler_x(ang), Euler_y(ang), Euler_z(ang)};
-Rotation_matrix = {0, 1, 0, 0, 45};
+Rotation_matrix = {0, 1, 0, 0, 0};
 ##Potential function
 Function_W = 1;
 Gamma_abc = {};

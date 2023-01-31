@@ -57,15 +57,15 @@ Copy the modules to the OpenFOAM run directory. For instance, to copy the direct
 
 Solver has to be compiled from the corresponding solver directory. For instance:
 
-> cd $FOAM_RUN/PFBinary/PFOFBinaryThermo
+> cd $FOAM_RUN/PFBinary/PFBinary
 
 > wclean
 
 > wmake
 
-Finally, switch to the case directory, e.g. binaryCooling:
+Finally, switch to the case directory, e.g. coolingAlZn:
 
-> cd $FOAM_RUN/PFBinary/binaryCooling
+> cd $FOAM_RUN/PFBinary/coolingAlZn
 
 To run the case with the default parameters, execute the following:
 

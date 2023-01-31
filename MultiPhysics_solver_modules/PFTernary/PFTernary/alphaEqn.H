@@ -3,7 +3,8 @@
 #include "clock.H"
 Random randNum(clock::getTime());
 
-
+if (swch == 2)
+    {
 strain = ((gradD-phi*phi*(3-2*phi)*cEigenStrain)&&symmTensor(1,0,0,0,0,0))*symmTensor(1,0,0,0,0,0)
        + ((gradD-phi*phi*(3-2*phi)*cEigenStrain)&&symmTensor(0,0,0,1,0,0))*symmTensor(0,0,0,1,0,0)
        + ((gradD-phi*phi*(3-2*phi)*cEigenStrain)&&symmTensor(0,0,0,0,0,1))*symmTensor(0,0,0,0,0,1);
@@ -17,7 +18,7 @@ Sigma = (2*(mu1_elast*phi*phi*(3-2*phi) + mu2_elast*(1-phi)*(1-phi)*(1+2*phi))*(
 deltaSigmaD = ((mu1_elast-mu2_elast)*twoSymm(fvc::grad(D))           + (lambda1-lambda2)*(I*tr(fvc::grad(D))) 
             - 2*(mu1_elast-mu2_elast)*phi*phi*(3-2*phi)*cEigenStrain - (lambda1-lambda2)*(I*tr(phi*phi*(3-2*phi)*cEigenStrain)))
             + (mu1_elast_-mu2_elast_)*strain;
-
+}
             
 // Grand potential of solidus (alpha) and liquidus for each components
 /*
@@ -48,7 +49,9 @@ omega*epsilon*dimt*fvm::ddt(phi)     //alpha=1 liquid phase
     - 6.0*phi*(1-phi)*(0.5*(deltaSigmaD && (symm(fvc::grad(D))-phi*phi*(3-2*phi)*cEigenStrain))-(Sigma && cEigenStrain))
 );
 
-alphaEqn.solve();
+//alphaEqn.solve();
+
+InitialResidual_p = alphaEqn.solve().max().initialResidual();
 
 //deltaF = (6.0*phi*(1-phi)*0.5*(deltaSigmaD && (symm(fvc::grad(D))-phi*phi*(3-2*phi)*cEigenStrain))-(Sigma && cEigenStrain));
 
@@ -75,7 +78,9 @@ fvScalarMatrix thetaEqn
     dimt*fvm::ddt(theta)  == 2*M_theta_func*mu_th*mu_th*(dimx*dimx*fvm::laplacian(g_phi,theta))
 );
 
-thetaEqn.solve();
+//thetaEqn.solve();
+
+InitialResidual_t = thetaEqn.solve().max().initialResidual();
 }
 
     // Writing into the log file

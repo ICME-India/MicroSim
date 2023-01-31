@@ -108,4 +108,14 @@ stressAnalysis
     D               1e-05;
 }
 
+Tol_is_defined_here
+{
+    Tol 1e-4; //get_tol_from_this
+}
+
+deltaTFactor
+{
+    dtf 0.1; //get_dtf_from_this
+}
+
 // ************************************************************************* //
