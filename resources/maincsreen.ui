@@ -4546,7 +4546,7 @@ background-color: rgb(64, 140, 191);
        <enum>QFrame::Raised</enum>
       </property>
       <property name="currentIndex">
-       <number>0</number>
+       <number>2</number>
       </property>
       <widget class="QWidget" name="page">
        <property name="styleSheet">
@@ -7249,7 +7249,7 @@ background-color: rgb(64, 140, 191);
 </string>
       </property>
       <property name="currentIndex">
-       <number>0</number>
+       <number>1</number>
       </property>
       <widget class="QWidget" name="page_6">
        <property name="styleSheet">
@@ -13387,9 +13387,9 @@ border :1px solid rgb(192, 191, 188);
            <property name="geometry">
             <rect>
              <x>0</x>
-             <y>-319</y>
+             <y>-300</y>
              <width>206</width>
-             <height>1295</height>
+             <height>1342</height>
             </rect>
            </property>
            <property name="styleSheet">
@@ -13916,6 +13916,7 @@ background-color: rgba(114, 159, 207,80);
 border:none;
 text-align:left;
 padding-left:10px;
+margin-bottom: 10px;
 }
 
 #triple_pointbtn::hover{
@@ -13928,6 +13929,38 @@ background-color: rgba(114, 159, 207,80);
               </property>
               <property name="text">
                <string> Triple Point           </string>
+              </property>
+              <property name="icon">
+               <iconset>
+                <normaloff>img/triplePoint.png</normaloff>img/triplePoint.png</iconset>
+              </property>
+              <property name="iconSize">
+               <size>
+                <width>31</width>
+                <height>31</height>
+               </size>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPushButton" name="quad_pointbtn">
+              <property name="styleSheet">
+               <string notr="true">#quad_pointbtn{
+border:none;
+text-align:left;
+padding-left:10px;
+}
+
+#quad_pointbtn::hover{
+background-color: rgba(114, 159, 207,80);
+}
+
+#quad_pointbtn::pressed{
+	background-color: rgb(238, 238, 236);
+}</string>
+              </property>
+              <property name="text">
+               <string>Quadruple Point           </string>
               </property>
               <property name="icon">
                <iconset>
@@ -15635,6 +15668,11 @@ background-color: rgb(64, 140, 191);
        <string/>
       </property>
      </widget>
+     <zorder>exportToCSV</zorder>
+     <zorder>plotwrtTime</zorder>
+     <zorder>plotwrtTimeAll</zorder>
+     <zorder>error_table_plot</zorder>
+     <zorder>table_ppt_size</zorder>
     </widget>
     <widget class="QWidget" name="table_plot_widget" native="true">
      <property name="geometry">
@@ -15785,13 +15823,90 @@ color:white;
       </property>
      </widget>
     </widget>
+    <widget class="QWidget" name="quad_point_widget" native="true">
+     <property name="geometry">
+      <rect>
+       <x>420</x>
+       <y>70</y>
+       <width>350</width>
+       <height>450</height>
+      </rect>
+     </property>
+     <widget class="QTableWidget" name="table_quadPoint">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>40</y>
+        <width>331</width>
+        <height>361</height>
+       </rect>
+      </property>
+      <property name="styleSheet">
+       <string notr="true">background-color: rgb(238, 238, 236);
+</string>
+      </property>
+      <property name="horizontalScrollBarPolicy">
+       <enum>Qt::ScrollBarAlwaysOff</enum>
+      </property>
+      <attribute name="horizontalHeaderDefaultSectionSize">
+       <number>146</number>
+      </attribute>
+      <column>
+       <property name="text">
+        <string>Triple Point</string>
+       </property>
+      </column>
+      <column>
+       <property name="text">
+        <string>Coordinates</string>
+       </property>
+      </column>
+     </widget>
+     <widget class="QLabel" name="label_186">
+      <property name="geometry">
+       <rect>
+        <x>100</x>
+        <y>10</y>
+        <width>151</width>
+        <height>21</height>
+       </rect>
+      </property>
+      <property name="font">
+       <font>
+        <pointsize>13</pointsize>
+        <weight>75</weight>
+        <bold>true</bold>
+       </font>
+      </property>
+      <property name="text">
+       <string>Triple Point Table</string>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="quad_point_save">
+      <property name="geometry">
+       <rect>
+        <x>248</x>
+        <y>410</y>
+        <width>91</width>
+        <height>31</height>
+       </rect>
+      </property>
+      <property name="styleSheet">
+       <string notr="true">background-color: rgb(186, 189, 182);</string>
+      </property>
+      <property name="text">
+       <string>Save</string>
+      </property>
+     </widget>
+    </widget>
     <zorder>widget_12</zorder>
     <zorder>SimulationDetail</zorder>
     <zorder>pptRadius</zorder>
-    <zorder>triple_point_widget</zorder>
     <zorder>imgShow</zorder>
-    <zorder>pptPlot</zorder>
     <zorder>table_plot_widget</zorder>
+    <zorder>triple_point_widget</zorder>
+    <zorder>quad_point_widget</zorder>
+    <zorder>pptPlot</zorder>
    </widget>
    <widget class="QWidget" name="h5tovtk_Screen" native="true">
     <property name="geometry">

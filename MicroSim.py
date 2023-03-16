@@ -83,6 +83,7 @@ class StartScreen(QDialog):
         self.PPimage_widge.hide()
         self.PPexport_widge.hide()
         self.triple_point_widget.hide()
+        self.quad_point_widget.hide()
         
         self.ppToolwidget.setEnabled(False)
 
@@ -834,7 +835,7 @@ class StartScreen(QDialog):
         #Main Screen 
         self.NSMheading.setGeometry( int((370*self.display_W)) , 0,561,101)
 
-        self.jobScript_widget.setGeometry( ( self.width() - 825 )/2 , (self.height() - 461)/2 , 825, 461  )
+        self.jobScript_widget.setGeometry( int(( self.width() - 825 )/2) , int((self.height() - 461)/2) , 825, 461  )
 
 
         
@@ -2815,7 +2816,7 @@ class StartScreen(QDialog):
 
 
         with open(self.PPdataDir,errors='ignore') as myfile:
-            head = [next(myfile) for x in range(15)]
+            head = [next(myfile) for x in range(10)]
 
         for line in head:
             b= line.strip().split(" ")
@@ -3628,10 +3629,18 @@ class StartScreen(QDialog):
         self.canvas_ppt.draw()
         
     def triple_pointbtnClicked(self):
-        
-        self.triple_point_value= triple_point( self.vtkData ,self.timeItretion,self.scalerValue.currentText())
+
+        AllItems = [self.scalerValue.itemText(i) for i in range(self.scalerValue.count())]
+
+        if(self.dataset == "UNSTRUCTURED_GRID"):
+            grid_shape = [self.PP_dimX , self.PP_dimY, self.PP_dimZ]
+        else:
+            grid_shape = self.vtkData[0].GetDimensions()
+
+        self.triple_point_value= triple_point( self.vtkData ,self.dataset,grid_shape, self.timeItretion,self.scalerValue.currentText())
         
         self.triple_point_widget.show()
+        self.quad_point_widget.hide()
         self.SimulationDetail.hide()
         self.pptRadius.hide()
         
@@ -3645,6 +3654,7 @@ class StartScreen(QDialog):
         self.tip_radius_flag = 0
         self.front_undercool_flag = 0
         self.triple_point_flag = 1
+        self.quad_point_flag = 0
         self.pointCorrelation_flag = 0
         self.pricipalComponent_flag = 0
         self.contourPlot_flag = 0
