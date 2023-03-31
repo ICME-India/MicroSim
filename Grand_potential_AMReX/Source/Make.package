@@ -1,2 +1,7 @@
 CEXE_sources += main.cpp 
-CEXE_headers += anisotropy.H boundary_condition.H calc.H derivative.H Function_F4.H functions.H FunctionW.H Initialise_functions.H Initialize.H interp.H Readinput.H Tau.H Thcoupling.H Variables.H
+CEXE_headers += anisotropy.H boundary_condition.H calc.H derivative.H Function_F4.H functions.H FunctionW.H Initialise_functions.H Initialize.H interp.H Readinput.H Chkpnt.H Tau.H Thcoupling.H Variables.H
+
+##CC = mpiicc
+##CXX = mpiicpc
+##FC = mpiifort
+##F90 = mpiifort

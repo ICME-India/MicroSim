@@ -42,7 +42,7 @@ using namespace amrex;
 
 void computeterm1(MultiFab& term1, MultiFab& phi_old, MultiFab& derivx, MultiFab& derivy, Geometry const& geom){
 	
-		
+	BL_PROFILE("computeterm1()");	
 
     for (MFIter mfi(phi_old); mfi.isValid(); ++mfi)
 	{
@@ -55,12 +55,12 @@ void computeterm1(MultiFab& term1, MultiFab& phi_old, MultiFab& derivx, MultiFab
 		Real dabb = dab;
 		Real rot_angle = rotmat.back();
 		
-		     GpuArray<Real,AMREX_SPACEDIM> dx = geom.CellSizeArray();
 
 		amrex::ParallelFor( bbx, 
 		[=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
 		{
 		
+		     GpuArray<Real,AMREX_SPACEDIM> dx = geom.CellSizeArray();
 
 			Array1D <Real,0,3> nx;
 			Array1D <Real,0,3> ny;

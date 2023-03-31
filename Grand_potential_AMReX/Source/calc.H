@@ -20,6 +20,7 @@ using namespace amrex;
 
 void update_phi(MultiFab& phi_new, MultiFab& phi_old, MultiFab& term1, MultiFab& term2, MultiFab& term3)
 {	
+	BL_PROFILE("update_phi()");	
 
 	for (MFIter mfi(phi_old); mfi.isValid(); ++mfi)
 	{
@@ -51,6 +52,8 @@ void update_phi(MultiFab& phi_new, MultiFab& phi_old, MultiFab& term1, MultiFab&
 
 void dmudt(MultiFab& mu_new, MultiFab& mu_old, MultiFab& phi_new, MultiFab& phi_old, MultiFab& derivx, MultiFab& derivy, MultiFab& h_phi, MultiFab& dh_dphi, Geometry const& geom)
 {
+	BL_PROFILE("dmudt()");
+
 	GpuArray<Real,AMREX_SPACEDIM> dx = geom.CellSizeArray();
 
 	for ( MFIter mfi(phi_old); mfi.isValid(); ++mfi )
@@ -85,11 +88,11 @@ void dmudt(MultiFab& mu_new, MultiFab& mu_old, MultiFab& phi_new, MultiFab& phi_
 		amrex::ParallelFor(vbx,
         [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {	
-			if(phiold(i,j,k)==1 || phiold(i,j,k)==0){
-					mun(i,j,k) = muo(i,j,k);
-			}
+			//if(phiold(i,j,k)==1 || phiold(i,j,k)==0){
+			//		mun(i,j,k) = muo(i,j,k);
+			//}
 
-			else{
+			//else{
 			Real calpha = (muo(i,j,k) - (BB(0)))*(der_cmu(0));
 
 			Real cbeta = muo(i,j,k)*(der_cmu(1));
@@ -107,28 +110,28 @@ void dmudt(MultiFab& mu_new, MultiFab& mu_old, MultiFab& phi_new, MultiFab& phi_
 			Real jatx_iph, jatx_imh, jaty_jph, jaty_jmh;
 
 			if(modphisq_iph>1e-15){
-			jatx_iph = (0.5/sqrt(2))*epsilon*(cbeta-calpha)*(((phinew(i+1,j,k)+phinew(i,j,k))*0.5 - (phiold(i+1,j,k)+phiold(i,j,k))*0.5)/time_step)*(derivxx(i,j,k,0)/sqrt(modphisq_iph));
+			jatx_iph = -(0.5/sqrt(2))*epsilon*(cbeta-calpha)*(((phinew(i+1,j,k)+phinew(i,j,k))*0.5 - (phiold(i+1,j,k)+phiold(i,j,k))*0.5)/time_step)*(derivxx(i,j,k,0)/sqrt(modphisq_iph));
 			}
 			else{
 				jatx_iph = 0.0;
 			}
 
 			if(modphisq_imh>1e-15){
-			jatx_imh = (0.5/sqrt(2))*epsilon*(cbeta-calpha)*(((phinew(i-1,j,k)+phinew(i,j,k))*0.5 - (phiold(i-1,j,k)+phiold(i,j,k))*0.5)/time_step)*(derivxx(i,j,k,1)/sqrt(modphisq_imh));
+			jatx_imh = -(0.5/sqrt(2))*epsilon*(cbeta-calpha)*(((phinew(i-1,j,k)+phinew(i,j,k))*0.5 - (phiold(i-1,j,k)+phiold(i,j,k))*0.5)/time_step)*(derivxx(i,j,k,1)/sqrt(modphisq_imh));
 			}
 			else{
 				jatx_imh = 0.0;
 			}
 
 			if(modphisq_jph>1e-15){
-			jaty_jph = (0.5/sqrt(2))*epsilon*(cbeta-calpha)*(((phinew(i,j+1,k)+phinew(i,j,k))*0.5 - (phiold(i,j+1,k)+phiold(i,j,k))*0.5)/time_step)*(derivyy(i,j,k,2)/sqrt(modphisq_jph));
+			jaty_jph = -(0.5/sqrt(2))*epsilon*(cbeta-calpha)*(((phinew(i,j+1,k)+phinew(i,j,k))*0.5 - (phiold(i,j+1,k)+phiold(i,j,k))*0.5)/time_step)*(derivyy(i,j,k,2)/sqrt(modphisq_jph));
 			}
 			else{
 				jaty_jph = 0.0;
 			}
 
 			if(modphisq_jmh>1e-15){
-			jaty_jmh = (0.5/sqrt(2))*epsilon*(cbeta-calpha)*(((phinew(i,j-1,k)+phinew(i,j,k))*0.5 - (phiold(i,j-1,k)+phiold(i,j,k))*0.5)/time_step)*(derivyy(i,j,k,3)/sqrt(modphisq_jmh));
+			jaty_jmh = -(0.5/sqrt(2))*epsilon*(cbeta-calpha)*(((phinew(i,j-1,k)+phinew(i,j,k))*0.5 - (phiold(i,j-1,k)+phiold(i,j,k))*0.5)/time_step)*(derivyy(i,j,k,3)/sqrt(modphisq_jmh));
 			}
 			else{
 				jaty_jmh = 0.0;
@@ -150,7 +153,7 @@ void dmudt(MultiFab& mu_new, MultiFab& mu_old, MultiFab& phi_new, MultiFab& phi_
 			Real dmudt = (dbdx + dbdy - cdhdt)/coeffdmudt;
 
 			mun(i,j,k) = muo(i,j,k) + dmudt*time_step;
-			}
+			//}
 		});
 	
 	}

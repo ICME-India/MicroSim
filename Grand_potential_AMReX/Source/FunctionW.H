@@ -5,6 +5,7 @@ using namespace amrex;
 
 void computeterm2(amrex::MultiFab& term2, amrex::MultiFab& phi_old)
 {
+	BL_PROFILE("computeterm2()");
 	
 	for ( MFIter mfi(phi_old); mfi.isValid(); ++mfi )
     {

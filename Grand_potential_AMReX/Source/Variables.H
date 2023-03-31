@@ -219,8 +219,23 @@ void (*function_D)();
 void (*Initialise_phi)(MultiFab& qer);
 
 
-//Anisotropy
+//General variables
+Real timee = 0.0;
+std::string restart_chkfile = "";
+std::string chk_file = "chk";
+int stepnum = 0;
+Vector<BoxArray> grids;
+int n=0;
+Vector <int> numb;
+int val1=0;
+int val2=0;
 
+double strt_time;
+double stop_time;
+double rst_time=0.0;
 
-
+Vector<Vector<Real>> conc;
+Vector<Vector<double>> conc_Sol;
+Vector<Vector<double>> conc_Liq;
+Vector<Vector<double>> temprt;
 #endif
