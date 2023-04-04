@@ -8,6 +8,8 @@ using namespace amrex;
 
 void Func_H(MultiFab& h_phi,MultiFab& dh_dphi, MultiFab& phi_old){
 
+	BL_PROFILE("Func_H()");
+
     for ( MFIter mfi(phi_old); mfi.isValid(); ++mfi )
     {
         const Box& vbx = mfi.validbox();
@@ -18,25 +20,25 @@ void Func_H(MultiFab& h_phi,MultiFab& dh_dphi, MultiFab& phi_old){
 		amrex::ParallelFor(vbx,
         [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
-            if(phiold(i,j,k) == 0)
-            {
-                arrh_phi(i,j,k) = 0;
-            }
-            else if(phiold(i,j,k) == 1){
+            // if(phiold(i,j,k) == 0)
+            // {
+            //     arrh_phi(i,j,k) = 0;
+            // }
+            // else if(phiold(i,j,k) == 1){
                 
-                arrh_phi(i,j,k) = 1;
-            }
-            else{
-                arrh_phi(i,j,k) = pow(phiold(i,j,k),3)*(10.0 - 15.0*phiold(i,j,k) + 6.0*pow(phiold(i,j,k),2));
-            }
+            //     arrh_phi(i,j,k) = 1;
+            // }
+            //else{
+            arrh_phi(i,j,k) = pow(phiold(i,j,k),3)*(10.0 - 15.0*phiold(i,j,k) + 6.0*pow(phiold(i,j,k),2));
+            //}
 
-            if(phiold(i,j,k) == 0 || phiold(i,j,k) == 1)
-            {
-                arrdh_dphi(i,j,k) = 0;
-            }
-            else{
+            //if(phiold(i,j,k) == 0 || phiold(i,j,k) == 1)
+            //{
+            //    arrdh_dphi(i,j,k) = 0;
+            //}
+            //else{
             arrdh_dphi(i,j,k) = 30.0*pow(phiold(i,j,k),2)*pow((1.0-phiold(i,j,k)),2);
-            }
+            //}
 		});
 	
 	}

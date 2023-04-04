@@ -19,7 +19,8 @@ transform(x.begin(),x.end(), back_inserter(y), [](const string & astr){return st
 
 void readinput(){
 
-{
+	BL_PROFILE("readinput()");
+{	
         ParmParse pp;
         pp.get("DIMENSION",s_dim);
         pp.get("MESH_X",s_ncellx);

@@ -10,7 +10,9 @@ using namespace amrex;
 
 void compute_der(MultiFab& phi_old, MultiFab& derivx, MultiFab& derivy, Geometry const& geom)
 {   
-    GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
+	BL_PROFILE("compute_der()");  
+
+  GpuArray<Real, AMREX_SPACEDIM> dx = geom.CellSizeArray();
 
     for ( MFIter mfi(phi_old); mfi.isValid(); ++mfi )
     {
