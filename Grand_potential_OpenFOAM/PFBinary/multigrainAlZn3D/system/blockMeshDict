@@ -1,0 +1,118 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  4.0                                   |
+|   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      blockMeshDict;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+#include "../generatedInput"
+
+convertToMeters $DELTA_X; //1.0e-8;
+x_min 0;
+x_max $MESH_X; //200; //direction of growth
+y_min 0;
+y_max $MESH_Y; //200;
+z_min 0;
+z_max $MESH_Z; //1;
+
+// should all be integers
+lx #calc "$x_max - $x_min";
+ly #calc "$y_max - $y_min";
+lz #calc "$z_max - $z_min"; // should all be integers
+vertices
+(
+	($x_min $y_min $z_min)
+    ($x_max $y_min $z_min)
+    ($x_max $y_max $z_min)
+    ($x_min $y_max $z_min)
+    ($x_min $y_min $z_max)
+    ($x_max $y_min $z_max)
+    ($x_max $y_max $z_max)
+    ($x_min $y_max $z_max)
+);
+
+blocks
+(
+    hex (0 1 2 3 4 5 6 7) ($lx $ly $lz) simpleGrading (1 1 1) //(13 13 1)
+// for dx = 0.5: simpleGrading (2 2 2) or convertToMeters = 0.5
+);
+
+edges
+(
+);
+
+//================ FOR ZERO-FLUX BOUNDARY CONDITIONS ============
+boundary
+(
+    negXBound        //negative x dir
+    {
+        type cyclic;
+        neighbourPatch posXBound;
+        faces
+        (
+            (0 4 7 3)
+        );
+    }
+    posXBound       //positive x dir
+    {
+        type cyclic;
+        neighbourPatch negXBound;
+
+        faces
+        (
+            (1 2 6 5)
+        );
+    }
+    negYBound       // negative y dir
+    {
+        type cyclic;
+        neighbourPatch posYBound;
+        faces
+        (
+                  (0 1 5 4)
+        );
+    }
+    posYBound        // positive y dir
+    {
+        type cyclic;
+        neighbourPatch negYBound;
+        faces
+        (
+                  (2 3 7 6)
+        );
+    }
+    negZBound
+    {
+        type cyclic;
+        neighbourPatch posZBound;
+        faces
+        (
+            (0 3 2 1)
+        );
+    }
+    posZBound
+    {
+        type cyclic;
+        neighbourPatch negZBound;
+        faces
+        (
+            (4 5 6 7)
+        );
+    }
+);
+
+
+mergePatchPairs
+(
+        
+);
+
+// ************************************************************************* //
