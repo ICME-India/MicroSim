@@ -117,7 +117,7 @@ The following contributers are acknowledged
  * This is alpha version of the code and check for updates in future release. 
  * 
 
-## MultiPhysics Solver
+## Grand-potential OpenFOAM
 
 An OpenFOAM phase-field solver to simulate solidification of binary and ternary alloys
 
