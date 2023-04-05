@@ -227,6 +227,6 @@ To Install PIP3(For Python 3+):
      pip install pycalphad==0.9.2 
      
 To run the code use 
-     python ./InfileGenerator.py
+     python ./MicroSim.py
      
 Developed by- Ajay Sagar
