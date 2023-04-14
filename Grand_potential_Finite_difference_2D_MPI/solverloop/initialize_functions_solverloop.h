@@ -112,8 +112,38 @@ void initialize_functions_solverloop(){
     calculate_divergence_concentration_smooth_concentration = calculate_divergence_concentration_smooth_concentration_2D;
     calculate_divergence_phasefield                         = calculate_divergence_phasefield_2D;
     calculate_divergence_phasefield_smooth                  = calculate_divergence_phasefield_smooth_2D;
+    calculate_divergence_stress                             = calculate_divergence_stress_2D;
+    calculate_gradients_stress                              = calculate_gradients_stress_2D;
     solverloop_concentration                                = solverloop_concentration_tdb;
     solverloop_phasefield                                   = solverloop_phasefield_tdb;
+    writetofile_mpi                                         = writetofile_mpi2D;
+    writetofile_mpi_binary                                  = writetofile_mpi2D_binary;
+    writetofile_mpi_hdf5                                    = writetofile_mpi2D_hdf5;
+    readfromfile_mpi_hdf5                                   = readfromfile_mpi2D_hdf5;
+    readfromfile_mpi                                        = readfromfile_mpi2D;
+    readfromfile_mpi_binary                                 = readfromfile_mpi2D_binary;
+    compute_error                                           = compute_error_2D;
+    df_elast                                                = df_elast_2D;
+  } else {
+    calculate_gradients_phasefield                          = calculate_gradients_phasefield_3D;
+    calculate_gradients_concentration                       = calculate_gradients_concentration_3D;
+    calculate_fluxes_concentration                          = calculate_fluxes_concentration_3D;
+    calculate_divergence_concentration                      = calculate_divergence_concentration_3D;
+    calculate_divergence_concentration_smooth               = calculate_divergence_concentration_smooth_3D;
+    calculate_divergence_concentration_smooth_concentration = calculate_divergence_concentration_smooth_concentration_3D;
+    calculate_divergence_phasefield                         = calculate_divergence_phasefield_3D;
+    calculate_divergence_phasefield_smooth                  = calculate_divergence_phasefield_smooth_3D;
+    calculate_divergence_stress                             = calculate_divergence_stress_3D;
+    calculate_gradients_stress                              = calculate_gradients_stress_3D;
+    solverloop_concentration                                = solverloop_concentration_tdb;
+    solverloop_phasefield                                   = solverloop_phasefield_tdb;
+    writetofile_mpi                                         = writetofile_mpi3D;
+    writetofile_mpi_binary                                  = writetofile_mpi3D_binary;
+    writetofile_mpi_hdf5                                    = writetofile_mpi3D_hdf5;
+    readfromfile_mpi_hdf5                                   = readfromfile_mpi3D_hdf5;
+    readfromfile_mpi_binary                                 = readfromfile_mpi3D_binary; 
+    compute_error                                           = compute_error_3D;
+    df_elast                                                = df_elast_3D;
   }
 }
 #endif

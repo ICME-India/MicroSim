@@ -23,6 +23,7 @@
 #include "functions/functionF_02.h"
 #include "functions/functionF_03.h"
 #include "functions/functionF_04.h"
+#include "functions/functionF_elast.h"
 #include "functions/functionQ.h"
 #include "functions/anisotropy_01.h"
 #include "functions/functionW_01.h"
@@ -49,11 +50,14 @@
 #include "solverloop/calculate_fluxes_concentration.h"
 #include "solverloop/calculate_divergence_phasefield.h"
 #include "solverloop/calculate_divergence_concentration.h"
+#include "solverloop/calculate_divergence_stress.h"
 #include "solverloop/solverloop.h"
-#include "solverloop/initialize_functions_solverloop.h"
-#include "solverloop/mpiinfo_xy.h"
-#include "solverloop/boundary_mpi.h"
 #include "solverloop/file_writer.h"
+#include "solverloop/file_writer_3D.h"
+// #include "solverloop/mpiinfo_xy.h"
+#include "solverloop/mpiinfo_xyz.h"
+#include "solverloop/boundary_mpi.h"
+#include "solverloop/initialize_functions_solverloop.h"
 
 // void writetofile_worker();
 
@@ -70,7 +74,6 @@ int main(int argc, char * argv[]) {
   read_boundary_conditions(argv);
   if (!(FUNCTION_F == 2)) {
     init_propertymatrices(T);
-//     printf("I am coming here\n");
   }
   
   for (a=0; a<NUMPHASES-1; a++) {
@@ -81,15 +84,30 @@ int main(int argc, char * argv[]) {
   }
 
   Build_derived_type(gridinfo_instance, &MPI_gridinfo);
-  
-  numworkers_x = atol(argv[4]);
-  numworkers_y = atol(argv[5]);
-  
-  if(numtasks != numworkers_x*numworkers_y) {
-    fprintf(stdin,"The domain decomposition does not correspond to the number of spawned tasks!!\n: number of processes=numworkers_x*numworkers_y");
-    exit(0);
+  if (ELASTICITY) {
+    Build_derived_type_stress(iter_gridinfo_w_instance, &MPI_iter_gridinfo);
   }
-
+  
+  
+  if(DIMENSION == 2) {
+    numworkers_x = atol(argv[4]);
+    numworkers_y = atol(argv[5]);
+    numworkers_z = 1;
+    if(numtasks != numworkers_x*numworkers_y) {
+      fprintf(stdin,"The domain decomposition does not correspond to the number of spawned tasks!!\n: number of processes=numworkers_x*numworkers_y");
+      exit(0);
+    }
+  } else {
+    numworkers_x = atol(argv[4]);
+    numworkers_y = atol(argv[5]);
+    numworkers_z = atol(argv[6]);
+    printf("numworkers_x=%d, numworkers_y=%d, numworkers_z=%d\n",numworkers_x, numworkers_y,  numworkers_z);
+    if(numtasks != numworkers_x*numworkers_y*numworkers_z) {
+      fprintf(stdin,"The domain decomposition does not correspond to the number of spawned tasks!!\n: number of processes=numworkers_x*numworkers_y");
+      exit(0);
+    }
+  }
+  
   if(taskid==MASTER) {
     mkdir("DATA",0777);
     if (!WRITEHDF5){
@@ -108,11 +126,24 @@ int main(int argc, char * argv[]) {
  
   populate_table_names();
   
+  if(ELASTICITY) {
+    for (b=0; b<NUMPHASES; b++) {
+      stiffness_phase_n[b].C11 = stiffness_phase[b].C11/stiffness_phase[NUMPHASES-1].C44;
+      stiffness_phase_n[b].C12 = stiffness_phase[b].C12/stiffness_phase[NUMPHASES-1].C44;
+      stiffness_phase_n[b].C44 = stiffness_phase[b].C44/stiffness_phase[NUMPHASES-1].C44;
+    }
+  }
+  
+//   if (DIMENSION == 2) {
+//     Mpiinfo(taskid);
+//   } else {
   Mpiinfo(taskid);
   
+ 
+//   }
 //   exit(0);
 //   if (FUNCTION_F == 2) {
-    Calculate_Tau();
+  Calculate_Tau();
 //   }
   
   //Checking tdb functions
@@ -145,13 +176,13 @@ int main(int argc, char * argv[]) {
   
   
   if ((STARTTIME !=0) || (RESTART !=0)) {
-    if (WRITEHDF5){
-      readfromfile_mpi2D_hdf5(gridinfo_w, argv, numworkers, STARTTIME);
+    if (WRITEHDF5) {
+      readfromfile_mpi_hdf5(gridinfo_w, argv, numworkers, STARTTIME);
     } else {
       if (ASCII) {
-        readfromfile_mpi2D(gridinfo_w, argv, STARTTIME);
+        readfromfile_mpi(gridinfo_w, argv, STARTTIME);
       } else {
-        readfromfile_mpi2D_binary(gridinfo_w, argv, STARTTIME);
+        readfromfile_mpi_binary(gridinfo_w, argv, STARTTIME);
       }
     }
     if (SHIFT) {
@@ -173,32 +204,37 @@ int main(int argc, char * argv[]) {
     }
   }
   
+  if(boundary_worker) {
+   apply_boundary_conditions(taskid);
+  }
+    
   mpiexchange_left_right(taskid);
   mpiexchange_top_bottom(taskid);
-    
+  if (DIMENSION==3) {
+    mpiexchange_front_back(taskid);
+  }
+  
   if (TEMPGRADY) {
     BASE_POS    = (temperature_gradientY.gradient_OFFSET/deltay) - shift_OFFSET;
     GRADIENT    = (temperature_gradientY.DeltaT)*deltay/(temperature_gradientY.Distance);
     temp_bottom = temperature_gradientY.base_temp - BASE_POS*GRADIENT + (workers_mpi.offset[Y]-workers_mpi.offset_y)*GRADIENT;
     apply_temperature_gradientY(gridinfo_w, shift_OFFSET, 0);
   }
+   
   
-  if(boundary_worker) {
-   apply_boundary_conditions(taskid);
-  }
-  
-
   if (!WRITEHDF5) {
-      if ((ASCII == 0)) {
-        writetofile_mpi2D_binary(gridinfo_w, argv, 0 + STARTTIME);
-      } else {
-        writetofile_mpi2D(gridinfo_w, argv, 0 + STARTTIME);
-      }
+    if ((ASCII == 0)) {
+      writetofile_mpi_binary(gridinfo_w, argv, 0 + STARTTIME);
+    } else {
+      writetofile_mpi(gridinfo_w, argv, 0 + STARTTIME);
+    }
   } else {
-    writetofile_mpi2D_hdf5(gridinfo_w, argv, 0 + STARTTIME);
+    writetofile_mpi_hdf5(gridinfo_w, argv, 0 + STARTTIME);
   }
-//   writetofile_worker();
   
+//   exit(0);
+//   writetofile_worker();
+
 //   Preconditioning
   for(t=1; t<nsmooth; t++) {
     smooth(workers_mpi.start, workers_mpi.end);
@@ -207,24 +243,32 @@ int main(int argc, char * argv[]) {
     }
     mpiexchange_left_right(taskid);
     mpiexchange_top_bottom(taskid);
+    if (DIMENSION == 3) {
+      mpiexchange_front_back(taskid);
+    }
   }
+  printf("Finished smoothing\n");
+//   exit(0);
   
   if (!WRITEHDF5) {
-      if ((ASCII == 0)) {
-        writetofile_mpi2D_binary(gridinfo_w, argv, 0 + STARTTIME);
-      } else {
-        writetofile_mpi2D(gridinfo_w, argv, 0 + STARTTIME);
-      }
+    if ((ASCII == 0)) {
+      writetofile_mpi_binary(gridinfo_w, argv, 0 + STARTTIME);
+    } else {
+      writetofile_mpi(gridinfo_w, argv, 0 + STARTTIME);
+    }
   } else {
-    writetofile_mpi2D_hdf5(gridinfo_w, argv, 0 + STARTTIME);
+    writetofile_mpi_hdf5(gridinfo_w, argv, 0 + STARTTIME);
   }
-  
-  printf("Finished Smoothing:%d\n", taskid);
+//   printf("Finished smoothing\n");
 //   exit(0);
+
   
   for(t=1;t<=ntimesteps;t++) {
     mpiexchange_left_right(taskid);
     mpiexchange_top_bottom(taskid);
+    if (DIMENSION == 3) {
+      mpiexchange_front_back(taskid);
+    }
     
     solverloop_phasefield(workers_mpi.start, workers_mpi.end);
     
@@ -233,6 +277,9 @@ int main(int argc, char * argv[]) {
     }
     mpiexchange_left_right(taskid);
     mpiexchange_top_bottom(taskid);
+    if (DIMENSION == 3) {
+      mpiexchange_front_back(taskid);
+    }
     
     solverloop_concentration(workers_mpi.start,workers_mpi.end);
     
@@ -241,6 +288,32 @@ int main(int argc, char * argv[]) {
       GRADIENT    = (temperature_gradientY.DeltaT)*deltay/(temperature_gradientY.Distance);
       temp_bottom = temperature_gradientY.base_temp - BASE_POS*GRADIENT + (workers_mpi.offset[Y]-workers_mpi.offset_y)*GRADIENT;
       apply_temperature_gradientY(gridinfo_w, shift_OFFSET, t);
+    }
+    
+    if (ELASTICITY) {
+      for(iter=1; iter < MAX_ITERATIONS; iter++) {		//elasticity solver
+		     mpiexchange_top_bottom_stress(taskid);
+		     mpiexchange_left_right_stress(taskid);
+         if (DIMENSION ==3) {
+           mpiexchange_front_back_stress(taskid);
+         }
+		     iterative_stress_solver(workers_mpi.start, workers_mpi.end);
+         if (boundary_worker) {
+		        apply_boundary_conditions_stress(taskid);
+         }
+		     
+// 		     if ((iter%100)==0) {
+//            error = 0.0;
+// 		       for(x=workers_mpi.start[X]; x<=workers_mpi.end[X]; x++) {
+// 		         compute_error(x, &error);
+// 		       }
+// 		       printf("error=%le\n", error);
+// 		       MPI_Reduce(&error,  &global_error,   1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+// 		       if (fabs(global_error) < tolerance) {
+// 		        break;
+// 		       }
+//          }
+      }
     }
   
     if (t%100 == 0) {
@@ -268,12 +341,12 @@ int main(int argc, char * argv[]) {
     if(t%saveT == 0) {
       if (!WRITEHDF5) {
         if ((ASCII == 0)) {
-          writetofile_mpi2D_binary(gridinfo_w, argv, t + STARTTIME);
+          writetofile_mpi_binary(gridinfo_w, argv, t + STARTTIME);
         } else {
-          writetofile_mpi2D(gridinfo_w, argv, t + STARTTIME);
+          writetofile_mpi(gridinfo_w, argv, t + STARTTIME);
         }
       } else {
-        writetofile_mpi2D_hdf5(gridinfo_w, argv, t + STARTTIME);
+        writetofile_mpi_hdf5(gridinfo_w, argv, t + STARTTIME);
       }
       if(SHIFT) {
         if (taskid == MASTER) {
@@ -323,8 +396,16 @@ int main(int argc, char * argv[]) {
     free(coordNames[i]);
   }
   MPI_Type_free(&MPI_gridinfo_vector_b);
+  MPI_Type_free(&MPI_gridinfo_vector_c);
   
   MPI_Type_free(&MPI_gridinfo);
+  
+  if (ELASTICITY) {
+    MPI_Type_free(&MPI_gridinfo_vector_b_stress);
+    MPI_Type_free(&MPI_gridinfo_vector_c_stress);
+    
+    MPI_Type_free(&MPI_iter_gridinfo);
+  }
   MPI_Finalize();
 }
 

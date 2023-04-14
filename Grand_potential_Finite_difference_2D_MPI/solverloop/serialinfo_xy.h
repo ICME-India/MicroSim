@@ -20,6 +20,7 @@ void serialinfo_xy() {
   layer_size = rows_y*rows_z;
   
   if (DIMENSION == 2) {
+    MESH_Z     = 1;
     rows_z     = 1;
     start[Z]   = 0; 
     end[Z]     = 0;

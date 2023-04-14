@@ -2,19 +2,22 @@ FDIR=functions
 SDIR=solverloop
 TDIR=tdbs
 CC=h5pcc
-CFLAGS=-I.
+# CFLAGS=-I.
+LDIR=/home/abhik/gsl/lib
+IDIR=/home/abhik/gsl/include
+CFLAGS=-I $(IDIR)
 
 _FUNCTION_DEPS = global_vars.h functions.h matrix.h utility_functions.h functionH.h functionF_01.h functionF_02.h functionF_03.h functionF_04.h functionQ.h \
-                 functionW_01.h functionW_02.h function_A_00.h function_A_01.h anisotropy_01.h functionTau.h \
+                 functionF_elast.h functionW_01.h functionW_02.h function_A_00.h function_A_01.h anisotropy_01.h functionTau.h \
                  functionD.h filling.h reading_input_parameters.h read_boundary_conditions.h print_boundary_conditions.h print_input_parameters.h \
                  initialize_variables.h free_variables.h fill_domain.h shift.h Temperature_gradient.h
                  
 DEPS = $(patsubst %,$(FDIR)/%,$(_FUNCTION_DEPS))
 
-_SOLVERLOOP_DEPS = serialinfo_xy.h mpiinfo_xy.h gradients.h simplex_projection.h calculate_gradients.h \
-		   calculate_fluxes_concentration.h calculate_divergence_phasefield.h calculate_divergence_concentration.h \
-		   initialize_functions_solverloop.h solverloop.h boundary_mpi.h \
-		   file_writer.h
+_SOLVERLOOP_DEPS = serialinfo_xy.h mpiinfo_xyz.h gradients.h simplex_projection.h calculate_gradients.h \
+		   calculate_fluxes_concentration.h calculate_divergence_phasefield.h calculate_divergence_concentration.h calculate_divergence_stress.h\
+		   file_writer.h file_writer_3D.h initialize_functions_solverloop.h solverloop.h boundary_mpi.h 
+		   
 
 DEPS += $(patsubst %,$(SDIR)/%,$(_SOLVERLOOP_DEPS))
 
@@ -22,7 +25,7 @@ _tdb_DEPS = Thermo.c Thermo.h
 
 DEPS += $(patsubst %,$(TDIR)/%,$(_tdb_DEPS))
 
-LIBS =-lm -lgsl -lgslcblas 
+LIBS =-L $(LDIR) -lm -lgsl -lgslcblas 
 
 all : microsim_gp write_xdmf reconstruct 
 

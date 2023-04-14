@@ -44,6 +44,10 @@ void fill_phase_cube(struct fill_cube fill_cube_parameters, struct fields* gridi
 void fill_phase_cylinder (struct fill_cylinder fill_cylinder_parameters, struct fields* gridinfo, long b);
 void fill_phase_sphere(struct fill_sphere fill_sphere_parameters, struct fields* gridinfo, long b);
 void fill_phase_ellipse (struct fill_ellipse fill_ellipse_parameters, struct fields* gridinfo, long b);
+void fill_phase_cylinder_occupancy(struct fill_cylinder fill_cylinder_parameters, struct fields* gridinfo, long b, int* occupancy);
+void fill_phase_sphere_random(long phase, double ppt_radius, double volume_fraction, long shield_dist, double spread);
+void fill_phase_sphere_random(long phase, double ppt_radius, double volume_fraction, long shield_dist, double spread);
+void fill_phase_sphere_occupancy(struct fill_sphere fill_sphere_parameters, struct fields* gridinfo, long b, int* occupancy);
 // void init_propertymatrices();
 void q_divx (struct gradlayer *grad1, struct gradlayer *grad1_front, long a, long b, double *qab);
 void q_divy (struct gradlayer *grad1, struct gradlayer *grad1_right, long a, long b, double *qab);
@@ -51,11 +55,20 @@ void q_dadphi (double *phi, struct gradlayer *grad1, long a,  long b , double *q
 void fill_composition_cube(struct fields* gridinfo);
 void reading_input_parameters(char *argv[]);
 void read_cells_hdf5_2D_mpi(hid_t file_id, struct fields* gridinfo_w);
+void read_cells_hdf5_3D_mpi(hid_t file_id, struct fields* gridinfo_w);
 void readfromfile_mpi2D_hdf5(struct fields* gridinfo, char *argv[], long numworkers, long t);
 void readfromfile_mpi2D(struct fields* gridinfo, char *argv[], long t);
 void readfromfile_mpi2D_binary(struct fields* gridinfo, char *argv[], long t);
+void readfromfile_mpi3D_hdf5(struct fields* gridinfo, char *argv[], long numworkers, long t);
+void readfromfile_mpi3D(struct fields* gridinfo, char *argv[], long t);
+void readfromfile_mpi3D_binary(struct fields* gridinfo, char *argv[], long t);
 void read_cells_vtk_2D_mpi(FILE *fp, struct fields* gridinfo_w);
+void read_cells_vtk_3D_mpi(FILE *fp, struct fields* gridinfo_w);
 void read_cells_vtk_2D_mpibinary(FILE *fp, struct fields* gridinfo_w);
+void read_cells_vtk_3D_mpibinary(FILE *fp, struct fields* gridinfo_w);
+void writetofile_mpi3D(struct fields* gridinfo, char *argv[], long t);
+void writetofile_mpi3D_binary(struct fields* gridinfo, char *argv[], long t);
+void writetofile_mpi3D_hdf5(struct fields* gridinfo, char *argv[], long t);
 void apply_shiftY(struct fields* gridinfo, long INTERFACE_POS_GLOBAL);
 void apply_temperature_gradientY(struct fields* gridinfo, long shift_OFFSET, long t);
 void free_variables();
@@ -85,7 +98,7 @@ void Build_derived_type(struct fields* myNode, MPI_Datatype* MPI_gridinfo) {
 //   displacements[3] = sizeof(double)*NUMPHASES + sizeof(double)*(NUMCOMPONENTS-1) + sizeof(double)*NUMPHASES;
   displacements[0] = 0;
   displacements[1] = NUMPHASES;
-  displacements[2] = NUMPHASES + (NUMCOMPONENTS-1);
+  displacements[2] = NUMPHASES +   (NUMCOMPONENTS-1);
   displacements[3] = NUMPHASES + 2*(NUMCOMPONENTS-1);
   displacements[4] = NUMPHASES + 2*(NUMCOMPONENTS-1) + NUMPHASES;
 //   MPI_Get_address(&((*myNode)),&start_address);
@@ -103,6 +116,53 @@ void Build_derived_type(struct fields* myNode, MPI_Datatype* MPI_gridinfo) {
   
   MPI_Type_contiguous(SIZE_STRUCT_FIELDS, MPI_DOUBLE, MPI_gridinfo);
   MPI_Type_commit(MPI_gridinfo);
+  
+//   printf("Displacements[0]=%ld,Displacements[1]=%ld,Displacements[2]=%ld,Displacements[3]=%ld, start_address=%ld,address=%ld\n",displacements[0],displacements[1],displacements[2],displacements[3],start_address,address);
+}
+void Build_derived_type_stress(struct iter_variables* myNode, MPI_Datatype* MPI_iter_gridinfo) {
+  int block_lengths[1];
+//   MPI_Aint displacements[4];
+  int displacements[1];
+  MPI_Datatype typelists[1];
+  MPI_Aint start_address;
+  MPI_Aint address;
+  //fill block lengths
+  block_lengths[0] = 3*3;
+//   block_lengths[1] = NUMCOMPONENTS-1;
+//   block_lengths[2] = NUMCOMPONENTS-1;
+//   block_lengths[3] = NUMPHASES;
+//   block_lengths[4] = 1;
+  //Fill Typelists
+  typelists[0] = MPI_DOUBLE;
+//   typelists[1] = MPI_DOUBLE;
+//   typelists[2] = MPI_DOUBLE;
+//   typelists[3] = MPI_DOUBLE;
+//   typelists[4] = MPI_DOUBLE;
+  //Calculate Displacements
+//   displacements[0] = 0;
+//   displacements[1] = sizeof(double)*NUMPHASES;
+//   displacements[2] = sizeof(double)*NUMPHASES + sizeof(double)*(NUMCOMPONENTS-1);
+//   displacements[3] = sizeof(double)*NUMPHASES + sizeof(double)*(NUMCOMPONENTS-1) + sizeof(double)*NUMPHASES;
+  displacements[0] = 0;
+//   displacements[1] = NUMPHASES;
+//   displacements[2] = NUMPHASES +   (NUMCOMPONENTS-1);
+//   displacements[3] = NUMPHASES + 2*(NUMCOMPONENTS-1);
+//   displacements[4] = NUMPHASES + 2*(NUMCOMPONENTS-1) + NUMPHASES;
+//   MPI_Get_address(&((*myNode)),&start_address);
+//   MPI_Get_address(&((*myNode).phia),&start_address);
+//   MPI_Get_address(&((*myNode).compi),&address);
+//   displacements[1] = address - start_address;
+//   MPI_Get_address(&((*myNode).deltaphi),&address);
+//   displacements[2] = address - start_address;
+//   MPI_Get_address(&((*myNode).temperature),&address);
+//   displacements[3] = address - start_address;
+// //   //Create and Commit new mpi type
+//   MPI_Type_create_struct(4,block_lengths,displacements,typelists,MPI_gridinfo);
+  
+//   MPI_Type_indexed(4, block_lengths, displacements, MPI_DOUBLE, MPI_gridinfo);
+  
+  MPI_Type_contiguous(9, MPI_DOUBLE, MPI_iter_gridinfo);
+  MPI_Type_commit(MPI_iter_gridinfo);
   
 //   printf("Displacements[0]=%ld,Displacements[1]=%ld,Displacements[2]=%ld,Displacements[3]=%ld, start_address=%ld,address=%ld\n",displacements[0],displacements[1],displacements[2],displacements[3],start_address,address);
 }
