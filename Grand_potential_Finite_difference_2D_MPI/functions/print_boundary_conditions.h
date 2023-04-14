@@ -1,5 +1,5 @@
 void print_boundary_conditions(char *argv[]) {
-  char outfile[1000];  
+  char outfile[2000];  
   char tmpstr1[1000];
   char tmpstr2[1000];
   

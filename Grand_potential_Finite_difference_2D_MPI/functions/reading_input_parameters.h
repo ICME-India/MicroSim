@@ -106,17 +106,18 @@ void reading_input_parameters(char *argv[]) {
           C                   = (double *)malloc(NUMPHASES*sizeof(double));
           
           cmu                 = Malloc3M(NUMPHASES, NUMCOMPONENTS-1,   NUMCOMPONENTS-1);
-	  muc                 = Malloc3M(NUMPHASES, NUMCOMPONENTS-1,   NUMCOMPONENTS-1);
-	  Rotation_matrix     = Malloc4M(NUMPHASES,       NUMPHASES,   3,             3);
-	  Inv_Rotation_matrix = Malloc4M(NUMPHASES,       NUMPHASES,   3,             3);
-	  Rotated_qab         = MallocV(3);
+	        muc                 = Malloc3M(NUMPHASES, NUMCOMPONENTS-1,   NUMCOMPONENTS-1);
+	        Rotation_matrix     = Malloc4M(NUMPHASES,       NUMPHASES,   3,             3);
+	        Inv_Rotation_matrix = Malloc4M(NUMPHASES,       NUMPHASES,   3,             3);
+	        Rotated_qab         = MallocV(3);
           
           
-          eigen_strain    = (struct symmetric_tensor *)malloc(NUMPHASES*sizeof(*eigen_strain));
-          Stiffness_c     = (struct Stiffness_cubic *)malloc(NUMPHASES*sizeof(*Stiffness_c));
-          Stiffness_t     = (struct Stiffness_tetragonal *)malloc(NUMPHASES*sizeof(*Stiffness_t));
+          eigen_strain_phase = (struct symmetric_tensor *)malloc(NUMPHASES*sizeof(*eigen_strain_phase));
+          stiffness_phase    = (struct Stiffness_cubic *)malloc(NUMPHASES*sizeof(*stiffness_phase));
+          stiffness_phase_n  = (struct Stiffness_cubic *)malloc(NUMPHASES*sizeof(*stiffness_phase_n));
+          stiffness_t_phase  = (struct Stiffness_tetragonal *)malloc(NUMPHASES*sizeof(*stiffness_t_phase));
           for (i=0; i < 6; i++) {
-            boundary[i] = (struct bc_scalars*)malloc(3*sizeof(*boundary[i])); //3=Number of scalar fields
+            boundary[i] = (struct bc_scalars*)malloc(4*sizeof(*boundary[i])); //4=Number of scalar fields
           }
         }
       }
@@ -330,11 +331,32 @@ void reading_input_parameters(char *argv[]) {
       else if ((strcmp(tmpstr1, "Function_W") == 0) && (NUMPHASES > 0) && ((NUMCOMPONENTS-1) >0)) {
         FUNCTION_W = atoi(tmpstr2);
       }
-      else if ((strcmp(tmpstr1, "EIGEN_STRAIN") == 0) && (NUMPHASES > 0)) {
-        populate_symmetric_tensor(eigen_strain, tmpstr2, NUMPHASES);
+      else if ((strcmp(tmpstr1, "ELASTICITY") == 0)) {
+        ELASTICITY = atoi(tmpstr2);
       }
-      else if ((strcmp(tmpstr1, "VOIGT_ISOTROPIC") == 0) && (NUMPHASES > 0)) {
-        populate_cubic_stiffness(Stiffness_c, tmpstr2);
+      else if ((strcmp(tmpstr1, "EIGEN_STRAIN") == 0) && (NUMPHASES > 0) && ELASTICITY) {
+        populate_symmetric_tensor(eigen_strain_phase, tmpstr2, NUMPHASES);
+      }
+      else if ((strcmp(tmpstr1, "VOIGT_ISOTROPIC") == 0) && (NUMPHASES > 0) && ELASTICITY) {
+        populate_cubic_stiffness(stiffness_phase, tmpstr2);
+      }
+      else if ((strcmp(tmpstr1, "VOIGT_CUBIC") == 0) && (NUMPHASES > 0) && ELASTICITY) {
+        populate_cubic_stiffness(stiffness_phase, tmpstr2);
+      }
+      else if ((strcmp(tmpstr1, "rho") == 0) && ELASTICITY) {
+        rho = atof(tmpstr2);
+      }
+      else if ((strcmp(tmpstr1, "damping_factor") == 0) && ELASTICITY) {
+        damping_factor = atof(tmpstr2);
+      }
+      else if ((strcmp(tmpstr1, "tolerance") == 0) && ELASTICITY) {
+        tolerance = atof(tmpstr2);
+      }
+      else if ((strcmp(tmpstr1, "max_iterations") == 0) && ELASTICITY) {
+        MAX_ITERATIONS = atof(tmpstr2);
+      }
+      else if ((strcmp(tmpstr1, "deltat_e") == 0) && ELASTICITY) {
+        deltat_e = atof(tmpstr2);
       }
 //       else {
 //         printf("Unrecongized parameter : \"%s\"\n", tmpstr1);

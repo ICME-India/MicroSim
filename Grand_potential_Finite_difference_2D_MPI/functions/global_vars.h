@@ -12,6 +12,8 @@ double deltay;
 double deltaz;
 double deltat;
 
+double deltat_e = 0.2;
+
 int NUMPHASES;
 int NUM_THERMO_PHASES;
 int NUMCOMPONENTS;
@@ -177,19 +179,25 @@ int     taskid,                                                                 
         numworkers,                                                              /* number of worker processes */
         numworkers_x,
         numworkers_y,
+        numworkers_z,
         numtasks,                                                                /* number of tasks */
 //         averow[DIMENSION],rows[DIMENSION],offset[DIMENSION],extra[DIMENSION],    /* for sending rows of data */
 //         rows_x, rows_y,
         dest, source,                                                            /* to - from for message send-receive */
         left_node,right_node,                                                    /* neighbor tasks */
         top_node, bottom_node,
+        front_node, back_node,
         msgtype,                                                                 /* for message types */
         rc;
 // long    start[DIMENSION],end[DIMENSION];                                         /* misc */
         MPI_Status status;
         MPI_Datatype MPI_gridinfo;                                               //New Datatype to send structure
         MPI_Datatype MPI_gridinfo_vector_b;
-long    offset_x, offset_y;
+        MPI_Datatype MPI_gridinfo_vector_c;
+        MPI_Datatype MPI_iter_gridinfo;                                               //New Datatype to send structure
+        MPI_Datatype MPI_gridinfo_vector_b_stress;
+        MPI_Datatype MPI_gridinfo_vector_c_stress;
+long    offset_x, offset_y, offset_z;
 int boundary_worker=0;
 
 struct workers {
@@ -201,6 +209,7 @@ struct workers {
   int firstz;
   int rank_x;
   int rank_y;
+  int rank_z;
   long offset[3];
   long offset_x;
   long offset_y;
@@ -225,13 +234,16 @@ struct workers workers_mpi;
 //Variables for mpi........................................................
 
 double gradphixf, gradphixb, gradphiyb, gradphiyf;
-double gradphix, gradphiy;
-double gradphix_l, gradphiy_l, normgradphix_l, normgradphiy_l;
+double gradphix, gradphiy, gradphiz;
+double gradphix_l, gradphiy_l, normgradphix_l, normgradphiy_l, normgradphiz_l;
+double gradphix_l_y, gradphix_l_z;
+double gradphiy_l_x, gradphiy_l_z;
+double gradphiz_l_x, gradphiz_l_y;
 double normgradphi;
 int t, to, n, starttime;
 long gidy, center, center1, front, back, left, right, top, bottom;
 long index_, index_count;
-double s_phi_center,s_phi_right,s_phi_front;
+double s_phi_center,s_phi_right,s_phi_front, s_phi_top, s_phi_bottom;
 long a,b;
 double sum_lambdaphi, sum_dhphi;
 long active_phases, count_phases;
@@ -239,7 +251,13 @@ double Deltaphi;
 long interface;
 double scalprod;
 long i,j,k;
+long x;
+long iter;
 double mu;
+double global_error=0.0;
+double error;
+double tolerance=1e-12;
+long MAX_ITERATIONS=5;
 int ASCII=0;
 int WRITEHDF5;
 herr_t status_h;
@@ -330,7 +348,7 @@ struct symmetric_tensor {
   double xy;
 };
 
-struct symmetric_tensor *eigen_strain;
+struct symmetric_tensor *eigen_strain_phase;
 // struct symmetric_tensor *eigen_strain_field;
 // 
 // eigen_strain_field = (struct symmetric_tensor *)malloc(MESH_X*MESH_Y*sizeof(*eigen_strain_field));
@@ -349,7 +367,8 @@ struct Stiffness_cubic {
   double C44;
 };
 
-struct Stiffness_cubic *Stiffness_c;
+struct Stiffness_cubic *stiffness_phase;
+struct Stiffness_cubic *stiffness_phase_n;
 
 struct Stiffness_tetragonal {
    double C11;
@@ -360,7 +379,7 @@ struct Stiffness_tetragonal {
    double C66;
 };
 
-struct Stiffness_tetragonal *Stiffness_t;
+struct Stiffness_tetragonal *stiffness_t_phase;
 
 struct fields {
   double *phia;
@@ -369,10 +388,24 @@ struct fields {
   double *deltaphi;
   double temperature;
 };
+double rho=10;
+double damping_factor=0.8;
+
+struct iter_variables {
+ double disp[3][3];
+};
+
+// struct iter_variables *iter_gridinfo;
+struct iter_variables *iter_gridinfo_w;
+struct iter_variables *iter_gridinfo_w_instance;
 
 double *buffer;
 double *buffer_boundary_x;
 double *buffer_boundary_y;
+double *buffer_boundary_z;
+double *buffer_boundary_x_stress;
+double *buffer_boundary_y_stress;
+double *buffer_boundary_z_stress;
 #define SIZE_STRUCT_FIELDS (2*NUMPHASES+2*(NUMCOMPONENTS-1)+1)
 
 // struct fields {
@@ -385,6 +418,7 @@ double *buffer_boundary_y;
 struct fields *gridinfo;
 struct fields *gridinfo_w;
 struct fields *gridinfo_instance;
+
 
 struct gradlayer {
  double **gradphi;
@@ -399,11 +433,25 @@ struct gradlayer {
  double ***dcdmu_phase;
  int interface;
  int bulk_phase;
+//  double ***strain;
+//  double **stiffness;
+//  double ***eigen_strain;
+ struct symmetric_tensor strain[3];
+ struct symmetric_tensor eigen_strain[3];
+ struct Stiffness_cubic  stiffness_c[3];
 };
+ //double strain[DIMENSION][DIMENSION][DIMENSION];
+ //double stiffness[DIMENSION][3];			//2 to 3
+ //double eigen_strain[DIMENSION][DIMENSION][DIMENSION];
+// struct symmetric_tensor *eigen_strain_phase;
+// struct Stiffness_cubic  *stiffness_phase;
+
+int ELASTICITY=0;
+
 struct gradlayer **gradient;
 struct gradlayer *gradient1[4];
 struct gradlayer *tmp;
-struct gradlayer *grad, *grad_right, *grad_left, *grad_back, *grad_front, *grad_boundary;
+struct gradlayer *grad, *grad_right, *grad_left, *grad_back, *grad_front, *grad_boundary, *grad_top, *grad_bottom;
 struct gradlayer test;
 
 // #define MAXWORKER   8                  /* maximum number of worker tasks */
@@ -413,6 +461,8 @@ struct gradlayer test;
 #define RTAG        3                  /* message tag */
 #define BTAG        555                /* message tag */
 #define TTAG        666                /* message tag */
+#define FTAG        777                /* message tag */
+#define BATAG       888                /* message tag */
 #define NONE        0                  /* indicates no neighbor */
 #define DONE        4                  /* message tag */
 #define MASTER      0                  /* taskid of first process */
@@ -475,14 +525,24 @@ void (*calculate_divergence_concentration_smooth)(long x, struct gradlayer **gra
 void (*calculate_divergence_concentration_smooth_concentration)(long x, struct gradlayer **gradient);
 void (*calculate_divergence_phasefield)(long x, struct gradlayer **gradient);
 void (*calculate_divergence_phasefield_smooth)(long x, struct gradlayer **gradient);
+void (*calculate_divergence_stress)(long x, struct gradlayer **gradient);
+void (*calculate_gradients_stress)(long x, struct gradlayer **gradient);
+void (*compute_error)(long x, double *error);
 void (*solverloop_phasefield)(long *start, long *end);
 void (*solverloop_concentration)(long *start, long *end);
+void (*writetofile_mpi)(struct fields* gridinfo, char *argv[], long t);
+void (*writetofile_mpi_binary)(struct fields* gridinfo, char *argv[], long t);
+void (*writetofile_mpi_hdf5)(struct fields* gridinfo, char *argv[], long t);
+void (*readfromfile_mpi_hdf5)(struct fields* gridinfo, char *argv[], long numworkers, long t);
+void (*readfromfile_mpi)(struct fields* gridinfo, char *argv[], long t);
+void (*readfromfile_mpi_binary)(struct fields* gridinfo, char *argv[], long t);
+double (*df_elast)(struct gradlayer *gradient, struct symmetric_tensor sigma, double *phi, long a);
 
 // #define PHI 0
 // #define MU  1
 // #define T   2
 
-char *Scalars[] = {"PHI", "MU", "T"}; 
+char *Scalars[] = {"PHI", "MU", "T", "U"}; 
 char dirname[1000];
 char **coordNames;
 long size_fields;

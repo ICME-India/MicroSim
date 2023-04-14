@@ -299,7 +299,7 @@ void fill_phase_sphere_random(long phase, double ppt_radius, double volume_fract
   double volume_per_particle = (double)(ppt_radius*ppt_radius*ppt_radius)*(4.0/3.0)*M_PI;
 
   int num_particles = ceil(volume_domain*volume_fraction/volume_per_particle);
-  printf("Domain volume = %lf, ppt_radius = %ld, volume_per_particle = %lf, Number of particles = %d\n", volume_domain, ppt_radius, volume_per_particle, num_particles);
+  printf("Domain volume = %lf, ppt_radius = %le, volume_per_particle = %lf, Number of particles = %d\n", volume_domain, ppt_radius, volume_per_particle, num_particles);
 
   long particle_index = 1, random_count = 0, random_limit = 1e+5;
 
@@ -416,7 +416,7 @@ void fill_phase_cylinder_random(long phase, double ppt_radius, double volume_fra
     double volume_per_particle = (double)(ppt_radius*ppt_radius)*M_PI;
 
     int num_particles = ceil(volume_domain*volume_fraction/volume_per_particle);
-    printf("Domain volume = %lf, ppt_radius = %ld, volume_per_particle = %lf, Number of particles = %d\n", volume_domain, ppt_radius, volume_per_particle, num_particles);
+    printf("Domain volume = %lf, ppt_radius = %le, volume_per_particle = %lf, Number of particles = %d\n", volume_domain, ppt_radius, volume_per_particle, num_particles);
 
     long particle_index = 1, random_count = 0, random_limit = 1e+4;
 

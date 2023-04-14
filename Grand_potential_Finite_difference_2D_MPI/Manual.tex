@@ -339,7 +339,8 @@ $$
 
 The grand potential functional reads,
 \begin{flalign}
-\Omega (T, \mu, \vphi) = \int_{\Omega}^{} \left[ \psi (T, \mu, \vphi) + \epsilon a(\vphi, \nabla \vphi) + \dfrac{w(\vphi)}{\epsilon} \right] d\Omega.
+\Omega (T, \mu, \vphi) = \int_{\Omega}^{} \left[ \psi (T, \mu, \vphi) + \epsilon a(\vphi, \nabla \vphi) + \dfrac{w(\vphi)}{\epsilon} + 
+f_{el}\left(\bm{u},\vphi\right) \right] d\Omega.
 \label{eq:grand_eqn}
 \end{flalign}
 
@@ -390,7 +391,8 @@ The evolution equation for the phase-field parameters reads:
 \begin{flalign}
 \tau \epsilon \frac{\partial \phi_{\alpha}}{\partial t}=& \epsilon\left(\nabla \cdot \frac{\partial a(\phi, \nabla \phi)}{\partial \nabla \phi_{\alpha}}
 -\frac{\partial a(\phi, \nabla \phi)}{\partial \phi_{\alpha}}\right) 
--\frac{1}{\epsilon} \frac{\partial w(\phi)}{\partial \phi_{\alpha}}-\frac{\partial \Psi(T, \mu, \phi)}{\partial \phi_{\alpha}}-\lambda,
+-\frac{1}{\epsilon} \frac{\partial w(\phi)}{\partial \phi_{\alpha}}-\frac{\partial \Psi(T, \mu, \phi)}{\partial \phi_{\alpha}} -\nonumber \\
+&\dfrac{\partial f_{el}\left(\bm{u},\vphi\right)}{\partial \phi_\alpha}-\lambda,
 \label{phi_eqn}
 \end{flalign}
 
@@ -1034,6 +1036,54 @@ Amp_Noise_Phase = 0.001;
  them along with the chemical potential fields.
  \item "Noise\_phasefield" is a key to impose noise in the phase-field evolution equations at the interface. This is typically utilized for dendritic simulations.
  \item When "Noise\_phasefield=1", the amplitude of the noise is specified by the key "Amp\_Noise\_Phase".
+\end{itemize}
+
+\begin{lstlisting}
+rho = 10;
+damping_factor = 0.4;
+damping_factor = 0.8;
+max_iterations = 5;
+\end{lstlisting}
+
+\begin{itemize}
+ \item The preceding parameters are relevant for the grand-potential based MPI solver when the key "ELASTICITY=1" or when elasticity is turned on
+ \item The elasticity component in the functional Eqn.\ref{eq:grand_eqn}, i.e. the term $f_{el}\left(\bm{u},\vphi\right)$ is activated when the key "ELASTICITY=1" in the infile.
+ \item The present implementation is restricted for cubic systems.
+ \item We follow the Khachaturyan interpolation scheme in the interpolation of the elastic properties.
+ \item 
+ In this interpolation method, the elastic energy density writes as,
+\begin{align}
+f_{el}(\bm{u}, \phi) &= \dfrac{1}{2}C_{ijkl}(\vphi)(\epsilon_{ij} - \epsilon^*_{ij}(\vphi))(\epsilon_{kl} 
+- \epsilon^*_{kl}(\vphi)),
+\end{align} 
+where the total strain can be computed from the displacement $\bm{u}$ as,
+\begin{align}
+ \epsilon_{ij} &= \frac{1}{2}\left(\frac{\partial u_i}{\partial x_j} + \frac{\partial u_j}{\partial x_i}\right)
+ \label{strain},
+\end{align}
+while the elastic constants $C_{ijkl}$ and eigenstrain $\epsilon^*_{ij}$ can be expressed as:
+\begin{align}
+ C_{ijkl}(\vphi) &= \sum_{\alpha=1}^{N}C^{\alpha}_{ijkl}\phi_\alpha\\ \nonumber
+ \epsilon^*_{ij}(\vphi) &= \sum_{\alpha=1}^{N}\epsilon^{*\alpha}_{ij}\phi_\alpha. 
+\end{align}
+To simplify the equations, without any loss of generality we additionally impose that
+the eigenstrain exists only in precipitate phases which makes the 
+eigenstrain in the matrix phases $\epsilon^{* \beta}_{ij}=0$.
+
+\item Mechanical equilibrium is imposed for the computation of the displacement 
+fields as a function of the spatial distribution of the order parameter. 
+This is done iteratively by solving the damped wave equation written 
+as, 
+\begin{align}
+  \rho\frac{d^2\bm{u}}{dt^2} + b\frac{d\bm{u}}{dt} &= \nabla \cdot \bm{\sigma}, 
+  \label{mech_equilibrium_1ppt}
+\end{align}
+that is solved until the equilibrium is reached, i.e $\nabla\cdot\bm{\sigma}=\bm{0}$.
+\item The terms $\rho$ and $b$ are chosen such that the convergence is achieved in the fastest possible time. 
+\item The key "rho" corresponds to $\rho$ in the iterative equation.
+\item The key "damping\_factor" corresponds to $b$ in the iterative equation.
+\item The key "max\_iterations" limits the maximum number of iterations of the Eqn. \ref{mech_equilibrium_1ppt} to that specified with this key.
+\item All three are optional parameters. If these are present in the infile, the values are used, otherwise default values are utilized for calculation of the displacement field.
 \end{itemize}
 
 

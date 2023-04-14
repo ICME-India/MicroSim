@@ -102,6 +102,7 @@ void Mpiinfo(long taskid) {
       rank_x = (rank)/numworkers_y;
       rank_y = (rank)%numworkers_y;
       
+      
       /*  Now send startup information to each worker  */
       if (rank != MASTER) {
         if (rank==1) {

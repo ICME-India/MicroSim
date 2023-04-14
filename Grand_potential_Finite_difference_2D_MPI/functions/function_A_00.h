@@ -14,7 +14,7 @@ double function_A_00_dAdphi(double *phi, struct gradlayer **gradient, long gidy,
     if (b!=a) {
       scalprod = 0.0;
       for (dir=0; dir < DIMENSION; dir++)  {
-	scalprod += (phi[a]*grad1->gradphi_c[dir][b] - phi[b]*grad1->gradphi_c[dir][a])*grad1->gradphi_c[dir][b];
+	      scalprod += (phi[a]*grad1->gradphi_c[dir][b] - phi[b]*grad1->gradphi_c[dir][a])*grad1->gradphi_c[dir][b];
       }
       scalprod *= Gamma[a][b];
       sum += scalprod;
@@ -37,7 +37,7 @@ double function_A_00_divdAdgradphi(struct gradlayer **gradient, long index, long
   grad1_back =  &gradient[0][gidy];
   
   if (DIMENSION !=2){
-    grad1_bottom =  &gradient[1][gidy-rows_y];
+    grad1_bottom =  &gradient[1][gidy-workers_mpi.rows_y];
   }
   
   for (b=0; b < NUMPHASES; b++) {

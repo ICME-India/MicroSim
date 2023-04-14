@@ -85,9 +85,14 @@ void free_variables(){
   }
 
   free(gridinfo_w);
-  free(eigen_strain);
-  free(Stiffness_c);
-  free(Stiffness_t);
+  free(eigen_strain_phase);
+  free(stiffness_phase);
+  free(stiffness_phase_n);
+  free(stiffness_t_phase);
+  
+  if (ELASTICITY) {
+    free(iter_gridinfo_w);
+  }
   
   
   for (i=0; i<6; i++) {
@@ -114,6 +119,11 @@ void free_variables(){
 
   free(buffer_boundary_x);
   free(buffer_boundary_y);
+  free(buffer_boundary_z);
+  
+  free(buffer_boundary_x_stress);
+  free(buffer_boundary_y_stress);
+  free(buffer_boundary_z_stress);
 
   
   Free3M(cmu,NUMCOMPONENTS-1,NUMCOMPONENTS-1);

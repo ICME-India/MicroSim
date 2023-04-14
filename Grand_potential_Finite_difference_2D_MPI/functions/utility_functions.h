@@ -419,7 +419,9 @@ void initialize_boundary_conditions(char *tmpstr) {
   if (strcmp(tmp[0], "T") == 0) {
     assign_buffer_points_conditions(2, BOUNDARY_LEFT, BOUNDARY_RIGHT, BOUNDARY_FRONT, BOUNDARY_BACK, BOUNDARY_TOP, BOUNDARY_BOTTOM);
   }
-  
+  if (strcmp(tmp[0], "u") == 0) {
+    assign_buffer_points_conditions(3, BOUNDARY_LEFT, BOUNDARY_RIGHT, BOUNDARY_FRONT, BOUNDARY_BACK, BOUNDARY_TOP, BOUNDARY_BOTTOM);
+  }
   for (i = 0; i < len; ++i) {
     free(tmp[i]);
   }
@@ -467,6 +469,9 @@ void initialize_boundary_points_values(char *tmpstr) {
   }
   if (strcmp(tmp[0], "T") == 0) {
    assign_boundary_points_values(2, val[1], val[0], val[2], val[3], val[4], val[5]);
+  }
+  if (strcmp(tmp[0], "u") == 0) {
+   assign_boundary_points_values(3, val[1], val[0], val[2], val[3], val[4], val[5]);
   } 
   
   for (i = 0; i < len; ++i) {
@@ -670,7 +675,7 @@ void assign_boundary_points_values(long j, double VALUE_LEFT, double VALUE_RIGHT
 void assign_boundary_points_mpi() {
   long j;
   
-  for(j=0; j<3; j++) {
+  for(j=0; j<4; j++) {
     //Boundary X-
     if(boundary[0][j].type == 1) {
       boundary[0][j].proxy[0] = 4;

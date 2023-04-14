@@ -19,7 +19,7 @@ void print_input_parameters(char *argv[]){
 //   long length;
 //   long phase;
   
-  char outfile[1000];
+  char outfile[2000];
   
   strcpy(tmpstr2, argv[1]);
 //   sscanf(argv[1], "%100s.%100[^;]", tmpstr1, tmpstr2);
@@ -192,12 +192,12 @@ void print_input_parameters(char *argv[]){
   
   for (i=0; i<NUMPHASES; i++) {
     sprintf(key, "EIGEN_STRAIN[%s]",Phases[i]);
-    PRINT_SYMMETRIC_TENSOR(key, eigen_strain[i], fr);
+    PRINT_SYMMETRIC_TENSOR(key, eigen_strain_phase[i], fr);
   }
   
   for (i=0; i<NUMPHASES; i++) {
     sprintf(key, "Stiffness_cubic[%s]",Phases[i]);
-    PRINT_VOIGT_CUBIC(key, Stiffness_c[i], fr);
+    PRINT_VOIGT_CUBIC(key, stiffness_phase[i], fr);
   }
   
   
