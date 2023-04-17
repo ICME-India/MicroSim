@@ -236,12 +236,15 @@ GAMMA = {1.0};
 \end{itemize}
 
 \begin{lstlisting}
+ELASTICITY = 1;
 #EIGEN_STRAIN = {phase, exx, eyy, ezz, eyz, exz, exy};
 EIGEN_STRAIN = {0, 0.01, 0.01, 0.0, 0.0, 0.0, 0.0};
 EIGEN_STRAIN = {1, 0.01, 0.01, 0.0, 0.0, 0.0, 0.0};
 \end{lstlisting}
 
 \begin{itemize}
+ \item The key ELASTICITY switches on/off the incorporation of elastic stress in the formulation.
+ \item The following material parameter keys EIGEN\_STRAIN, VOIGT\_ISOTROPIC, VOIGT\_CUBIC and VOIGT\_TETRAGONAL are utilized only when the key ELASTICITY\=1.
  \item The EIGEN\_STRAIN key refers to the eigen-strain tensor in a given phase. The information about the elements of the eigen-strain are derived from the elements in the tuple. 
  \item The first element refers to the phase number in the list PHASES and can take in values from 0 to NUMPHASES-1.
  \item The following elements in tuple are mapped to the eigen-strain matrix in the following order $exx, eyy, ezz, eyz, exz, exy$.
