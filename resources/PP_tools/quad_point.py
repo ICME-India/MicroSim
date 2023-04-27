@@ -1,10 +1,8 @@
 import numpy as np
-#from vtk import vtkUnstructuredGridReader
 from vtk import vtkDataSetReader
-#import vtk
 
 
-def triple_point(vtkData,dataset,infileDimension,timeItretion,Scalar_name):
+def quad_point(vtkData,dataset,infileDimension,timeItretion,Scalar_name):
     overall_tp = np.empty(len(timeItretion) ,  dtype = object)
     
     for t in range(len(timeItretion)):
@@ -31,25 +29,39 @@ def triple_point(vtkData,dataset,infileDimension,timeItretion,Scalar_name):
         
         thisset = []
         triple_point = []
+        quad_point = []
         x_list = []
         y_list = []
+        z_list = []
         for i in range(1,grid_reshape[0]):
             for j in range(1,grid_reshape[1]):
-                thisset = []
-                thisset.append(pf2[i-1][j-1])
-                thisset.append(pf2[i-1][j])
-                thisset.append(pf2[i][j-1])
-                thisset.append(pf2[i][j])
-                thisset = set(thisset)
+                for k in range(1,grid_reshape[2]):
+                    thisset = []
+                    thisset.append(pf2[i-1][j-1][k-1])
+                    thisset.append(pf2[i-1][j-1][k])
+                    thisset.append(pf2[i-1][j][k-1])
+                    thisset.append(pf2[i-1][j][k])
+                    thisset.append(pf2[i][j-1][k-1])
+                    thisset.append(pf2[i][j-1][k])
+                    thisset.append(pf2[i][j][k-1])
+                    thisset.append(pf2[i][j][k])
+                    thisset = set(thisset)
 
                 if len(thisset) >= 3:
                     triple_point.append((i,j))
                     x_list.append(i)
                     y_list.append(j)
+                    z_list.append(j)
+                    overall_tp[t] = triple_point
+                if len(thisset) >= 4:
+                    quad_point.append((i,j))
+                    x_list.append(i)
+                    y_list.append(j)
+                    z_list.append(j)
+                    overall_tp[t] = quad_point
 
                     # print("total triple points ", len(triple_point))
                     #print(triple_point)
-                    overall_tp[t] = triple_point
         
                     
     return overall_tp

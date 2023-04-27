@@ -90,7 +90,7 @@ def tip_radius_calculate(vtkData,dataset,infileDimension, timeItretion ,Scalar_n
                 X_ = np.hstack((X[len(X) - 20 + index :] , X[ :index + 20] ))
                 Y_ = np.hstack((Y[len(X) - 20 + index :] , Y[ :index + 20] ))
 
-            elif index >= lex(X)-20:
+            elif index >= len(X)-20:
                 X_ = np.hstack((X[len(X) - 20:] , X[ : 20 - index] ))
                 Y_ = np.hstack((Y[len(X) - 20:] , Y[ : 20 - index] ))
         else:

@@ -168,30 +168,59 @@ The following contributers are acknowledged
 ## Infile Generator
 Python GUI application for generating Infile and Filling files.
 
-* This script depends on gnome-terminal. So, make sure you have it installed from the package repository of your linux distribution.
+### System Requirements :-
+   1) Python v3.5 and later 
+   2) pyqt5 Library
 
-* You can use a package manager like Miniconda or Anaconda to avoid issues with system python. Miniconda is enough for this specific purpose.
 
-* Install Miniconda package manager from https://repo.anaconda.com/miniconda/Miniconda3-py310_23.1.0-1-Linux-x86_64.sh
+### Check the Python version on Windows, Linux, or macOS systems :-
+To check the version installed, open a terminal window and entering the following:
+   
+     python --version
+![image](https://user-images.githubusercontent.com/20612971/136605964-7aa1de15-1474-4e2f-963b-c3a28c3c6cb1.png)
 
-* Now create a virtual environment with python 3.9 (version previous to this are also compatible with the packages required) and pip:
+If installed python version is 3.5 or above then you can continue to install pyqt5 library using pip.
+To install python or upgrade older python version follow next step -
 
-> conda create --name msenv python=3.9 pip
+### Install Python3
 
-* Activate virtual environment msenv:
+#### Windows
+Download setup from https://www.python.org/downloads/ and follow the instruction.
+#### linux/Ubuntu
+If you are using Ubuntu 16.10 or newer, then you can easily install Python 3 with the following commands:
 
-> conda activate msenv
+     sudo apt-get update
+     sudo apt-get install python3
+If you’re using another version of Ubuntu (e.g. the latest LTS release) or you want to use a more current Python, we recommend using the deadsnakes PPA to install Python 3:
 
-* Install the packages below using pip (group them together to avoid dependency issue):
+    sudo apt-get install software-properties-common
+    sudo add-apt-repository ppa:deadsnakes/ppa
+    sudo apt-get update
+    sudo apt-get install python3
+If you are using other Linux distribution, chances are you already have Python 3 pre-installed as well. If not, use your distribution’s package manager. For example on Fedora, you would use dnf:
 
-> pip install pyqt5 scikit-image vtk tinydb sympy==1.8 pycalphad==0.9.2 pymks yt
+    sudo dnf install python3
+   
+### Download and Install pip:
+#### Windows
+Download the https://bootstrap.pypa.io/get-pip.py file and store it in the same directory as python is installed.
+Run the command given below:
+     python get-pip.py
+and wait through the installation process.
 
-* Launch MicroSim:
+#### Linux/Ubuntu
+To Install PIP3(For Python 3+):
 
-> python MicroSim.py
+     sudo apt install python3-pip 
 
-### Do you want to modify the GUI as a developer?
+### Upgrading Pip version in linux
+     sudo -H pip3 install --upgrade pip
 
-* You can switch to some other environment like base:
+
+### Installing pyqt5 using pip
+     pip install pyqt5 
      
-Developed by- Ajay Sagar and Tanmay Dutta
+To run the code use 
+     python ./InfileGenerator.py
+     
+Developed by- Ajay Sagar

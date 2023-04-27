@@ -9,8 +9,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1100</width>
-    <height>650</height>
+    <width>1102</width>
+    <height>651</height>
    </rect>
   </property>
   <property name="font">
@@ -55,6 +55,7 @@ background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:0.970149, y2:1, sto
     <property name="font">
      <font>
       <pointsize>9</pointsize>
+      <italic>false</italic>
      </font>
     </property>
     <property name="styleSheet">
@@ -93,6 +94,7 @@ and temporal discretization</string>
     <property name="font">
      <font>
       <pointsize>9</pointsize>
+      <italic>false</italic>
      </font>
     </property>
     <property name="layoutDirection">
@@ -134,6 +136,7 @@ padding-left:10px;</string>
     <property name="font">
      <font>
       <pointsize>9</pointsize>
+      <italic>false</italic>
      </font>
     </property>
     <property name="styleSheet">
@@ -171,6 +174,7 @@ padding-left:10px;</string>
     <property name="font">
      <font>
       <pointsize>9</pointsize>
+      <italic>false</italic>
      </font>
     </property>
     <property name="styleSheet">
@@ -209,6 +213,7 @@ timesteps, writing interval</string>
     <property name="font">
      <font>
       <pointsize>9</pointsize>
+      <italic>false</italic>
      </font>
     </property>
     <property name="styleSheet">
@@ -246,6 +251,7 @@ padding-left:10px;</string>
     <property name="font">
      <font>
       <pointsize>9</pointsize>
+      <italic>false</italic>
      </font>
     </property>
     <property name="styleSheet">
@@ -283,6 +289,7 @@ padding-left:10px;</string>
     <property name="font">
      <font>
       <pointsize>9</pointsize>
+      <italic>false</italic>
      </font>
     </property>
     <property name="styleSheet">
@@ -2159,7 +2166,7 @@ color : black;
      <property name="minimumContentsLength">
       <number>1</number>
      </property>
-     <property name="placeholderText" stdset="0">
+     <property name="placeholderText">
       <string/>
      </property>
     </widget>
@@ -3605,6 +3612,7 @@ background-color: rgb(64, 140, 191);</string>
        <font>
         <family>Ubuntu</family>
         <pointsize>10</pointsize>
+        <italic>false</italic>
        </font>
       </property>
       <property name="styleSheet">
@@ -3835,7 +3843,7 @@ color : black;
      <property name="minimumContentsLength">
       <number>1</number>
      </property>
-     <property name="placeholderText" stdset="0">
+     <property name="placeholderText">
       <string/>
      </property>
      <item>
@@ -9525,18 +9533,18 @@ background-color: rgb(64, 140, 191);
     <widget class="QWidget" name="frame8_widget" native="true">
      <property name="geometry">
       <rect>
-       <x>70</x>
+       <x>0</x>
        <y>60</y>
-       <width>531</width>
+       <width>641</width>
        <height>221</height>
       </rect>
      </property>
      <layout class="QGridLayout" name="gridLayout_2">
-      <item row="0" column="0">
-       <widget class="QRadioButton" name="radio_GP">
+      <item row="0" column="3">
+       <widget class="QRadioButton" name="radio_amrex">
         <property name="minimumSize">
          <size>
-          <width>241</width>
+          <width>200</width>
           <height>91</height>
          </size>
         </property>
@@ -9550,66 +9558,24 @@ background-color: rgb(64, 140, 191);
          </font>
         </property>
         <property name="styleSheet">
-         <string notr="true">#radio_GP{
+         <string notr="true">#radio_amrex{
 padding : 10px;
 color: rgb(255, 255, 255);
-background-color:  rgba(172, 48, 26, 255);
+background-color: rgb(100, 0, 100);
 border : 2px solid rgb(64, 140, 191);
 }
 
-#radio_GP::hover{
+#radio_amrex::hover{
 border : 2px solid white;
 }
 
-#radio_GP::checked{
+#radio_amrex::checked{
 border : 2px solid rgb(0, 0, 0);
 
 }</string>
         </property>
         <property name="text">
-         <string>GRAND-POTENTIAL MODEL  </string>
-        </property>
-        <property name="checked">
-         <bool>false</bool>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="1">
-       <widget class="QRadioButton" name="radio_CH">
-        <property name="minimumSize">
-         <size>
-          <width>241</width>
-          <height>91</height>
-         </size>
-        </property>
-        <property name="font">
-         <font>
-          <family>Ubuntu</family>
-          <pointsize>10</pointsize>
-          <weight>75</weight>
-          <italic>false</italic>
-          <bold>true</bold>
-         </font>
-        </property>
-        <property name="styleSheet">
-         <string notr="true">#radio_CH{
-padding : 10px;
-color: rgb(255, 255, 255);
-background-color: rgba(111, 147, 1,255);
-border : 2px solid rgb(64, 140, 191);
-}
-
-#radio_CH::hover{
-border : 2px solid white;
-}
-
-#radio_CH::checked{
-border : 2px solid rgb(0, 0, 0);
-
-}</string>
-        </property>
-        <property name="text">
-         <string>CAHN HILLIARD MODEL</string>
+         <string>GP AMReX</string>
         </property>
        </widget>
       </item>
@@ -9617,7 +9583,7 @@ border : 2px solid rgb(0, 0, 0);
        <widget class="QRadioButton" name="radio_KKR">
         <property name="minimumSize">
          <size>
-          <width>241</width>
+          <width>200</width>
           <height>91</height>
          </size>
         </property>
@@ -9648,7 +9614,49 @@ border : 2px solid rgb(0, 0, 0);
 }</string>
         </property>
         <property name="text">
-         <string>KKS GPU CUDA MODEL MPI</string>
+         <string>KKS GPU CUDA</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="0">
+       <widget class="QRadioButton" name="radio_GP">
+        <property name="minimumSize">
+         <size>
+          <width>200</width>
+          <height>91</height>
+         </size>
+        </property>
+        <property name="font">
+         <font>
+          <family>Ubuntu</family>
+          <pointsize>10</pointsize>
+          <weight>75</weight>
+          <italic>false</italic>
+          <bold>true</bold>
+         </font>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">#radio_GP{
+padding : 10px;
+color: rgb(255, 255, 255);
+background-color:  rgba(172, 48, 26, 255);
+border : 2px solid rgb(64, 140, 191);
+}
+
+#radio_GP::hover{
+border : 2px solid white;
+}
+
+#radio_GP::checked{
+border : 2px solid rgb(0, 0, 0);
+
+}</string>
+        </property>
+        <property name="text">
+         <string>GRAND-POTENTIAL</string>
+        </property>
+        <property name="checked">
+         <bool>false</bool>
         </property>
        </widget>
       </item>
@@ -9656,7 +9664,7 @@ border : 2px solid rgb(0, 0, 0);
        <widget class="QRadioButton" name="radio_KKS2">
         <property name="minimumSize">
          <size>
-          <width>241</width>
+          <width>200</width>
           <height>91</height>
          </size>
         </property>
@@ -9687,7 +9695,85 @@ border : 2px solid rgb(0, 0, 0);
 }</string>
         </property>
         <property name="text">
-         <string>KKS GPU OPENCL MODEL</string>
+         <string>KKS GPU OPENCL</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="3">
+       <widget class="QRadioButton" name="radio_CH">
+        <property name="minimumSize">
+         <size>
+          <width>200</width>
+          <height>91</height>
+         </size>
+        </property>
+        <property name="font">
+         <font>
+          <family>Ubuntu</family>
+          <pointsize>10</pointsize>
+          <weight>75</weight>
+          <italic>false</italic>
+          <bold>true</bold>
+         </font>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">#radio_CH{
+padding : 10px;
+color: rgb(255, 255, 255);
+background-color: rgba(111, 147, 1,255);
+border : 2px solid rgb(64, 140, 191);
+}
+
+#radio_CH::hover{
+border : 2px solid white;
+}
+
+#radio_CH::checked{
+border : 2px solid rgb(0, 0, 0);
+
+}</string>
+        </property>
+        <property name="text">
+         <string>CAHN HILLIARD</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="1">
+       <widget class="QRadioButton" name="radio_of">
+        <property name="minimumSize">
+         <size>
+          <width>200</width>
+          <height>91</height>
+         </size>
+        </property>
+        <property name="font">
+         <font>
+          <family>Ubuntu</family>
+          <pointsize>10</pointsize>
+          <weight>75</weight>
+          <italic>false</italic>
+          <bold>true</bold>
+         </font>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">#radio_of{
+padding : 10px;
+color: rgb(255, 255, 255);
+background-color: rgb(0, 100, 100);
+border : 2px solid rgb(64, 140, 191);
+}
+
+#radio_of::hover{
+border : 2px solid white;
+}
+
+#radio_of::checked{
+border : 2px solid rgb(0, 0, 0);
+
+}</string>
+        </property>
+        <property name="text">
+         <string>GP OpenFOAM</string>
         </property>
        </widget>
       </item>
@@ -10535,8 +10621,8 @@ Tool</string>
    <zorder>btn6</zorder>
    <zorder>btn7</zorder>
    <zorder>frame_9</zorder>
-   <zorder>frame_8</zorder>
    <zorder>frame_11</zorder>
+   <zorder>frame_8</zorder>
   </widget>
   <widget class="QWidget" name="Sixth_widget" native="true">
    <property name="geometry">
@@ -12005,7 +12091,7 @@ color : black;</string>
       <property name="minimumContentsLength">
        <number>1</number>
       </property>
-      <property name="placeholderText" stdset="0">
+      <property name="placeholderText">
        <string/>
       </property>
      </widget>
@@ -12292,9 +12378,9 @@ background-color : qlineargradient(spread:pad, x1:0.03, y1:0.028, x2:1, y2:1, st
    <widget class="QWidget" name="w1" native="true">
     <property name="geometry">
      <rect>
-      <x>240</x>
-      <y>210</y>
-      <width>621</width>
+      <x>100</x>
+      <y>200</y>
+      <width>880</width>
       <height>320</height>
      </rect>
     </property>
@@ -12308,7 +12394,7 @@ border-radius : 2px;
     <widget class="QPushButton" name="openFile">
      <property name="geometry">
       <rect>
-       <x>250</x>
+       <x>370</x>
        <y>260</y>
        <width>141</width>
        <height>41</height>
@@ -12331,8 +12417,8 @@ border-radius : 2px;
     <widget class="QRadioButton" name="model_CH">
      <property name="geometry">
       <rect>
-       <x>330</x>
-       <y>60</y>
+       <x>600</x>
+       <y>160</y>
        <width>251</width>
        <height>80</height>
       </rect>
@@ -12403,7 +12489,8 @@ border : 2px solid rgb(0, 0, 0);
 }</string>
      </property>
      <property name="text">
-      <string>KKS GPU OPENCL MODEL</string>
+      <string>KKS GPU OPENCL
+ MODEL</string>
      </property>
     </widget>
     <widget class="QRadioButton" name="model_GP">
@@ -12442,7 +12529,8 @@ border : 2px solid rgb(0, 0, 0);
 }</string>
      </property>
      <property name="text">
-      <string>GRAND-POTENTIAL MODEL  </string>
+      <string>GRAND-POTENTIAL
+ MODEL  </string>
      </property>
      <property name="checked">
       <bool>false</bool>
@@ -12495,7 +12583,7 @@ border : 2px solid rgb(0, 0, 0);
       <rect>
        <x>1</x>
        <y>1</y>
-       <width>621</width>
+       <width>881</width>
        <height>31</height>
       </rect>
      </property>
@@ -12541,7 +12629,7 @@ background-color: rgb(240, 240, 240);</string>
     <widget class="QPushButton" name="close_btn">
      <property name="geometry">
       <rect>
-       <x>590</x>
+       <x>850</x>
        <y>0</y>
        <width>31</width>
        <height>31</height>
@@ -12568,6 +12656,84 @@ background-color: rgb(172, 48, 26);
      </property>
      <property name="text">
       <string>X</string>
+     </property>
+    </widget>
+    <widget class="QRadioButton" name="model_amrex">
+     <property name="geometry">
+      <rect>
+       <x>600</x>
+       <y>60</y>
+       <width>251</width>
+       <height>80</height>
+      </rect>
+     </property>
+     <property name="font">
+      <font>
+       <family>Ubuntu</family>
+       <pointsize>10</pointsize>
+       <weight>75</weight>
+       <italic>false</italic>
+       <bold>true</bold>
+      </font>
+     </property>
+     <property name="styleSheet">
+      <string notr="true">#model_amrex{
+padding : 10px;
+color: rgb(255, 255, 255);
+background-color: rgb(100, 0, 100);
+border : 2px solid rgb(119, 152, 194);
+}
+
+#model_amrex::hover{
+border : 2px solid white;
+}
+
+#model_amrex::checked{
+border : 2px solid rgb(0, 0, 0);
+
+}</string>
+     </property>
+     <property name="text">
+      <string>GP AMReX</string>
+     </property>
+    </widget>
+    <widget class="QRadioButton" name="model_of">
+     <property name="geometry">
+      <rect>
+       <x>330</x>
+       <y>60</y>
+       <width>251</width>
+       <height>80</height>
+      </rect>
+     </property>
+     <property name="font">
+      <font>
+       <family>Ubuntu</family>
+       <pointsize>10</pointsize>
+       <weight>75</weight>
+       <italic>false</italic>
+       <bold>true</bold>
+      </font>
+     </property>
+     <property name="styleSheet">
+      <string notr="true">#model_of{
+padding : 10px;
+color: rgb(255, 255, 255);
+background-color: rgb(0, 100, 100);
+border : 2px solid rgb(119, 152, 194);
+}
+
+#model_of::hover{
+border : 2px solid white;
+}
+
+#model_of::checked{
+border : 2px solid rgb(0, 0, 0);
+
+}</string>
+     </property>
+     <property name="text">
+      <string>GP OpenFOAM</string>
      </property>
     </widget>
    </widget>
@@ -12624,7 +12790,7 @@ background-color: rgb(172, 48, 26);
        <x>0</x>
        <y>0</y>
        <width>621</width>
-       <height>166</height>
+       <height>179</height>
       </rect>
      </property>
      <layout class="QGridLayout" name="gridLayout">
@@ -13387,9 +13553,9 @@ border :1px solid rgb(192, 191, 188);
            <property name="geometry">
             <rect>
              <x>0</x>
-             <y>-300</y>
-             <width>206</width>
-             <height>1342</height>
+             <y>-360</y>
+             <width>251</width>
+             <height>1416</height>
             </rect>
            </property>
            <property name="styleSheet">
@@ -13943,6 +14109,38 @@ background-color: rgba(114, 159, 207,80);
              </widget>
             </item>
             <item>
+             <widget class="QPushButton" name="triple_pointbtn_3">
+              <property name="styleSheet">
+               <string notr="true">#triple_pointbtn_3{
+border:none;
+text-align:left;
+padding-left:10px;
+}
+
+#triple_pointbtn_3::hover{
+background-color: rgba(114, 159, 207,80);
+}
+
+#triple_pointbtn_3::pressed{
+	background-color: rgb(238, 238, 236);
+}</string>
+              </property>
+              <property name="text">
+               <string> Triple Point (3D)           </string>
+              </property>
+              <property name="icon">
+               <iconset>
+                <normaloff>img/triplePoint.png</normaloff>img/triplePoint.png</iconset>
+              </property>
+              <property name="iconSize">
+               <size>
+                <width>31</width>
+                <height>31</height>
+               </size>
+              </property>
+             </widget>
+            </item>
+            <item>
              <widget class="QPushButton" name="quad_pointbtn">
               <property name="styleSheet">
                <string notr="true">#quad_pointbtn{
@@ -13960,7 +14158,7 @@ background-color: rgba(114, 159, 207,80);
 }</string>
               </property>
               <property name="text">
-               <string>Quadruple Point           </string>
+               <string>Quadruple Point (3D)          </string>
               </property>
               <property name="icon">
                <iconset>
@@ -14648,6 +14846,44 @@ border : 1px solid rgb(192, 191, 188);
              </widget>
             </item>
            </layout>
+           <zorder>pushButton</zorder>
+           <zorder>pptarea</zorder>
+           <zorder>pptsize</zorder>
+           <zorder>pptcount</zorder>
+           <zorder>pushButton_2</zorder>
+           <zorder>fVelocitybtn</zorder>
+           <zorder>velocity_OverLine</zorder>
+           <zorder>widget_velocity_over_line</zorder>
+           <zorder>pushButton_3</zorder>
+           <zorder>tip_radiusbtn</zorder>
+           <zorder>pushButton_5</zorder>
+           <zorder>front_undercoolbtn</zorder>
+           <zorder>pushButton_7</zorder>
+           <zorder>triple_pointbtn</zorder>
+           <zorder>quad_pointbtn</zorder>
+           <zorder>pushButton_6</zorder>
+           <zorder>contourPlotbtn</zorder>
+           <zorder>widget_contour</zorder>
+           <zorder>pushButton_8</zorder>
+           <zorder>shiftPlotbtn</zorder>
+           <zorder>pushButton_4</zorder>
+           <zorder>pushButton_11</zorder>
+           <zorder>pushButton_12</zorder>
+           <zorder>phase_frac_btn</zorder>
+           <zorder>pushButton_13</zorder>
+           <zorder>total_vol_btn</zorder>
+           <zorder>pushButton_10</zorder>
+           <zorder>surfaceAreabtn</zorder>
+           <zorder>pushButton_14</zorder>
+           <zorder>pushButton_16</zorder>
+           <zorder>pushButton_18</zorder>
+           <zorder>pushButton_17</zorder>
+           <zorder>pushButton_19</zorder>
+           <zorder>two_Point_correlationbtn</zorder>
+           <zorder>principalComponentbtn</zorder>
+           <zorder>widget_PC</zorder>
+           <zorder>pushButton_9</zorder>
+           <zorder>triple_pointbtn_3</zorder>
           </widget>
          </widget>
         </item>
@@ -14906,6 +15142,7 @@ border-radius : 5px;
       <property name="font">
        <font>
         <pointsize>12</pointsize>
+        <italic>false</italic>
        </font>
       </property>
       <property name="text">
@@ -15708,6 +15945,7 @@ background-color: rgb(64, 140, 191);
       <property name="font">
        <font>
         <pointsize>15</pointsize>
+        <italic>false</italic>
        </font>
       </property>
       <property name="styleSheet">
@@ -15799,6 +16037,7 @@ color:white;
        <font>
         <pointsize>13</pointsize>
         <weight>75</weight>
+        <italic>false</italic>
         <bold>true</bold>
        </font>
       </property>
@@ -15875,11 +16114,12 @@ color:white;
        <font>
         <pointsize>13</pointsize>
         <weight>75</weight>
+        <italic>false</italic>
         <bold>true</bold>
        </font>
       </property>
       <property name="text">
-       <string>Triple Point Table</string>
+       <string>Quadruple Point 3D Table</string>
       </property>
      </widget>
      <widget class="QPushButton" name="quad_point_save">
@@ -15899,6 +16139,84 @@ color:white;
       </property>
      </widget>
     </widget>
+    <widget class="QWidget" name="triple_point_widget_3" native="true">
+     <property name="geometry">
+      <rect>
+       <x>420</x>
+       <y>70</y>
+       <width>350</width>
+       <height>450</height>
+      </rect>
+     </property>
+     <widget class="QTableWidget" name="table_triplePoint_3">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>40</y>
+        <width>331</width>
+        <height>361</height>
+       </rect>
+      </property>
+      <property name="styleSheet">
+       <string notr="true">background-color: rgb(238, 238, 236);
+</string>
+      </property>
+      <property name="horizontalScrollBarPolicy">
+       <enum>Qt::ScrollBarAlwaysOff</enum>
+      </property>
+      <attribute name="horizontalHeaderDefaultSectionSize">
+       <number>146</number>
+      </attribute>
+      <column>
+       <property name="text">
+        <string>Triple Point</string>
+       </property>
+      </column>
+      <column>
+       <property name="text">
+        <string>Coordinates</string>
+       </property>
+      </column>
+     </widget>
+     <widget class="QLabel" name="label_187">
+      <property name="geometry">
+       <rect>
+        <x>100</x>
+        <y>10</y>
+        <width>151</width>
+        <height>21</height>
+       </rect>
+      </property>
+      <property name="font">
+       <font>
+        <pointsize>13</pointsize>
+        <weight>75</weight>
+        <italic>false</italic>
+        <bold>true</bold>
+       </font>
+      </property>
+      <property name="text">
+       <string>Triple Point 3D Table</string>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="triple_point_save_3">
+      <property name="geometry">
+       <rect>
+        <x>248</x>
+        <y>410</y>
+        <width>91</width>
+        <height>31</height>
+       </rect>
+      </property>
+      <property name="styleSheet">
+       <string notr="true">background-color: rgb(186, 189, 182);</string>
+      </property>
+      <property name="text">
+       <string>Save</string>
+      </property>
+     </widget>
+    </widget>
+    <zorder>triple_point_widget_3</zorder>
     <zorder>widget_12</zorder>
     <zorder>SimulationDetail</zorder>
     <zorder>pptRadius</zorder>
@@ -15919,6 +16237,7 @@ color:white;
     </property>
     <property name="font">
      <font>
+      <italic>false</italic>
       <kerning>false</kerning>
      </font>
     </property>
@@ -16446,6 +16765,7 @@ border-bottom : 1px solid black;</string>
      <property name="font">
       <font>
        <pointsize>14</pointsize>
+       <italic>false</italic>
        <kerning>false</kerning>
       </font>
      </property>
@@ -16575,6 +16895,7 @@ border-bottom : 1px solid black;</string>
      <property name="font">
       <font>
        <pointsize>14</pointsize>
+       <italic>false</italic>
        <kerning>false</kerning>
       </font>
      </property>
@@ -17779,6 +18100,7 @@ border: 1px solid rgb(46, 52, 54);
       <property name="font">
        <font>
         <pointsize>14</pointsize>
+        <italic>false</italic>
         <kerning>false</kerning>
        </font>
       </property>
@@ -18148,8 +18470,8 @@ background-color: rgb(164, 0, 0);
   <zorder>Qbox</zorder>
   <zorder>Sixth_widget</zorder>
   <zorder>Seven_widget</zorder>
-  <zorder>jobscriptFrame</zorder>
   <zorder>StartFrame</zorder>
+  <zorder>jobscriptFrame</zorder>
   <zorder>postProcessingScreen</zorder>
  </widget>
  <resources/>
