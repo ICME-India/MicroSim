@@ -167,7 +167,7 @@ void calculate_divergence_phasefield_smooth_3D(long x, struct gradlayer **gradie
   grad_left     =  &gradient[1][gidy-1];
   grad_back     =  &gradient[0][gidy];
 
-  if ((gidy-workers_mpi.rows_y) > 0) {
+  if ((gidy-workers_mpi.rows_y) >= 0) {
     grad_bottom  = &gradient[1][gidy-workers_mpi.rows_y];
   }
   
@@ -379,7 +379,7 @@ void calculate_divergence_phasefield_3D(long x, struct gradlayer **gradient) {
     grad_left     =  &gradient[1][gidy-1];
     grad_back     =  &gradient[0][gidy];
     
-    if (((gidy-workers_mpi.rows_y)/workers_mpi.rows_y) > 0) {
+    if (((gidy-workers_mpi.rows_y)/workers_mpi.rows_y) >= 0) {
       grad_bottom  = &gradient[1][gidy-workers_mpi.rows_y];
     }
     
