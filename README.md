@@ -193,5 +193,17 @@ Python GUI application for generating Infile and Filling files.
 ### Do you want to modify the GUI as a developer?
 
 * You can switch to some other environment like base:
+
+> conda activate base
+
+* Install pyqt to have access to QT designer:
+
+> conda install pyqt
+
+* Launch QT designer:
+
+> designer
+
+* Open resources/mainscreen.ui
      
 Developed by- Ajay Sagar and Tanmay Dutta
