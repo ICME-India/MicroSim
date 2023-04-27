@@ -965,7 +965,7 @@ void calculate_divergence_concentration_smooth_3D(long x, struct gradlayer **gra
     grad_left     =  &gradient[0][gidy-1];
     grad_back     =  &gradient[-1][gidy];
     
-    if ((gidy-workers_mpi.rows_y) > 0) {
+    if ((gidy-workers_mpi.rows_y) >= 0) {
       grad_bottom  = &gradient[0][gidy-workers_mpi.rows_y];
     }
     
