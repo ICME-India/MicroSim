@@ -46,7 +46,7 @@ validator2fill = QRegExpValidator(QRegExp(r'^\d{0-9}(\,\d{0-9})?$'))
 class StartScreen(QDialog):
     def __init__(self):
         super(StartScreen,self).__init__()
-        loadUi("resources/maincsreen.ui",self)
+        loadUi("resources/mainscreen.ui",self)
         self.setWindowTitle("MicroSim")
         self.logo.setStyleSheet("background-image : url(resources/img/MicroSim2.png)")
         self.logo_2.setStyleSheet("background-image : url(resources/img/MicroSim2.png)")
@@ -83,6 +83,7 @@ class StartScreen(QDialog):
         self.PPimage_widge.hide()
         self.PPexport_widge.hide()
         self.triple_point_widget.hide()
+        self.triple_point_widget_3.hide()
         self.quad_point_widget.hide()
         
         self.ppToolwidget.setEnabled(False)
@@ -925,7 +926,7 @@ class StartScreen(QDialog):
             #Home Screen
             self.anim12.setStartValue(QPoint(   int(240*1.25*self.width()/1100  ), int(180*self.height()/650 )   ))
             self.anim12.setEndValue(QPoint(    int(240*1.25*self.width()/1100  ), int(210*self.height()/650 )   ))
-            self.w1.setGeometry( int((240*1.25*self.display_W)) , int((210*self.display_H)) , 621, 320 )
+            self.w1.setGeometry( int((100*3*self.display_W)) , int((200*self.display_H)) , 880, 320 )
             self.widget_10.setGeometry( int((240*1.25*self.display_W)) , int((240*self.display_H)) , 621, 170 )
 
 
@@ -1256,7 +1257,7 @@ class StartScreen(QDialog):
 
             self.anim12.setStartValue(QPoint(   int(240*self.width()/1100  ), int(180*self.height()/650 )   ))
             self.anim12.setEndValue(QPoint(    int(240*self.width()/1100  ), int(210*self.height()/650 )   ))
-            self.w1.setGeometry( int((240*self.display_W)) , int((210*self.display_H)) , 621, 320 )
+            self.w1.setGeometry( int((100*self.display_W)) , int((200*self.display_H)) , 880, 320 )
 
             self.widget_10.setGeometry( int((240*self.display_W)) , int((240*self.display_H)) , 621, 170 )
 
@@ -1645,6 +1646,8 @@ class StartScreen(QDialog):
     def importFileClicked(self):
         self.model_CH.setChecked(False)
         self.model_GP.setChecked(False)
+        self.model_amrex.setChecked(False)
+        self.model_of.setChecked(False)
         self.model_KKS.setChecked(False)
         self.model_KKS2.setChecked(False)
         self.w1.show()
@@ -3640,6 +3643,7 @@ class StartScreen(QDialog):
         self.triple_point_value= triple_point( self.vtkData ,self.dataset,grid_shape, self.timeItretion,self.scalerValue.currentText())
         
         self.triple_point_widget.show()
+        self.triple_point_widget_3.hide()
         self.quad_point_widget.hide()
         self.SimulationDetail.hide()
         self.pptRadius.hide()
@@ -3654,6 +3658,7 @@ class StartScreen(QDialog):
         self.tip_radius_flag = 0
         self.front_undercool_flag = 0
         self.triple_point_flag = 1
+        self.triple_point3_flag = 0
         self.quad_point_flag = 0
         self.pointCorrelation_flag = 0
         self.pricipalComponent_flag = 0
@@ -4377,13 +4382,13 @@ class StartScreen(QDialog):
 
 
     def openFileDir(self):
-        if self.model_GP.isChecked() or self.model_CH.isChecked() or self.model_KKS.isChecked() or self.model_KKS2.isChecked() :
+        if self.model_GP.isChecked() or self.model_of.isChecked() or self.model_amrex.isChecked() or self.model_CH.isChecked() or self.model_KKS.isChecked() or self.model_KKS2.isChecked() :
             self.errorStartScreen.setText("")
             self.fileNameDir, _ = QFileDialog.getOpenFileName(self, 'Single File', QDir.currentPath() , 'InFile(*.in)')
             self.fileLabel.setText(self.fileNameDir)
             self.ReadfromFile()
         else:
-            self.errorStartScreen.setText("Please selct the Model")
+            self.errorStartScreen.setText("Please select a model")
             return
 
 
@@ -5114,7 +5119,7 @@ class StartScreen(QDialog):
     def clickedBtn6(self):
 
 
-        if self.radio_GP.isChecked() == False and self.radio_CH.isChecked() == False and self.radio_KKR.isChecked() == False and self.radio_KKS2.isChecked() == False:
+        if self.radio_GP.isChecked() == False and self.radio_of.isChecked() == False and self.radio_amrex.isChecked() == False and self.radio_CH.isChecked() == False and self.radio_KKR.isChecked() == False and self.radio_KKS2.isChecked() == False:
             self.error8.setText("Please select a model")
             return
 
@@ -7554,7 +7559,7 @@ class StartScreen(QDialog):
         
 
         #MODEL SPECIFIC PARAMETER
-        if self.radio_GP.isChecked():
+        if self.radio_GP.isChecked() or self.radio_of.isChecked() or self.radio_amrex.isChecked():
 
             if self.saveGPChack():
                 f.write("##Model-specific parameters: Grand-potential model\n")
@@ -7593,7 +7598,6 @@ class StartScreen(QDialog):
                         "Equilibrium_temperature = " + self.equTGP.text()+";\n"
                         "Filling_temperature = " + self.fillingTGP.text()+";\n"
                         "Tempgrady = {" + self.tempgradyGP.text()+"};\n")
-        
                 
             else:
                 self.finish_error.setText("Fill All required Model Specific Parameter")
@@ -7914,6 +7918,22 @@ class StartScreen(QDialog):
                 
                 elif self.tableWidgetGP.item(i,3).text() !="-":
                     f.write("cfill = {" +  self.tableWidgetGP.item(i,0).text() + ","+ self.tableWidgetGP.item(i,1).text() + "," + self.tableWidgetGP.item(i,3).text() + "};\n")
+
+#            if self.radio_amrex.isChecked():
+#                for i in range(NoP*NoP):                
+#                    if self.tableWidgetGP.item(i,5) is None or self.tableWidgetGP.item(i,5).text() == '':
+#                        self.finish_error.setText("Please fill All values of Cguess")
+#                        return False
+#                    elif self.tableWidgetGP.item(i,5).text() !="-":
+#                        f.write("c_guess = {" +  self.tableWidgetGP.item(i,0).text() + ","+ self.tableWidgetGP.item(i,1).text() + "," + self.tableWidgetGP.item(i,5).text() + "};\n")
+#                for i in range(NoP*NoP):
+                
+#                    if self.tableWidgetGP.item(i,4) is None or self.tableWidgetGP.item(i,4).text() == '':
+#                        self.finish_error.setText("Please fill All values of Slope")
+#                        return False
+                
+#                    elif self.tableWidgetGP.item(i,4).text() !="-":
+#                        f.write("slopes = {" +  self.tableWidgetGP.item(i,0).text() + ","+ self.tableWidgetGP.item(i,1).text() + "," + self.tableWidgetGP.item(i,4).text() + "};\n")
             
             for i in range(NoP*NoP):
                 if self.radio_GP.isChecked() and self.FanisotropyGP.text() == "0":
@@ -8062,7 +8082,7 @@ class StartScreen(QDialog):
                         entries[1] = entries[1].replace(" ", "")
                         entries[1] = entries[1].replace(";", "")
                         entries[1] = entries[1].replace("\n", "")
-                        if self.model_GP.isChecked():
+                        if self.model_GP.isChecked() or self.model_of.isChecked() or self.model_amrex.isChecked():
                             self.fillEntryGP(entries[0].replace(" ", ""),entries[1] )
                         elif self.model_CH.isChecked():
                             self.fillEntryCH(entries[0].replace(" ", ""),entries[1] )
@@ -8072,7 +8092,7 @@ class StartScreen(QDialog):
                             self.fillEntryKKS2(entries[0].replace(" ", ""),entries[1] )
 
                 #print(self.gpFlag)
-                if self.model_GP.isChecked():
+                if self.model_GP.isChecked() or self.model_of.isChecked() or self.model_amrex.isChecked():
                     gpVariables =["DIMENSION", "MESH_X" ,"MESH_Y", "MESH_Z", "DELTA_X" ,"DELTA_Y", "DELTA_Z", "DELTA_t", "NUMPHASES", "NUMCOMPONENTS", "NTIMESTEPS", "NSMOOTH", "SAVET", "COMPONENTS", "PHASES", "GAMMA", "DIFFUSIVITY", "R", "V", "EIGEN_STRAIN", "Elastic Constant","BOUNDARY Phi","BOUNDARY mu/c","BOUNDARY T","BOUNDARY_VALUE Phi","BOUNDARY_VALUE mu/c","BOUNDARY_VALUE T"]
                     gpmsgFlag =0
                     gperror = "Oops ! we have noticed some missing parameters in your Infile\n"
@@ -8380,7 +8400,12 @@ class StartScreen(QDialog):
         self.Estrain.setText( self.eigenStrain[0])
         self.Econstant.setText(self.elasticConstant[0])
         self.clickedBtn1()
-        self.radio_GP.setChecked(True)
+        if self.model_GP.isChecked():
+            self.radio_GP.setChecked(True)
+        elif self.model_of.isChecked():
+            self.radio_of.setChecked(True)
+        elif self.model_amrex.isChecked():
+            self.radio_amrex.setChecked(True)
 
         ## Material Specific Parameter
 
@@ -9105,7 +9130,7 @@ class StartScreen(QDialog):
             self.TauKKS.setText(entryvalue)
             self.kksFlag[34] = 1
             
-        elif entryname == "Epsilon":
+        elif entryname == "epsilon":
             self.EpsilonKKS.setText(entryvalue)
             self.kksFlag[35] = 1
 
