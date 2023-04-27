@@ -2,171 +2,148 @@
 
 __global__
 void __updatePhi__(double **phi, double **dfdphi, double **phiNew,
-                   double *relaxCoeff,
-                   int NUMPHASES, int NUMCOMPONENTS,
-                   int sizeX, int sizeY, int sizeZ,
+                   double *relaxCoeff, double *kappaPhi,
+                   double *dab, double *Rotation_matrix, double *Inv_rotation_matrix, int FUNCTION_ANISOTROPY,
+                   long NUMPHASES, long NUMCOMPONENTS, long DIMENSION,
+                   long sizeX, long sizeY, long sizeZ,
+                   long yStep, long zStep, long padding,
+                   double DELTA_X, double DELTA_Y, double DELTA_Z,
                    double DELTA_t)
 {
-    int i = threadIdx.x + blockIdx.x * blockDim.x;
-    int j = threadIdx.y + blockIdx.y * blockDim.y;
-    int k = threadIdx.z + blockIdx.z * blockDim.z;
+    long i = threadIdx.x + blockIdx.x * blockDim.x;
+    long j = threadIdx.y + blockIdx.y * blockDim.y;
+    long k = threadIdx.z + blockIdx.z * blockDim.z;
 
-    int idx = (j + k*sizeY)*sizeX + i;
+    long x, y, z;
 
-    int phase, p;
+    long index[3][3][3];
 
-    //if ((i < sizeX && j > 1 && j < sizeY-2 && sizeZ == 1) || (i < sizeX && j < sizeY && sizeZ > 1 && k > 1 && k < sizeZ-2))
-    if (i < sizeX && j < sizeY && k < sizeZ)
+    double phiAniso[MAX_NUM_PHASES][3][3][3];
+
+    double divphi = 0.0;
+
+    double aniso[MAX_NUM_PHASES] = {0.0};
+    double dfdphiSum = 0.0;
+
+    long phase, p;
+
+    if (i >= padding && i < sizeX-padding && ((j >= padding && j < sizeY-padding && DIMENSION >= 2) || (DIMENSION == 1 && j == 0)) && ((k >= padding && k < sizeZ-padding && DIMENSION == 3) || (DIMENSION < 3 && k == 0)))
     {
+        for (x = 0; x < 3; x++)
+        {
+            for (y = 0; y < 3; y++)
+            {
+                for (z = 0; z < 3; z++)
+                {
+                    index[x][y][z] = (k+z-1)*zStep + (j+y-1)*yStep + (i+x-1);
+                }
+            }
+        }
+
         for (phase = 0; phase < NUMPHASES; phase++)
         {
-            phiNew[phase][idx] = phi[phase][idx];
+            for (x = 0; x < 3; x++)
+            {
+                for (y = 0; y < 3; y++)
+                {
+                    for (z = 0; z < 3; z++)
+                    {
+                        phiAniso[phase][x][y][z] = phi[phase][index[x][y][z]];
+                    }
+                }
+            }
+        }
+
+        if (FUNCTION_ANISOTROPY == 0)
+        {
+            for (phase = 0; phase < NUMPHASES; phase++)
+            {
+                if (DIMENSION == 1)
+                {
+                    aniso[phase] = (phiAniso[phase][0][1][1] - 2.0*phiAniso[phase][1][1][1] + phiAniso[phase][2][1][1])/(DELTA_X*DELTA_X);
+                }
+                else if (DIMENSION == 2)
+                {
+                    // Centre
+                    aniso[phase] = -3.0*phiAniso[phase][1][1][1]/(DELTA_X*DELTA_Y);
+
+                    // Nearest neighbours
+                    aniso[phase] += 0.5*(phiAniso[phase][0][1][1] + phiAniso[phase][2][1][1])/(DELTA_X*DELTA_X);
+                    aniso[phase] += 0.5*(phiAniso[phase][1][0][1] + phiAniso[phase][1][2][1])/(DELTA_Y*DELTA_Y);
+
+                    // Second-nearest neighbours
+                    aniso[phase] += 0.25*(phiAniso[phase][0][0][1] + phiAniso[phase][0][2][1] + phiAniso[phase][2][2][1] + phiAniso[phase][2][0][1])/(DELTA_X*DELTA_Y);
+                }
+                else if (DIMENSION == 3)
+                {
+                    aniso[phase] = 0.0;
+                }
+            }
+        }
+        else if (FUNCTION_ANISOTROPY == 1)
+        {
+            for (phase = 0; phase < NUMPHASES; phase++)
+            {
+                aniso[phase] = calcAnisotropy_01(phiAniso, dab, kappaPhi, Rotation_matrix, Inv_rotation_matrix, phase, NUMPHASES, DIMENSION, DELTA_X, DELTA_Y, DELTA_Z);
+            }
+        }
+        else if (FUNCTION_ANISOTROPY == 2)
+        {
+            for (phase = 0; phase < NUMPHASES; phase++)
+            {
+                aniso[phase] = calcAnisotropy_02(phiAniso, dab, kappaPhi, Rotation_matrix, Inv_rotation_matrix, phase, NUMPHASES, DIMENSION, DELTA_X, DELTA_Y, DELTA_Z);
+            }
+        }
+
+        for (phase = 0; phase < NUMPHASES; phase++)
+        {
+            divphi = (phiAniso[phase][2][1][1] - 2.0*phiAniso[phase][1][1][1] + phiAniso[phase][0][1][1])/(DELTA_X*DELTA_X);
+            if (DIMENSION >= 2)
+                divphi += (phiAniso[phase][1][2][1] - 2.0*phiAniso[phase][1][1][1] + phiAniso[phase][1][0][1])/(DELTA_Y*DELTA_Y);
+            if (DIMENSION == 3)
+                divphi += (phiAniso[phase][1][1][2] - 2.0*phiAniso[phase][1][1][1] + phiAniso[phase][1][1][0])/(DELTA_Z*DELTA_Z);
+
+            dfdphiSum = 0.0;
+
             for (p = 0; p < NUMPHASES; p++)
             {
                 if (p == phase)
                     continue;
 
-                phiNew[phase][idx] -= (DELTA_t*relaxCoeff[phase*NUMPHASES + p]/(double)NUMPHASES)*(dfdphi[phase][idx] - dfdphi[p][idx]);
+                dfdphiSum += (dfdphi[phase][index[1][1][1]] - dfdphi[p][index[1][1][1]]);
+
+                if (FUNCTION_ANISOTROPY == 0)
+                {
+                    dfdphiSum += 2.0*kappaPhi[phase*NUMPHASES + p]*(aniso[p] - aniso[phase]);
+                }
+                else if (FUNCTION_ANISOTROPY == 1 || FUNCTION_ANISOTROPY == 2)
+                {
+                    dfdphiSum += (aniso[p] - aniso[phase]);
+                }
             }
+
+            if (fabs(divphi) > 0.0)
+                phiNew[phase][index[1][1][1]] = phi[phase][index[1][1][1]] - DELTA_t*FunctionTau(phi, relaxCoeff, index[1][1][1], NUMPHASES)*dfdphiSum/(double)NUMPHASES;
         }
     }
-    __syncthreads();
 }
 
-__global__
-void __updatePhiBinary__(double **phi, double **dfdphi, double **phiNew,
-                         double *relaxCoeff, double kappaPhi,
-                         int NUMPHASES, int NUMCOMPONENTS,
-                         int sizeX, int sizeY, int sizeZ,
-                         double DELTA_X, double DELTA_Y, double DELTA_Z,
-                         double DELTA_t)
-{
-    int i = threadIdx.x + blockIdx.x * blockDim.x;
-    int j = threadIdx.y + blockIdx.y * blockDim.y;
-    int k = threadIdx.z + blockIdx.z * blockDim.z;
-
-    int idx = (j + k*sizeY)*sizeX + i;
-
-    int xp[2], xm[2], yp[2], ym[2], zp[2], zm[2];
-
-    //if ((i < sizeX && j > 1 && j < sizeY-2 && sizeZ == 1) || (i < sizeX && j < sizeY && sizeZ > 1 && k > 1 && k < sizeZ-2))
-    if (i < sizeX && j < sizeY && k < sizeZ)
-    {
-        // x-direction
-        xp[0] = (j + k*sizeY)*sizeX + i+1;
-        xp[1] = (j + k*sizeY)*sizeX + i+2;
-        xm[0] = (j + k*sizeY)*sizeX + i-1;
-        xm[1] = (j + k*sizeY)*sizeX + i-2;
-
-        if (i == 0)
-        {
-            xm[0] = (j + k*sizeY)*sizeX + sizeX-1;
-            xm[1] = (j + k*sizeY)*sizeX + sizeX-2;
-        }
-        else if (i == 1)
-        {
-            xm[1] = (j + k*sizeY)*sizeX + sizeX-1;
-        }
-        else if (i == sizeX - 2)
-        {
-            xp[1] = (j + k*sizeY)*sizeX;
-        }
-        else if (i == sizeX - 1)
-        {
-            xp[0] = (j + k*sizeY)*sizeX;
-            xp[1] = (j + k*sizeY)*sizeX + 1;
-        }
-
-        // y-direction
-        if (sizeY > 1)
-        {
-            yp[0] = (j+1 + k*sizeY)*sizeX + i;
-            yp[1] = (j+2 + k*sizeY)*sizeX + i;
-            ym[0] = (j-1 + k*sizeY)*sizeX + i;
-            ym[1] = (j-2 + k*sizeY)*sizeX + i;
-
-            if (j == 0)
-            {
-                ym[0] = (sizeY-1 + k*sizeY)*sizeX + i;
-                ym[1] = (sizeY-2 + k*sizeY)*sizeX + i;
-            }
-            else if (j == 1)
-            {
-                ym[1] = (sizeY-1 + k*sizeY)*sizeX + i;
-            }
-            else if (j == sizeY - 2)
-            {
-                yp[1] = (k*sizeY)*sizeX + i;
-            }
-            else if (j == sizeY - 1)
-            {
-                yp[0] = (k*sizeY)*sizeX + i;
-                yp[1] = (1 + k*sizeY)*sizeX + i;
-            }
-        }
-
-        // z-direction
-        if (sizeZ > 1)
-        {
-            zp[0] = (j + (k+1)*sizeY)*sizeX + i;
-            zp[1] = (j + (k+2)*sizeY)*sizeX + i;
-            zm[0] = (j + (k-1)*sizeY)*sizeX + i;
-            zm[1] = (j + (k-2)*sizeY)*sizeX + i;
-
-            if (k == 0)
-            {
-                zm[0] = (j + (sizeZ-1)*sizeY)*sizeX + i;
-                zm[1] = (j + (sizeZ-2)*sizeY)*sizeX + i;
-            }
-            else if (k == 1)
-            {
-                zm[1] = (j + (sizeZ-1)*sizeY)*sizeX + i;
-            }
-            else if (k == sizeZ - 2)
-            {
-                zp[1] = j*sizeX + i;
-            }
-            else if (k == sizeZ - 1)
-            {
-                zp[0] = j*sizeX + i;
-                zp[1] = (j + sizeY)*sizeX + i;
-            }
-        }
-
-        dfdphi[1][idx] -= 2.0*kappaPhi*(phi[1][xp[0]] - 2.0*phi[1][idx] + phi[1][xm[0]])/(DELTA_X*DELTA_X);
-        if (sizeY > 1)
-            dfdphi[1][idx] -= 2.0*kappaPhi*(phi[1][yp[0]] - 2.0*phi[1][idx] + phi[1][ym[0]])/(DELTA_Y*DELTA_Y);
-        if (sizeZ > 1)
-            dfdphi[1][idx] -= 2.0*kappaPhi*(phi[1][zp[0]] - 2.0*phi[1][idx] + phi[1][zm[0]])/(DELTA_Z*DELTA_Z);
-
-        phiNew[1][idx] = phi[1][idx] - (DELTA_t*relaxCoeff[1])*dfdphi[1][idx];
-
-        phiNew[0][idx] = 1.0 - phiNew[1][idx];
-
-    }
-    __syncthreads();
-}
-
-void updatePhi(double **phi, double **dfdphi, double **phiNew,
+void updatePhi(double **phi, double **dfdphi, double **phiNew, double **phaseComp,
                domainInfo* simDomain, controls* simControls,
                simParameters* simParams, subdomainInfo* subdomain,
                dim3 gridSize, dim3 blockSize)
 {
-    if (simControls->multiphase == 1 || simDomain->numPhases > 2 || simDomain->numComponents > 2)
-    {
-        __updatePhi__<<<gridSize, blockSize>>>(phi, dfdphi, phiNew,
-                                               simParams->relax_coeff_dev,
-                                               simDomain->numPhases, simDomain->numComponents,
-                                               subdomain->sizeX, subdomain->sizeY, subdomain->sizeZ,
-                                               simControls->DELTA_t);
-    }
-    else if (simDomain->numPhases == 2 && simDomain->numComponents == 2)
-    {
-        __updatePhiBinary__<<<gridSize, blockSize>>>(phi, dfdphi, phiNew,
-                                                     simParams->relax_coeff_dev, simParams->kappaPhi_host[0][1],
-                                                     simDomain->numPhases, simDomain->numComponents,
-                                                     subdomain->sizeX, subdomain->sizeY, subdomain->sizeZ,
-                                                     simDomain->DELTA_X, simDomain->DELTA_Y, simDomain->DELTA_Z,
-                                                     simControls->DELTA_t);
-    }
+    __updatePhi__<<<gridSize, blockSize>>>(phi, dfdphi, phiNew,
+                                           simParams->relax_coeff_dev, simParams->kappaPhi_dev,
+                                           simParams->dab_dev, simParams->Rotation_matrix_dev, simParams->Inv_Rotation_matrix_dev, simControls->FUNCTION_ANISOTROPY,
+                                           simDomain->numPhases, simDomain->numComponents, simDomain->DIMENSION,
+                                           subdomain->sizeX, subdomain->sizeY, subdomain->sizeZ,
+                                           subdomain->yStep, subdomain->zStep, subdomain->padding,
+                                           simDomain->DELTA_X, simDomain->DELTA_Y, simDomain->DELTA_Z,
+                                           simControls->DELTA_t);
+
+    applyBoundaryCondition(phiNew, 0, simDomain->numPhases,
+                           simDomain, simControls,
+                           simParams, subdomain,
+                           gridSize, blockSize);
 }

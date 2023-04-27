@@ -1,0 +1,920 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+|  Test Example 8 : Kinetic Properties  |
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+Defining user pointer:
+PanEngine 2021 (Copyright) Registered to India - 701
+Set PanEngine configuration:
+Reading database file:
+comp_name =
+	Al	B	C	Co	Cr	Cu	Fe	Hf	Ir	Mn	Mo	N	Nb	Ni	O	P	Pt	Re	Ru	S	Si	Ta	Ti	V	W	Y	Zr
+phase_name =
+	A15	A2B_oS12	A2B_tI6	A4B	A8B	AB2_oI6	AB2_tI12	AB3_oP16	AB_oS8	A_TiO	Al10V	Al11Cr2	Al11M4	Al11Mn4_HT	Al12M	Al13Co4	Al13Cr2	Al13Ir4	Al13Ru4	Al14Ni2Ru	Al1Fe1O3	Al21Pt5	Al21Pt8	Al23V4	Al2Hf3	Al2Pt	Al2Ru	Al2S3	Al2Y3	Al3Co	Al3Hf2	Al3Hf4	Al3Hf_Alpha	Al3Hf_Beta	Al3Ir	Al3M2	Al3Ni5	Al3Pt5	Al45Ir13	Al4M	Al4Mn	Al4Mn_L	Al4Re	Al5Co2	Al69Ta39	Al6M	Al73Ir27	Al7V	Al8Cr5_H	Al8Cr5_L	Al8Mn5	Al8V5	Al9Co2	Al9Cr4_H	Al9Cr4_L	Al9Ir2	AlNi8Y3	AlPt	AlRe	AlS	AlY	AlY2	Alpha	Alpha_B	Alpha_M5Si3	Alpha_TiMn	B19	B2	B2O3	BCC_A12	BETA_VO	Bcc	Bcc_B2	Beta2_Ni3Si	Beta_B	Beta_Co2Si	Beta_Cr5Si3	Beta_Si4Zr5	Beta_TiMn	CUB_A13	Chi_A12	Co11Zr2	Co17Y2	Co2P	Co3M	Co3Si	Co3Y2	Co3Y4	Co5Y8	Co7Ta2	Co7Y6	CoZr3	Corundum	Cr2B	Cr3Mn5	Cr3Ru	Cr5B3	CrB	CrB4	Cristobalite	Cu15Si4	Cu19Si6	Cu2O	Cu2Y_H	Cu2Y_R	Cu33Si7	Cu3P	Cu3Ti2	Cu4Ti	Cu4Ti3	Cu4Y	Cu6Y	Cu7Y2	CuO	CuTi	D0_19	D0_22	Delta	Diamond_Si	Epsilon_Ni3Si2	Eta	Fcc	Fcc_MC	Fe3Si7	Fe4Re	FeB	FeNb2P	FeNb4P	FeNbP	FeP2	FeP4	FeS	FeS2	FeTiP	GAS	Gamma_Ni5Si2	Gamma_double_prime	Graphite	Halite	Hcp	Hcp_M2C	HfMn	HfSiO4	Ir2Y3	Ir2Y5	Ir3Y5	IrY3	L10	L12_FCC	L_Sigma_CrMn	Laves_C14	Laves_C15	Laves_C36	Liquid	M17Y2	M23C6	M23N6	M2B	M2P	M2Si_oP12	M2Si_tI12	M3B2	M3BC	M3C2	M3P	M3Si2	M3Si_cF16	M3Si_cP8	M3Si_tP32	M3Y	M4C3	M5Si3	M5Si4	M5Y	M6C	M7C3	M7Y2	MB2	MP	MSi2_cF12	MSi2_hP9	MSi2_oC12	MSi2_oC48	MSi2_tI6	MSi_cP8	MSi_oC8	MSi_oP8	Mn11Si19	Mn12Y	Mn3O4_A	Mn3O4_B	Mn3P2	Mn3Ti	Mn4Ti	Mn5Si3	Mn6Si	Mn9Si2	MnNi2	MnP4	MnPt7	MnS	Mo2S3	Mo3P	Mo4O11	Mo8O23	Mo9O26	MoO3	MoP	MoS2	Mu_Phase	Nb2O5	Nb3P	Nb7P4	NbO	NbO2	NbP	NbP2	Ni10Hf7	Ni11Hf9	Ni12P5_H	Ni12P5_L	Ni16Si7Ti6	Ni21Hf8	Ni2Y3	Ni3Hf_Alpha	Ni3Hf_Beta	Ni3S2	Ni4Y	Ni5Hf	Ni5P2_H	Ni5P2_L	Ni5P4	Ni6AlTa	Ni7Hf2	Ni7Hf3	NiHf_Beta	NiMo	NiP2	NiS2	NiTiZr	NiV3	NiY	Orthorhombic	P4O10	P_Phase	P_Red	P_White	Phi	Pt2Si_beta	PtTa	PtTa6	Quartz	R_Phase	Re24Zr5	Re25Zr21	Re2O7	Re2Si	ReO2	ReO3	Ru25Y44	Ru2Si3	Ru2Y3	Ru2Y5	Ru4Si3	Ru5Ta3	RuY3	Rutile	Shp_MC	Si2Y_H	Si2Y_R	Si4Y5	Si5V6	Si5Y3_H	Si5Y3_R	SiO_AM	Sigma	Spinel	Ta2O5_S	Ta2O5_S2	TaV2_C14	TaV2_C15	Tau2_AlNiZr	Theta_Ni2Si	Ti10O19	Ti20O39	Ti2CS	Ti2S	Ti3O2	Ti3O5	Ti3P	Ti4O7	Ti4P3	Ti5Al11	Ti5O9	Ti5P3	Ti63P37	Ti6O11	Ti7O13	Ti8O15	Ti8S10	Ti8S3	Ti8S9	Ti9O17	TiAl2	TiOx	TiP	TiP2	TiS2	TiS3	TiSi2	Tridymite	V2B3	V2O5	V2O_SS	V3B4	V3O5_HT	V3O5_LT	V3O7	V4O7	V52O64	V5B6	V5O9	V6O11	V6O13	V7O13	V8O15	VO2	WO272	WO290	WO296	WO3_A	WO3_B	Y2O3_cub	Y2O3_hex	Zr2O	Zr3O	Zr6O	ZrO2_Cubic	ZrO2_Tetragonal	alpha_Al3Y	m_Ni4B3	o_Ni4B3
+
+
+========= Point 1 =========
+############## Point 1#############
+Temperature 800
+Phase Name = L12_FCC
+Hessian Matrix of G:
+HSN[Al,Al] 4.19347e+06
+HSN[Al,Mo] 27707.9
+         HSN[Mo,Al] 27691.8
+HSN[Mo,Mo] 5.83425e+08
+
+Determinant of Hessian Matrix of G:
+|HSN| 2.44657e+15
+
+Phase Name = L12_FCC
+Hessian Matrix of G:
+HSN[Al,Al] 391403
+HSN[Al,Mo] 176132
+         HSN[Mo,Al] 176132
+HSN[Mo,Mo] 1.9873e+06
+
+Determinant of Hessian Matrix of G:
+|HSN| 7.46812e+11
+
+############## Point 2#############
+Temperature 810
+Phase Name = L12_FCC
+Hessian Matrix of G:
+HSN[Al,Al] 3.73853e+06
+HSN[Al,Mo] 26339
+         HSN[Mo,Al] 26321.8
+HSN[Mo,Mo] 5.84756e+08
+
+Determinant of Hessian Matrix of G:
+|HSN| 2.18613e+15
+
+Phase Name = L12_FCC
+Hessian Matrix of G:
+HSN[Al,Al] 376377
+HSN[Al,Mo] 162106
+         HSN[Mo,Al] 162106
+HSN[Mo,Mo] 1.99978e+06
+
+Determinant of Hessian Matrix of G:
+|HSN| 7.26395e+11
+
+############## Point 3#############
+Temperature 820
+Phase Name = L12_FCC
+Hessian Matrix of G:
+HSN[Al,Al] 3.33866e+06
+HSN[Al,Mo] 25068.1
+         HSN[Mo,Al] 25050.2
+HSN[Mo,Mo] 5.84975e+08
+
+Determinant of Hessian Matrix of G:
+|HSN| 1.95303e+15
+
+Phase Name = L12_FCC
+Hessian Matrix of G:
+HSN[Al,Al] 362394
+HSN[Al,Mo] 149139
+         HSN[Mo,Al] 149139
+HSN[Mo,Mo] 2.01368e+06
+
+Determinant of Hessian Matrix of G:
+|HSN| 7.07502e+11
+
+############## Point 4#############
+Temperature 830
+Phase Name = L12_FCC
+Hessian Matrix of G:
+HSN[Al,Al] 2.9861e+06
+HSN[Al,Mo] 23893.6
+         HSN[Mo,Al] 23875.6
+HSN[Mo,Mo] 5.83954e+08
+
+Determinant of Hessian Matrix of G:
+|HSN| 1.74374e+15
+
+Phase Name = L12_FCC
+Hessian Matrix of G:
+HSN[Al,Al] 349351
+HSN[Al,Mo] 137127
+         HSN[Mo,Al] 137127
+HSN[Mo,Mo] 2.02889e+06
+
+Determinant of Hessian Matrix of G:
+|HSN| 6.89993e+11
+
+############## Point 5#############
+Temperature 840
+Phase Name = L12_FCC
+Hessian Matrix of G:
+HSN[Al,Al] 2.67434e+06
+HSN[Al,Mo] 22814.5
+         HSN[Mo,Al] 22796.6
+HSN[Mo,Mo] 5.81567e+08
+
+Determinant of Hessian Matrix of G:
+|HSN| 1.55531e+15
+
+Phase Name = L12_FCC
+Hessian Matrix of G:
+HSN[Al,Al] 337162
+HSN[Al,Mo] 125982
+         HSN[Mo,Al] 125982
+HSN[Mo,Mo] 2.04535e+06
+
+Determinant of Hessian Matrix of G:
+|HSN| 6.73743e+11
+
+############## Point 6#############
+Temperature 850
+Phase Name = L12_FCC
+Hessian Matrix of G:
+HSN[Al,Al] 2.39789e+06
+HSN[Al,Mo] 21829.4
+         HSN[Mo,Al] 21812
+HSN[Mo,Mo] 5.77701e+08
+
+Determinant of Hessian Matrix of G:
+|HSN| 1.38526e+15
+
+Phase Name = L12_FCC
+Hessian Matrix of G:
+HSN[Al,Al] 325745
+HSN[Al,Mo] 115621
+         HSN[Mo,Al] 115621
+HSN[Mo,Mo] 2.06298e+06
+
+Determinant of Hessian Matrix of G:
+|HSN| 6.58639e+11
+
+############## Point 7#############
+Temperature 860
+Phase Name = L12_FCC
+Hessian Matrix of G:
+HSN[Al,Al] 2.15211e+06
+HSN[Al,Mo] 20937.7
+         HSN[Mo,Al] 20921
+HSN[Mo,Mo] 5.72252e+08
+
+Determinant of Hessian Matrix of G:
+|HSN| 1.23155e+15
+
+Phase Name = L12_FCC
+Hessian Matrix of G:
+HSN[Al,Al] 315031
+HSN[Al,Mo] 105971
+         HSN[Mo,Al] 105971
+HSN[Mo,Mo] 2.08174e+06
+
+Determinant of Hessian Matrix of G:
+|HSN| 6.44581e+11
+
+############## Point 8#############
+Temperature 870
+Phase Name = L12_FCC
+Hessian Matrix of G:
+HSN[Al,Al] 1.93304e+06
+HSN[Al,Mo] 20138.7
+         HSN[Mo,Al] 20123.1
+HSN[Mo,Mo] 5.65142e+08
+
+Determinant of Hessian Matrix of G:
+|HSN| 1.09244e+15
+
+Phase Name = L12_FCC
+Hessian Matrix of G:
+HSN[Al,Al] 304955
+HSN[Al,Mo] 96968.2
+         HSN[Mo,Al] 96968.2
+HSN[Mo,Mo] 2.10156e+06
+
+Determinant of Hessian Matrix of G:
+|HSN| 6.31479e+11
+
+############## Point 9#############
+Temperature 880
+Phase Name = L12_FCC
+Hessian Matrix of G:
+HSN[Al,Al] 1.73733e+06
+HSN[Al,Mo] 19432.2
+         HSN[Mo,Al] 19417.8
+HSN[Mo,Mo] 5.56319e+08
+
+Determinant of Hessian Matrix of G:
+|HSN| 9.66512e+14
+
+Phase Name = L12_FCC
+Hessian Matrix of G:
+HSN[Al,Al] 295461
+HSN[Al,Mo] 88551.9
+         HSN[Mo,Al] 88551.9
+HSN[Mo,Mo] 2.12243e+06
+
+Determinant of Hessian Matrix of G:
+|HSN| 6.19252e+11
+
+############## Point 10#############
+Temperature 890
+Phase Name = L12_FCC
+Hessian Matrix of G:
+HSN[Al,Al] 1.56209e+06
+HSN[Al,Mo] 18818.3
+         HSN[Mo,Al] 18805.4
+HSN[Mo,Mo] 5.45767e+08
+
+Determinant of Hessian Matrix of G:
+|HSN| 8.52539e+14
+
+Phase Name = L12_FCC
+Hessian Matrix of G:
+HSN[Al,Al] 286496
+HSN[Al,Mo] 80668.9
+         HSN[Mo,Al] 80668.9
+HSN[Mo,Mo] 2.14429e+06
+
+Determinant of Hessian Matrix of G:
+|HSN| 6.07825e+11
+
+############## Point 11#############
+Temperature 900
+Phase Name = L12_FCC
+Hessian Matrix of G:
+HSN[Al,Al] 1.40486e+06
+HSN[Al,Mo] 18297.4
+         HSN[Mo,Al] 18286.1
+HSN[Mo,Mo] 5.33507e+08
+
+Determinant of Hessian Matrix of G:
+|HSN| 7.495e+14
+
+Phase Name = L12_FCC
+Hessian Matrix of G:
+HSN[Al,Al] 278016
+HSN[Al,Mo] 73270.4
+         HSN[Mo,Al] 73270.4
+HSN[Mo,Mo] 2.16714e+06
+
+Determinant of Hessian Matrix of G:
+|HSN| 5.97132e+11
+
+############## Point 12#############
+Temperature 910
+Phase Name = L12_FCC
+Hessian Matrix of G:
+HSN[Al,Al] 1.26349e+06
+HSN[Al,Mo] 17870.5
+         HSN[Mo,Al] 17860.8
+HSN[Mo,Mo] 5.19604e+08
+
+Determinant of Hessian Matrix of G:
+|HSN| 6.56514e+14
+
+Phase Name = L12_FCC
+Hessian Matrix of G:
+HSN[Al,Al] 269978
+HSN[Al,Mo] 66312.1
+         HSN[Mo,Al] 66312.1
+HSN[Mo,Mo] 2.19096e+06
+
+Determinant of Hessian Matrix of G:
+|HSN| 5.87113e+11
+
+############## Point 13#############
+Temperature 920
+Phase Name = L12_FCC
+Hessian Matrix of G:
+HSN[Al,Al] 1.13616e+06
+HSN[Al,Mo] 17538.9
+         HSN[Mo,Al] 17531
+HSN[Mo,Mo] 5.04164e+08
+
+Determinant of Hessian Matrix of G:
+|HSN| 5.72812e+14
+
+Phase Name = L12_FCC
+Hessian Matrix of G:
+HSN[Al,Al] 262345
+HSN[Al,Mo] 59753.5
+         HSN[Mo,Al] 59753.5
+HSN[Mo,Mo] 2.21572e+06
+
+Determinant of Hessian Matrix of G:
+|HSN| 5.77712e+11
+
+############## Point 14#############
+Temperature 930
+Phase Name = L12_FCC
+Hessian Matrix of G:
+HSN[Al,Al] 1.02129e+06
+HSN[Al,Mo] 17304.6
+         HSN[Mo,Al] 17298.5
+HSN[Mo,Mo] 4.87333e+08
+
+Determinant of Hessian Matrix of G:
+|HSN| 4.97708e+14
+
+Phase Name = L12_FCC
+Hessian Matrix of G:
+HSN[Al,Al] 255083
+HSN[Al,Mo] 53557.4
+         HSN[Mo,Al] 53557.4
+HSN[Mo,Mo] 2.24142e+06
+
+Determinant of Hessian Matrix of G:
+|HSN| 5.68879e+11
+
+############## Point 15#############
+Temperature 940
+Phase Name = L12_FCC
+Hessian Matrix of G:
+HSN[Al,Al] 917489
+HSN[Al,Mo] 17170.2
+         HSN[Mo,Al] 17165.8
+HSN[Mo,Mo] 4.69295e+08
+
+Determinant of Hessian Matrix of G:
+|HSN| 4.30572e+14
+
+Phase Name = L12_FCC
+Hessian Matrix of G:
+HSN[Al,Al] 248161
+HSN[Al,Mo] 47689.8
+         HSN[Mo,Al] 47689.8
+HSN[Mo,Mo] 2.26805e+06
+
+Determinant of Hessian Matrix of G:
+|HSN| 5.60566e+11
+
+############## Point 16#############
+Temperature 950
+Phase Name = L12_FCC
+Hessian Matrix of G:
+HSN[Al,Al] 823572
+HSN[Al,Mo] 17138.9
+         HSN[Mo,Al] 17136.1
+HSN[Mo,Mo] 4.50258e+08
+
+Determinant of Hessian Matrix of G:
+|HSN| 3.7082e+14
+
+Phase Name = L12_FCC
+Hessian Matrix of G:
+HSN[Al,Al] 241551
+HSN[Al,Mo] 42119.3
+         HSN[Mo,Al] 42119.3
+HSN[Mo,Mo] 2.29559e+06
+
+Determinant of Hessian Matrix of G:
+|HSN| 5.52728e+11
+
+############## Point 17#############
+Temperature 960
+Phase Name = L12_FCC
+Hessian Matrix of G:
+HSN[Al,Al] 738500
+HSN[Al,Mo] 17215
+         HSN[Mo,Al] 17213.6
+HSN[Mo,Mo] 4.30454e+08
+
+Determinant of Hessian Matrix of G:
+|HSN| 3.1789e+14
+
+Phase Name = L12_FCC
+Hessian Matrix of G:
+HSN[Al,Al] 235229
+HSN[Al,Mo] 36816.8
+         HSN[Mo,Al] 36816.9
+HSN[Mo,Mo] 2.32403e+06
+
+Determinant of Hessian Matrix of G:
+|HSN| 5.45324e+11
+
+############## Point 18#############
+Temperature 970
+Phase Name = L12_FCC
+Hessian Matrix of G:
+HSN[Al,Al] 661371
+HSN[Al,Mo] 17403.4
+         HSN[Mo,Al] 17403.1
+HSN[Mo,Mo] 4.1012e+08
+
+Determinant of Hessian Matrix of G:
+|HSN| 2.71241e+14
+
+Phase Name = L12_FCC
+Hessian Matrix of G:
+HSN[Al,Al] 229173
+HSN[Al,Mo] 31755.7
+         HSN[Mo,Al] 31755.7
+HSN[Mo,Mo] 2.35333e+06
+
+Determinant of Hessian Matrix of G:
+|HSN| 5.38311e+11
+
+############## Point 19#############
+Temperature 980
+Phase Name = L12_FCC
+Hessian Matrix of G:
+HSN[Al,Al] 591401
+HSN[Al,Mo] 17710.7
+         HSN[Mo,Al] 17710.8
+HSN[Mo,Mo] 1.3272e+08
+
+Determinant of Hessian Matrix of G:
+|HSN| 7.84903e+13
+
+Phase Name = L12_FCC
+Hessian Matrix of G:
+HSN[Al,Al] 223361
+HSN[Al,Mo] 26911
+         HSN[Mo,Al] 26911
+HSN[Mo,Mo] 2.38346e+06
+
+Determinant of Hessian Matrix of G:
+|HSN| 5.31648e+11
+
+############## Point 20#############
+Temperature 990
+Phase Name = L12_FCC
+Hessian Matrix of G:
+HSN[Al,Al] 527911
+HSN[Al,Mo] 18144
+         HSN[Mo,Al] 18144
+HSN[Mo,Mo] 9.2661e+07
+
+Determinant of Hessian Matrix of G:
+|HSN| 4.89164e+13
+
+Phase Name = L12_FCC
+Hessian Matrix of G:
+HSN[Al,Al] 217776
+HSN[Al,Mo] 22260
+         HSN[Mo,Al] 22260
+HSN[Mo,Mo] 2.41436e+06
+
+Determinant of Hessian Matrix of G:
+|HSN| 5.25293e+11
+
+############## Point 21#############
+Temperature 1000
+Phase Name = L12_FCC
+Hessian Matrix of G:
+HSN[Al,Al] 470312
+HSN[Al,Mo] 18711.7
+         HSN[Mo,Al] 18711.7
+HSN[Mo,Mo] 7.37224e+07
+
+Determinant of Hessian Matrix of G:
+|HSN| 3.46722e+13
+
+Phase Name = L12_FCC
+Hessian Matrix of G:
+HSN[Al,Al] 212402
+HSN[Al,Mo] 17781.6
+         HSN[Mo,Al] 17781.6
+HSN[Mo,Mo] 2.44592e+06
+
+Determinant of Hessian Matrix of G:
+|HSN| 5.19202e+11
+
+############## Point 22#############
+Temperature 1010
+Phase Name = L12_FCC
+Hessian Matrix of G:
+HSN[Al,Al] 418098
+HSN[Al,Mo] 19424.4
+         HSN[Mo,Al] 19424.4
+HSN[Mo,Mo] 6.14177e+07
+
+Determinant of Hessian Matrix of G:
+|HSN| 2.56782e+13
+
+Phase Name = L12_FCC
+Hessian Matrix of G:
+HSN[Al,Al] 207225
+HSN[Al,Mo] 13456.6
+         HSN[Mo,Al] 13456.6
+HSN[Mo,Mo] 2.47801e+06
+
+Determinant of Hessian Matrix of G:
+|HSN| 5.13325e+11
+
+############## Point 23#############
+Temperature 1020
+Phase Name = L12_FCC
+Hessian Matrix of G:
+HSN[Al,Al] 370837
+HSN[Al,Mo] 20295
+         HSN[Mo,Al] 20295
+HSN[Mo,Mo] 5.24256e+07
+
+Determinant of Hessian Matrix of G:
+|HSN| 1.94409e+13
+
+Phase Name = L12_FCC
+Hessian Matrix of G:
+HSN[Al,Al] 202234
+HSN[Al,Mo] 9267.62
+         HSN[Mo,Al] 9267.68
+HSN[Mo,Mo] 2.51044e+06
+
+Determinant of Hessian Matrix of G:
+|HSN| 5.07611e+11
+
+############## Point 24#############
+Temperature 1030
+Phase Name = L12_FCC
+Hessian Matrix of G:
+HSN[Al,Al] 328170
+HSN[Al,Mo] 21338.2
+         HSN[Mo,Al] 21338.2
+HSN[Mo,Mo] 4.54352e+07
+
+Determinant of Hessian Matrix of G:
+|HSN| 1.491e+13
+
+Phase Name = L12_FCC
+Hessian Matrix of G:
+HSN[Al,Al] 197420
+HSN[Al,Mo] 5199.37
+         HSN[Mo,Al] 5199.43
+HSN[Mo,Mo] 2.54293e+06
+
+Determinant of Hessian Matrix of G:
+|HSN| 5.01997e+11
+
+############## Point 25#############
+Temperature 1040
+Phase Name = L12_FCC
+Hessian Matrix of G:
+HSN[Al,Al] 289800
+HSN[Al,Mo] 22571.5
+         HSN[Mo,Al] 22571.5
+HSN[Mo,Mo] 3.97915e+07
+
+Determinant of Hessian Matrix of G:
+|HSN| 1.1531e+13
+
+Phase Name = L12_FCC
+Hessian Matrix of G:
+HSN[Al,Al] 192775
+HSN[Al,Mo] 1238.57
+         HSN[Mo,Al] 1238.64
+HSN[Mo,Mo] 2.57512e+06
+
+Determinant of Hessian Matrix of G:
+|HSN| 4.96417e+11
+
+############## Point 26#############
+Temperature 1050
+Phase Name = L12_FCC
+Hessian Matrix of G:
+HSN[Al,Al] 255493
+HSN[Al,Mo] 24014.8
+         HSN[Mo,Al] 24014.8
+HSN[Mo,Mo] 3.5118e+07
+
+Determinant of Hessian Matrix of G:
+|HSN| 8.97181e+12
+
+Phase Name = L12_FCC
+Hessian Matrix of G:
+HSN[Al,Al] 188295
+HSN[Al,Mo] -2625.24
+         HSN[Mo,Al] -2625.16
+HSN[Mo,Mo] 2.60652e+06
+
+Determinant of Hessian Matrix of G:
+|HSN| 4.90789e+11
+
+############## Point 27#############
+Temperature 1060
+Phase Name = L12_FCC
+Hessian Matrix of G:
+HSN[Al,Al] 225077
+HSN[Al,Mo] 25690
+         HSN[Mo,Al] 25690
+HSN[Mo,Mo] 3.11772e+07
+
+Determinant of Hessian Matrix of G:
+|HSN| 7.01662e+12
+
+Phase Name = L12_FCC
+Hessian Matrix of G:
+HSN[Al,Al] 183980
+HSN[Al,Mo] -6399.91
+         HSN[Mo,Al] -6399.82
+HSN[Mo,Mo] 2.63651e+06
+
+Determinant of Hessian Matrix of G:
+|HSN| 4.85025e+11
+
+############## Point 28#############
+Temperature 1070
+Phase Name = L12_FCC
+Hessian Matrix of G:
+HSN[Al,Al] 198436
+HSN[Al,Mo] 27619.9
+         HSN[Mo,Al] 27619.9
+HSN[Mo,Mo] 2.7809e+07
+
+Determinant of Hessian Matrix of G:
+|HSN| 5.51755e+12
+
+Phase Name = L12_FCC
+Hessian Matrix of G:
+HSN[Al,Al] 179832
+HSN[Al,Mo] -10089.9
+         HSN[Mo,Al] -10089.8
+HSN[Mo,Mo] 2.66432e+06
+
+Determinant of Hessian Matrix of G:
+|HSN| 4.79027e+11
+
+############## Point 29#############
+Temperature 1080
+Phase Name = L12_FCC
+Hessian Matrix of G:
+HSN[Al,Al] 175503
+HSN[Al,Mo] 29826
+         HSN[Mo,Al] 29826
+HSN[Mo,Mo] 2.49e+07
+
+Determinant of Hessian Matrix of G:
+|HSN| 4.36912e+12
+
+Phase Name = L12_FCC
+Hessian Matrix of G:
+HSN[Al,Al] 175855
+HSN[Al,Mo] -13696.1
+         HSN[Mo,Al] -13696
+HSN[Mo,Mo] 2.68906e+06
+
+Determinant of Hessian Matrix of G:
+|HSN| 4.72697e+11
+
+############## Point 30#############
+Temperature 1090
+Phase Name = L12_FCC
+Hessian Matrix of G:
+HSN[Al,Al] 156243
+HSN[Al,Mo] 32324.1
+         HSN[Mo,Al] 32324.1
+HSN[Mo,Mo] 2.2367e+07
+
+Determinant of Hessian Matrix of G:
+|HSN| 3.49364e+12
+
+Phase Name = L12_FCC
+Hessian Matrix of G:
+HSN[Al,Al] 172058
+HSN[Al,Mo] -17215.6
+         HSN[Mo,Al] -17215.4
+HSN[Mo,Mo] 2.70983e+06
+
+Determinant of Hessian Matrix of G:
+|HSN| 4.65951e+11
+
+############## Point 31#############
+Temperature 1100
+Phase Name = L12_FCC
+Hessian Matrix of G:
+HSN[Al,Al] 140627
+HSN[Al,Mo] 35118.4
+         HSN[Mo,Al] 35118.4
+HSN[Mo,Mo] 2.0148e+07
+
+Determinant of Hessian Matrix of G:
+|HSN| 2.83211e+12
+
+Phase Name = L12_FCC
+Hessian Matrix of G:
+HSN[Al,Al] 168453
+HSN[Al,Mo] -20642.1
+         HSN[Mo,Al] -20641.9
+HSN[Mo,Mo] 2.72583e+06
+
+Determinant of Hessian Matrix of G:
+|HSN| 4.58747e+11
+
+############## Point 32#############
+Temperature 1110
+Phase Name = L12_FCC
+Hessian Matrix of G:
+HSN[Al,Al] 128587
+HSN[Al,Mo] 38194.9
+         HSN[Mo,Al] 38194.8
+HSN[Mo,Mo] 1.81962e+07
+
+Determinant of Hessian Matrix of G:
+|HSN| 2.33833e+12
+
+Phase Name = L12_FCC
+Hessian Matrix of G:
+HSN[Al,Al] 165051
+HSN[Al,Mo] -23967.3
+         HSN[Mo,Al] -23967.2
+HSN[Mo,Mo] 2.73669e+06
+
+Determinant of Hessian Matrix of G:
+|HSN| 4.5112e+11
+
+############## Point 33#############
+Temperature 1120
+Phase Name = L12_FCC
+Hessian Matrix of G:
+HSN[Al,Al] 119970
+HSN[Al,Mo] 41516
+         HSN[Mo,Al] 41515.9
+HSN[Mo,Mo] 1.64765e+07
+
+Determinant of Hessian Matrix of G:
+|HSN| 1.97495e+12
+
+Phase Name = L12_FCC
+Hessian Matrix of G:
+HSN[Al,Al] 161864
+HSN[Al,Mo] -27183
+         HSN[Mo,Al] -27182.9
+HSN[Mo,Mo] 2.74277e+06
+
+Determinant of Hessian Matrix of G:
+|HSN| 4.43215e+11
+
+############## Point 34#############
+Temperature 1130
+Phase Name = L12_FCC
+Hessian Matrix of G:
+HSN[Al,Al] 114501
+HSN[Al,Mo] 45021.8
+         HSN[Mo,Al] 45021.7
+HSN[Mo,Mo] 1.49622e+07
+
+Determinant of Hessian Matrix of G:
+|HSN| 1.71116e+12
+
+Phase Name = L12_FCC
+Hessian Matrix of G:
+HSN[Al,Al] 158898
+HSN[Al,Mo] -30283.4
+         HSN[Mo,Al] -30283.2
+HSN[Mo,Mo] 2.74531e+06
+
+Determinant of Hessian Matrix of G:
+|HSN| 4.35306e+11
+
+############## Point 35#############
+Temperature 1140
+Phase Name = L12_FCC
+Hessian Matrix of G:
+HSN[Al,Al] 111790
+HSN[Al,Mo] 48638.4
+         HSN[Mo,Al] 48638.4
+HSN[Mo,Mo] 1.36327e+07
+
+Determinant of Hessian Matrix of G:
+|HSN| 1.52162e+12
+
+Phase Name = L12_FCC
+Hessian Matrix of G:
+HSN[Al,Al] 156156
+HSN[Al,Mo] -33267.1
+         HSN[Mo,Al] -33266.9
+HSN[Mo,Mo] 2.74648e+06
+
+Determinant of Hessian Matrix of G:
+|HSN| 4.27773e+11
+
+############## Point 36#############
+Temperature 1150
+Phase Name = L12_FCC
+Hessian Matrix of G:
+HSN[Al,Al] 111373
+HSN[Al,Mo] 52291.2
+         HSN[Mo,Al] 52291.1
+HSN[Mo,Mo] 1.24706e+07
+
+Determinant of Hessian Matrix of G:
+|HSN| 1.38615e+12
+
+Phase Name = L12_FCC
+Hessian Matrix of G:
+HSN[Al,Al] 153635
+HSN[Al,Mo] -36137.9
+         HSN[Mo,Al] -36137.7
+HSN[Mo,Mo] 2.74911e+06
+
+Determinant of Hessian Matrix of G:
+|HSN| 4.21055e+11
+
+############## Point 37#############
+Temperature 1160
+Phase Name = L12_FCC
+Hessian Matrix of G:
+HSN[Al,Al] 112775
+HSN[Al,Mo] 55916.4
+         HSN[Mo,Al] 55916.3
+HSN[Mo,Mo] 1.14609e+07
+
+Determinant of Hessian Matrix of G:
+|HSN| 1.28937e+12
+
+Phase Name = L12_FCC
+Hessian Matrix of G:
+HSN[Al,Al] 151328
+HSN[Al,Mo] -38904.4
+         HSN[Mo,Al] -38904.1
+HSN[Mo,Mo] 2.75635e+06
+
+Determinant of Hessian Matrix of G:
+|HSN| 4.15598e+11
+
+############## Point 38#############
+Temperature 1170
+Phase Name = L12_FCC
+Hessian Matrix of G:
+HSN[Al,Al] 115565
+HSN[Al,Mo] 59468
+         HSN[Mo,Al] 59467.9
+HSN[Mo,Mo] 1.05895e+07
+
+Determinant of Hessian Matrix of G:
+|HSN| 1.22024e+12
+
+Phase Name = L12_FCC
+Hessian Matrix of G:
+HSN[Al,Al] 149222
+HSN[Al,Mo] -41578.1
+         HSN[Mo,Al] -41577.8
+HSN[Mo,Mo] 2.77132e+06
+
+Determinant of Hessian Matrix of G:
+|HSN| 4.11814e+11
+
+############## Point 39#############
+Temperature 1180
+Phase Name = L12_FCC
+Hessian Matrix of G:
+HSN[Al,Al] 119382
+HSN[Al,Mo] 62917.7
+         HSN[Mo,Al] 62917.6
+HSN[Mo,Mo] 9.84345e+06
+
+Determinant of Hessian Matrix of G:
+|HSN| 1.17117e+12
+
+Phase Name = L12_FCC
+Hessian Matrix of G:
+HSN[Al,Al] 147306
+HSN[Al,Mo] -44172.4
+         HSN[Mo,Al] -44172.1
+HSN[Mo,Mo] 2.79709e+06
+
+Determinant of Hessian Matrix of G:
+|HSN| 4.10076e+11
+
+############## Point 40#############
+Temperature 1190
+Phase Name = L12_FCC
+Hessian Matrix of G:
+HSN[Al,Al] 123944
+HSN[Al,Mo] 66252.3
+         HSN[Mo,Al] 66252.1
+HSN[Mo,Mo] 9.21082e+06
+
+Determinant of Hessian Matrix of G:
+|HSN| 1.13723e+12
+
+Phase Name = L12_FCC
+Hessian Matrix of G:
+HSN[Al,Al] 145566
+HSN[Al,Mo] -46700.8
+         HSN[Mo,Al] -46700.5
+HSN[Mo,Mo] 2.83658e+06
+
+Determinant of Hessian Matrix of G:
+|HSN| 4.10728e+11
+
+############## Point 41#############
+Temperature 1200
+Phase Name = L12_FCC
+Hessian Matrix of G:
+HSN[Al,Al] 129037
+HSN[Al,Mo] 69469.3
+         HSN[Mo,Al] 69469.1
+HSN[Mo,Mo] 8.6809e+06
+
+Determinant of Hessian Matrix of G:
+|HSN| 1.11533e+12
+
+Phase Name = L12_FCC
+Hessian Matrix of G:
+HSN[Al,Al] 143989
+HSN[Al,Mo] -49176
+         HSN[Mo,Al] -49175.6
+HSN[Mo,Mo] 2.89271e+06
+
+Determinant of Hessian Matrix of G:
+|HSN| 4.14101e+11
+
+
+
+========= End of Example 8 =========
+

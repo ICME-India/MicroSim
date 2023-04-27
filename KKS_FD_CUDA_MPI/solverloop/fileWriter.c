@@ -8,17 +8,17 @@ double swap_bytes(double value)
     return  dst_num;
 }
 
-void writeVTK_ASCII(double *phi, double *comp,
+void writeVTK_ASCII(double *phi, double *comp, double *mu,
                     domainInfo simDomain, subdomainInfo subdomain,
-                    int t, int rank, MPI_Comm comm,
+                    controls simControls, int rank, MPI_Comm comm,
                     char *argv[])
 {
     FILE *fp;
     char name[100];
 
-    int layer_size = simDomain.MESH_X * simDomain.MESH_Y;
+    long t = simControls.count;
 
-    sprintf(name, "DATA/Processor_%d/%s_%07d.vtk", rank, argv[3], t);
+    sprintf(name, "DATA/Processor_%d/%s_%ld.vtk", rank, argv[3], t);
     fp = fopen(name, "w");
 
     /*
@@ -28,28 +28,10 @@ void writeVTK_ASCII(double *phi, double *comp,
     fprintf(fp, "Microsim_fields\n");
     fprintf(fp, "ASCII\n");
     fprintf(fp, "DATASET STRUCTURED_POINTS\n");
-    fprintf(fp, "DIMENSIONS %d %d %d\n", subdomain.xE-subdomain.xS+1, subdomain.yE-subdomain.yS+1, subdomain.zE-subdomain.zS+1);
+    fprintf(fp, "DIMENSIONS %ld %ld %ld\n", subdomain.sizeX-2*subdomain.padding, subdomain.sizeY-2*subdomain.padding, subdomain.sizeZ-2*subdomain.padding);
     fprintf(fp, "ORIGIN 0 0 0\n");
     fprintf(fp, "SPACING %le %le %le\n", simDomain.DELTA_X, simDomain.DELTA_Y, simDomain.DELTA_Z);
-    fprintf(fp, "POINT_DATA %d\n", subdomain.numCells);
-
-    for (int b = 0; b < simDomain.numComponents-1; b++)
-    {
-        fprintf(fp, "SCALARS %s double 1\n", simDomain.componentNames[b]);
-        fprintf(fp, "LOOKUP_TABLE default\n");
-
-        for (int z = 0; z <= subdomain.zE - subdomain.zS; z++)
-        {
-            for (int y = 0; y <= subdomain.yE - subdomain.yS; y++)
-            {
-                for (int x = 0; x <= subdomain.xE - subdomain.xS; x++)
-                {
-                    fprintf(fp, "%le\n", comp[b*subdomain.numCells + z*layer_size + y*simDomain.MESH_X + x]);
-                }
-            }
-        }
-        fprintf(fp, "\n");
-    }
+    fprintf(fp, "POINT_DATA %ld\n", subdomain.numCells);
 
     for (int a = 0; a < simDomain.numPhases; a++)
     {
@@ -57,13 +39,13 @@ void writeVTK_ASCII(double *phi, double *comp,
         fprintf(fp, "LOOKUP_TABLE default\n");
 
 
-        for (int z = 0; z <= subdomain.zE - subdomain.zS; z++)
+        for (long z = subdomain.padding; z < subdomain.sizeZ-subdomain.padding; z++)
         {
-            for (int y = 0; y <= subdomain.yE - subdomain.yS; y++)
+            for (long y = subdomain.padding; y < subdomain.sizeY-subdomain.padding; y++)
             {
-                for (int x = 0; x <= subdomain.xE - subdomain.xS; x++)
+                for (long x = subdomain.padding; x < subdomain.sizeX-subdomain.padding; x++)
                 {
-                    fprintf(fp, "%le\n", phi[a*subdomain.numCells + z*layer_size + y*simDomain.MESH_X + x]);
+                    fprintf(fp, "%le\n", phi[a*subdomain.numCompCells + z*subdomain.zStep + y*subdomain.yStep + x]);
                 }
             }
         }
@@ -71,22 +53,63 @@ void writeVTK_ASCII(double *phi, double *comp,
         fprintf(fp, "\n");
     }
 
+    for (int b = 0; b < simDomain.numComponents-1; b++)
+    {
+        fprintf(fp, "SCALARS Composition_%s double 1\n", simDomain.componentNames[b]);
+        fprintf(fp, "LOOKUP_TABLE default\n");
+
+        for (long z = subdomain.padding; z < subdomain.sizeZ-subdomain.padding; z++)
+        {
+            for (long y = subdomain.padding; y < subdomain.sizeY-subdomain.padding; y++)
+            {
+                for (long x = subdomain.padding; x < subdomain.sizeX-subdomain.padding; x++)
+                {
+                    fprintf(fp, "%le\n", comp[b*subdomain.numCompCells + z*subdomain.zStep + y*subdomain.yStep + x]);
+                }
+            }
+        }
+        fprintf(fp, "\n");
+    }
+
+    if (simControls.FUNCTION_F == 2)
+    {
+        for (int b = 0; b < simDomain.numComponents-1; b++)
+        {
+            fprintf(fp, "SCALARS Mu_%s double 1\n", simDomain.componentNames[b]);
+            fprintf(fp, "LOOKUP_TABLE default\n");
+
+            for (long z = subdomain.padding; z < subdomain.sizeZ-subdomain.padding; z++)
+            {
+                for (long y = subdomain.padding; y < subdomain.sizeY-subdomain.padding; y++)
+                {
+                    for (long x = subdomain.padding; x < subdomain.sizeX-subdomain.padding; x++)
+                    {
+                        fprintf(fp, "%le\n", comp[b*subdomain.numCompCells + z*subdomain.zStep + y*subdomain.yStep + x]);
+                    }
+                }
+            }
+            fprintf(fp, "\n");
+        }
+    }
+
     fclose(fp);
 }
 
-void writeVTK_BINARY(double *phi, double *comp,
+void writeVTK_BINARY(double *phi, double *comp, double *mu,
                      domainInfo simDomain, subdomainInfo subdomain,
-                     int t, int rank, MPI_Comm comm,
+                     controls simControls, int rank, MPI_Comm comm,
                      char *argv[])
 {
     FILE *fp;
     char name[100];
 
-    int layer_size = simDomain.MESH_X * simDomain.MESH_Y;
+    long t = simControls.count;
+
+    long layer_size = subdomain.sizeX*subdomain.sizeY;
 
     double value;
 
-    sprintf(name, "DATA/Processor_%d/%s_%07d.vtk", rank, argv[3], t);
+    sprintf(name, "DATA/Processor_%d/%s_%ld.vtk", rank, argv[3], t);
     fp = fopen(name, "w");
 
     /*
@@ -96,48 +119,26 @@ void writeVTK_BINARY(double *phi, double *comp,
     fprintf(fp, "Microsim_fields\n");
     fprintf(fp, "BINARY\n");
     fprintf(fp, "DATASET STRUCTURED_POINTS\n");
-    fprintf(fp, "DIMENSIONS %d %d %d\n", subdomain.xE-subdomain.xS+1, subdomain.yE-subdomain.yS+1, subdomain.zE-subdomain.zS+1);
+    fprintf(fp, "DIMENSIONS %ld %ld %ld\n", subdomain.sizeX-2*subdomain.padding, subdomain.sizeY-2*subdomain.padding, subdomain.sizeZ-2*subdomain.padding);
     fprintf(fp, "ORIGIN 0 0 0\n");
     fprintf(fp, "SPACING %le %le %le\n", simDomain.DELTA_X, simDomain.DELTA_Y, simDomain.DELTA_Z);
-    fprintf(fp, "POINT_DATA %d\n", subdomain.numCells);
-
-    for (int b = 0; b < simDomain.numComponents-1; b++)
-    {
-        fprintf(fp, "SCALARS %s double 1\n", simDomain.componentNames[b]);
-        fprintf(fp, "LOOKUP_TABLE default\n");
-
-        for (int z = 0; z <= subdomain.zE - subdomain.zS; z++)
-        {
-            for (int y = 0; y <= subdomain.yE - subdomain.yS; y++)
-            {
-                for (int x = 0; x <= subdomain.xE - subdomain.xS; x++)
-                {
-                    if (IS_LITTLE_ENDIAN)
-                        value = swap_bytes(comp[b*subdomain.numCells + z*layer_size + y*simDomain.MESH_X + x]);
-                    else
-                        value = comp[b*subdomain.numCells + z*layer_size + y*simDomain.MESH_X + x];
-                    fwrite(&value, sizeof(double), 1, fp);
-                }
-            }
-        }
-        fprintf(fp, "\n");
-    }
+    fprintf(fp, "POINT_DATA %ld\n", subdomain.numCells);
 
     for (int a = 0; a < simDomain.numPhases; a++)
     {
         fprintf(fp, "SCALARS %s double 1\n", simDomain.phaseNames[a]);
         fprintf(fp, "LOOKUP_TABLE default\n");
 
-        for (int z = 0; z <= subdomain.zE - subdomain.zS; z++)
+        for (long z = subdomain.padding; z < subdomain.sizeZ-subdomain.padding; z++)
         {
-            for (int y = 0; y <= subdomain.yE - subdomain.yS; y++)
+            for (long y = subdomain.padding; y < subdomain.sizeY-subdomain.padding; y++)
             {
-                for (int x = 0; x <= subdomain.xE - subdomain.xS; x++)
+                for (long x = subdomain.padding; x < subdomain.sizeX-subdomain.padding; x++)
                 {
                     if (IS_LITTLE_ENDIAN)
-                        value = swap_bytes(phi[a*subdomain.numCells + z*layer_size + y*simDomain.MESH_X + x]);
+                        value = swap_bytes(phi[a*subdomain.numCompCells + z*subdomain.zStep + y*subdomain.yStep + x]);
                     else
-                        value = phi[a*subdomain.numCells + z*layer_size + y*simDomain.MESH_X + x];
+                        value = phi[a*subdomain.numCompCells + z*subdomain.zStep + y*subdomain.yStep + x];
                     fwrite(&value, sizeof(double), 1, fp);
                 }
             }
@@ -146,31 +147,78 @@ void writeVTK_BINARY(double *phi, double *comp,
         fprintf(fp, "\n");
     }
 
+    for (int b = 0; b < simDomain.numComponents-1; b++)
+    {
+        fprintf(fp, "SCALARS Composition_%s double 1\n", simDomain.componentNames[b]);
+        fprintf(fp, "LOOKUP_TABLE default\n");
+
+        for (long z = subdomain.padding; z < subdomain.sizeZ-subdomain.padding; z++)
+        {
+            for (long y = subdomain.padding; y < subdomain.sizeY-subdomain.padding; y++)
+            {
+                for (long x = subdomain.padding; x < subdomain.sizeX-subdomain.padding; x++)
+                {
+                    if (IS_LITTLE_ENDIAN)
+                        value = swap_bytes(comp[b*subdomain.numCompCells + z*subdomain.zStep + y*subdomain.yStep + x]);
+                    else
+                        value = comp[b*subdomain.numCompCells + z*subdomain.zStep + y*subdomain.yStep + x];
+                    fwrite(&value, sizeof(double), 1, fp);
+                }
+            }
+        }
+        fprintf(fp, "\n");
+    }
+
+    if (simControls.FUNCTION_F == 2)
+    {
+        for (int b = 0; b < simDomain.numComponents-1; b++)
+        {
+            fprintf(fp, "SCALARS Mu_%s double 1\n", simDomain.componentNames[b]);
+            fprintf(fp, "LOOKUP_TABLE default\n");
+
+            for (long z = subdomain.padding; z < subdomain.sizeZ-subdomain.padding; z++)
+            {
+                for (long y = subdomain.padding; y < subdomain.sizeY-subdomain.padding; y++)
+                {
+                    for (long x = subdomain.padding; x < subdomain.sizeX-subdomain.padding; x++)
+                    {
+                        if (IS_LITTLE_ENDIAN)
+                            value = swap_bytes(mu[b*subdomain.numCompCells + z*subdomain.zStep + y*subdomain.yStep + x]);
+                        else
+                            value = mu[b*subdomain.numCompCells + z*subdomain.zStep + y*subdomain.yStep + x];
+                        fwrite(&value, sizeof(double), 1, fp);
+                    }
+                }
+            }
+            fprintf(fp, "\n");
+        }
+    }
+
     fclose(fp);
 }
 
-int readVTK_ASCII(FILE *fp, double *phi, double *comp,
+int readVTK_ASCII(FILE *fp, double *phi, double *comp, double *mu,
                   domainInfo simDomain, subdomainInfo subdomain,
-                  int t)
+                  controls simControls)
 {
     char temp[1000];
-    int a = 0, k = 0, x, y, z;
+    long a = 0, k1 = 0, k2 = 0, x, y, z;
     double value;
 
-    int temp_mx = 0, temp_my = 0, temp_mz = 0;
+    long temp_mx = 0, temp_my = 0, temp_mz = 0;
 
-    int layer_size = simDomain.MESH_X*simDomain.MESH_Y;
+    long layer_size = subdomain.sizeX*subdomain.sizeY;
 
     while(fscanf(fp, "%s", temp))
     {
         if (strcmp(temp, "DIMENSIONS") == 0)
         {
-            if(fscanf(fp, "%d", &temp_mx));
-            if(fscanf(fp, "%d", &temp_my));
-            if(fscanf(fp, "%d", &temp_mz));
+            if(fscanf(fp, "%ld", &temp_mx));
+            if(fscanf(fp, "%ld", &temp_my));
+            if(fscanf(fp, "%ld", &temp_mz));
 
-//             printf("Read dimensions: %d, %d, %d\n", temp_mx, temp_my, temp_mz);
-//             printf("Required dimensions: %d, %d, %d\n", (subdomain.xE-subdomain.xS+1), (subdomain.yE-subdomain.yS+1), (subdomain.zE-subdomain.zS+1));
+            //             printf("Read dimensions: %d, %d, %d\n", temp_mx, temp_my, temp_mz);
+            //             printf("Required dimensions: %d, %d, %d\n", (subdomain.xE-subdomain.xS+1), (subdomain.yE-subdomain.yS+1), (subdomain.zE-subdomain.zS+1));
 
             if (temp_mx != (subdomain.xE-subdomain.xS+1) || temp_my != (subdomain.yE-subdomain.yS+1) || temp_mz != (subdomain.zE-subdomain.zS+1))
             {
@@ -192,67 +240,74 @@ int readVTK_ASCII(FILE *fp, double *phi, double *comp,
                 return 0;
             }
         }
-        else if (strcmp(temp, "default") == 0 && k < simDomain.numComponents-1)
+        else if (strcmp(temp, "default") == 0 && a < simDomain.numPhases)
         {
-           // printf("Reading %s\n", simDomain.componentNames[k]);
-
-            for (z = 0; z <= subdomain.zE - subdomain.zS; z++)
+            for (z = subdomain.padding; z < subdomain.sizeZ-subdomain.padding; z++)
             {
-                for (y = 0; y <= subdomain.yE - subdomain.yS; y++)
+                for (y = subdomain.padding; y < subdomain.sizeY-subdomain.padding; y++)
                 {
-                    for (x = 0; x <= subdomain.xE - subdomain.xS; x++)
+                    for (x = subdomain.padding; x < subdomain.sizeX-subdomain.padding; x++)
                     {
-                        if(fscanf(fp, "%le", &comp[k*subdomain.numCells + z*layer_size + y*simDomain.MESH_X + x]));
-                    }
-                }
-            }
-            k++;
-        }
-        else if (strcmp(temp, "default") == 0 && a < simDomain.numPhases && k >= simDomain.numComponents-1)
-        {
-           // printf("Reading %s\n", simDomain.phaseNames[a]);
-
-            for (z = 0; z <= subdomain.zE - subdomain.zS; z++)
-            {
-                for (y = 0; y <= subdomain.yE - subdomain.yS; y++)
-                {
-                    for (x = 0; x <= subdomain.xE - subdomain.xS; x++)
-                    {
-                        if(fscanf(fp, "%le", &phi[a*subdomain.numCells + z*layer_size + y*simDomain.MESH_X + x]));
+                        if(fscanf(fp, "%le", &phi[a*subdomain.numCompCells + z*subdomain.zStep + y*subdomain.yStep + x]));
                     }
                 }
             }
             a++;
         }
-        else if (a == simDomain.numPhases)
+        else if (strcmp(temp, "default") == 0 && k1 < simDomain.numComponents-1 && a >= simDomain.numPhases)
+        {
+            for (z = subdomain.padding; z < subdomain.sizeZ-subdomain.padding; z++)
+            {
+                for (y = subdomain.padding; y < subdomain.sizeY-subdomain.padding; y++)
+                {
+                    for (x = subdomain.padding; x < subdomain.sizeX-subdomain.padding; x++)
+                    {
+                        if(fscanf(fp, "%le", &comp[k1*subdomain.numCompCells + z*subdomain.zStep + y*subdomain.yStep + x]));
+                    }
+                }
+            }
+            k1++;
+        }
+        else if (strcmp(temp, "default") == 0 && k2 < simDomain.numComponents-1 && k1 >= simDomain.numComponents-1 && a >= simDomain.numPhases && simControls.FUNCTION_F == 2)
+        {
+            for (z = subdomain.padding; z < subdomain.sizeZ-subdomain.padding; z++)
+            {
+                for (y = subdomain.padding; y < subdomain.sizeY-subdomain.padding; y++)
+                {
+                    for (x = subdomain.padding; x < subdomain.sizeX-subdomain.padding; x++)
+                    {
+                        if(fscanf(fp, "%le", &mu[k2*subdomain.numCompCells + z*subdomain.zStep + y*subdomain.yStep + x]));
+                    }
+                }
+            }
+            k2++;
+        }
+        else if ((k2 == simDomain.numComponents-1 && simControls.FUNCTION_F == 2) || (k1 == simDomain.numComponents-1 && simControls.FUNCTION_F != 2))
             break;
     }
 
     return 1;
 }
 
-int readVTK_BINARY(FILE *fp, double *phi, double *comp,
+int readVTK_BINARY(FILE *fp, double *phi, double *comp, double *mu,
                    domainInfo simDomain, subdomainInfo subdomain,
-                   int t)
+                   controls simControls)
 {
     char temp[1000];
-    int a = 0, k = 0, x, y, z;
+    long a = 0, k1 = 0, k2 = 0, x, y, z;
     double value;
 
-    int temp_mx = 0, temp_my = 0, temp_mz = 0;
+    long temp_mx = 0, temp_my = 0, temp_mz = 0;
 
-    int layer_size = simDomain.MESH_X*simDomain.MESH_Y;
+    long layer_size = subdomain.sizeX*subdomain.sizeY;
 
     while(fscanf(fp, "%s", temp))
     {
         if (strcmp(temp, "DIMENSIONS") == 0)
         {
-            if(fscanf(fp, "%d", &temp_mx));
-            if(fscanf(fp, "%d", &temp_my));
-            if(fscanf(fp, "%d", &temp_mz));
-
-//             printf("Read dimensions: %d, %d, %d\n", temp_mx, temp_my, temp_mz);
-//             printf("Required dimensions: %d, %d, %d\n", (subdomain.xE-subdomain.xS+1), (subdomain.yE-subdomain.yS+1), (subdomain.zE-subdomain.zS+1));
+            if(fscanf(fp, "%ld", &temp_mx));
+            if(fscanf(fp, "%ld", &temp_my));
+            if(fscanf(fp, "%ld", &temp_mz));
 
             if (temp_mx != (subdomain.xE-subdomain.xS+1) || temp_my != (subdomain.yE-subdomain.yS+1) || temp_mz != (subdomain.zE-subdomain.zS+1))
             {
@@ -274,61 +329,79 @@ int readVTK_BINARY(FILE *fp, double *phi, double *comp,
                 return 0;
             }
         }
-        else if (strcmp(temp, "default") == 0 && k < simDomain.numComponents-1)
+        else if (strcmp(temp, "default") == 0 && a < simDomain.numPhases)
         {
-           // printf("Reading %s\n", simDomain.componentNames[k]);
             if(fscanf(fp, "%le", &value));
-            for (z = 0; z <= subdomain.zE - subdomain.zS; z++)
+            for (z = 1; z < subdomain.sizeZ-1; z++)
             {
-                for (y = 0; y <= subdomain.yE - subdomain.yS; y++)
+                for (y = 1; y < subdomain.sizeY-1; y++)
                 {
-                    for (x = 0; x <= subdomain.xE - subdomain.xS; x++)
+                    for (x = 1; x < subdomain.sizeX-1; x++)
                     {
                         if(fread(&value, sizeof(double), 1, fp));
                         if (IS_LITTLE_ENDIAN)
-                            comp[k*subdomain.numCells + z*layer_size + y*simDomain.MESH_X + x] = swap_bytes(value);
+                            phi[a*subdomain.numCompCells + z*subdomain.zStep + y*subdomain.yStep + x] = swap_bytes(value);
                         else
-                            comp[k*subdomain.numCells + z*layer_size + y*simDomain.MESH_X + x] = value;
-                    }
-                }
-            }
-            k++;
-        }
-        else if (strcmp(temp, "default") == 0 && a < simDomain.numPhases && k >= simDomain.numComponents-1)
-        {
-           // printf("Reading %s\n", simDomain.phaseNames[a]);
-            if(fscanf(fp, "%le", &value));
-
-            for (z = 0; z <= subdomain.zE - subdomain.zS; z++)
-            {
-                for (y = 0; y <= subdomain.yE - subdomain.yS; y++)
-                {
-                    for (x = 0; x <= subdomain.xE - subdomain.xS; x++)
-                    {
-                        if(fread(&value, sizeof(double), 1, fp));
-                        if (IS_LITTLE_ENDIAN)
-                            phi[a*subdomain.numCells + z*layer_size + y*simDomain.MESH_X + x] = swap_bytes(value);
-                        else
-                            phi[a*subdomain.numCells + z*layer_size + y*simDomain.MESH_X + x] = value;
+                            phi[a*subdomain.numCompCells + z*subdomain.zStep + y*subdomain.yStep + x] = value;
                     }
                 }
             }
             a++;
         }
-        else if (a == simDomain.numPhases)
+        else if (strcmp(temp, "default") == 0 && k1 < simDomain.numComponents-1 && a >= simDomain.numPhases)
+        {
+            if(fscanf(fp, "%le", &value));
+            for (z = subdomain.padding; z < subdomain.sizeZ-subdomain.padding; z++)
+            {
+                for (y = subdomain.padding; y < subdomain.sizeY-subdomain.padding; y++)
+                {
+                    for (x = subdomain.padding; x < subdomain.sizeX-subdomain.padding; x++)
+                    {
+                        if(fread(&value, sizeof(double), 1, fp));
+                        if (IS_LITTLE_ENDIAN)
+                            comp[k1*subdomain.numCompCells + z*subdomain.zStep + y*subdomain.yStep + x] = swap_bytes(value);
+                        else
+                            comp[k1*subdomain.numCompCells + z*subdomain.zStep + y*subdomain.yStep + x] = value;
+                    }
+                }
+            }
+            k1++;
+        }
+        else if (strcmp(temp, "default") == 0 && k2 < simDomain.numComponents-1 && k1 >= simDomain.numComponents-1 && a >= simDomain.numPhases && simControls.FUNCTION_F == 2)
+        {
+            if(fscanf(fp, "%le", &value));
+            for (z = subdomain.padding; z < subdomain.sizeZ-subdomain.padding; z++)
+            {
+                for (y = subdomain.padding; y < subdomain.sizeY-subdomain.padding; y++)
+                {
+                    for (x = subdomain.padding; x < subdomain.sizeX-subdomain.padding; x++)
+                    {
+                        if(fread(&value, sizeof(double), 1, fp));
+                        if (IS_LITTLE_ENDIAN)
+                            mu[k2*subdomain.numCompCells + z*subdomain.zStep + y*subdomain.yStep + x] = swap_bytes(value);
+                        else
+                            mu[k2*subdomain.numCompCells + z*subdomain.zStep + y*subdomain.yStep + x] = value;
+                    }
+                }
+            }
+            k2++;
+        }
+        else if ((k2 == simDomain.numComponents-1 && simControls.FUNCTION_F == 2) || (k1 == simDomain.numComponents-1 && simControls.FUNCTION_F != 2))
             break;
     }
 
     return 1;
 }
 
-void read_domain(double *phi, double *comp,
+void read_domain(double *phi, double *comp, double *mu,
                  domainInfo simDomain, subdomainInfo subdomain,
-                 int t, int rank, MPI_Comm comm,
+                 controls simControls, int rank, MPI_Comm comm,
                  char *argv[])
 {
     FILE *fp;
     char name[1000], writeformat[10];
+
+    long t = simControls.count;
 
     int size;
     MPI_Comm_size(comm, &size);
@@ -336,7 +409,7 @@ void read_domain(double *phi, double *comp,
     // Ensure numprocs = numfiles
     if (rank == size-1)
     {
-        sprintf(name,"DATA/Processor_%d/%s_%07d.vtk", rank+1, argv[3], t);
+        sprintf(name,"DATA/Processor_%d/%s_%ld.vtk", rank+1, argv[3], t);
         if (fp = fopen(name, "rb"))
         {
             printf("Found files that are not being read. Either move those files or change the number of processors\n");
@@ -346,7 +419,7 @@ void read_domain(double *phi, double *comp,
     }
     MPI_Barrier(comm);
 
-    sprintf(name,"DATA/Processor_%d/%s_%07d.vtk", rank, argv[3], t);
+    sprintf(name,"DATA/Processor_%d/%s_%ld.vtk", rank, argv[3], t);
 
     if (fp = fopen(name, "rb"))
     {
@@ -360,7 +433,7 @@ void read_domain(double *phi, double *comp,
 
         if (strcmp(writeformat, "ASCII") == 0)
         {
-            if (readVTK_ASCII(fp, phi, comp, simDomain, subdomain, t))
+            if (readVTK_ASCII(fp, phi, comp, mu, simDomain, subdomain, simControls))
             {
                 printf("Read %s successfully\n", name);
             }
@@ -372,7 +445,7 @@ void read_domain(double *phi, double *comp,
         }
         else if (strcmp(writeformat, "BINARY") == 0)
         {
-            if (readVTK_BINARY(fp, phi, comp, simDomain, subdomain, t))
+            if (readVTK_BINARY(fp, phi, comp, mu, simDomain, subdomain, simControls))
             {
                 printf("Read %s successfully\n", name);
             }
@@ -391,296 +464,318 @@ void read_domain(double *phi, double *comp,
     }
 }
 
-// void writeHDF5(double *phi, double *comp,
-//                domainInfo simDomain, subdomainInfo subdomain,
-//                int t, int rank, MPI_Comm comm,
-//                char *argv[])
-// {
-//     hid_t file_id;
-//     hid_t plist_id;
-//
-//     char filename_hdf5[1000];
-//
-//     herr_t status_h;
-//
-//     //every processor creates a file collectively
-//     //   sprintf(filename_hdf5, "DATA/%s_%d_%ld.h5", argv[3], numtasks, t);
-//     sprintf(filename_hdf5, "DATA/%s_%d.h5", argv[3], t);
-//     /* Set up file access property list with parallel I/O access*/
-//     plist_id = H5Pcreate(H5P_FILE_ACCESS);
-//     H5Pset_fapl_mpio(plist_id, comm, MPI_INFO_NULL);
-//
-//     file_id = H5Fcreate(filename_hdf5, H5F_ACC_TRUNC, H5P_DEFAULT, plist_id);
-//     H5Pclose(plist_id); // we'll use this plist_id again later
-//
-//     hsize_t dims[3];
-//     hsize_t count[3];
-//     hsize_t offset_slab[3];
-//     int rank_hdf5 = 3;
-//
-//     int i, a, b, k, index, index_to;
-//     int x, y, z;
-//
-//     double **buffer;
-//     double composition;
-//
-//     int index_count;
-//
-//     hid_t dset_id; //handles
-//     hid_t dataspace_id, memspace_id;
-//
-//     dims[2] = simDomain.MESH_Z;
-//     dims[1] = simDomain.MESH_Y;
-//     dims[0] = simDomain.MESH_X;
-//
-//     if (subdomain.sizeZ > 1)
-//     {
-//         count[2] = subdomain.sizeZ - 2*subdomain.padding;
-//         count[1] = subdomain.sizeY;
-//         count[0] = subdomain.sizeX;
-//
-//         index_count = count[2]*count[1]*count[0];
-//     }
-//     else
-//     {
-//         count[2] = subdomain.sizeZ;
-//         count[1] = subdomain.sizeY - 2*subdomain.padding;
-//         count[0] = subdomain.sizeX;
-//
-//         index_count = count[1]*count[0];
-//     }
-//
-//     int size_fields = simDomain.numPhases + simDomain.numComponents-1;
-//
-//     char **coordNames   = (char**)malloc(sizeof(char*)*(size_fields));
-//     char name[100];
-//     i = 0;
-//     for (k = 0; k < simDomain.numComponents-1; k++)
-//     {
-//         sprintf(name, "/%s", simDomain.componentNames[k]);
-//         coordNames[i] = (char*)malloc(sizeof(char)*(strlen(name)+1));
-//         strcpy(coordNames[i], name);
-//         i++;
-//     }
-//     for (k = 0; k < simDomain.numPhases; k++)
-//     {
-//         sprintf(name, "/%s", simDomain.phaseNames[k]);
-//         coordNames[i] = (char*)malloc(sizeof(char)*(strlen(name)+1));
-//         strcpy(coordNames[i], name);
-//         i++;
-//     }
-//
-//     buffer = (double**)malloc(size_fields*sizeof(double*));
-//     for (i = 0; i < size_fields; i++)
-//         buffer[i] = (double*)malloc(index_count*sizeof(double));
-//
-//     for (z = 0; z < count[2]; z++)
-//     {
-//         for (y = 0; y < count[1]; y++)
-//         {
-//             for (x = 0; x < count[0]; x++)
-//             {
-//                 index    = (y + z*simDomain.MESH_Y)*simDomain.MESH_Z + x;
-//                 index_to =  (y + z*count[1])*count[0] + x;
-//
-//                 for (a = 0; a < simDomain.numComponents-1; a++)
-//                     buffer[a][index_to] = comp[a*simDomain.numCells + index];
-//
-//                 for (k = 0; k < simDomain.numPhases; k++)
-//                     buffer[simDomain.numComponents-1+k][index_to] = phi[a*simDomain.numCells + index];
-//             }
-//         }
-//     }
-//
-//     for (i = 0; i < size_fields; i++)
-//     {
-//         dataspace_id = H5Screate_simple(rank_hdf5, dims, NULL);
-//         /*
-//          * Create the dataset with default properties and close dataspace_id.
-//          */
-//         dset_id = H5Dcreate(file_id, coordNames[i], H5T_NATIVE_DOUBLE, dataspace_id,
-//                             H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-//         H5Sclose(dataspace_id);
-//         //
-//         memspace_id = H5Screate_simple(rank_hdf5, count, NULL); //count is of shape rank_hdf5
-//         //
-//         offset_slab[2] = subdomain.zS;
-//         offset_slab[1] = subdomain.yS;
-//         offset_slab[0] = subdomain.xS;
-//         //
-//         //     /* Select hyperslab in the file.
-//         //             */
-//         dataspace_id = H5Dget_space(dset_id); // filespace is the handle given by dset_id
-//         //     // 			H5Sget_simple_extent_dims(dataspace_id, dims, NULL);
-//         //     // 			printf("dims[0] = %ld, dims[1] = %ld\n", (long)dims[0], (long)dims[1]);
-//         H5Sselect_hyperslab(dataspace_id, H5S_SELECT_SET, offset_slab, NULL, count, NULL);
-//         //
-//         //     /* Create property list for collective dataset write.
-//         //     */
-//         plist_id = H5Pcreate(H5P_DATASET_XFER);
-//         H5Pset_dxpl_mpio(plist_id, H5FD_MPIO_COLLECTIVE);
-//         //
-//         status_h = H5Dwrite(dset_id, H5T_NATIVE_DOUBLE, memspace_id, dataspace_id,
-//                             plist_id, buffer[i]);
-//         //
-//         status_h = H5Dclose(dset_id);
-//         status_h = H5Sclose(dataspace_id);
-//         status_h = H5Sclose(memspace_id);
-//         status_h = H5Pclose(plist_id);
-//     }
-//
-//     for (i = 0; i < size_fields; i++)
-//     {
-//         free(buffer[i]);
-//         free(coordNames[i]);
-//     }
-//
-//     free(buffer);
-//     free(coordNames);
-//
-//     status_h = H5Fclose(file_id);
-// }
-//
-// void readHDF5(double *phi, double *comp,
-//               domainInfo simDomain, subdomainInfo subdomain,
-//               int t, int rank, MPI_Comm comm,
-//               char *argv[])
-// {
-//     hid_t file_id;
-//     hid_t plist_id;
-//
-//     char filename_hdf5[1000];
-//
-//     herr_t status_h;
-//
-//     //every processor creates a file collectively
-//     //   sprintf(filename_hdf5, "DATA/%s_%ld_%ld.h5", argv[3], numworkers, t);
-//     sprintf(filename_hdf5, "DATA/%s_%d.h5", argv[3], t);
-//     /* Set up file access property list with parallel I/O access*/
-//     plist_id = H5Pcreate(H5P_FILE_ACCESS);
-//     H5Pset_fapl_mpio(plist_id, comm, MPI_INFO_NULL);
-//
-//     //   file_id = H5Fcreate(filename_hdf5, H5F_ACC_TRUNC, H5P_DEFAULT, plist_id);
-//     file_id = H5Fopen(filename_hdf5, H5F_ACC_RDONLY, plist_id);
-//     H5Pclose(plist_id); // we'll use this plist_id again later
-//
-//     hsize_t dims[3];
-//     hsize_t count[3];
-//     hsize_t offset_slab[3];
-//     int rank_hdf5 = 3;
-//
-//     long i, a, b, k, index, index_to;
-//     long x, y, z;
-//
-//     double **buffer;
-//     double composition;
-//
-//     hid_t dset_id; //handles
-//     hid_t dataspace_id, memspace_id;
-//
-//     dims[2] = simDomain.MESH_Z;
-//     dims[1] = simDomain.MESH_Y;
-//     dims[0] = simDomain.MESH_X;
-//
-//     int index_count;
-//
-//     if (subdomain.sizeZ > 1)
-//     {
-//         count[2] = subdomain.sizeZ - 2*subdomain.padding;
-//         count[1] = subdomain.sizeY;
-//         count[0] = subdomain.sizeX;
-//
-//         index_count = count[2]*count[1]*count[0];
-//     }
-//     else
-//     {
-//         count[2] = subdomain.sizeZ;
-//         count[1] = subdomain.sizeY - 2*subdomain.padding;
-//         count[0] = subdomain.sizeX;
-//
-//         index_count = count[1]*count[0];
-//     }
-//
-//     int size_fields = simDomain.numPhases + simDomain.numComponents-1;
-//
-//     char **coordNames   = (char**)malloc(sizeof(char*)*(size_fields));
-//     char name[100];
-//     i = 0;
-//     for (k = 0; k < simDomain.numComponents-1; k++)
-//     {
-//         sprintf(name, "/%s", simDomain.componentNames[k]);
-//         coordNames[i] = (char*)malloc(sizeof(char)*(strlen(name)+1));
-//         strcpy(coordNames[i], name);
-//         i++;
-//     }
-//     for (k = 0; k < simDomain.numPhases; k++)
-//     {
-//         sprintf(name, "/%s", simDomain.phaseNames[k]);
-//         coordNames[i] = (char*)malloc(sizeof(char)*(strlen(name)+1));
-//         strcpy(coordNames[i], name);
-//         i++;
-//     }
-//
-//     buffer = (double **)malloc(size_fields*sizeof(double*));
-//     for (i=0; i < size_fields; i++) {
-//         buffer[i] = (double *)malloc(index_count*sizeof(double));
-//     }
-//
-//     for (i = 0; i < size_fields; i++)
-//     {
-//         /* open the dset_id collectively */
-//         dset_id = H5Dopen(file_id, coordNames[i], H5P_DEFAULT);
-//         /* create a file dataspace independently */
-//         dataspace_id = H5Dget_space(dset_id);
-//
-//         offset_slab[2] = subdomain.zS;
-//         offset_slab[1] = subdomain.yS;
-//         offset_slab[0] = subdomain.xS;
-//
-//         H5Sselect_hyperslab(dataspace_id, H5S_SELECT_SET, offset_slab, NULL, count, NULL);
-//         /* create a memory dataspace independently */
-//         memspace_id = H5Screate_simple(rank_hdf5, count, NULL);
-//
-//         //     /* Create property list for collective dataset write.
-//         //     */
-//         plist_id = H5Pcreate(H5P_DATASET_XFER);
-//         H5Pset_dxpl_mpio(plist_id, H5FD_MPIO_COLLECTIVE);
-//         //
-//         status_h = H5Dread(dset_id, H5T_NATIVE_DOUBLE, memspace_id, dataspace_id,
-//                            plist_id, buffer[i]);
-//         //     status_h = H5Dread(dset_id, H5T_NATIVE_DOUBLE, memspace_id, dataspace_id,	plist_id, vec[i]);
-//         status_h = H5Dclose(dset_id);
-//         status_h = H5Sclose(dataspace_id);
-//         status_h = H5Sclose(memspace_id);
-//         status_h = H5Pclose(plist_id);
-//     }
-//
-//     for (z = 0; z < count[2]; z++)
-//     {
-//         for (y = 0; y < count[1]; y++)
-//         {
-//             for (x = 0; x < count[0]; x++)
-//             {
-//                 index    = (y + z*simDomain.MESH_Y)*simDomain.MESH_Z + x;
-//                 index_to =  (y + z*count[1])*count[0] + x;
-//
-//                 for (a = 0; a < simDomain.numComponents-1; a++)
-//                     comp[a*simDomain.numCells + index] = buffer[a][index_to];
-//
-//                 for (k = 0; k < simDomain.numPhases; k++)
-//                     phi[a*simDomain.numCells + index] = buffer[simDomain.numComponents-1+k][index_to];
-//             }
-//         }
-//     }
-//
-//     for (i = 0; i < size_fields; i++)
-//     {
-//         free(buffer[i]);
-//         free(coordNames[i]);
-//     }
-//
-//     free(buffer);
-//     free(coordNames);
-//
-//     status_h = H5Fclose(file_id);
-// }
+#if ENABLE_HDF5 == 1
+void writeHDF5(double *phi, double *comp, double *mu,
+               domainInfo simDomain, subdomainInfo subdomain,
+               controls simControls, int rank, MPI_Comm comm,
+               char *argv[])
+{
+    hid_t file_id;
+    hid_t plist_id;
+
+    long t = simControls.count;
+
+    char filename_hdf5[1000];
+
+    herr_t status_h;
+
+    //every processor creates a file collectively
+    //   sprintf(filename_hdf5, "DATA/%s_%d_%ld.h5", argv[3], numtasks, t);
+    sprintf(filename_hdf5, "DATA/%s_%ld.h5", argv[3], t);
+    /* Set up file access property list with parallel I/O access*/
+    plist_id = H5Pcreate(H5P_FILE_ACCESS);
+    H5Pset_fapl_mpio(plist_id, comm, MPI_INFO_NULL);
+
+    file_id = H5Fcreate(filename_hdf5, H5F_ACC_TRUNC, H5P_DEFAULT, plist_id);
+    H5Pclose(plist_id); // we'll use this plist_id again later
+
+    hsize_t dims[3];
+    hsize_t count[3];
+    hsize_t offset_slab[3];
+    long rank_hdf5 = 3;
+
+    long i, a, b, k, index, index_to;
+    long x, y, z;
+
+    double **buffer;
+    double composition;
+
+    long index_count;
+
+    hid_t dset_id; //handles
+    hid_t dataspace_id, memspace_id;
+
+    dims[2] = simDomain.MESH_X;
+    dims[1] = simDomain.MESH_Y;
+    dims[0] = simDomain.MESH_Z;
+
+    count[2] = subdomain.xE - subdomain.xS + 1;
+    count[1] = subdomain.yE - subdomain.yS + 1;
+    count[0] = subdomain.zE - subdomain.zS + 1;
+
+    index_count = count[2]*count[1]*count[0];
+
+    long size_fields = simDomain.numPhases + simDomain.numComponents-1;
+    if (simControls.FUNCTION_F == 2)
+        size_fields += simDomain.numComponents-1;
+
+    char **coordNames   = (char**)malloc(sizeof(char*)*(size_fields));
+    char name[100];
+    i = 0;
+    for (k = 0; k < simDomain.numPhases; k++)
+    {
+        sprintf(name, "/%s", simDomain.phaseNames[k]);
+        coordNames[i] = (char*)malloc(sizeof(char)*(strlen(name)+1));
+        strcpy(coordNames[i], name);
+        i++;
+    }
+    for (k = 0; k < simDomain.numComponents-1; k++)
+    {
+        sprintf(name, "/Composition_%s", simDomain.componentNames[k]);
+        coordNames[i] = (char*)malloc(sizeof(char)*(strlen(name)+1));
+        strcpy(coordNames[i], name);
+        i++;
+    }
+
+    if (simControls.FUNCTION_F == 2)
+    {
+        for (k = 0; k < simDomain.numComponents-1; k++)
+        {
+            sprintf(name, "/Mu_%s", simDomain.componentNames[k]);
+            coordNames[i] = (char*)malloc(sizeof(char)*(strlen(name)+1));
+            strcpy(coordNames[i], name);
+            i++;
+        }
+    }
+
+    buffer = (double**)malloc(size_fields*sizeof(double*));
+    for (i = 0; i < size_fields; i++)
+        buffer[i] = (double*)malloc(index_count*sizeof(double));
+
+    for (z = subdomain.padding; z < subdomain.sizeZ - subdomain.padding; z++)
+    {
+        for (y = subdomain.padding; y < subdomain.sizeY - subdomain.padding; y++)
+        {
+            for (x = subdomain.padding; x < subdomain.sizeX - subdomain.padding; x++)
+            {
+                index    =  z*subdomain.zStep + y*subdomain.yStep + x;
+                index_to =  ((z-1)*(count[1]) + y-1)*count[2] + x-1;
+
+                for (a = 0; a < simDomain.numPhases; a++)
+                    buffer[a][index_to] =  phi[a*subdomain.numCompCells + index];
+
+                for (k = 0; k < simDomain.numComponents-1; k++)
+                    buffer[simDomain.numPhases+k][index_to] = comp[k*subdomain.numCompCells + index];
+
+                if (simControls.FUNCTION_F == 2)
+                {
+                    for (k = 0; k < simDomain.numComponents-1; k++)
+                        buffer[simDomain.numPhases+simDomain.numComponents-1+k][index_to] = mu[k*subdomain.numCompCells + index];
+                }
+            }
+        }
+    }
+
+    for (i = 0; i < size_fields; i++)
+    {
+        dataspace_id = H5Screate_simple(rank_hdf5, dims, NULL);
+        /*
+         * Create the dataset with default properties and close dataspace_id.
+         */
+        dset_id = H5Dcreate(file_id, coordNames[i], H5T_NATIVE_DOUBLE, dataspace_id,
+                            H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+        H5Sclose(dataspace_id);
+        //
+        memspace_id = H5Screate_simple(rank_hdf5, count, NULL); //count is of shape rank_hdf5
+        //
+        offset_slab[2] = subdomain.xS;
+        offset_slab[1] = subdomain.yS;
+        offset_slab[0] = subdomain.zS;
+
+        //
+        //     /* Select hyperslab in the file.
+        //             */
+        dataspace_id = H5Dget_space(dset_id); // filespace is the handle given by dset_id
+        //     // 			H5Sget_simple_extent_dims(dataspace_id, dims, NULL);
+        //     // 			printf("dims[0] = %ld, dims[1] = %ld\n", (long)dims[0], (long)dims[1]);
+        H5Sselect_hyperslab(dataspace_id, H5S_SELECT_SET, offset_slab, NULL, count, NULL);
+        //
+        //     /* Create property list for collective dataset write.
+        //     */
+        plist_id = H5Pcreate(H5P_DATASET_XFER);
+        H5Pset_dxpl_mpio(plist_id, H5FD_MPIO_COLLECTIVE);
+        //
+        status_h = H5Dwrite(dset_id, H5T_NATIVE_DOUBLE, memspace_id, dataspace_id,
+                            plist_id, buffer[i]);
+        //
+        status_h = H5Dclose(dset_id);
+        status_h = H5Sclose(dataspace_id);
+        status_h = H5Sclose(memspace_id);
+        status_h = H5Pclose(plist_id);
+    }
+
+    for (i = 0; i < size_fields; i++)
+    {
+        free(buffer[i]);
+        free(coordNames[i]);
+    }
+
+    free(buffer);
+    free(coordNames);
+
+    status_h = H5Fclose(file_id);
+}
+
+void readHDF5(double *phi, double *comp, double *mu,
+              domainInfo simDomain, subdomainInfo subdomain,
+              controls simControls, int rank, MPI_Comm comm,
+              char *argv[])
+{
+    hid_t file_id;
+    hid_t plist_id;
+
+    long t = simControls.count;
+
+    char filename_hdf5[1000];
+
+    herr_t status_h;
+
+    //every processor creates a file collectively
+    //   sprintf(filename_hdf5, "DATA/%s_%ld_%ld.h5", argv[3], numworkers, t);
+    sprintf(filename_hdf5, "DATA/%s_%ld.h5", argv[3], t);
+    /* Set up file access property list with parallel I/O access*/
+    plist_id = H5Pcreate(H5P_FILE_ACCESS);
+    H5Pset_fapl_mpio(plist_id, comm, MPI_INFO_NULL);
+
+    //   file_id = H5Fcreate(filename_hdf5, H5F_ACC_TRUNC, H5P_DEFAULT, plist_id);
+    file_id = H5Fopen(filename_hdf5, H5F_ACC_RDONLY, plist_id);
+    H5Pclose(plist_id); // we'll use this plist_id again later
+
+    hsize_t dims[3];
+    hsize_t count[3];
+    hsize_t offset_slab[3];
+    long rank_hdf5 = 3;
+
+    long i, a, b, k, index, index_to;
+    long x, y, z;
+
+    double **buffer;
+    double composition;
+
+    hid_t dset_id; //handles
+    hid_t dataspace_id, memspace_id;
+
+    dims[2] = simDomain.MESH_X;
+    dims[1] = simDomain.MESH_Y;
+    dims[0] = simDomain.MESH_Z;
+
+    long index_count;
+
+    count[2] = subdomain.xE - subdomain.xS + 1;
+    count[1] = subdomain.yE - subdomain.yS + 1;
+    count[0] = subdomain.zE - subdomain.zS + 1;
+
+    index_count = count[2]*count[1]*count[0];
+
+    long size_fields = simDomain.numPhases + simDomain.numComponents-1;
+    if (simControls.FUNCTION_F == 2)
+        size_fields += simDomain.numComponents-1;
+
+    char **coordNames   = (char**)malloc(sizeof(char*)*(size_fields));
+    char name[100];
+    i = 0;
+    for (k = 0; k < simDomain.numPhases; k++)
+    {
+        sprintf(name, "/%s", simDomain.phaseNames[k]);
+        coordNames[i] = (char*)malloc(sizeof(char)*(strlen(name)+1));
+        strcpy(coordNames[i], name);
+        i++;
+    }
+    for (k = 0; k < simDomain.numComponents-1; k++)
+    {
+        sprintf(name, "/Composition_%s", simDomain.componentNames[k]);
+        coordNames[i] = (char*)malloc(sizeof(char)*(strlen(name)+1));
+        strcpy(coordNames[i], name);
+        i++;
+    }
+    if (simControls.FUNCTION_F == 2)
+    {
+        for (k = 0; k < simDomain.numComponents-1; k++)
+        {
+            sprintf(name, "/Mu_%s", simDomain.componentNames[k]);
+            coordNames[i] = (char*)malloc(sizeof(char)*(strlen(name)+1));
+            strcpy(coordNames[i], name);
+            i++;
+        }
+    }
+
+    buffer = (double **)malloc(size_fields*sizeof(double*));
+    for (i = 0; i < size_fields; i++) {
+        buffer[i] = (double *)malloc(index_count*sizeof(double));
+    }
+
+    for (i = 0; i < size_fields; i++)
+    {
+        /* open the dset_id collectively */
+        dset_id = H5Dopen(file_id, coordNames[i], H5P_DEFAULT);
+        /* create a file dataspace independently */
+        dataspace_id = H5Dget_space(dset_id);
+
+        offset_slab[2] = subdomain.xS;
+        offset_slab[1] = subdomain.yS;
+        offset_slab[0] = subdomain.zS;
+
+        H5Sselect_hyperslab(dataspace_id, H5S_SELECT_SET, offset_slab, NULL, count, NULL);
+        /* create a memory dataspace independently */
+        memspace_id = H5Screate_simple(rank_hdf5, count, NULL);
+
+        //     /* Create property list for collective dataset write.
+        //     */
+        plist_id = H5Pcreate(H5P_DATASET_XFER);
+        H5Pset_dxpl_mpio(plist_id, H5FD_MPIO_COLLECTIVE);
+        //
+        status_h = H5Dread(dset_id, H5T_NATIVE_DOUBLE, memspace_id, dataspace_id,
+                           plist_id, buffer[i]);
+        //     status_h = H5Dread(dset_id, H5T_NATIVE_DOUBLE, memspace_id, dataspace_id,	plist_id, vec[i]);
+        status_h = H5Dclose(dset_id);
+        status_h = H5Sclose(dataspace_id);
+        status_h = H5Sclose(memspace_id);
+        status_h = H5Pclose(plist_id);
+    }
+
+    for (z = subdomain.padding; z < subdomain.sizeZ - subdomain.padding; z++)
+    {
+        for (y = subdomain.padding; y < subdomain.sizeY - subdomain.padding; y++)
+        {
+            for (x = subdomain.padding; x < subdomain.sizeX - subdomain.padding; x++)
+            {
+                index_to =  z*subdomain.zStep + y*subdomain.yStep + x;
+                index    =  ((z-1)*(count[1]) + y-1)*count[2] + x-1;
+
+                for (a = 0; a < simDomain.numPhases; a++)
+                    phi[a*subdomain.numCompCells + index_to] = buffer[a][index];
+
+                for (k = 0; k < simDomain.numComponents-1; k++)
+                    comp[k*subdomain.numCompCells + index_to] = buffer[simDomain.numPhases+k][index];
+
+                if (simControls.FUNCTION_F == 2)
+                {
+                    for (k = 0; k < simDomain.numComponents-1; k++)
+                        mu[k*subdomain.numCompCells + index_to] = buffer[simDomain.numPhases+simDomain.numComponents-1+k][index];
+                }
+            }
+        }
+    }
+
+    for (i = 0; i < size_fields; i++)
+    {
+        free(buffer[i]);
+        free(coordNames[i]);
+    }
+
+    free(buffer);
+    free(coordNames);
+
+    status_h = H5Fclose(file_id);
+}
+#endif

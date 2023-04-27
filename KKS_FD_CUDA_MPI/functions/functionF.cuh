@@ -16,6 +16,7 @@
 #include "utilityFunctions.h"
 #include "structures.h"
 #include "utilityKernels.cuh"
+#include "matrix.cuh"
 #include "Thermo.cuh"
 
 

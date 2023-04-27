@@ -1,522 +1,570 @@
 #include "updateComposition.cuh"
 
-__device__
-double calcInterp5th2(double **phi, int a, int idx, int NUMPHASES)
-{
-    if (NUMPHASES < 2)
-        return 0;
-
-    double ans = 0.0, temp = 0.0;
-    double phiValue = phi[a][idx];
-    double const1 = 7.5*(NUMPHASES-2.0)/(NUMPHASES-1.0);
-
-    ans  = pow(phiValue, 5)*(6.0 - const1);
-    ans += pow(phiValue, 4)*(-15.0 + 3.0*const1);
-
-    for (int i = 1; i < NUMPHASES; i++)
-    {
-        if (i != a)
-        {
-            for (int j = 0; j < i; j++)
-            {
-                if (j != a)
-                {
-                    temp += (phi[j][idx] - phi[i][idx])*(phi[j][idx] - phi[i][idx]);
-                }
-            }
-        }
-    }
-    temp *= 7.5*(phiValue - 1.0)/((double)NUMPHASES-1.0);
-    temp += phiValue*(10.0 - 3.0*const1) + const1;
-    ans  += pow(phiValue, 2)*temp;
-
-    temp  = 0.0;
-    if (NUMPHASES > 3)
-    {
-        for (int i = 2; i < NUMPHASES; i++)
-        {
-            if (i != a)
-            {
-                for (int j = 1; j < i; j++)
-                {
-                    if (j != a)
-                    {
-                        for (int k = 0; k < j; k++)
-                        {
-                            if (k != a)
-                            {
-                                temp += phi[i][idx]*phi[j][idx]*phi[k][idx];
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        ans += 15.0*phiValue*phiValue*temp;
-        temp = 0.0;
-    }
-
-    if (NUMPHASES > 4)
-    {
-        for (int i = 3; i < NUMPHASES; i++)
-        {
-            if (i != a)
-            {
-                for (int j = 2; j < i; j++)
-                {
-                    if (j != a)
-                    {
-                        for (int k = 1; k < j; k++)
-                        {
-                            if (k != a)
-                            {
-                                for (int l = 0; l < k; l++)
-                                {
-                                    if (l != a)
-                                    {
-                                        temp += phi[i][idx]*phi[j][idx]*phi[k][idx]*phi[l][idx];
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        ans += 24.0*phiValue*temp;
-    }
-
-    return ans;
-}
-
-__device__
-double calcDiffusionPotential2(double **phaseComp,
-                               int phase, int component,
-                               double *F0_A, double *F0_B,
-                               int idx,
-                               int NUMPHASES, int NUMCOMPONENTS)
-{
-    double ans = F0_A[(component + phase*(NUMCOMPONENTS-1))*(NUMCOMPONENTS-1) + component]*phaseComp[(phase + component*NUMPHASES)][idx];
-
-    for (int i = 0; i < NUMCOMPONENTS-1; i++)
-    {
-        ans += F0_A[(component + phase*(NUMCOMPONENTS-1))*(NUMCOMPONENTS-1)+i]*phaseComp[(phase + i*NUMPHASES)][idx];
-    }
-
-    ans += F0_B[component + phase*(NUMCOMPONENTS-1)];
-
-    return ans;
-}
-
 __global__
 void __updateComposition__(double **phi,
                            double **comp, double **compNew,
                            double **phaseComp,
                            double *F0_A, double *F0_B,
-                           double *diffusivity,
-                           int NUMPHASES, int NUMCOMPONENTS,
-                           int sizeX, int sizeY, int sizeZ,
+                           double *mobility,
+                           long NUMPHASES, long NUMCOMPONENTS, long DIMENSION,
+                           long sizeX, long sizeY, long sizeZ,
+                           long yStep, long zStep, long padding,
                            double DELTA_X, double DELTA_Y, double DELTA_Z,
                            double DELTA_t)
 {
-    int i = threadIdx.x + blockIdx.x * blockDim.x;
-    int j = threadIdx.y + blockIdx.y * blockDim.y;
-    int k = threadIdx.z + blockIdx.z * blockDim.z;
+    long i = threadIdx.x + blockIdx.x * blockDim.x;
+    long j = threadIdx.y + blockIdx.y * blockDim.y;
+    long k = threadIdx.z + blockIdx.z * blockDim.z;
 
-    int idx = (j + k*sizeY)*sizeX + i;
+    long idx[7] = {-1};
 
-    int xp[2], xm[2], yp[2], ym[2], zp[2], zm[2];
+    idx[0] = k*zStep + j*yStep + i;
 
-    double mu[13];
-    double mobility[7];
-    double RHS = 0.0;
+    double mu[7];
+    double effMobility[7];
+    double J_xp = 0.0, J_xm = 0.0, J_yp = 0.0, J_ym = 0.0, J_zp = 0.0, J_zm = 0.0;
 
-    if (i < sizeX && j < sizeY && k < sizeZ)
+    if (i >= padding && i < sizeX-padding && ((j >= padding && j < sizeY-padding && DIMENSION >= 2) || (DIMENSION == 1 && j == 0)) && ((k >= padding && k < sizeZ-padding && DIMENSION == 3) || (DIMENSION < 3 && k == 0)))
     {
         // x-direction
-        xp[0] = (j + k*sizeY)*sizeX + i+1;
-        xp[1] = (j + k*sizeY)*sizeX + i+2;
-        xm[0] = (j + k*sizeY)*sizeX + i-1;
-        xm[1] = (j + k*sizeY)*sizeX + i-2;
-
-        if (i == 0)
-        {
-            xm[0] = (j + k*sizeY)*sizeX + sizeX-1;
-            xm[1] = (j + k*sizeY)*sizeX + sizeX-2;
-        }
-        else if (i == 1)
-        {
-            xm[1] = (j + k*sizeY)*sizeX + sizeX-1;
-        }
-        else if (i == sizeX - 2)
-        {
-            xp[1] = (j + k*sizeY)*sizeX;
-        }
-        else if (i == sizeX - 1)
-        {
-            xp[0] = (j + k*sizeY)*sizeX;
-            xp[1] = (j + k*sizeY)*sizeX + 1;
-        }
+        idx[1] = k*zStep + j*yStep + i+1;
+        idx[2] = k*zStep + j*yStep + i-1;
 
         // y-direction
-        if (sizeY > 1)
+        if (DIMENSION >= 2)
         {
-            yp[0] = (j+1 + k*sizeY)*sizeX + i;
-            yp[1] = (j+2 + k*sizeY)*sizeX + i;
-            ym[0] = (j-1 + k*sizeY)*sizeX + i;
-            ym[1] = (j-2 + k*sizeY)*sizeX + i;
-
-            if (j == 0)
-            {
-                ym[0] = (sizeY-1 + k*sizeY)*sizeX + i;
-                ym[1] = (sizeY-2 + k*sizeY)*sizeX + i;
-            }
-            else if (j == 1)
-            {
-                ym[1] = (sizeY-1 + k*sizeY)*sizeX + i;
-            }
-            else if (j == sizeY - 2)
-            {
-                yp[1] = (k*sizeY)*sizeX + i;
-            }
-            else if (j == sizeY - 1)
-            {
-                yp[0] = (k*sizeY)*sizeX + i;
-                yp[1] = (1 + k*sizeY)*sizeX + i;
-            }
+            idx[3] = k*zStep + (j+1)*yStep + i;
+            idx[4] = k*zStep + (j-1)*yStep + i;
         }
 
         // z-direction
-        if (sizeZ > 1)
+        if (DIMENSION == 3)
         {
-            zp[0] = (j + (k+1)*sizeY)*sizeX + i;
-            zp[1] = (j + (k+2)*sizeY)*sizeX + i;
-            zm[0] = (j + (k-1)*sizeY)*sizeX + i;
-            zm[1] = (j + (k-2)*sizeY)*sizeX + i;
-
-            if (k == 0)
-            {
-                zm[0] = (j + (sizeZ-1)*sizeY)*sizeX + i;
-                zm[1] = (j + (sizeZ-2)*sizeY)*sizeX + i;
-            }
-            else if (k == 1)
-            {
-                zm[1] = (j + (sizeZ-1)*sizeY)*sizeX + i;
-            }
-            else if (k == sizeZ - 2)
-            {
-                zp[1] = j*sizeX + i;
-            }
-            else if (k == sizeZ - 1)
-            {
-                zp[0] = j*sizeX + i;
-                zp[1] = (j + sizeY)*sizeX + i;
-            }
+            idx[5] = (k+1)*zStep + j*yStep + i;
+            idx[6] = (k-1)*zStep + j*yStep + i;
         }
 
-        for (int component = 0; component < NUMCOMPONENTS-1; component++)
+        for (long component = 0; component < NUMCOMPONENTS-1; component++)
         {
-            mu[0] = calcDiffusionPotential2(phaseComp, 0, component, F0_A, F0_B, idx, NUMPHASES, NUMCOMPONENTS);
+            J_xp = 0.0;
+            J_xm = 0.0;
+            J_yp = 0.0;
+            J_ym = 0.0;
+            J_zp = 0.0;
+            J_zm = 0.0;
 
-            mu[1] = calcDiffusionPotential2(phaseComp, 0, component, F0_A, F0_B, xp[0], NUMPHASES, NUMCOMPONENTS);
-            mu[2] = calcDiffusionPotential2(phaseComp, 0, component, F0_A, F0_B, xp[1], NUMPHASES, NUMCOMPONENTS);
-            mu[3] = calcDiffusionPotential2(phaseComp, 0, component, F0_A, F0_B, xm[0], NUMPHASES, NUMCOMPONENTS);
-            mu[4] = calcDiffusionPotential2(phaseComp, 0, component, F0_A, F0_B, xm[1], NUMPHASES, NUMCOMPONENTS);
-
-            mobility[0] = 0.0;
-
-            mobility[1] = 0.0;
-            mobility[2] = 0.0;
-
-            for (int phase = 0; phase < NUMPHASES; phase++)
+            for (long component2 = 0; component2 < NUMCOMPONENTS-1; component2++)
             {
-                mobility[0] += calcInterp5th2(phi, phase, idx, NUMPHASES)*diffusivity[(component + phase*(NUMCOMPONENTS-1))*(NUMCOMPONENTS-1) + component]
-                /(2.0*F0_A[(component + phase*(NUMCOMPONENTS-1))*(NUMCOMPONENTS-1) + component]);
 
-                mobility[1] += calcInterp5th2(phi, phase, xp[0], NUMPHASES)*diffusivity[(component + phase*(NUMCOMPONENTS-1))*(NUMCOMPONENTS-1) + component]
-                /(2.0*F0_A[(component + phase*(NUMCOMPONENTS-1))*(NUMCOMPONENTS-1) + component]);
-                mobility[2] += calcInterp5th2(phi, phase, xp[1], NUMPHASES)*diffusivity[(component + phase*(NUMCOMPONENTS-1))*(NUMCOMPONENTS-1) + component]
-                /(2.0*F0_A[(component + phase*(NUMCOMPONENTS-1))*(NUMCOMPONENTS-1) + component]);
-            }
+                for (long iter = 0; iter < 7; iter++)
+                    effMobility[iter] = 0.0;
 
-            if (sizeY > 1)
-            {
-                mobility[3] = 0.0;
-                mobility[4] = 0.0;
-
-                for (int phase = 0; phase < NUMPHASES; phase++)
+                for (long phase = 0; phase < NUMPHASES; phase++)
                 {
-                    mobility[3] += calcInterp5th2(phi, phase, yp[0], NUMPHASES)*diffusivity[(component + phase*(NUMCOMPONENTS-1))*(NUMCOMPONENTS-1) + component]
-                    /(2.0*F0_A[(component + phase*(NUMCOMPONENTS-1))*(NUMCOMPONENTS-1) + component]);
-                    mobility[4] += calcInterp5th2(phi, phase, yp[1], NUMPHASES)*diffusivity[(component + phase*(NUMCOMPONENTS-1))*(NUMCOMPONENTS-1) + component]
-                    /(2.0*F0_A[(component + phase*(NUMCOMPONENTS-1))*(NUMCOMPONENTS-1) + component]);
+                    effMobility[0] += mobility[(component2 + phase*(NUMCOMPONENTS-1))*(NUMCOMPONENTS-1) + component]*calcInterp5th(phi, phase, idx[0], NUMPHASES);
+
+                    effMobility[1] += mobility[(component2 + phase*(NUMCOMPONENTS-1))*(NUMCOMPONENTS-1) + component]*calcInterp5th(phi, phase, idx[1], NUMPHASES);
+                    effMobility[2] += mobility[(component2 + phase*(NUMCOMPONENTS-1))*(NUMCOMPONENTS-1) + component]*calcInterp5th(phi, phase, idx[2], NUMPHASES);
+
+                    if (DIMENSION >= 2)
+                    {
+                        effMobility[3] += mobility[(component2 + phase*(NUMCOMPONENTS-1))*(NUMCOMPONENTS-1) + component]*calcInterp5th(phi, phase, idx[3], NUMPHASES);
+                        effMobility[4] += mobility[(component2 + phase*(NUMCOMPONENTS-1))*(NUMCOMPONENTS-1) + component]*calcInterp5th(phi, phase, idx[4], NUMPHASES);
+                    }
+
+                    if (DIMENSION == 3)
+                    {
+                        effMobility[5] += mobility[(component2 + phase*(NUMCOMPONENTS-1))*(NUMCOMPONENTS-1) + component]*calcInterp5th(phi, phase, idx[5], NUMPHASES);
+                        effMobility[6] += mobility[(component2 + phase*(NUMCOMPONENTS-1))*(NUMCOMPONENTS-1) + component]*calcInterp5th(phi, phase, idx[6], NUMPHASES);
+                    }
                 }
 
-                mu[5] = calcDiffusionPotential2(phaseComp, 0, component, F0_A, F0_B, yp[0], NUMPHASES, NUMCOMPONENTS);
-                mu[6] = calcDiffusionPotential2(phaseComp, 0, component, F0_A, F0_B, yp[1], NUMPHASES, NUMCOMPONENTS);
-                mu[7] = calcDiffusionPotential2(phaseComp, 0, component, F0_A, F0_B, ym[0], NUMPHASES, NUMCOMPONENTS);
-                mu[8] = calcDiffusionPotential2(phaseComp, 0, component, F0_A, F0_B, ym[1], NUMPHASES, NUMCOMPONENTS);
-            }
 
-            if (sizeZ > 1)
-            {
-                mobility[5] = 0.0;
-                mobility[6] = 0.0;
+                mu[0] = calcDiffusionPotential(phaseComp, NUMPHASES-1, component2, F0_A, F0_B, idx[0], NUMPHASES, NUMCOMPONENTS);
 
-                for (int phase = 0; phase < NUMPHASES; phase++)
+                mu[1] = calcDiffusionPotential(phaseComp, NUMPHASES-1, component2, F0_A, F0_B, idx[1], NUMPHASES, NUMCOMPONENTS);
+                mu[2] = calcDiffusionPotential(phaseComp, NUMPHASES-1, component2, F0_A, F0_B, idx[2], NUMPHASES, NUMCOMPONENTS);
+
+                if (DIMENSION >= 2)
                 {
-                    mobility[5] += calcInterp5th2(phi, phase, zp[0], NUMPHASES)*diffusivity[(component + phase*(NUMCOMPONENTS-1))*(NUMCOMPONENTS-1) + component]
-                    /(2.0*F0_A[(component + phase*(NUMCOMPONENTS-1))*(NUMCOMPONENTS-1) + component]);
-                    mobility[6] += calcInterp5th2(phi, phase, zp[1], NUMPHASES)*diffusivity[(component + phase*(NUMCOMPONENTS-1))*(NUMCOMPONENTS-1) + component]
-                    /(2.0*F0_A[(component + phase*(NUMCOMPONENTS-1))*(NUMCOMPONENTS-1) + component]);
+                    mu[3] = calcDiffusionPotential(phaseComp, NUMPHASES-1, component2, F0_A, F0_B, idx[3], NUMPHASES, NUMCOMPONENTS);
+                    mu[4] = calcDiffusionPotential(phaseComp, NUMPHASES-1, component2, F0_A, F0_B, idx[4], NUMPHASES, NUMCOMPONENTS);
                 }
 
-                mu[9] = calcDiffusionPotential2(phaseComp, 0, component, F0_A, F0_B, zp[0], NUMPHASES, NUMCOMPONENTS);
-                mu[10] = calcDiffusionPotential2(phaseComp, 0, component, F0_A, F0_B, zp[1], NUMPHASES, NUMCOMPONENTS);
-                mu[11] = calcDiffusionPotential2(phaseComp, 0, component, F0_A, F0_B, zm[0], NUMPHASES, NUMCOMPONENTS);
-                mu[12] = calcDiffusionPotential2(phaseComp, 0, component, F0_A, F0_B, zm[1], NUMPHASES, NUMCOMPONENTS);
+                if (DIMENSION == 3)
+                {
+                    mu[5] = calcDiffusionPotential(phaseComp, NUMPHASES-1, component2, F0_A, F0_B, idx[5], NUMPHASES, NUMCOMPONENTS);
+                    mu[6] = calcDiffusionPotential(phaseComp, NUMPHASES-1, component2, F0_A, F0_B, idx[6], NUMPHASES, NUMCOMPONENTS);
+                }
+
+                J_xp += ((effMobility[1] + effMobility[0])/2.0)*(mu[1] - mu[0])/DELTA_X;
+                J_xm += ((effMobility[0] + effMobility[2])/2.0)*(mu[0] - mu[2])/DELTA_X;
+
+                if (DIMENSION >= 2)
+                {
+                    J_yp += ((effMobility[3] + effMobility[0])/2.0)*(mu[3] - mu[0])/DELTA_Y;
+                    J_ym += ((effMobility[0] + effMobility[4])/2.0)*(mu[0] - mu[4])/DELTA_Y;
+                }
+
+                if (DIMENSION == 3)
+                {
+                    J_zp += ((effMobility[5] + effMobility[0])/2.0)*(mu[5] - mu[0])/DELTA_Z;
+                    J_zm += ((effMobility[0] + effMobility[6])/2.0)*(mu[0] - mu[6])/DELTA_Z;
+                }
             }
 
-            RHS += -3.0*mobility[0]*(3.0*mu[0] - 4.0*mu[3] + 1.0*mu[4])/(4.0*DELTA_X*DELTA_X);
-            RHS +=  4.0*mobility[1]*(3.0*mu[1] - 4.0*mu[0] + 1.0*mu[3])/(4.0*DELTA_X*DELTA_X);
-            RHS += -1.0*mobility[2]*(3.0*mu[2] - 4.0*mu[1] + 1.0*mu[0])/(4.0*DELTA_X*DELTA_X);
-
-            if (sizeY > 1)
-            {
-                RHS += -3.0*mobility[0]*(3.0*mu[0] - 4.0*mu[7] + 1.0*mu[8])/(4.0*DELTA_Y*DELTA_Y);
-                RHS +=  4.0*mobility[3]*(3.0*mu[5] - 4.0*mu[0] + 1.0*mu[7])/(4.0*DELTA_Y*DELTA_Y);
-                RHS += -1.0*mobility[4]*(3.0*mu[6] - 4.0*mu[5] + 1.0*mu[0])/(4.0*DELTA_Y*DELTA_Y);
-            }
-
-            if (sizeZ > 1)
-            {
-                RHS += -3.0*mobility[0]*(3.0*mu[0] - 4.0*mu[11] + 1.0*mu[12])/(4.0*DELTA_Z*DELTA_Z);
-                RHS +=  4.0*mobility[5]*(3.0*mu[9] - 4.0*mu[0] + 1.0*mu[11])/(4.0*DELTA_Z*DELTA_Z);
-                RHS += -1.0*mobility[6]*(3.0*mu[10] - 4.0*mu[9] + 1.0*mu[0])/(4.0*DELTA_Z*DELTA_Z);
-            }
-
-            compNew[component][idx] = comp[component][idx] + RHS*DELTA_t;
+            compNew[component][idx[0]] = comp[component][idx[0]] + DELTA_t*((J_xp - J_xm)/DELTA_X + (J_yp - J_ym)/DELTA_Y + (J_zp - J_zm)/DELTA_Z);
         }
     }
-    __syncthreads();
 }
 
 __global__
-void __updateCompositionBinary__(double **phi,
-                                 double **comp, double **compNew,
-                                 double **phaseComp,
-                                 double *F0_A, double *F0_B,
-                                 double *diffusivity,
-                                 int NUMPHASES, int NUMCOMPONENTS,
-                                 int sizeX, int sizeY, int sizeZ,
-                                 double DELTA_X, double DELTA_Y, double DELTA_Z,
-                                 double DELTA_t)
+void __updateComposition_02__(double **phi,
+                              double **comp, double **compNew, double **mu,
+                              double **phaseComp, long *thermo_phase,
+                              double *diffusivity, double temperature, double molarVolume,
+                              long NUMPHASES, long NUMCOMPONENTS, long DIMENSION,
+                              long sizeX, long sizeY, long sizeZ,
+                              long yStep, long zStep, long padding,
+                              double DELTA_X, double DELTA_Y, double DELTA_Z,
+                              double DELTA_t)
 {
-    int i = threadIdx.x + blockIdx.x * blockDim.x;
-    int j = threadIdx.y + blockIdx.y * blockDim.y;
-    int k = threadIdx.z + blockIdx.z * blockDim.z;
+    long i = threadIdx.x + blockIdx.x * blockDim.x;
+    long j = threadIdx.y + blockIdx.y * blockDim.y;
+    long k = threadIdx.z + blockIdx.z * blockDim.z;
 
-    int idx = (j + k*sizeY)*sizeX + i;
+    long idx[7] = {-1};
 
-    int xp[2], xm[2], yp[2], ym[2], zp[2], zm[2];
+    idx[0] = k*zStep + j*yStep + i;
 
-    double mu[13];
-    double mobility[7];
-    double RHS = 0.0;
+    double muLocal[7];
+    double effMobility[7];
+    double J_xp = 0.0, J_xm = 0.0, J_yp = 0.0, J_ym = 0.0, J_zp = 0.0, J_zm = 0.0;
+    double tol = 1e-6;
 
-    if (i < sizeX && j < sizeY && k < sizeZ)
+    if (i >= padding && i < sizeX-padding && ((j >= padding && j < sizeY-padding && DIMENSION >= 2) || (DIMENSION == 1 && j == 0)) && ((k >= padding && k < sizeZ-padding && DIMENSION == 3) || (DIMENSION < 3 && k == 0)))
     {
         // x-direction
-        xp[0] = (j + k*sizeY)*sizeX + i+1;
-        xp[1] = (j + k*sizeY)*sizeX + i+2;
-        xm[0] = (j + k*sizeY)*sizeX + i-1;
-        xm[1] = (j + k*sizeY)*sizeX + i-2;
-
-        if (i == 0)
-        {
-            xm[0] = (j + k*sizeY)*sizeX + sizeX-1;
-            xm[1] = (j + k*sizeY)*sizeX + sizeX-2;
-        }
-        else if (i == 1)
-        {
-            xm[1] = (j + k*sizeY)*sizeX + sizeX-1;
-        }
-        else if (i == sizeX - 2)
-        {
-            xp[1] = (j + k*sizeY)*sizeX;
-        }
-        else if (i == sizeX - 1)
-        {
-            xp[0] = (j + k*sizeY)*sizeX;
-            xp[1] = (j + k*sizeY)*sizeX + 1;
-        }
+        idx[1] = k*zStep + j*yStep + i+1;
+        idx[2] = k*zStep + j*yStep + i-1;
 
         // y-direction
-        if (sizeY > 1)
+        if (DIMENSION >= 2)
         {
-            yp[0] = (j+1 + k*sizeY)*sizeX + i;
-            yp[1] = (j+2 + k*sizeY)*sizeX + i;
-            ym[0] = (j-1 + k*sizeY)*sizeX + i;
-            ym[1] = (j-2 + k*sizeY)*sizeX + i;
-
-            if (j == 0)
-            {
-                ym[0] = (sizeY-1 + k*sizeY)*sizeX + i;
-                ym[1] = (sizeY-2 + k*sizeY)*sizeX + i;
-            }
-            else if (j == 1)
-            {
-                ym[1] = (sizeY-1 + k*sizeY)*sizeX + i;
-            }
-            else if (j == sizeY - 2)
-            {
-                yp[1] = (k*sizeY)*sizeX + i;
-            }
-            else if (j == sizeY - 1)
-            {
-                yp[0] = (k*sizeY)*sizeX + i;
-                yp[1] = (1 + k*sizeY)*sizeX + i;
-            }
+            idx[3] = k*zStep + (j+1)*yStep + i;
+            idx[4] = k*zStep + (j-1)*yStep + i;
         }
 
         // z-direction
-        if (sizeZ > 1)
+        if (DIMENSION == 3)
         {
-            zp[0] = (j + (k+1)*sizeY)*sizeX + i;
-            zp[1] = (j + (k+2)*sizeY)*sizeX + i;
-            zm[0] = (j + (k-1)*sizeY)*sizeX + i;
-            zm[1] = (j + (k-2)*sizeY)*sizeX + i;
+            idx[5] = (k+1)*zStep + j*yStep + i;
+            idx[6] = (k-1)*zStep + j*yStep + i;
+        }
 
-            if (k == 0)
+        double dmudc[(MAX_NUM_COMP)*(MAX_NUM_COMP)];
+        double y[MAX_NUM_COMP];
+        double dmudcInv[MAX_NUM_COMP][MAX_NUM_COMP];
+        int P[MAX_NUM_COMP];
+        double mobility[MAX_NUM_COMP][MAX_NUM_COMP];
+
+        long maxPos;
+
+        long interface = 1, bulkphase = 0;
+
+        for (long is = 0; is < NUMPHASES; is++)
+        {
+            if (phi[is][idx[0]] > 0.99999)
             {
-                zm[0] = (j + (sizeZ-1)*sizeY)*sizeX + i;
-                zm[1] = (j + (sizeZ-2)*sizeY)*sizeX + i;
-            }
-            else if (k == 1)
-            {
-                zm[1] = (j + (sizeZ-1)*sizeY)*sizeX + i;
-            }
-            else if (k == sizeZ - 2)
-            {
-                zp[1] = j*sizeX + i;
-            }
-            else if (k == sizeZ - 1)
-            {
-                zp[0] = j*sizeX + i;
-                zp[1] = (j + sizeY)*sizeX + i;
+                bulkphase = is;
+                interface = 0;
+                break;
             }
         }
 
-        mu[0] = calcDiffusionPotential2(phaseComp, 0, 0, F0_A, F0_B, idx, NUMPHASES, NUMCOMPONENTS);
-
-        mu[1] = calcDiffusionPotential2(phaseComp, 0, 0, F0_A, F0_B, xp[0], NUMPHASES, NUMCOMPONENTS);
-        mu[2] = calcDiffusionPotential2(phaseComp, 0, 0, F0_A, F0_B, xp[1], NUMPHASES, NUMCOMPONENTS);
-        mu[3] = calcDiffusionPotential2(phaseComp, 0, 0, F0_A, F0_B, xm[0], NUMPHASES, NUMCOMPONENTS);
-        mu[4] = calcDiffusionPotential2(phaseComp, 0, 0, F0_A, F0_B, xm[1], NUMPHASES, NUMCOMPONENTS);
-
-        mobility[0] = 0.0;
-
-        mobility[1] = 0.0;
-        mobility[2] = 0.0;
-
-        for (int phase = 0; phase < NUMPHASES; phase++)
+        if (interface)
         {
-            mobility[0] += calcInterp5th2(phi, phase, idx, NUMPHASES)*diffusivity[(phase*(NUMCOMPONENTS-1))*(NUMCOMPONENTS-1)]
-            /(2.0*F0_A[(phase*(NUMCOMPONENTS-1))*(NUMCOMPONENTS-1)]);
-
-            mobility[1] += calcInterp5th2(phi, phase, xp[0], NUMPHASES)*diffusivity[(phase*(NUMCOMPONENTS-1))*(NUMCOMPONENTS-1)]
-            /(2.0*F0_A[(phase*(NUMCOMPONENTS-1))*(NUMCOMPONENTS-1)]);
-            mobility[2] += calcInterp5th2(phi, phase, xp[1], NUMPHASES)*diffusivity[(phase*(NUMCOMPONENTS-1))*(NUMCOMPONENTS-1)]
-            /(2.0*F0_A[(phase*(NUMCOMPONENTS-1))*(NUMCOMPONENTS-1)]);
-        }
-
-        if (sizeY > 1)
-        {
-            mobility[3] = 0.0;
-            mobility[4] = 0.0;
-
-            for (int phase = 0; phase < NUMPHASES; phase++)
+            for (int component = 0; component < NUMCOMPONENTS-1; component++)
             {
-                mobility[3] += calcInterp5th2(phi, phase, yp[0], NUMPHASES)*diffusivity[(phase*(NUMCOMPONENTS-1))*(NUMCOMPONENTS-1)]
-                /(2.0*F0_A[(phase*(NUMCOMPONENTS-1))*(NUMCOMPONENTS-1)]);
-                mobility[4] += calcInterp5th2(phi, phase, yp[1], NUMPHASES)*diffusivity[(phase*(NUMCOMPONENTS-1))*(NUMCOMPONENTS-1)]
-                /(2.0*F0_A[(phase*(NUMCOMPONENTS-1))*(NUMCOMPONENTS-1)]);
+                // Fluxes
+                J_xp = 0.0;
+                J_xm = 0.0;
+                J_yp = 0.0;
+                J_ym = 0.0;
+                J_zp = 0.0;
+                J_zm = 0.0;
+
+                // Computing the inner derivative and mobilities to get the fluxes
+                for (long component2 = 0; component2 < NUMCOMPONENTS-1; component2++)
+                {
+                    for (long iter = 0; iter < 7; iter++)
+                        effMobility[iter] = 0.0;
+
+                    if (DIMENSION == 3)
+                        maxPos = 7;
+                    else if (DIMENSION == 2)
+                        maxPos = 5;
+                    else
+                        maxPos = 3;
+
+                    for (long pos = 0; pos < maxPos; pos++)
+                    {
+                        // M_{ij} = \sum_{\phi} M(\phi) = \sum_{\phi} D*dcdmu
+                        for (long phase = 0; phase < NUMPHASES; phase++)
+                        {
+                            double tmp0 = 0.0;
+
+                            for (long is = 0; is < NUMCOMPONENTS-1; is++)
+                            {
+                                y[is] = phaseComp[is*NUMPHASES + phase][idx[pos]];
+                                tmp0  += y[is];
+                            }
+
+                            y[NUMCOMPONENTS-1] = 1.0 - tmp0;
+
+
+                            // Get dmudc for the current phase
+                            (*dmudc_tdb_dev[thermo_phase[phase]])(temperature, y, dmudc);
+
+                            // Invert dmudc to get dcdmu for the current phase
+                            LUPDecomposeC2(dmudc, NUMCOMPONENTS-1, tol, P);
+                            LUPInvertC2(dmudc, P, NUMCOMPONENTS-1, dmudcInv);
+
+                            // multiply diffusivity with dcdmu
+                            for (long iter1 = 0; iter1 < NUMCOMPONENTS-1; iter1++)
+                            {
+                                for (long iter2 = 0; iter2 < NUMCOMPONENTS-1; iter2++)
+                                {
+                                    mobility[iter1][iter2] = 0.0;
+
+                                    for (long iter3 = 0; iter3 < NUMCOMPONENTS-1; iter3++)
+                                    {
+                                        mobility[iter1][iter2] += diffusivity[(iter1 + phase*(NUMCOMPONENTS-1))*(NUMCOMPONENTS-1) + iter3]*dmudcInv[iter3][iter2];
+                                    }
+                                }
+                            }
+
+                            // Summing over all phases, weighting with the interpolation fn.
+                            effMobility[pos] += mobility[component][component2]*calcInterp5th(phi, phase, idx[pos], NUMPHASES);
+                        }
+                    }
+
+
+                    muLocal[0] = mu[component2][idx[0]];
+
+                    muLocal[1] = mu[component2][idx[1]];
+                    muLocal[2] = mu[component2][idx[2]];
+
+                    if (DIMENSION >= 2)
+                    {
+                        muLocal[3] = mu[component2][idx[3]];
+                        muLocal[4] = mu[component2][idx[4]];
+                    }
+                    if (DIMENSION == 3)
+                    {
+                        muLocal[5] = mu[component2][idx[5]];
+                        muLocal[6] = mu[component2][idx[6]];
+                    }
+
+                    J_xp += ((effMobility[1] + effMobility[0])/2.0)*(muLocal[1] - muLocal[0])/DELTA_X;
+                    J_xm += ((effMobility[0] + effMobility[2])/2.0)*(muLocal[0] - muLocal[2])/DELTA_X;
+
+                    if (DIMENSION >= 2)
+                    {
+                        J_yp += ((effMobility[3] + effMobility[0])/2.0)*(muLocal[3] - muLocal[0])/DELTA_Y;
+                        J_ym += ((effMobility[0] + effMobility[4])/2.0)*(muLocal[0] - muLocal[4])/DELTA_Y;
+                    }
+
+                    if (DIMENSION == 3)
+                    {
+                        J_zp += ((effMobility[5] + effMobility[0])/2.0)*(muLocal[5] - muLocal[0])/DELTA_Z;
+                        J_zm += ((effMobility[0] + effMobility[6])/2.0)*(muLocal[0] - muLocal[6])/DELTA_Z;
+                    }
+                }
+
+                compNew[component][idx[0]] = comp[component][idx[0]] + DELTA_t*((J_xp - J_xm)/DELTA_X + (J_yp - J_ym)/DELTA_Y + (J_zp - J_zm)/DELTA_Z);
             }
-
-            mu[5] = calcDiffusionPotential2(phaseComp, 0, 0, F0_A, F0_B, yp[0], NUMPHASES, NUMCOMPONENTS);
-            mu[6] = calcDiffusionPotential2(phaseComp, 0, 0, F0_A, F0_B, yp[1], NUMPHASES, NUMCOMPONENTS);
-            mu[7] = calcDiffusionPotential2(phaseComp, 0, 0, F0_A, F0_B, ym[0], NUMPHASES, NUMCOMPONENTS);
-            mu[8] = calcDiffusionPotential2(phaseComp, 0, 0, F0_A, F0_B, ym[1], NUMPHASES, NUMCOMPONENTS);
         }
-
-        if (sizeZ > 1)
+        else
         {
-            mobility[5] = 0.0;
-            mobility[6] = 0.0;
-
-            for (int phase = 0; phase < NUMPHASES; phase++)
+            for (int component = 0; component < NUMCOMPONENTS-1; component++)
             {
-                mobility[5] += calcInterp5th2(phi, phase, zp[0], NUMPHASES)*diffusivity[(phase*(NUMCOMPONENTS-1))*(NUMCOMPONENTS-1)]
-                /(2.0*F0_A[(phase*(NUMCOMPONENTS-1))*(NUMCOMPONENTS-1)]);
-                mobility[6] += calcInterp5th2(phi, phase, zp[1], NUMPHASES)*diffusivity[(phase*(NUMCOMPONENTS-1))*(NUMCOMPONENTS-1)]
-                /(2.0*F0_A[(phase*(NUMCOMPONENTS-1))*(NUMCOMPONENTS-1)]);
+                // Fluxes
+                J_xp = 0.0;
+                J_xm = 0.0;
+                J_yp = 0.0;
+                J_ym = 0.0;
+                J_zp = 0.0;
+                J_zm = 0.0;
+
+                // Computing the inner derivative and mobilities to get the fluxes
+                for (long component2 = 0; component2 < NUMCOMPONENTS-1; component2++)
+                {
+                    for (long iter = 0; iter < 7; iter++)
+                        effMobility[iter] = 0.0;
+
+                    if (DIMENSION == 3)
+                        maxPos = 7;
+                    else if (DIMENSION == 2)
+                        maxPos = 5;
+                    else
+                        maxPos = 3;
+
+                    for (long pos = 0; pos < maxPos; pos++)
+                    {
+                        // M_{ij} = \sum_{\phi} M(\phi) = \sum_{\phi} D*dcdmu
+                        double tmp0 = 0.0;
+
+                        for (long is = 0; is < NUMCOMPONENTS-1; is++)
+                        {
+                            y[is] = phaseComp[is*NUMPHASES + bulkphase][idx[pos]];
+                            tmp0  += y[is];
+                        }
+
+                        y[NUMCOMPONENTS-1] = 1.0 - tmp0;
+
+
+                        // Get dmudc for the current phase
+                        (*dmudc_tdb_dev[thermo_phase[bulkphase]])(temperature, y, dmudc);
+
+                        // Invert dmudc to get dcdmu for the current phase
+                        LUPDecomposeC2(dmudc, NUMCOMPONENTS-1, tol, P);
+                        LUPInvertC2(dmudc, P, NUMCOMPONENTS-1, dmudcInv);
+
+                        // multiply diffusivity with dcdmu
+                        for (long iter1 = 0; iter1 < NUMCOMPONENTS-1; iter1++)
+                        {
+                            for (long iter2 = 0; iter2 < NUMCOMPONENTS-1; iter2++)
+                            {
+                                mobility[iter1][iter2] = 0.0;
+
+                                for (long iter3 = 0; iter3 < NUMCOMPONENTS-1; iter3++)
+                                {
+                                    mobility[iter1][iter2] += diffusivity[(iter1 + bulkphase*(NUMCOMPONENTS-1))*(NUMCOMPONENTS-1) + iter3]*dmudcInv[iter3][iter2];
+                                }
+                            }
+                        }
+
+                        // Summing over all phases, weighting with the interpolation fn.
+                        effMobility[pos] += mobility[component][component2]*calcInterp5th(phi, bulkphase, idx[pos], NUMPHASES);
+                    }
+
+
+                    muLocal[0] = mu[component2][idx[0]];
+
+                    muLocal[1] = mu[component2][idx[1]];
+                    muLocal[2] = mu[component2][idx[2]];
+
+                    if (DIMENSION >= 2)
+                    {
+                        muLocal[3] = mu[component2][idx[3]];
+                        muLocal[4] = mu[component2][idx[4]];
+                    }
+                    if (DIMENSION == 3)
+                    {
+                        muLocal[5] = mu[component2][idx[5]];
+                        muLocal[6] = mu[component2][idx[6]];
+                    }
+
+                    J_xp += ((effMobility[1] + effMobility[0])/2.0)*(muLocal[1] - muLocal[0])/DELTA_X;
+                    J_xm += ((effMobility[0] + effMobility[2])/2.0)*(muLocal[0] - muLocal[2])/DELTA_X;
+
+                    if (DIMENSION >= 2)
+                    {
+                        J_yp += ((effMobility[3] + effMobility[0])/2.0)*(muLocal[3] - muLocal[0])/DELTA_Y;
+                        J_ym += ((effMobility[0] + effMobility[4])/2.0)*(muLocal[0] - muLocal[4])/DELTA_Y;
+                    }
+
+                    if (DIMENSION == 3)
+                    {
+                        J_zp += ((effMobility[5] + effMobility[0])/2.0)*(muLocal[5] - muLocal[0])/DELTA_Z;
+                        J_zm += ((effMobility[0] + effMobility[6])/2.0)*(muLocal[0] - muLocal[6])/DELTA_Z;
+                    }
+                }
+
+                compNew[component][idx[0]] = comp[component][idx[0]] + DELTA_t*((J_xp - J_xm)/DELTA_X + (J_yp - J_ym)/DELTA_Y + (J_zp - J_zm)/DELTA_Z);
             }
-
-            mu[9] = calcDiffusionPotential2(phaseComp, 0, 0, F0_A, F0_B, zp[0], NUMPHASES, NUMCOMPONENTS);
-            mu[10] = calcDiffusionPotential2(phaseComp, 0, 0, F0_A, F0_B, zp[1], NUMPHASES, NUMCOMPONENTS);
-            mu[11] = calcDiffusionPotential2(phaseComp, 0, 0, F0_A, F0_B, zm[0], NUMPHASES, NUMCOMPONENTS);
-            mu[12] = calcDiffusionPotential2(phaseComp, 0, 0, F0_A, F0_B, zm[1], NUMPHASES, NUMCOMPONENTS);
         }
-
-        RHS += -3.0*mobility[0]*(3.0*mu[0] - 4.0*mu[3] + 1.0*mu[4])/(4.0*DELTA_X*DELTA_X);
-        RHS +=  4.0*mobility[1]*(3.0*mu[1] - 4.0*mu[0] + 1.0*mu[3])/(4.0*DELTA_X*DELTA_X);
-        RHS += -1.0*mobility[2]*(3.0*mu[2] - 4.0*mu[1] + 1.0*mu[0])/(4.0*DELTA_X*DELTA_X);
-
-        if (sizeY > 1)
-        {
-            RHS += -3.0*mobility[0]*(3.0*mu[0] - 4.0*mu[7] + 1.0*mu[8])/(4.0*DELTA_Y*DELTA_Y);
-            RHS +=  4.0*mobility[3]*(3.0*mu[5] - 4.0*mu[0] + 1.0*mu[7])/(4.0*DELTA_Y*DELTA_Y);
-            RHS += -1.0*mobility[4]*(3.0*mu[6] - 4.0*mu[5] + 1.0*mu[0])/(4.0*DELTA_Y*DELTA_Y);
-        }
-
-        if (sizeZ > 1)
-        {
-            RHS += -3.0*mobility[0]*(3.0*mu[0] - 4.0*mu[11] + 1.0*mu[12])/(4.0*DELTA_Z*DELTA_Z);
-            RHS +=  4.0*mobility[5]*(3.0*mu[9] - 4.0*mu[0] + 1.0*mu[11])/(4.0*DELTA_Z*DELTA_Z);
-            RHS += -1.0*mobility[6]*(3.0*mu[10] - 4.0*mu[9] + 1.0*mu[0])/(4.0*DELTA_Z*DELTA_Z);
-        }
-
-        compNew[0][idx] = comp[0][idx] + RHS*DELTA_t;
     }
-    __syncthreads();
 }
 
-void updateComposition(double **phi, double **comp, double **compNew,
-                       double **phaseComp,
+__global__
+void __updateMu_02__(double **phi, double **comp,
+                     double **phiNew, double **compNew,
+                     double **phaseComp, double **mu,
+                     long *thermo_phase, double temperature, double molarVolume,
+                     long NUMPHASES, long NUMCOMPONENTS, long DIMENSION,
+                     long sizeX, long sizeY, long sizeZ,
+                     long yStep, long zStep, long padding,
+                     double DELTA_X, double DELTA_Y, double DELTA_Z,
+                     double DELTA_t)
+{
+    long i = threadIdx.x + blockIdx.x * blockDim.x;
+    long j = threadIdx.y + blockIdx.y * blockDim.y;
+    long k = threadIdx.z + blockIdx.z * blockDim.z;
+
+    long idx = k*zStep + j*yStep + i;
+
+    if (i >= padding && i < sizeX-padding && ((j >= padding && j < sizeY-padding && DIMENSION >= 2) || (DIMENSION == 1 && j == 0)) && ((k >= padding && k < sizeZ-padding && DIMENSION == 3) || (DIMENSION < 3 && k == 0)))
+    {
+        double RHS[MAX_NUM_COMP] = {0.0}, sum = 0.0;
+        double tol = 1e-6;
+
+        long bulkphase = 0, interface = 1;
+
+        for (long is = 0; is < NUMPHASES; is++)
+        {
+            if (phi[is][idx] > 0.99999)
+            {
+                bulkphase = is;
+                interface = 0;
+                break;
+            }
+        }
+
+        if (interface)
+        {
+            double dmudc[(MAX_NUM_COMP)*(MAX_NUM_COMP)];
+            double dcdmu[(MAX_NUM_COMP)*(MAX_NUM_COMP)];
+            double y[MAX_NUM_COMP];
+            double Inv[MAX_NUM_COMP][MAX_NUM_COMP];
+            int P[MAX_NUM_COMP];
+
+            for (long component = 0; component < NUMCOMPONENTS-1; component++)
+            {
+                for (long component2 = 0; component2 < NUMCOMPONENTS-1; component2++)
+                {
+                    dcdmu[component*(NUMCOMPONENTS-1) + component2] = 0.0;
+                }
+            }
+
+            for (long phase = 0; phase < NUMPHASES; phase++)
+            {
+                sum = 0.0;
+
+                for (long component = 0; component < NUMCOMPONENTS-1; component++)
+                {
+                    y[component] = phaseComp[component*NUMPHASES + phase][idx];
+                    sum += y[component];
+                }
+
+                y[NUMCOMPONENTS-1] = 1.0 - sum;
+
+                (*dmudc_tdb_dev[thermo_phase[phase]])(temperature, y, dmudc);
+
+                LUPDecomposeC2(dmudc, NUMCOMPONENTS-1, tol, P);
+                LUPInvertC2(dmudc, P, NUMCOMPONENTS-1, Inv);
+
+                for (long component = 0; component < NUMCOMPONENTS-1; component++)
+                    for (long component2 = 0; component2 < NUMCOMPONENTS-1; component2++)
+                        dcdmu[component*(NUMCOMPONENTS-1) + component2] += calcInterp5th(phi, phase, idx, NUMPHASES)*Inv[component][component2];
+            }
+
+            LUPDecomposeC2(dcdmu, NUMCOMPONENTS-1, tol, P);
+            LUPInvertC2(dcdmu, P, NUMCOMPONENTS-1, Inv);
+
+            for (long component = 0; component < NUMCOMPONENTS-1; component++)
+            {
+                RHS[component] = (compNew[component][idx] - comp[component][idx]);
+
+                for (long phase = 0; phase < NUMPHASES; phase++)
+                {
+                    sum = 0.0;
+
+                    for (long phase2 = 0; phase2 < NUMPHASES; phase2++)
+                    {
+                        sum += calcInterp5thDiff(phi, phase, phase2, idx, NUMPHASES)*(phiNew[phase2][idx] - phi[phase2][idx]);
+                    }
+
+                    RHS[component] -= phaseComp[phase + component*NUMPHASES][idx]*sum;
+                }
+            }
+
+            for (long component = 0; component < NUMCOMPONENTS-1; component++)
+            {
+                for (long component2 = 0; component2 < NUMCOMPONENTS-1; component2++)
+                {
+                    mu[component][idx] += Inv[component][component2]*RHS[component2];
+                }
+            }
+        }
+        else
+        {
+            double y[MAX_NUM_COMP];
+            double mu1[MAX_NUM_COMP];
+
+            sum = 0.0;
+
+            for (long is = 0; is < NUMCOMPONENTS-1; is++)
+            {
+                y[is] = compNew[is][idx];
+                sum += y[is];
+            }
+
+            y[NUMCOMPONENTS-1] = 1.0 - sum;
+
+            (*Mu_tdb_dev[thermo_phase[bulkphase]])(temperature, y, mu1);
+
+            for (long is = 0; is < NUMCOMPONENTS-1; is++)
+                mu[is][idx] = mu1[is];
+        }
+    }
+}
+
+void updateComposition(double **phi, double **comp, double **phiNew, double **compNew,
+                       double **phaseComp, double **mu,
                        domainInfo* simDomain, controls* simControls,
                        simParameters* simParams, subdomainInfo* subdomain,
                        dim3 gridSize, dim3 blockSize)
 {
-    if (simControls->multiphase == 1 || simDomain->numPhases > 2 || simDomain->numComponents > 2)
+    if (simControls->FUNCTION_F == 1 || simControls->FUNCTION_F == 3 || simControls->FUNCTION_F == 4)
     {
         __updateComposition__<<<gridSize, blockSize>>>(phi, comp, compNew,
                                                        phaseComp,
                                                        simParams->F0_A_dev, simParams->F0_B_dev,
-                                                       simParams->diffusivity_dev,
-                                                       simDomain->numPhases, simDomain->numComponents,
+                                                       simParams->mobility_dev,
+                                                       simDomain->numPhases, simDomain->numComponents, simDomain->DIMENSION,
                                                        subdomain->sizeX, subdomain->sizeY, subdomain->sizeZ,
+                                                       subdomain->yStep, subdomain->zStep, subdomain->padding,
                                                        simDomain->DELTA_X, simDomain->DELTA_Y, simDomain->DELTA_Z,
                                                        simControls->DELTA_t);
+
+        applyBoundaryCondition(compNew, 2, simDomain->numComponents-1,
+                               simDomain, simControls,
+                               simParams, subdomain,
+                               gridSize, blockSize);
     }
-    else if (simDomain->numPhases == 2 && simDomain->numComponents == 2)
+    else if (simControls->FUNCTION_F == 2)
     {
-        __updateCompositionBinary__<<<gridSize, blockSize>>>(phi, comp, compNew,
-                                                             phaseComp,
-                                                             simParams->F0_A_dev, simParams->F0_B_dev,
-                                                             simParams->diffusivity_dev,
-                                                             simDomain->numPhases, simDomain->numComponents,
-                                                             subdomain->sizeX, subdomain->sizeY, subdomain->sizeZ,
-                                                             simDomain->DELTA_X, simDomain->DELTA_Y, simDomain->DELTA_Z,
-                                                             simControls->DELTA_t);
+        __updateComposition_02__<<<gridSize, blockSize>>>(phi, comp,
+                                                          compNew, mu,
+                                                          phaseComp, simDomain->thermo_phase_dev,
+                                                          simParams->diffusivity_dev, simParams->T, simParams->molarVolume,
+                                                          simDomain->numPhases, simDomain->numComponents, simDomain->DIMENSION,
+                                                          subdomain->sizeX, subdomain->sizeY, subdomain->sizeZ,
+                                                          subdomain->yStep, subdomain->zStep, subdomain->padding,
+                                                          simDomain->DELTA_X, simDomain->DELTA_Y, simDomain->DELTA_Z,
+                                                          simControls->DELTA_t);
+
+        applyBoundaryCondition(compNew, 2, simDomain->numComponents-1,
+                               simDomain, simControls,
+                               simParams, subdomain,
+                               gridSize, blockSize);
+
+        __updateMu_02__<<<gridSize, blockSize>>>(phi, comp,
+                                                 phiNew, compNew,
+                                                 phaseComp, mu,
+                                                 simDomain->thermo_phase_dev, simParams->T, simParams->molarVolume,
+                                                 simDomain->numPhases, simDomain->numComponents, simDomain->DIMENSION,
+                                                 subdomain->sizeX, subdomain->sizeY, subdomain->sizeZ,
+                                                 subdomain->yStep, subdomain->zStep, subdomain->padding,
+                                                 simDomain->DELTA_X, simDomain->DELTA_Y, simDomain->DELTA_Z,
+                                                 simControls->DELTA_t);
+
+        applyBoundaryCondition(mu, 1, simDomain->numComponents-1,
+                               simDomain, simControls,
+                               simParams, subdomain,
+                               gridSize, blockSize);
+
     }
 }

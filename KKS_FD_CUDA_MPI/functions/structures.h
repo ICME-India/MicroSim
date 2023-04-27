@@ -1,82 +1,117 @@
 #ifndef STRUCTURES_H_
 #define STRUCTURES_H_
 
+#include "defines.h"
+
 /*
  * Definition for a structure to hold information about the domain.
  */
 typedef struct domainInfo
 {
-// Domain size
-    int MESH_X;
-    int MESH_Y;
-    int MESH_Z;
+    // Domain size
+    long MESH_X;
+    long MESH_Y;
+    long MESH_Z;
 
-    int numCells;
+    long numCells;
 
-// Cell size
+    // Cell size
     double DELTA_X;
     double DELTA_Y;
     double DELTA_Z;
 
-    int DIMENSION;
+    long DIMENSION;
 
-    int numPhases;
-    int numComponents;
+    long numPhases;
+    long numComponents;
     char **phaseNames;
     char **componentNames;
 
-    int numThermoPhases;
+    long numThermoPhases;
     char **phases_tdb;
     char **phase_map;
-    int  *thermo_phase_dev, *thermo_phase_host;
+    long  *thermo_phase_dev, *thermo_phase_host;
 } domainInfo;
+
+/*
+ * Definition for a structure to boundary condition instructions
+ */
+typedef struct bc_scalars
+{
+    int type;
+    long points[3];
+    long proxy[3];
+    double value[3];
+} bc_scalars;
 
 /*
  * Definition for a structure to hold simulation controls
  */
 typedef struct controls
 {
-// Simulation parameters
+    // MPI information
+    long numworkers;
+
+    // Simulation parameters
     double DELTA_t;
-    int startTime;
-    int count;
+    long startTime;
+    long count;
 
-// Number of iterations for all of the following
-    int numSteps;
-    int saveInterval;
-    int trackProgress;
-    int restart;
+    // Number of iterations for all of the following
+    long numSteps;
+    long saveInterval;
+    long trackProgress;
+    long restart;
+    long nsmooth;
 
-// Extent of padding at the block boundaries
-    int padding;
+    // Extent of padding at the block boundaries
+    long padding;
 
-// Type of free-energy
-    int FUNCTION_F;
+    // Type of free-energy
+    long FUNCTION_F;
 
-// MPMC or binary
-    int multiphase;
+    // MPMC or binary
+    long multiphase;
 
-// Filewriting
-    int writeFormat;
-    int writeHDF5;
+    // Filewriting
+    long writeFormat;
+    long writeHDF5;
 
-// Temperature behaviour
-    int ISOTHERMAL;
+    // Anisotropy
+    int FUNCTION_ANISOTROPY;
+    int FOLD;
+    int ANISOTROPY;
+    int ANISOTROPY_GRADIENT;
+    double Rth_phase;
+
+    // Temperature behaviour
+    long ISOTHERMAL;
     double dTdt;
-    int T_update;
+    long T_update;
 
+    // Boundary conditions
+    bc_scalars *boundary[6];
 } controls;
 
 typedef struct simParameters
 {
-// User input
+    // User input
     double **gamma_host, *gamma_dev;
     double ***diffusivity_host, *diffusivity_dev;
+    double ***mobility_host, *mobility_dev;
     double **Tau_host;
     double **relax_coeff_host, *relax_coeff_dev;
     double ***F0_A_host, *F0_A_dev;
     double **F0_B_host, *F0_B_dev;
+    double **F0_Beq_host, *F0_Beq_dev;
     double *F0_C_host, *F0_C_dev;
+
+    long ISOTHERMAL;
+
+    double **DELTA_T;
+    double **DELTA_C;
+    double ***dcbdT;
+    double **dBbdT;
 
     double alpha;
     double epsilon;
@@ -88,13 +123,21 @@ typedef struct simParameters
     double molarVolume;
     double T, Teq, Tfill;
 
+    double ***slopes;
+
     double *theta_i_host, *theta_i_dev;
     double **theta_ij_host, *theta_ij_dev;
     double ***theta_ijk_host, *theta_ijk_dev;
 
     long SEED;
 
-// Calculated from user input
+    double **dab_host, *dab_dev;
+    double tilt_angle;
+    double Rtheta;
+    double ****Rotation_matrix_host, *Rotation_matrix_dev;
+    double ****Inv_Rotation_matrix_host, *Inv_Rotation_matrix_dev;
+
+    // Calculated from user input
     double **kappaPhi_host, *kappaPhi_dev;
 } simParameters;
 
@@ -104,15 +147,16 @@ typedef struct simParameters
  */
 typedef struct subdomainInfo
 {
-    int xS, yS, zS;
-    int xE, yE, zE;
+    long xS, yS, zS;
+    long xE, yE, zE;
 
-    int sizeX, sizeY, sizeZ;
+    long sizeX, sizeY, sizeZ;
 
-    int numCells;
-    int numCompCells;
-    int shiftPointer;
-    int padding;
+    long numCells;
+    long numCompCells;
+    long shiftPointer;
+    long padding;
+    long yStep, zStep;
 
     int rank;
 
@@ -126,9 +170,9 @@ typedef struct subdomainInfo
  */
 typedef struct sphere
 {
-    int xC, yC, zC;
-    int radius;
-    int phase;
+    long xC, yC, zC;
+    long radius;
+    long phase;
 } sphere;
 
 /*
@@ -136,13 +180,35 @@ typedef struct sphere
  */
 typedef struct cylinder
 {
-    int xC, yC;
-    int zS, zE;
-    int radius;
-    int phase;
+    long xC, yC;
+    long zS, zE;
+    long radius;
+    long phase;
 } cylinder;
 
-enum fill{FILLCYLINDER, FILLSPHERE, FILLCYLINDERRANDOM, FILLSPHERERANDOM};
+/*
+ * Definition for a structure to hold cube filling information
+ */
+typedef struct cube
+{
+    long xS, yS, zS;
+    long xE, yE, zE;
+    long phase;
+} cube;
+
+/*
+ * Definition for a structure to hold ellipse filling information
+ */
+typedef struct ellipse
+{
+    long xC, yC, zC;
+    double major_axis;
+    double eccentricity;
+    double rot_angle;
+    long phase;
+} ellipse;
+
+enum fill{FILLCYLINDER, FILLSPHERE, FILLCYLINDERRANDOM, FILLSPHERERANDOM, FILLCUBE, FILLELLIPSE};
 
 /*
  * Definition for a structure to hold all domain filling information
@@ -150,16 +216,18 @@ enum fill{FILLCYLINDER, FILLSPHERE, FILLCYLINDERRANDOM, FILLSPHERERANDOM};
 typedef struct fillParameters
 {
     enum fill *fillType;
-    int *xC, *yC, *zC;
-    int *zS, *zE;
-    int *radius;
-    int *phase;
+    long *xC, *yC, *zC;
+    long *xS, *yS, *zS;
+    long *xE, *yE, *zE;
+    long *radius;
+    long *phase;
+    double *major_axis, *eccentricity, *rot_angle;
     long *seed;
     double *volFrac;
-    int *shieldDist;
+    long *shieldDist;
     double *radVar;
 
-    int countFill;
+    long countFill;
 } fillParameters;
 
 #endif

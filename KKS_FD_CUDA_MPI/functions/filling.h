@@ -29,10 +29,23 @@ void fillSphere(double *phi, sphere Sphere,
                 domainInfo simDomain, subdomainInfo subdomain);
 
 /*
+ * Fill a cube
+ */
+void fillCube(double *phi, cube Cube,
+              domainInfo simDomain, subdomainInfo subdomain);
+
+/*
+ * Fill an ellipse
+ */
+void fillEllipse(double *phi, ellipse Ellipse,
+                 domainInfo simDomain, subdomainInfo subdomain);
+
+
+/*
  * Fill composition fields using the filled phase volume fraction fields
  */
 void fillComposition(double *phi, double *comp,
                      domainInfo simDomain, subdomainInfo subdomain,
-                     double ****ceq, double ***cfill);
+                     double ***ceq, double ***cfill);
 
 #endif

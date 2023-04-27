@@ -7,40 +7,39 @@
 #include "structures.h"
 #include "utilityKernels.cuh"
 #include "Thermo.cuh"
+#include "matrix.cuh"
+#include "functionH.cuh"
 
-#ifndef NUM_PHASE_COMP
-#define NUM_PHASE_COMP 12
-#endif
 
 /*
- * Calculate phase compositions
+ * Calculate phase compositions for Function_F != 2
  */
 __global__
-void __calcPhaseComp_01_03__(double **phi, double **comp,
-                             double **phaseComp,
-                             double *F0_A, double *F0_B, double *F0_C,
-                             int NUMPHASES, int NUMCOMPONENTS,
-                             int sizeX, int sizeY, int sizeZ);
+void __calcPhaseComp__(double **phi, double **comp,
+                       double **phaseComp,
+                       double *F0_A, double *F0_B, double *F0_C,
+                       long NUMPHASES, long NUMCOMPONENTS, long DIMENSION,
+                       long sizeX, long sizeY, long sizeZ, long padding);
 
+/*
+ *  Initialise diffusion potentials for Function_F == 2
+ */
 __global__
-void __calcPhaseCompBinary_01_03__(double **phi, double **comp,
-                                   double **phaseComp,
-                                   double *F0_A, double *F0_B, double *F0_C,
-                                   int NUMPHASES, int NUMCOMPONENTS,
-                                   int sizeX, int sizeY, int sizeZ);
+void __initMu__(double **phi, double **comp, double **phaseComp, double **mu,
+                long *thermo_phase, double temperature,
+                long NUMPHASES, long NUMCOMPONENTS, long DIMENSION,
+                long sizeX, long sizeY, long sizeZ,
+                long yStep, long zStep, long padding);
 
-
+/*
+ * Calculate phase compositions for Function_F == 2
+ */
 __global__
-void initPhaseComp_02(double **phi, double **comp,
-                      double **phaseComp, double *cguess,
-                      double temperature, int *thermo_phase,
-                      int sizeX, int sizeY, int sizeZ);
-
-__global__
-void __calcPhaseCompBinary_02__(double **phi, double **comp,
-                                double **phaseComp,
-                                double temperature, int *thermo_phase,
-                                int sizeX, int sizeY, int sizeZ);
+void __calcPhaseComp_02__(double **phi, double **comp,
+                          double **phaseComp, double **mu, double *cguess,
+                          double temperature, long *thermo_phase,
+                          long NUMPHASES, long NUMCOMPONENTS, long DIMENSION,
+                          long sizeX, long sizeY, long sizeZ, long padding);
 
 /*
  * Wrapper function for __calcPhaseComp__
@@ -49,7 +48,7 @@ void __calcPhaseCompBinary_02__(double **phi, double **comp,
 extern "C"
 #endif
 void calcPhaseComp(double **phi, double **comp,
-                   double **phaseComp,
+                   double **phaseComp, double **mu,
                    domainInfo* simDomain, controls* simControls,
                    simParameters* simParams, subdomainInfo* subdomain,
                    dim3 gridSize, dim3 blockSize);

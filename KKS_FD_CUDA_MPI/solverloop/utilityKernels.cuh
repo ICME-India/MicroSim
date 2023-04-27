@@ -3,37 +3,28 @@
 
 #include <cuda.h>
 #include <cuda_runtime.h>
+#include "helper_string.h"
+#include "helper_cuda.h"
 
 #include "Thermo.cuh"
 #include "structures.h"
 
-/*
- * __device__ __host__ double evalFunc
- *
- * Evaluates thermo writer functions of the specified form at the given composition and temperature
- * Can be called from both host-side code and device-side code
- *
- * Arguments:
- *              1. void f(double, double*, double*) -> free-energy function and derivatives as written by SymPy codegen
- *              2. double x -> specifies c[1], as Al-Zn test simulations are being run using X_{ZN}
- *              3. double temperature -> temperature
- *
- * Return:
- *          the value of the function, as a double
- *
- */
-__device__ __host__
-double evalFunc(void f(double, double*, double*), double x, double temperature);
+extern __device__
+double calcPhaseEnergy(double **phaseComp, long phase,
+                       double *F0_A, double *F0_B, double *F0_C,
+                       long idx,
+                       long NUMPHASES, long NUMCOMPONENTS);
 
-
-__device__ __host__
-double spline_eval(double x, double *controlPoints,
-                   double *a, double *b, double *c, double *d,
-                   int numControlPoints);
+extern __device__
+double calcDiffusionPotential(double **phaseComp,
+                              long phase, long component,
+                              double *F0_A, double *F0_B,
+                              long idx,
+                              long NUMPHASES, long NUMCOMPONENTS);
 
 __global__
-void computeChange(double *A, double *B,
-                   int sizeX, int sizeY, int sizeZ);
+void computeChange(double *A, double *B, long DIMENSION,
+                   long sizeX, long sizeY, long sizeZ);
 
 void printStats(double **phi, double **comp,
                 double **phiNew, double **compNew,
