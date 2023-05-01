@@ -363,29 +363,31 @@ void write_cells_vtk_3D_mpi(FILE *fp, struct fields* gridinfo) {
     }
     fprintf(fp,"\n");
   }
-  for (k=0; k < NUMCOMPONENTS-1; k++) {
-    for (x=0; x < workers_mpi.rows[X]; x++) {
-      for (z=0; z < workers_mpi.rows[Z]; z++) {
-        for (y=0; y < workers_mpi.rows[Y]; y++) {
-          index        = (x + workers_mpi.offset_x)*workers_mpi.layer_size   + (z + workers_mpi.offset_z)*workers_mpi.rows_y + (y + workers_mpi.offset_y);
-          global_index = (x + workers_mpi.offset[X])*(MESH_Y+6)*(MESH_Z+6) + (z + workers_mpi.offset[Z])*(MESH_Y+6) + (y + workers_mpi.offset[Y]); 
-          fprintf(fp, "%ld %le\n",global_index, gridinfo[index].compi[k]);
+  if ((FUNCTION_F != 5) && (!GRAIN_GROWTH)) {
+    for (k=0; k < NUMCOMPONENTS-1; k++) {
+      for (x=0; x < workers_mpi.rows[X]; x++) {
+        for (z=0; z < workers_mpi.rows[Z]; z++) {
+          for (y=0; y < workers_mpi.rows[Y]; y++) {
+            index        = (x + workers_mpi.offset_x)*workers_mpi.layer_size   + (z + workers_mpi.offset_z)*workers_mpi.rows_y + (y + workers_mpi.offset_y);
+            global_index = (x + workers_mpi.offset[X])*(MESH_Y+6)*(MESH_Z+6) + (z + workers_mpi.offset[Z])*(MESH_Y+6) + (y + workers_mpi.offset[Y]); 
+            fprintf(fp, "%ld %le\n",global_index, gridinfo[index].compi[k]);
+          }
         }
       }
+      fprintf(fp,"\n");
     }
-    fprintf(fp,"\n");
-  }
-  for (k=0; k < NUMCOMPONENTS-1; k++) {
-    for (x=0; x < workers_mpi.rows[X]; x++) {
-      for (z=0; z < workers_mpi.rows[Z]; z++) {
-        for (y=0; y < workers_mpi.rows[Y]; y++) {
-          index        = (x + workers_mpi.offset_x)*workers_mpi.layer_size   + (z + workers_mpi.offset_z)*workers_mpi.rows_y + (y + workers_mpi.offset_y);
-          global_index = (x + workers_mpi.offset[X])*(MESH_Y+6)*(MESH_Z+6) + (z + workers_mpi.offset[Z])*(MESH_Y+6) + (y + workers_mpi.offset[Y]); 
-          fprintf(fp,"%ld %le \n",global_index, gridinfo[index].composition[k]);
+    for (k=0; k < NUMCOMPONENTS-1; k++) {
+      for (x=0; x < workers_mpi.rows[X]; x++) {
+        for (z=0; z < workers_mpi.rows[Z]; z++) {
+          for (y=0; y < workers_mpi.rows[Y]; y++) {
+            index        = (x + workers_mpi.offset_x)*workers_mpi.layer_size   + (z + workers_mpi.offset_z)*workers_mpi.rows_y + (y + workers_mpi.offset_y);
+            global_index = (x + workers_mpi.offset[X])*(MESH_Y+6)*(MESH_Z+6) + (z + workers_mpi.offset[Z])*(MESH_Y+6) + (y + workers_mpi.offset[Y]); 
+            fprintf(fp,"%ld %le \n",global_index, gridinfo[index].composition[k]);
+          }
         }
       }
+      fprintf(fp,"\n");
     }
-    fprintf(fp,"\n");
   }
   if (ELASTICITY) {
     for (dim=0; dim < DIMENSION; dim++) {
@@ -441,24 +443,26 @@ void write_cells_vtk_3D_mpibinary(FILE *fp, struct fields* gridinfo) {
       }
     }
   }
-  for (k=0; k < NUMCOMPONENTS-1; k++) {
-    for (x=0; x < workers_mpi.rows[X]; x++) {
-      for (z=0; z < workers_mpi.rows[Z]; z++) {
-        for (y=0; y < workers_mpi.rows[Y]; y++) {
-          index        = (x + workers_mpi.offset_x)*workers_mpi.layer_size   + (z + workers_mpi.offset_z)*workers_mpi.rows_y + (y + workers_mpi.offset_y);
-          value        = gridinfo[index].compi[k];
-          fwrite(&value, sizeof(double), 1, fp);
+  if ((FUNCTION_F != 5) && (!GRAIN_GROWTH)) {
+    for (k=0; k < NUMCOMPONENTS-1; k++) {
+      for (x=0; x < workers_mpi.rows[X]; x++) {
+        for (z=0; z < workers_mpi.rows[Z]; z++) {
+          for (y=0; y < workers_mpi.rows[Y]; y++) {
+            index        = (x + workers_mpi.offset_x)*workers_mpi.layer_size   + (z + workers_mpi.offset_z)*workers_mpi.rows_y + (y + workers_mpi.offset_y);
+            value        = gridinfo[index].compi[k];
+            fwrite(&value, sizeof(double), 1, fp);
+          }
         }
       }
     }
-  }
-  for (k=0; k < NUMCOMPONENTS-1; k++) {
-    for (x=0; x < workers_mpi.rows[X]; x++) {
-      for (z=0; z < workers_mpi.rows[Z]; z++) {
-        for (y=0; y < workers_mpi.rows[Y]; y++) {
-          index        = (x + workers_mpi.offset_x)*workers_mpi.layer_size   + (z + workers_mpi.offset_z)*workers_mpi.rows_y + (y + workers_mpi.offset_y);
-          value        = gridinfo[index].composition[k];
-          fwrite(&value, sizeof(double), 1, fp);
+    for (k=0; k < NUMCOMPONENTS-1; k++) {
+      for (x=0; x < workers_mpi.rows[X]; x++) {
+        for (z=0; z < workers_mpi.rows[Z]; z++) {
+          for (y=0; y < workers_mpi.rows[Y]; y++) {
+            index        = (x + workers_mpi.offset_x)*workers_mpi.layer_size   + (z + workers_mpi.offset_z)*workers_mpi.rows_y + (y + workers_mpi.offset_y);
+            value        = gridinfo[index].composition[k];
+            fwrite(&value, sizeof(double), 1, fp);
+          }
         }
       }
     }
@@ -532,11 +536,13 @@ void write_cells_hdf5_3D_mpi(hid_t file_id, struct fields* gridinfo_w) {
         for (a=0; a<NUMPHASES; a++) {
           buffer[a][index_to] = gridinfo_w[index].phia[a];
         }
-        for (k=0; k<(NUMCOMPONENTS-1); k++) {
-          buffer[NUMPHASES+k][index_to] = gridinfo_w[index].compi[k];
-        }
-        for (k=0; k<(NUMCOMPONENTS-1); k++) {
-          buffer[NUMPHASES+(NUMCOMPONENTS-1)+k][index_to] = gridinfo_w[index].composition[k];
+        if ((FUNCTION_F != 5) && (!GRAIN_GROWTH)) {
+          for (k=0; k<(NUMCOMPONENTS-1); k++) {
+            buffer[NUMPHASES+k][index_to] = gridinfo_w[index].compi[k];
+          }
+          for (k=0; k<(NUMCOMPONENTS-1); k++) {
+            buffer[NUMPHASES+(NUMCOMPONENTS-1)+k][index_to] = gridinfo_w[index].composition[k];
+          }
         }
         if (ELASTICITY) {
           for (dim=0; dim < DIMENSION; dim ++) {
@@ -654,11 +660,13 @@ void read_cells_hdf5_3D_mpi(hid_t file_id, struct fields* gridinfo_w) {
         for (a=0; a<NUMPHASES; a++) {
           gridinfo_w[index_to].phia[a]    = buffer[a][index];
         }
-        for (k=0; k<(NUMCOMPONENTS-1); k++) {
-          gridinfo_w[index_to].compi[k]    = buffer[NUMPHASES+k][index];
-        }
-        for (k=0; k<(NUMCOMPONENTS-1); k++) {
-          gridinfo_w[index_to].composition[k] = buffer[NUMPHASES+(NUMCOMPONENTS-1)+k][index];
+        if ((FUNCTION_F != 5) && (!GRAIN_GROWTH)) {
+          for (k=0; k<(NUMCOMPONENTS-1); k++) {
+            gridinfo_w[index_to].compi[k]    = buffer[NUMPHASES+k][index];
+          }
+          for (k=0; k<(NUMCOMPONENTS-1); k++) {
+            gridinfo_w[index_to].composition[k] = buffer[NUMPHASES+(NUMCOMPONENTS-1)+k][index];
+          }
         }
         if (ELASTICITY) {
           for (dim=0; dim < DIMENSION; dim++) {
@@ -703,28 +711,30 @@ void read_cells_vtk_3D_mpi(FILE *fp, struct fields* gridinfo_w) {
     }
 //     fprintf(fp,"\n");
   }
-  for (k=0; k < NUMCOMPONENTS-1; k++) {
-    for (x=0; x < workers_mpi.rows[X]; x++) {
-      for (z=0; z < workers_mpi.rows[Z]; z++) {
-        for (y=0; y < workers_mpi.rows[Y]; y++) {
-          index        = (x + workers_mpi.offset_x)*workers_mpi.layer_size   + (z + workers_mpi.offset_z)*workers_mpi.rows_y + (y + workers_mpi.offset_y);
-          fscanf(fp, "%ld %le\n",&global_index, &gridinfo_w[index].compi[k]);
-        }
-      }
-    }
-//     fprintf(fp,"\n");
-  }
-//   if(WRITECOMPOSITION) {
+  if ((FUNCTION_F != 5) && (!GRAIN_GROWTH)) {
     for (k=0; k < NUMCOMPONENTS-1; k++) {
       for (x=0; x < workers_mpi.rows[X]; x++) {
         for (z=0; z < workers_mpi.rows[Z]; z++) {
           for (y=0; y < workers_mpi.rows[Y]; y++) {
             index        = (x + workers_mpi.offset_x)*workers_mpi.layer_size   + (z + workers_mpi.offset_z)*workers_mpi.rows_y + (y + workers_mpi.offset_y);
-            fscanf(fp,"%ld %le \n",&global_index, &gridinfo_w[index].composition[k]);
+            fscanf(fp, "%ld %le\n",&global_index, &gridinfo_w[index].compi[k]);
           }
         }
       }
-//       fprintf(fp,"\n");
+  //     fprintf(fp,"\n");
+    }
+  //   if(WRITECOMPOSITION) {
+      for (k=0; k < NUMCOMPONENTS-1; k++) {
+        for (x=0; x < workers_mpi.rows[X]; x++) {
+          for (z=0; z < workers_mpi.rows[Z]; z++) {
+            for (y=0; y < workers_mpi.rows[Y]; y++) {
+              index        = (x + workers_mpi.offset_x)*workers_mpi.layer_size   + (z + workers_mpi.offset_z)*workers_mpi.rows_y + (y + workers_mpi.offset_y);
+              fscanf(fp,"%ld %le \n",&global_index, &gridinfo_w[index].composition[k]);
+            }
+          }
+        }
+  //       fprintf(fp,"\n");
+      }
     }
     if (ELASTICITY) {
       for (dim=0; dim < DIMENSION; dim++) {
@@ -779,25 +789,27 @@ void read_cells_vtk_3D_mpibinary(FILE *fp, struct fields* gridinfo_w) {
       }
     }
   }
-  for (k=0; k < NUMCOMPONENTS-1; k++) {
-    for (x=0; x < workers_mpi.rows[X]; x++) {
-      for (z=0; z < workers_mpi.rows[Z]; z++) {
-        for (y=0; y < workers_mpi.rows[Y]; y++) {
-          index        = (x + workers_mpi.offset_x)*workers_mpi.layer_size   + (z + workers_mpi.offset_z)*workers_mpi.rows_y + (y + workers_mpi.offset_y);
-          fread(&value, sizeof(double), 1, fp);
-          gridinfo_w[index].compi[k] = value;
+  if ((FUNCTION_F != 5) && (!GRAIN_GROWTH)) {
+    for (k=0; k < NUMCOMPONENTS-1; k++) {
+      for (x=0; x < workers_mpi.rows[X]; x++) {
+        for (z=0; z < workers_mpi.rows[Z]; z++) {
+          for (y=0; y < workers_mpi.rows[Y]; y++) {
+            index        = (x + workers_mpi.offset_x)*workers_mpi.layer_size   + (z + workers_mpi.offset_z)*workers_mpi.rows_y + (y + workers_mpi.offset_y);
+            fread(&value, sizeof(double), 1, fp);
+            gridinfo_w[index].compi[k] = value;
+          }
         }
       }
     }
-  }
-//   if(WRITECOMPOSITION) {
-  for (k=0; k < NUMCOMPONENTS-1; k++) {
-    for (x=0; x < workers_mpi.rows[X]; x++) {
-      for (z=0; z < workers_mpi.rows[Z]; z++) {
-        for (y=0; y < workers_mpi.rows[Y]; y++) {
-          index        = (x + workers_mpi.offset_x)*workers_mpi.layer_size   + (z + workers_mpi.offset_z)*workers_mpi.rows_y + (y + workers_mpi.offset_y);
-          fread(&value, sizeof(double), 1, fp);
-          gridinfo_w[index].composition[k] = value;
+  //   if(WRITECOMPOSITION) {
+    for (k=0; k < NUMCOMPONENTS-1; k++) {
+      for (x=0; x < workers_mpi.rows[X]; x++) {
+        for (z=0; z < workers_mpi.rows[Z]; z++) {
+          for (y=0; y < workers_mpi.rows[Y]; y++) {
+            index        = (x + workers_mpi.offset_x)*workers_mpi.layer_size   + (z + workers_mpi.offset_z)*workers_mpi.rows_y + (y + workers_mpi.offset_y);
+            fread(&value, sizeof(double), 1, fp);
+            gridinfo_w[index].composition[k] = value;
+          }
         }
       }
     }

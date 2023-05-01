@@ -6,11 +6,11 @@ void initialize_variables() {
   for (a=0;a<NUMPHASES;a++) {
     for (i=0;i<NUMCOMPONENTS-1;i++) {
       for (j=0;j<NUMCOMPONENTS-1;j++) {
-	if (i==j) {
-	  muc[a][i][j]=2.0*A[a][i][j];
-	} else {
-	  muc[a][i][j]=A[a][i][j];
-	}
+        if (i==j) {
+          muc[a][i][j]=2.0*A[a][i][j];
+        } else {
+          muc[a][i][j]=A[a][i][j];
+        }
       }
     }
     matinvnew(muc[a], cmu[a], NUMCOMPONENTS-1);

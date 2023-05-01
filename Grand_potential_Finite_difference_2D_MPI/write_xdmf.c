@@ -104,22 +104,23 @@ void write_xdmf_xml(long t, char *argv[]){
         fprintf(xmf, "       </DataItem>\n");
         fprintf(xmf, "     </Attribute>\n");
       }
-        
-      for (k=0; k<(NUMCOMPONENTS-1); k++) {
-        fprintf(xmf, "     <Attribute Name=\"Mu_%s\" AttributeType=\"Scalar\" Center=\"Node\">\n",Components[k]);
-        fprintf(xmf, "       <DataItem Dimensions=\"%ld %ld\" NumberType=\"Float\" Precision=\"4\" Format=\"HDF\">\n", MESH_X+6, MESH_Y+6);
-        fprintf(xmf, "        %s:/Mu_%s\n", fname_read,Components[k]);
-        fprintf(xmf, "       </DataItem>\n");
-        fprintf(xmf, "     </Attribute>\n");
-      }
-
-      if (WRITECOMPOSITION) {
+      if ((FUNCTION_F != 5) && (!GRAIN_GROWTH)) {
         for (k=0; k<(NUMCOMPONENTS-1); k++) {
-          fprintf(xmf, "     <Attribute Name=\"Composition_%s\" AttributeType=\"Scalar\" Center=\"Node\">\n",Components[k]);
+          fprintf(xmf, "     <Attribute Name=\"Mu_%s\" AttributeType=\"Scalar\" Center=\"Node\">\n",Components[k]);
           fprintf(xmf, "       <DataItem Dimensions=\"%ld %ld\" NumberType=\"Float\" Precision=\"4\" Format=\"HDF\">\n", MESH_X+6, MESH_Y+6);
-          fprintf(xmf, "        %s:/Composition_%s\n", fname_read, Components[k]);
+          fprintf(xmf, "        %s:/Mu_%s\n", fname_read,Components[k]);
           fprintf(xmf, "       </DataItem>\n");
           fprintf(xmf, "     </Attribute>\n");
+        }
+
+        if (WRITECOMPOSITION) {
+          for (k=0; k<(NUMCOMPONENTS-1); k++) {
+            fprintf(xmf, "     <Attribute Name=\"Composition_%s\" AttributeType=\"Scalar\" Center=\"Node\">\n",Components[k]);
+            fprintf(xmf, "       <DataItem Dimensions=\"%ld %ld\" NumberType=\"Float\" Precision=\"4\" Format=\"HDF\">\n", MESH_X+6, MESH_Y+6);
+            fprintf(xmf, "        %s:/Composition_%s\n", fname_read, Components[k]);
+            fprintf(xmf, "       </DataItem>\n");
+            fprintf(xmf, "     </Attribute>\n");
+          }
         }
       }
       if (ELASTICITY) {
@@ -169,22 +170,23 @@ void write_xdmf_xml(long t, char *argv[]){
         fprintf(xmf, "       </DataItem>\n");
         fprintf(xmf, "     </Attribute>\n");
       }
-        
-      for (k=0; k<(NUMCOMPONENTS-1); k++) {
-        fprintf(xmf, "     <Attribute Name=\"Mu_%s\" AttributeType=\"Scalar\" Center=\"Node\">\n",Components[k]);
-        fprintf(xmf, "       <DataItem Dimensions=\"%ld %ld %ld\" NumberType=\"Float\" Precision=\"4\" Format=\"HDF\">\n", MESH_X+6, MESH_Z+6, MESH_Y+6);
-        fprintf(xmf, "        %s:/Mu_%s\n", fname_read,Components[k]);
-        fprintf(xmf, "       </DataItem>\n");
-        fprintf(xmf, "     </Attribute>\n");
-      }
-
-      if (WRITECOMPOSITION) {
+      if ((FUNCTION_F != 5) && (!GRAIN_GROWTH)) {  
         for (k=0; k<(NUMCOMPONENTS-1); k++) {
-          fprintf(xmf, "     <Attribute Name=\"Composition_%s\" AttributeType=\"Scalar\" Center=\"Node\">\n",Components[k]);
+          fprintf(xmf, "     <Attribute Name=\"Mu_%s\" AttributeType=\"Scalar\" Center=\"Node\">\n",Components[k]);
           fprintf(xmf, "       <DataItem Dimensions=\"%ld %ld %ld\" NumberType=\"Float\" Precision=\"4\" Format=\"HDF\">\n", MESH_X+6, MESH_Z+6, MESH_Y+6);
-          fprintf(xmf, "        %s:/Composition_%s\n", fname_read, Components[k]);
+          fprintf(xmf, "        %s:/Mu_%s\n", fname_read,Components[k]);
           fprintf(xmf, "       </DataItem>\n");
           fprintf(xmf, "     </Attribute>\n");
+        }
+
+        if (WRITECOMPOSITION) {
+          for (k=0; k<(NUMCOMPONENTS-1); k++) {
+            fprintf(xmf, "     <Attribute Name=\"Composition_%s\" AttributeType=\"Scalar\" Center=\"Node\">\n",Components[k]);
+            fprintf(xmf, "       <DataItem Dimensions=\"%ld %ld %ld\" NumberType=\"Float\" Precision=\"4\" Format=\"HDF\">\n", MESH_X+6, MESH_Z+6, MESH_Y+6);
+            fprintf(xmf, "        %s:/Composition_%s\n", fname_read, Components[k]);
+            fprintf(xmf, "       </DataItem>\n");
+            fprintf(xmf, "     </Attribute>\n");
+          }
         }
       }
       if (ELASTICITY) {

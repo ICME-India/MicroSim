@@ -179,32 +179,34 @@ int main (int argc, char * argv[]) {
         }
       }
 //       printf("Finished reading phases:%ld\n", n);
-      for (k=0; k<(NUMCOMPONENTS-1); k++) {
-        if(ASCII) {
-          for (num_lines=0; num_lines < (index_count_worker); num_lines++) {
-            fscanf(fp,"%ld %le", &global_index, &value);
-            buffer[global_index][NUMPHASES+k] = value;
-          }
-        } else {
-          for (num_lines=0; num_lines < (index_count_worker); num_lines++) {
-            fread(&value_bin, sizeof(double), 1, fp);
-            global_index = get_global_index(num_lines, workers_rows, workers_offset);
-            buffer[global_index][NUMPHASES+k] = value_bin;
-          }
-        }
-      }
-//       if(WRITECOMPOSITION) {
+       if ((FUNCTION_F != 5) && (!GRAIN_GROWTH)) {
         for (k=0; k<(NUMCOMPONENTS-1); k++) {
-          if (ASCII) {
+          if(ASCII) {
             for (num_lines=0; num_lines < (index_count_worker); num_lines++) {
               fscanf(fp,"%ld %le", &global_index, &value);
-              buffer[global_index][NUMPHASES+(NUMCOMPONENTS-1)+k] = value;
+              buffer[global_index][NUMPHASES+k] = value;
             }
           } else {
             for (num_lines=0; num_lines < (index_count_worker); num_lines++) {
               fread(&value_bin, sizeof(double), 1, fp);
               global_index = get_global_index(num_lines, workers_rows, workers_offset);
-              buffer[global_index][NUMPHASES+(NUMCOMPONENTS-1)+k] = value_bin;
+              buffer[global_index][NUMPHASES+k] = value_bin;
+            }
+          }
+        }
+  //       if(WRITECOMPOSITION) {
+          for (k=0; k<(NUMCOMPONENTS-1); k++) {
+            if (ASCII) {
+              for (num_lines=0; num_lines < (index_count_worker); num_lines++) {
+                fscanf(fp,"%ld %le", &global_index, &value);
+                buffer[global_index][NUMPHASES+(NUMCOMPONENTS-1)+k] = value;
+              }
+            } else {
+              for (num_lines=0; num_lines < (index_count_worker); num_lines++) {
+                fread(&value_bin, sizeof(double), 1, fp);
+                global_index = get_global_index(num_lines, workers_rows, workers_offset);
+                buffer[global_index][NUMPHASES+(NUMCOMPONENTS-1)+k] = value_bin;
+              }
             }
           }
         }
@@ -317,34 +319,35 @@ void write_to_file_ascii(FILE *fp, double **buffer) {
     }
     fprintf(fp,"\n");
   }
-  for (k=0; k < NUMCOMPONENTS-1; k++) {
-    fprintf(fp,"SCALARS Mu_%s double 1\n",Components[k]);
-    fprintf(fp,"LOOKUP_TABLE default\n");
-    for (x=start[X]; x<=end[X]; x++) {
-      for (z=start[Z]; z <= end[Z]; z++) {
-        for (y=start[Y]; y <= end[Y]; y++) {
-          index = x*layer_size + z*rows_y + y;
-          fprintf(fp, "%le\n",buffer[index][NUMPHASES+k]);
-        }
-      }
-    }
-    fprintf(fp,"\n");
-  }
-//   if(WRITECOMPOSITION) {
+  if ((FUNCTION_F != 5) && (!GRAIN_GROWTH)) {
     for (k=0; k < NUMCOMPONENTS-1; k++) {
-      fprintf(fp,"SCALARS Composition_%s double 1\n",Components[k]);
+      fprintf(fp,"SCALARS Mu_%s double 1\n",Components[k]);
       fprintf(fp,"LOOKUP_TABLE default\n");
       for (x=start[X]; x<=end[X]; x++) {
         for (z=start[Z]; z <= end[Z]; z++) {
           for (y=start[Y]; y <= end[Y]; y++) {
             index = x*layer_size + z*rows_y + y;
-            fprintf(fp, "%le\n",buffer[index][NUMPHASES+(NUMCOMPONENTS-1)+k]);
+            fprintf(fp, "%le\n",buffer[index][NUMPHASES+k]);
           }
         }
       }
       fprintf(fp,"\n");
     }
-    
+  //   if(WRITECOMPOSITION) {
+      for (k=0; k < NUMCOMPONENTS-1; k++) {
+        fprintf(fp,"SCALARS Composition_%s double 1\n",Components[k]);
+        fprintf(fp,"LOOKUP_TABLE default\n");
+        for (x=start[X]; x<=end[X]; x++) {
+          for (z=start[Z]; z <= end[Z]; z++) {
+            for (y=start[Y]; y <= end[Y]; y++) {
+              index = x*layer_size + z*rows_y + y;
+              fprintf(fp, "%le\n",buffer[index][NUMPHASES+(NUMCOMPONENTS-1)+k]);
+            }
+          }
+        }
+        fprintf(fp,"\n");
+      }
+    }
     if (ELASTICITY) {
       fprintf(fp,"SCALARS Ux double 1\n");
       fprintf(fp,"LOOKUP_TABLE default\n");
@@ -431,42 +434,44 @@ void write_to_file_binary(FILE *fp, double **buffer) {
     }
     fprintf(fp,"\n");
   }
-  for (k=0; k < NUMCOMPONENTS-1; k++) {
-    fprintf(fp,"SCALARS Mu_%s double 1\n",Components[k]);
-    fprintf(fp,"LOOKUP_TABLE default\n");
-    for (x=start[X]; x<=end[X]; x++) {
-      for (z=start[Z]; z <= end[Z]; z++) {
-        for (y=start[Y]; y <= end[Y]; y++) {
-          index = x*layer_size + z*rows_y + y;
-          if (IS_LITTLE_ENDIAN) {
-            value = swap_bytes(buffer[index][NUMPHASES+k]);
-          } else {
-            value = buffer[index][NUMPHASES+k];
+  if ((FUNCTION_F != 5) && (!GRAIN_GROWTH)) {
+    for (k=0; k < NUMCOMPONENTS-1; k++) {
+      fprintf(fp,"SCALARS Mu_%s double 1\n",Components[k]);
+      fprintf(fp,"LOOKUP_TABLE default\n");
+      for (x=start[X]; x<=end[X]; x++) {
+        for (z=start[Z]; z <= end[Z]; z++) {
+          for (y=start[Y]; y <= end[Y]; y++) {
+            index = x*layer_size + z*rows_y + y;
+            if (IS_LITTLE_ENDIAN) {
+              value = swap_bytes(buffer[index][NUMPHASES+k]);
+            } else {
+              value = buffer[index][NUMPHASES+k];
+            }
+            fwrite(&value, sizeof(double), 1, fp);
           }
-          fwrite(&value, sizeof(double), 1, fp);
         }
       }
+      fprintf(fp,"\n");
     }
-    fprintf(fp,"\n");
-  }
-//   if(WRITECOMPOSITION) {
-  for (k=0; k < NUMCOMPONENTS-1; k++) {
-    fprintf(fp,"SCALARS Composition_%s double 1\n",Components[k]);
-    fprintf(fp,"LOOKUP_TABLE default\n");
-    for (x=start[X]; x<=end[X]; x++) {
-      for (z=start[Z]; z <= end[Z]; z++) {
-        for (y=start[Y]; y <= end[Y]; y++) {
-          index = x*layer_size + z*rows_y + y;
-          if (IS_LITTLE_ENDIAN) {
-            value     = swap_bytes(buffer[index][NUMPHASES+(NUMCOMPONENTS-1)+k]);
-          } else {
-            value = buffer[index][NUMPHASES+(NUMCOMPONENTS-1)+k];
+  //   if(WRITECOMPOSITION) {
+    for (k=0; k < NUMCOMPONENTS-1; k++) {
+      fprintf(fp,"SCALARS Composition_%s double 1\n",Components[k]);
+      fprintf(fp,"LOOKUP_TABLE default\n");
+      for (x=start[X]; x<=end[X]; x++) {
+        for (z=start[Z]; z <= end[Z]; z++) {
+          for (y=start[Y]; y <= end[Y]; y++) {
+            index = x*layer_size + z*rows_y + y;
+            if (IS_LITTLE_ENDIAN) {
+              value     = swap_bytes(buffer[index][NUMPHASES+(NUMCOMPONENTS-1)+k]);
+            } else {
+              value = buffer[index][NUMPHASES+(NUMCOMPONENTS-1)+k];
+            }
+            fwrite(&value, sizeof(double), 1, fp);
           }
-          fwrite(&value, sizeof(double), 1, fp);
         }
       }
+      fprintf(fp,"\n");
     }
-    fprintf(fp,"\n");
   }
   if (ELASTICITY) {
     fprintf(fp,"SCALARS Ux double 1\n");

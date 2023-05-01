@@ -7,7 +7,7 @@ LDIR=/home/abhik/gsl/lib
 IDIR=/home/abhik/gsl/include
 CFLAGS=-I $(IDIR)
 
-_FUNCTION_DEPS = global_vars.h functions.h matrix.h utility_functions.h functionH.h functionF_01.h functionF_02.h functionF_03.h functionF_04.h functionQ.h \
+_FUNCTION_DEPS = global_vars.h functions.h matrix.h utility_functions.h functionH.h functionF_01.h functionF_02.h functionF_03.h functionF_04.h functionF_05.h functionQ.h \
                  functionF_elast.h functionW_01.h functionW_02.h function_A_00.h function_A_01.h anisotropy_01.h functionTau.h \
                  functionD.h filling.h reading_input_parameters.h read_boundary_conditions.h print_boundary_conditions.h print_input_parameters.h \
                  initialize_variables.h free_variables.h fill_domain.h shift.h Temperature_gradient.h

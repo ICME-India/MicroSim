@@ -369,33 +369,35 @@ void calculate_gradients_phasefield_2D(long x, struct gradlayer **gradient, int 
         grad->gradphi_c[X][a] = 0.5*(grad->gradphi[X][a] + grad_back->gradphi[X][a]);
       }
     }
-    if (CALCULATE_COMPOSITION) {
-      if (grad->interface) {
-        for (a=0; a < NUMPHASES; a++) {
-          c_mu(gridinfo_w[center].compi, grad->phase_comp[a], T, a, c_guess[a][a]);
-//           if ((a==0) || (a==NUMPHASES-1)) {
-//             c_mu(gridinfo_w[center].compi, grad->phase_comp[a], T, a, c_guess[a][a]);
-//           }
-          if (!ISOTHERMAL) {
-            c_mu(gridinfo_w[center].compi, c_tdt, T+DELTAT, a, ceq[a][a]);
-            for (k=0; k < NUMCOMPONENTS-1; k++) {
-              grad->dcbdT_phase[a][k] = c_tdt[k] - grad->phase_comp[a][k];
+    if (FUNCTION_F != 5) {
+      if (CALCULATE_COMPOSITION) {
+        if (grad->interface) {
+          for (a=0; a < NUMPHASES; a++) {
+            c_mu(gridinfo_w[center].compi, grad->phase_comp[a], T, a, c_guess[a][a]);
+  //           if ((a==0) || (a==NUMPHASES-1)) {
+  //             c_mu(gridinfo_w[center].compi, grad->phase_comp[a], T, a, c_guess[a][a]);
+  //           }
+            if (!ISOTHERMAL) {
+              c_mu(gridinfo_w[center].compi, c_tdt, T+DELTAT, a, ceq[a][a]);
+              for (k=0; k < NUMCOMPONENTS-1; k++) {
+                grad->dcbdT_phase[a][k] = c_tdt[k] - grad->phase_comp[a][k];
+              }
             }
           }
+  //         for (a=1; a<NUMPHASES-1; a++) {
+  //           for (k=0; k< NUMCOMPONENTS-1; k++) {
+  //             grad->phase_comp[a][k] = grad->phase_comp[0][k];
+  //           }
+  //         }
+          for (a=0; a < NUMPHASES; a++) {
+            dc_dmu(gridinfo_w[center].compi, grad->phase_comp[a], T, a, grad->dcdmu_phase[a]);
+          }
+        } else {
+          for (k=0; k < NUMCOMPONENTS-1; k++) {
+            grad->phase_comp[grad->bulk_phase][k] = gridinfo_w[center].composition[k];
+          }
+          dc_dmu(gridinfo_w[center].compi, grad->phase_comp[grad->bulk_phase], T, grad->bulk_phase, grad->dcdmu_phase[grad->bulk_phase]);
         }
-//         for (a=1; a<NUMPHASES-1; a++) {
-//           for (k=0; k< NUMCOMPONENTS-1; k++) {
-//             grad->phase_comp[a][k] = grad->phase_comp[0][k];
-//           }
-//         }
-        for (a=0; a < NUMPHASES; a++) {
-          dc_dmu(gridinfo_w[center].compi, grad->phase_comp[a], T, a, grad->dcdmu_phase[a]);
-        }
-      } else {
-        for (k=0; k < NUMCOMPONENTS-1; k++) {
-          grad->phase_comp[grad->bulk_phase][k] = gridinfo_w[center].composition[k];
-        }
-        dc_dmu(gridinfo_w[center].compi, grad->phase_comp[grad->bulk_phase], T, grad->bulk_phase, grad->dcdmu_phase[grad->bulk_phase]);
       }
     }
   }
@@ -474,25 +476,27 @@ void calculate_gradients_phasefield_3D(long x, struct gradlayer **gradient, int 
         grad->gradphi_c[X][a] = grad->gradphi[X][a];
       }
     }
-    if (CALCULATE_COMPOSITION) {
-      if (grad->interface) {
-        for (a=0; a < NUMPHASES; a++) {
-          c_mu(gridinfo_w[center].compi, grad->phase_comp[a], T, a, c_guess[a][a]);
-          if (!ISOTHERMAL) {
-            c_mu(gridinfo_w[center].compi, c_tdt, T+DELTAT, a, ceq[a][a]);
-            for (k=0; k < NUMCOMPONENTS-1; k++) {
-              grad->dcbdT_phase[a][k] = c_tdt[k] - grad->phase_comp[a][k];
+    if (FUNCTION_F !=5) {
+      if (CALCULATE_COMPOSITION) {
+        if (grad->interface) {
+          for (a=0; a < NUMPHASES; a++) {
+            c_mu(gridinfo_w[center].compi, grad->phase_comp[a], T, a, c_guess[a][a]);
+            if (!ISOTHERMAL) {
+              c_mu(gridinfo_w[center].compi, c_tdt, T+DELTAT, a, ceq[a][a]);
+              for (k=0; k < NUMCOMPONENTS-1; k++) {
+                grad->dcbdT_phase[a][k] = c_tdt[k] - grad->phase_comp[a][k];
+              }
             }
           }
+          for (a=0; a < NUMPHASES; a++) {
+            dc_dmu(gridinfo_w[center].compi, grad->phase_comp[a], T, a, grad->dcdmu_phase[a]);
+          }
+        } else {
+          for (k=0; k < NUMCOMPONENTS-1; k++) {
+            grad->phase_comp[grad->bulk_phase][k] = gridinfo_w[center].composition[k];
+          }
+          dc_dmu(gridinfo_w[center].compi, grad->phase_comp[grad->bulk_phase], T, grad->bulk_phase, grad->dcdmu_phase[grad->bulk_phase]);
         }
-        for (a=0; a < NUMPHASES; a++) {
-          dc_dmu(gridinfo_w[center].compi, grad->phase_comp[a], T, a, grad->dcdmu_phase[a]);
-        }
-      } else {
-        for (k=0; k < NUMCOMPONENTS-1; k++) {
-          grad->phase_comp[grad->bulk_phase][k] = gridinfo_w[center].composition[k];
-        }
-        dc_dmu(gridinfo_w[center].compi, grad->phase_comp[grad->bulk_phase], T, grad->bulk_phase, grad->dcdmu_phase[grad->bulk_phase]);
       }
     }
   }

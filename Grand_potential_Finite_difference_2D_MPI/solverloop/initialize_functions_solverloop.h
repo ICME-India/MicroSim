@@ -72,6 +72,29 @@ void initialize_functions_solverloop(){
     function_C                = function_F_04_function_C;
     init_propertymatrices     = function_F_04_init_propertymatrices;
   }
+   if ((FUNCTION_F == 5)) {
+//     thermo_phase = (long*)malloc(NUMPHASES*sizeof(long));
+//     long a, b;
+//     for (a=0; a<NUMPHASES; a++) {
+//       for (b=0; b<NUM_THERMO_PHASES; b++) {
+//         if (strcmp(phase_map[a],Phases_tdb[b])==0) {
+//           thermo_phase[a] = b;
+//           break;
+//         }
+//       }
+//     }
+//     free_energy               = function_F_04_free_energy;
+//     dc_dmu                    = function_F_04_dc_dmu;
+//     c_mu                      = function_F_04_c_mu;
+//     Mu                        = function_F_04_Mu;
+//     dpsi                      = function_F_04_dpsi;
+//     function_A                = function_F_04_function_A;
+//     function_B                = function_F_04_function_B;
+//     function_C                = function_F_04_function_C;
+//     init_propertymatrices     = function_F_04_init_propertymatrices;
+     dpsi                      = function_F_05_dpsi;
+  }
+  
   if (FUNCTION_W == 1) {
     dwdphi        = function_W_01_dwdphi;
     dwdphi_smooth = function_W_01_dwdphi_smooth;
