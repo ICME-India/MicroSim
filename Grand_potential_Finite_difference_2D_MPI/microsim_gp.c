@@ -23,6 +23,7 @@
 #include "functions/functionF_02.h"
 #include "functions/functionF_03.h"
 #include "functions/functionF_04.h"
+#include "functions/functionF_05.h"
 #include "functions/functionF_elast.h"
 #include "functions/functionQ.h"
 #include "functions/anisotropy_01.h"
@@ -72,7 +73,7 @@ int main(int argc, char * argv[]) {
   initialize_variables();
   initialize_functions_solverloop();
   read_boundary_conditions(argv);
-  if (!(FUNCTION_F == 2)) {
+  if (!((FUNCTION_F == 2) || (FUNCTION_F==5) || (GRAIN_GROWTH))) {
     init_propertymatrices(T);
   }
   
@@ -143,7 +144,29 @@ int main(int argc, char * argv[]) {
 //   }
 //   exit(0);
 //   if (FUNCTION_F == 2) {
-  Calculate_Tau();
+  
+  
+  if ((FUNCTION_F != 5) && (!GRAIN_GROWTH)) {
+    Calculate_Tau();
+  } else {
+    if ((FUNCTION_F ==5) && (!GRAIN_GROWTH)) {
+      for (a=0; a < NUMPHASES-1; a++) {
+        tau_ab[a][NUMPHASES-1] = (Lf*Lf)*epsilon*0.2222/(V*V*therm_cond*Teq);
+        tau_ab[NUMPHASES-1][a] = tau_ab[a][NUMPHASES-1];
+      }
+      for (a=0; a < NUMPHASES-1; a++) {
+        for (b=0; b < NUMPHASES-1; b++) {
+          tau_ab[a][b] = (Lf*Lf)*epsilon*0.2222/(V*V*therm_cond*Teq);
+        }
+      }
+    }
+//     if (GRAIN_GROWTH) {
+//       
+//     }
+    printf("tau[0][NUMPHASES-1]=%le\n",tau_ab[0][NUMPHASES-1]);
+//     exit(0);
+  }
+
 //   }
   
   //Checking tdb functions
@@ -232,6 +255,7 @@ int main(int argc, char * argv[]) {
     writetofile_mpi_hdf5(gridinfo_w, argv, 0 + STARTTIME);
   }
   
+//   printf("I am coming here\n");
 //   exit(0);
 //   writetofile_worker();
 
@@ -247,7 +271,7 @@ int main(int argc, char * argv[]) {
       mpiexchange_front_back(taskid);
     }
   }
-  printf("Finished smoothing\n");
+//   printf("Finished smoothing\n");
 //   exit(0);
   
   if (!WRITEHDF5) {
@@ -259,7 +283,7 @@ int main(int argc, char * argv[]) {
   } else {
     writetofile_mpi_hdf5(gridinfo_w, argv, 0 + STARTTIME);
   }
-//   printf("Finished smoothing\n");
+  printf("Finished smoothing\n");
 //   exit(0);
 
   
@@ -281,7 +305,9 @@ int main(int argc, char * argv[]) {
       mpiexchange_front_back(taskid);
     }
     
-    solverloop_concentration(workers_mpi.start,workers_mpi.end);
+    if ((FUNCTION_F != 5) && (!GRAIN_GROWTH)) {
+      solverloop_concentration(workers_mpi.start,workers_mpi.end);
+    }
     
     if (TEMPGRADY) {
       BASE_POS    = (temperature_gradientY.gradient_OFFSET/deltay) - shift_OFFSET + ((temperature_gradientY.velocity/deltay)*(t*deltat));

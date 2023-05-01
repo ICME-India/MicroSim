@@ -319,6 +319,12 @@ void reading_input_parameters(char *argv[]) {
           c_guess = Malloc3M(NUMPHASES, NUMPHASES,       NUMCOMPONENTS-1);
 //         }
       }
+      else if ((strcmp(tmpstr1, "Latent_heat") == 0) && (FUNCTION_F == 5)) {
+        Lf = atof(tmpstr2);
+      }
+      else if ((strcmp(tmpstr1, "Thermal_conductivity") == 0) && (FUNCTION_F == 5)) {
+        therm_cond = atof(tmpstr2);
+      }
       else if ((strcmp(tmpstr1, "A") == 0) && (NUMPHASES > 0) && ((NUMCOMPONENTS-1) >0)) {
         populate_A_matrix(A, tmpstr2, NUMCOMPONENTS);
       }
@@ -357,6 +363,9 @@ void reading_input_parameters(char *argv[]) {
       }
       else if ((strcmp(tmpstr1, "deltat_e") == 0) && ELASTICITY) {
         deltat_e = atof(tmpstr2);
+      }
+      else if ((strcmp(tmpstr1, "GRAIN_GROWTH") == 0)) {
+        GRAIN_GROWTH = atoi(tmpstr2);
       }
 //       else {
 //         printf("Unrecongized parameter : \"%s\"\n", tmpstr1);

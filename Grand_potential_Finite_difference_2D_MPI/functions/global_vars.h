@@ -38,6 +38,8 @@ double epsilon;
 double tau;
 double R; 
 double V;
+double Lf; //Latent-heat; functionF=5
+double therm_cond;
 
 double tilt_angle;
 double Rtheta;
@@ -447,6 +449,7 @@ struct gradlayer {
 // struct Stiffness_cubic  *stiffness_phase;
 
 int ELASTICITY=0;
+int GRAIN_GROWTH=0;
 
 struct gradlayer **gradient;
 struct gradlayer *gradient1[4];

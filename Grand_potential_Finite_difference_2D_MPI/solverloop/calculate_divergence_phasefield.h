@@ -114,6 +114,12 @@ void calculate_divergence_phasefield_smooth_2D(long x, struct gradlayer **gradie
     }
   }
   projection_on_simplex_without_weights(divphi);
+  for (a=0; a < NUMPHASES; a++) {
+    gridinfo_w[center].deltaphi[a] = grad->deltaphi[a];
+    if ((FUNCTION_F == 5) || (GRAIN_GROWTH)) {
+      gridinfo_w[center].phia[a] = gridinfo_w[center].phia[a] + grad->deltaphi[a];
+    }
+  }
   //Gibbs-simplex back projection: Check if the change in the phase-field 
   //larger than the phase-field value or the change makes the value 
   //larger than one
@@ -167,7 +173,7 @@ void calculate_divergence_phasefield_smooth_3D(long x, struct gradlayer **gradie
   grad_left     =  &gradient[1][gidy-1];
   grad_back     =  &gradient[0][gidy];
 
-  if ((gidy-workers_mpi.rows_y) >= 0) {
+  if ((gidy-workers_mpi.rows_y) > 0) {
     grad_bottom  = &gradient[1][gidy-workers_mpi.rows_y];
   }
   
@@ -214,6 +220,12 @@ void calculate_divergence_phasefield_smooth_3D(long x, struct gradlayer **gradie
     }
   }
   projection_on_simplex_without_weights(divphi);
+  for (a=0; a < NUMPHASES; a++) {
+    gridinfo_w[center].deltaphi[a] = grad->deltaphi[a];
+    if ((FUNCTION_F == 5) || (GRAIN_GROWTH)) {
+      gridinfo_w[center].phia[a] = gridinfo_w[center].phia[a] + grad->deltaphi[a];
+    }
+  }
   //Gibbs-simplex back projection: Check if the change in the phase-field 
   //larger than the phase-field value or the change makes the value 
   //larger than one
@@ -354,9 +366,21 @@ void calculate_divergence_phasefield_2D(long x, struct gradlayer **gradient) {
     //larger than the phase-field value or the change makes the value 
     //larger than one
     projection_on_simplex(gridinfo_w[center].phia, grad->deltaphi, divphi);
-//     projection_on_simplex_without_weights();
+    //projection_on_simplex_without_weights(divphi);
     for (a=0; a < NUMPHASES; a++) {
       gridinfo_w[center].deltaphi[a] = grad->deltaphi[a];
+      if ((FUNCTION_F == 5) || (GRAIN_GROWTH)) {
+        gridinfo_w[center].phia[a] = gridinfo_w[center].phia[a] + grad->deltaphi[a];
+        if ((gidy==1) && (x==1)) {
+         workers_max_min.phi_max[a] = gridinfo_w[center].phia[a];
+         workers_max_min.phi_min[a] = gridinfo_w[center].phia[a];
+        } else if (gridinfo_w[center].phia[a] > workers_max_min.phi_max[a]) {
+          workers_max_min.phi_max[a] = gridinfo_w[center].phia[a];
+        } else if(gridinfo_w[center].phia[a] < workers_max_min.phi_min[a]) {
+          workers_max_min.phi_min[a] = gridinfo_w[center].phia[a];
+        }
+        workers_max_min.rel_change_phi[a] += gridinfo_w[center].deltaphi[a]*gridinfo_w[center].deltaphi[a];
+      }
     }
   }
 }
@@ -480,6 +504,18 @@ void calculate_divergence_phasefield_3D(long x, struct gradlayer **gradient) {
 //     projection_on_simplex_without_weights();
     for (a=0; a < NUMPHASES; a++) {
       gridinfo_w[center].deltaphi[a] = grad->deltaphi[a];
+      if ((FUNCTION_F == 5) || (GRAIN_GROWTH)) {
+        gridinfo_w[center].phia[a] = gridinfo_w[center].phia[a] + grad->deltaphi[a];
+        if ((gidy==1) && (x==1)) {
+         workers_max_min.phi_max[a] = gridinfo_w[center].phia[a];
+         workers_max_min.phi_min[a] = gridinfo_w[center].phia[a];
+        } else if (gridinfo_w[center].phia[a] > workers_max_min.phi_max[a]) {
+          workers_max_min.phi_max[a] = gridinfo_w[center].phia[a];
+        } else if(gridinfo_w[center].phia[a] < workers_max_min.phi_min[a]) {
+          workers_max_min.phi_min[a] = gridinfo_w[center].phia[a];
+        }
+        workers_max_min.rel_change_phi[a] += gridinfo_w[center].deltaphi[a]*gridinfo_w[center].deltaphi[a];
+      }
     }
   }
 }

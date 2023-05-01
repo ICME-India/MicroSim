@@ -990,7 +990,26 @@ ceq = {1, 0, 0.5};
  compositions in a temperature interval that can be computed using softwares like Pandat and ThermoCalc.
 \end{itemize}
 
+\begin{lstlisting}
+Function_F = 5;
+Latent_heat = 1;
+Thermal_conductivity = 1;
+\end{lstlisting}
 
+\begin{itemize}
+ \item This function can be utilized for studying solidification in multigrain problems without segregation.
+ \item The inputs are the "Latent\_heat" which modulates the driving force for growth.
+ \item The key "Thermal\_conductivity" is utilized for computing the mobility of the solid-liquid interface using the thin-interface asymptotics.
+\end{itemize}
+
+\begin{lstlisting}
+ GRAIN_GROWTH = 1;
+\end{lstlisting}
+
+\begin{itemize}
+ \item When the preceding is 1, the solver only updates the phase-fields and the computations are optimized for grain-growth conditions.
+ \item Only the phase-field variables are written into the output files and not the composition data.
+\end{itemize}
 
 \begin{lstlisting}
 ##Temperature
@@ -1218,15 +1237,82 @@ FILLSPHERE = {0, 50, 50, 0, 10};
  \item This object can only be used when the DIMENSION = 3 in the infile.
 \end{itemize}
 
+\begin{lstlisting}
+#FILLCYLINDERRANDOM = {phase, size, vol-frac, separation, percentage_deviation};
+FILLCYLINDERRANDOM = {0, 5, 0.02, 4, 0.1};
+\end{lstlisting}
+
+\begin{itemize}
+ \item This is a function for filling the domain with cylinders randomly of sizes with a median of "size" (2nd key).
+ \item The first key is the phase to be filled.
+ \item The third key refers to the volume fraction.
+ \item The fourth key controls the minimum separation between the cylinders
+ \item The fifth key refers to the percentage deviation in the size of the cylinders from the value in the 2nd key.
+\end{itemize}
+
+\begin{lstlisting}
+#FILLCYLINDERRANDOM = {phase, size, vol-frac, separation, percentage_deviation};
+FILLSPHERERANDOM = {0, 5, 0.02, 4, 0.1};
+\end{lstlisting}
+
+\begin{itemize}
+ \item This is a function for filling the domain with spheres randomly of sizes with a median of "size" (2nd key).
+ \item The first key is the phase to be filled.
+ \item The third key refers to the volume fraction.
+ \item The fourth key controls the minimum separation between the cylinders
+ \item The fifth key refers to the percentage deviation in the size of the cylinders from the value in the 2nd key.
+\end{itemize}
+
+
+\begin{lstlisting}
+#FILLCUBEPATTERN = {SIZE_X, SIZE_Y, SIZE_Z};
+FILLCUBEPATTERN = {10,10,10};
+\end{lstlisting}
+
+\begin{itemize}
+ \item Used for initializing phases in the shapes of cubes randomly of the sizes SIZE\_X=10, SIZE\_Y=10, SIZE\_Z=10. 
+\end{itemize}
+
+\begin{lstlisting}
+FILLVORONOI2D = {Nx_1, Nx_2, Ny_1, Ny_2, NUMPOINTS, MIN_SIZE};
+\end{lstlisting}
+
+\begin{itemize}
+ \item Voronoi filling function in 2D.
+ \item The region specified is in between Nx\_1 to Nx\_2 and Ny\_1 to Ny\_2.
+ \item The number of Voronoi points is specified by NUMPOINTS.
+ \item The minimum size of the regions is given by MIN\_SIZE.
+\end{itemize}
+
+
+\begin{lstlisting}
+#FILLSPHERE = {phase, x_center, y_center, z_center, radius};
+FILLVORONOI3D = {Nx_1, Nx_2, Ny_1, Ny_2, NUMPOINTS, MIN_SIZE};
+\end{lstlisting}
+
+\begin{itemize}
+ \item Voronoi filling function in 3D.
+ \item The region specified is in between Nx\_1 to Nx\_2, Ny\_1 to Ny\_2 and Nz\_1 to Nz\_2.
+ \item The number of Voronoi points is specified by NUMPOINTS.
+ \item The minimum size of the regions is given by MIN\_SIZE.
+\end{itemize}
+
+
+
+
 \section{Compiling and running}
 
 \begin{itemize}
  \item The solver can be compiled using the command "make" in the command line in a terminal that is opened in the folder which contains the "Makefile".
  \item After compilation the executable "microsim\_gp" will be created. 
  \item The serial solver can be run as ./microsim\_gp name\_of\_infile name\_of\_filling\_file\ name\_of\_output\_file.
- \item The MPI version of the solver can be run using the command
+ \item The MPI version of the 2D solver can be run using the command
  \begin{lstlisting}
   mpirun -np num_processors Input_file Filling_file Output workers_x, workers_y
+ \end{lstlisting}
+ \item The MPI version of the 3D solver can be run using the command
+ \begin{lstlisting}
+  mpirun -np num_processors Input_file Filling_file Output workers_x, workers_y workers_z
  \end{lstlisting}
  \item The solver takes in three command line arguments, the first is the name of the Input file, 
  the second the name of the filling file containing the information about how the domain 

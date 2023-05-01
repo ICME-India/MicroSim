@@ -15,30 +15,34 @@ void apply_shiftY(struct fields* gridinfo_w, long INTERFACE_POS_GLOBAL) {
         for (b=0; b < NUMPHASES; b++) {
           gridinfo_w[gidy].phia[b] = gridinfo_w[gidy+(INTERFACE_POS_GLOBAL-shiftj)].phia[b];
         }
-        for (k=0; k < NUMCOMPONENTS-1; k++) {
-          gridinfo_w[gidy].compi[k] = gridinfo_w[gidy+(INTERFACE_POS_GLOBAL-shiftj)].compi[k];
-        }
-        for (k=0; k < NUMCOMPONENTS-1; k++) {
-          gridinfo_w[gidy].composition[k] = gridinfo_w[gidy+(INTERFACE_POS_GLOBAL-shiftj)].composition[k];
+        if (FUNCTION_F != 5) {
+          for (k=0; k < NUMCOMPONENTS-1; k++) {
+            gridinfo_w[gidy].compi[k] = gridinfo_w[gidy+(INTERFACE_POS_GLOBAL-shiftj)].compi[k];
+          }
+          for (k=0; k < NUMCOMPONENTS-1; k++) {
+            gridinfo_w[gidy].composition[k] = gridinfo_w[gidy+(INTERFACE_POS_GLOBAL-shiftj)].composition[k];
+          }
         }
         gridinfo_w[gidy].temperature = gridinfo_w[gidy + (INTERFACE_POS_GLOBAL-shiftj)].temperature;
       }
-      if (workers_mpi.lasty==1) {
-        for (y=(workers_mpi.rows_y-(INTERFACE_POS_GLOBAL-shiftj)); y<=(workers_mpi.rows_y-1); y++) {
-          gidy = x*workers_mpi.layer_size + z*workers_mpi.rows_y + y;
-          for (b=0; b < NUMPHASES-1; b++) {
-            gridinfo_w[gidy].phia[b] = 0.0;
+      if (FUNCTION_F != 5) {
+        if (workers_mpi.lasty==1) {
+          for (y=(workers_mpi.rows_y-(INTERFACE_POS_GLOBAL-shiftj)); y<=(workers_mpi.rows_y-1); y++) {
+            gidy = x*workers_mpi.layer_size + z*workers_mpi.rows_y + y;
+            for (b=0; b < NUMPHASES-1; b++) {
+              gridinfo_w[gidy].phia[b] = 0.0;
+            }
+            gridinfo_w[gidy].phia[NUMPHASES-1] = 1.0;
+            for (k=0; k < NUMCOMPONENTS-1; k++) {
+    //          c[k] = ceq[NUMPHASES-1][NUMPHASES-1][k];
+              c[k] = cfill[NUMPHASES-1][NUMPHASES-1][k];
+            }
+            Mu(c, Tfill, NUMPHASES-1, gridinfo_w[gidy].compi); 
+  //           for (k=0; k < NUMCOMPONENTS-1; k++) {
+  //             chemical_potential         = Mu(c, Tfill, NUMPHASES-1, k);
+  //             gridinfo_w[gidy].compi[k]  = chemical_potential;
+  //           }
           }
-          gridinfo_w[gidy].phia[NUMPHASES-1] = 1.0;
-          for (k=0; k < NUMCOMPONENTS-1; k++) {
-  //          c[k] = ceq[NUMPHASES-1][NUMPHASES-1][k];
-            c[k] = cfill[NUMPHASES-1][NUMPHASES-1][k];
-          }
-          Mu(c, Tfill, NUMPHASES-1, gridinfo_w[gidy].compi); 
-//           for (k=0; k < NUMCOMPONENTS-1; k++) {
-//             chemical_potential         = Mu(c, Tfill, NUMPHASES-1, k);
-//             gridinfo_w[gidy].compi[k]  = chemical_potential;
-//           }
         }
       }
     }
