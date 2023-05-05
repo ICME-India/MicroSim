@@ -1,0 +1,84 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  6
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       volScalarField;
+    location    "0";
+    object      qt1;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+dimensions      [0 0 0 0 0 0 0];
+
+internalField   uniform 0.0;
+
+//============== NO-FLUX BOUNDARY CONDITIONS ====================//
+
+boundaryField
+{
+    posXBound
+    {
+        type            zeroGradient;
+    }
+    negXBound
+    {
+        type            zeroGradient;
+    }
+    posYBound
+    {
+        type            zeroGradient;
+    }
+    negYBound
+    {
+        type            zeroGradient;
+    }
+    posZBound
+    {
+        type            empty;
+    }
+    negZBound
+    {
+        type            empty;
+    }
+}
+
+//============== CYCLIC BOUNDARY CONDITIONS ====================//
+/*
+boundaryField
+{
+    posXBound
+    {
+        type            cyclic;
+    }
+    negXBound
+    {
+        type            cyclic;
+    }
+    posYBound
+    {
+        type            cyclic;
+    }
+    negYBound
+    {
+        type            cyclic;
+    }
+    posZBound
+    {
+        type            empty;
+    }
+    negZBound
+    {
+        type            empty;
+    }
+}
+*/
+
+
+// ************************************************************************* //

@@ -25,7 +25,7 @@ def H5toVTK_Func(self):
             return False
             
         
-        h5toxmf_cmd = "cd " +h5_outhead + "; cd ..;" + "cp ~/MicroSim/Grand_potential_Finite_difference_2D_MPI/write_xdmf write_xdmf ; ./write_xdmf " + self.h5tovtk_infileLoc.text() + " "+ h5_outputfilename[0] + " " +  self.h5tovtk_sTime.text() + " "+ self.h5tovtk_eTime.text() 
+        h5toxmf_cmd = "cd " +h5_outhead + "; cd ..;" + "cp ../Grand_potential_Finite_difference_2D_MPI/write_xdmf write_xdmf ; ./write_xdmf " + self.h5tovtk_infileLoc.text() + " "+ h5_outputfilename[0] + " " +  self.h5tovtk_sTime.text() + " "+ self.h5tovtk_eTime.text() 
         
 
         os.system("gnome-terminal -e 'bash -c \""+h5toxmf_cmd+";\"'")
@@ -185,8 +185,8 @@ def paraviewFunc(self):
 
         paraviewcmd = "gnome-terminal -e 'bash -c \"/opt/paraviewopenfoam56/bin/paraview " +latest_file +"; bash\" '"
         os.system(paraviewcmd)
-    elif os.path.isfile(os.path.expanduser("~/MicroSim/.Paraview")): ## Checking for paraview saved path
-        readPath = open(os.path.expanduser('~/MicroSim/.Paraview'), "r")
+    elif os.path.isfile(os.path.expanduser("./.Paraview")): ## Checking for paraview saved path
+        readPath = open(os.path.expanduser('./.Paraview'), "r")
         readPathParaview = readPath.read().replace("\n", "")
         list_of_files = glob.glob(self.runDir + "/DATA/"+ self.output.text() +"*.*")
         if len(list_of_files) == 0:
@@ -213,7 +213,7 @@ def SolverExecute(self):
 
     elif self.radio_of.isChecked():
             
-        commandLine ="cd " + self.runDir + "; cd ../PF* ; wclean; wmake; cd " + self.runDir + " ; ./Allclean; ./Allrun "
+        commandLine ="cd " + self.runDir + "; cd ../../solver ; wclean; wmake; cd " + self.runDir + " ; ./Allclean; ./Allrun "
         
         os.system("gnome-terminal -e 'bash -c  \""+commandLine+";bash\"'")
 
@@ -252,7 +252,7 @@ def SolverExecuteHelp(self):
 
         Model_Folder= "Grand_potential_OpenFOAM"
         Model_code ="Allrun"
-        runcmdhelp = "This action will execute the following command:\n\n\n     1) Solver compilation\n\n       cd MicroSim/"+Model_Folder+"\n\n      wclean\n\n      wmake\n\n\n     2) Solver execution\n\n      ./Allclean\n\n      ./Allrun"
+        runcmdhelp = "This action will execute the following command:\n\n\n     1) Solver compilation\n\n       cd MicroSim/"+Model_Folder+"/solver\n\n      wclean\n\n      wmake\n\n\n     2) Solver execution\n\n      ./Allclean\n\n      ./Allrun"
         
     elif self.radio_amrex.isChecked():
 
@@ -298,7 +298,7 @@ def generateJobscript(self):
     
     elif self.radio_of.isChecked():
             
-        commandLine ="cd " + self.runDir + "; cd ../PF* ; wclean; wmake"
+        commandLine ="cd " + self.runDir + "; cd ../../solver ; wclean; wmake"
         
         os.system("gnome-terminal -e 'bash -c  \""+commandLine+";bash\"'")
         

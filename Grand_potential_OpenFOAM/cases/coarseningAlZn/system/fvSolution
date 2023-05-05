@@ -1,0 +1,169 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  4.0                                   |
+|   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    location    "system";
+    object      fvSolution;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+
+solvers
+{
+    mu_1
+    {
+        solver                    GAMG;
+        preconditioner            FDIC;
+        smoother                symGaussSeidel;//DICGaussSeidel;
+        mergeLevels                1;
+        agglomerator            faceAreaPair;
+        nCellsInCoarsestLevel    50;
+        tolerance                1e-8;
+        relTol                    0.1;
+    }
+    
+    mu_2
+    {
+        solver                    GAMG;
+        preconditioner            FDIC;
+        smoother                symGaussSeidel;//DICGaussSeidel;
+        mergeLevels                1;
+        agglomerator            faceAreaPair;
+        nCellsInCoarsestLevel    50;
+        tolerance                1e-8;
+        relTol                    0.1;
+    }
+
+	phi
+    {
+        solver                    GAMG;
+        preconditioner            FDIC;
+        smoother                symGaussSeidel;//DICGaussSeidel;
+        mergeLevels                1;
+        agglomerator            faceAreaPair;
+        nCellsInCoarsestLevel    50;
+        tolerance                1e-8;
+        relTol                    0.1;
+    }
+
+    qt0
+    {
+        solver                    GAMG;
+        preconditioner            FDIC;
+        smoother                symGaussSeidel;//DICGaussSeidel;
+        mergeLevels                1;
+        agglomerator            faceAreaPair;
+        nCellsInCoarsestLevel    50;
+        tolerance                1e-8;
+        relTol                    0.1;
+    }
+
+    qt1
+    {
+        solver                    GAMG;
+        preconditioner            FDIC;
+        smoother                symGaussSeidel;//DICGaussSeidel;
+        mergeLevels                1;
+        agglomerator            faceAreaPair;
+        nCellsInCoarsestLevel    50;
+        tolerance                1e-8;
+        relTol                    0.1;
+    }
+
+    qt2
+    {
+        solver                    GAMG;
+        preconditioner            FDIC;
+        smoother                symGaussSeidel;//DICGaussSeidel;
+        mergeLevels                1;
+        agglomerator            faceAreaPair;
+        nCellsInCoarsestLevel    50;
+        tolerance                1e-8;
+        relTol                    0.1;
+    }
+
+    qt3
+    {
+        solver                    GAMG;
+        preconditioner            FDIC;
+        smoother                symGaussSeidel;//DICGaussSeidel;
+        mergeLevels                1;
+        agglomerator            faceAreaPair;
+        nCellsInCoarsestLevel    50;
+        tolerance                1e-8;
+        relTol                    0.1;
+    }
+
+    D
+    {
+        solver                    GAMG;
+        preconditioner            FDIC;
+        smoother                DICGaussSeidel;
+        mergeLevels                1;
+        agglomerator            faceAreaPair;
+        nCellsInCoarsestLevel    100;
+        tolerance               1e-5;
+        relTol                    0.9;
+    }
+    
+}
+/*{
+	mu
+    {
+        solver                   smoothSolver;
+        preconditioner            FDIC;
+        smoother                symGaussSeidel;
+        tolerance                1e-8;
+        relTol                    0.0;
+    }
+
+	phi
+    {
+	    solver                    smoothSolver;
+        preconditioner            FDIC;
+        smoother                symGaussSeidel;
+        tolerance                1e-8;
+        relTol                    0.0;
+    }
+
+	theta
+{
+    solver                    smoothSolver;
+    preconditioner            DILU; //FDIC; //DILU;
+    smoother                  DILUGaussSeidel; //DICGaussSeidel; //DILUGaussSeidel;
+    tolerance                 1e-8;
+    relTol                    0;
+}
+}*/
+
+SIMPLE
+{
+    nNonOrthogonalCorrectors 0;
+}
+
+stressAnalysis
+{
+    compactNormalStress yes;
+    nCorrectors     1000;
+    D               1e-05;
+}
+
+Tol_is_defined_here
+{
+    Tol 1e-6; //get_tol_from_this
+}
+
+deltaTFactor
+{
+    dtf 0.1; //get_dtf_from_this
+}
+
+// ************************************************************************* //

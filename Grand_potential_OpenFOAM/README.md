@@ -36,11 +36,7 @@ For visualization and post-processing, ParaView 5.6 and 5.8 are tested. ParaView
 
 > paraview
 
-To view the plots, gnuplot can be used, which can be installed using the following command in the terminal:
-
-> sudo apt install gnuplot-x11
-
-It can be launched using the command:
+To view the plots, gnuplot can be used, which can be launched using the command:
 
 > gnuplot
 
@@ -51,21 +47,17 @@ It is advised to refer to the OpenFOAM documentions to understand the methods in
 
 ### OpenFOAM modules
 
-Copy the modules to the OpenFOAM run directory. For instance, to copy the directory PFBinary:
+Solver has to be compiled from the solver directory. For instance:
 
-> cp -r PFBinary $FOAM_RUN
-
-Solver has to be compiled from the corresponding solver directory. For instance:
-
-> cd $FOAM_RUN/PFBinary/PFBinary
+> cd solver
 
 > wclean
 
 > wmake
 
-Finally, switch to the case directory, e.g. coolingAlZn:
+Finally, switch to the cases directory, e.g. coolingAlZn:
 
-> cd $FOAM_RUN/PFBinary/coolingAlZn
+> cd cases/coolingAlZn
 
 To run the case with the default parameters, execute the following:
 
@@ -77,5 +69,5 @@ Note: Allclean and Allrun must be set as executables
 
 To check the results in ParaView:
 
-> paraview binary.foam
+> paraview phaseField.foam
 

@@ -13553,7 +13553,7 @@ border :1px solid rgb(192, 191, 188);
            <property name="geometry">
             <rect>
              <x>0</x>
-             <y>-360</y>
+             <y>0</y>
              <width>251</width>
              <height>1416</height>
             </rect>
@@ -18129,7 +18129,7 @@ background-color: rgb(164, 0, 0);
       <rect>
        <x>175</x>
        <y>100</y>
-       <width>151</width>
+       <width>161</width>
        <height>41</height>
       </rect>
      </property>
@@ -18147,7 +18147,7 @@ background-color: rgb(164, 0, 0);
       <item>
        <widget class="QRadioButton" name="SLUM_radio">
         <property name="text">
-         <string>SLUM</string>
+         <string>SLURM</string>
         </property>
        </widget>
       </item>
@@ -18470,8 +18470,8 @@ background-color: rgb(164, 0, 0);
   <zorder>Qbox</zorder>
   <zorder>Sixth_widget</zorder>
   <zorder>Seven_widget</zorder>
-  <zorder>StartFrame</zorder>
   <zorder>jobscriptFrame</zorder>
+  <zorder>StartFrame</zorder>
   <zorder>postProcessingScreen</zorder>
  </widget>
  <resources/>
