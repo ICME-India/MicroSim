@@ -8015,7 +8015,7 @@ class StartScreen(QDialog):
         if self.paraviewPath.text() == "":
             self.paraviewErrorLine.setText("Error : Please select a path")
         else :
-            HomePathparaview = os.path.expanduser("~/MicroSim/.Paraview")
+            HomePathparaview = os.path.expanduser("./.Paraview")
             paraviewFileDir = open(HomePathparaview, "w")
             paraviewFileDir.write(self.paraviewPath.text())
             paraviewFileDir.close()
