@@ -9,10 +9,10 @@ void reading_input_parameters(char *argv[]) {
   }
   printf("Processor:%d--Reading Infile\n",taskid);
   int i;
-  char tempbuff[1000];
+  char tempbuff[10000];
   
-  char tmpstr1[100];
-  char tmpstr2[100];
+  char tmpstr1[10000];
+  char tmpstr2[10000];
   char **tmp;
   
   bool decision;
@@ -25,9 +25,9 @@ void reading_input_parameters(char *argv[]) {
   long length;
   long phase;
   
-  while(fgets(tempbuff,1000,fr)) {
+  while(fgets(tempbuff,10000,fr)) {
 //   while(MPI_File_read(fr,    tempbuff,    1000,    MPI_CHAR,    &status)){   
-    sscanf(tempbuff, "%100s = %100[^;];", tmpstr1, tmpstr2);
+    sscanf(tempbuff, "%1000s = %1000[^;];", tmpstr1, tmpstr2);
 //     printf("%s\n",  tmpstr1);
 //     printf("%s\n",  tmpstr2);
     
