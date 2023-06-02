@@ -4,6 +4,10 @@
 #include <cuda.h>
 #include <cuda_runtime.h>
 #include <stdio.h>
+
+#include "helper_string.h"
+#include "helper_cuda.h"
+
 #include "structures.h"
 #include "Thermo.cuh"
 #include "utilityKernels.cuh"
@@ -20,9 +24,9 @@ __global__
 void __updatePhi__(double **phi, double **dfdphi, double **phiNew,
                    double *relaxCoeff, double *kappaPhi,
                    double *dab, int FUNCTION_ANISOTROPY,
-                   long NUMPHASES, long NUMCOMPONENTS, long DIMENSION,
+                   long NUMPHASES, long NUMCOMPONENTS, long DIMENSION, long FUNCTION_F,
                    long sizeX, long sizeY, long sizeZ,
-                   long yStep, long zStep, long padding,
+                   long xStep, long yStep, long padding,
                    double DELTA_X, double DELTA_Y, double DELTA_Z,
                    double DELTA_t);
 

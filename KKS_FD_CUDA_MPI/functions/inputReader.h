@@ -24,9 +24,8 @@
  * same name as the input file, and is stored in the .out format
  * in the DATA folder.
  */
-void readInput_MPI(domainInfo *simDomain, controls *simControls,
-                   simParameters *simParams, int numRanks,
-                   char *argv[]);
+int readInput_MPI(domainInfo *simDomain, controls *simControls,
+                  simParameters *simParams, int numRanks, char *argv[]);
 
 /*
  * Read and assign boundary conditions from the specified input file.

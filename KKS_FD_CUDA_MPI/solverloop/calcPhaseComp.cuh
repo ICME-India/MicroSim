@@ -8,6 +8,7 @@
 #include "utilityKernels.cuh"
 #include "Thermo.cuh"
 #include "matrix.cuh"
+#include "functionF.cuh"
 #include "functionH.cuh"
 
 
@@ -29,7 +30,7 @@ void __initMu__(double **phi, double **comp, double **phaseComp, double **mu,
                 long *thermo_phase, double temperature,
                 long NUMPHASES, long NUMCOMPONENTS, long DIMENSION,
                 long sizeX, long sizeY, long sizeZ,
-                long yStep, long zStep, long padding);
+                long xStep, long yStep, long padding);
 
 /*
  * Calculate phase compositions for Function_F == 2

@@ -74,29 +74,31 @@ a) Sumeet Rajesh Khanna
  * Indian Institute of Technology Bombay, Mumbai 400076 INDIA.
 
 ## KKS GPU CUDA Model
-This code solves the problem of precipitate growth using a multiphase field solver on the GPU.
-The code is tested on Tesla P100 and Tesla V100.
-For Tesla K80, one needs to comment "CudaMemPrefetchAsync" in solverloop/evolve.h
+This module solves a multiphase, multicomponent KKS-formulation of the phase-field equations.
+The code is written using CUDA and OpenMPI, and can be employ multiple GPUs in a multi-node setting.
+It has been tested using Nvidia Tesla V100s, Nvidia Tesla P100s, and Nvidia Tesla K80s, with CUDA 11.x, 12.x and OpenMPI 4.0.x.
 
-To run the code use 
-1. "make" to create executable microsim_kks_cufft
-2. Execute "./microsim_kks_cufft Input.in Filling.in Output"
+Follow the instructions in this module's README to get this solver up and running.
 
-The code uses CUDA version 11, CUFFT and CUDA-CUB libraries. 
-nvcc version 11.2 is used for compilation of the codes.
-Input.in contains all numerical and physical parameters used in the simulations. 
-Makefile creates a  DATA folder where the datafiles (in the form of VTK files) are stored.
-VTK files can be viewed using Paraview.
+To compile the solver, simply open a terminal in the base directory of the module and run the command 'make'.
+$ make
+To compile without cuFFTMp or HDF5 support,
+$ make ENABLE_CUFFTMP=0 ENABLE_HDF5=0
 
-This is the alpha version of code. We will continue to add more features in future release.
+For usage on the PARAM supercomputers, one can use the SLURM script (ParamJobScript.sh) and Makefile (Makefile_Param) that are included.
+Since the packages may differ from platform to platform, some modifications to the above may be necessary.
 
+To run the solver, use:
+$ make run INPUT=<name_of_infile> FILLING=<name_of_filling_file> OUTPUT=<name_of_output_file> NPROCS=<number_of_processors>
+or
 
-- GPU Phase-Field Developer Team @ IITH
-  (Pankaj, Saurav Shenoy, Saswata Bhattacharya)
+ - GPU Phase-Field Developer Team @ IITH (Saurav Shenoy, Saswata Bhattacharya)
 
-The following contributers are acknowledged
-1. Tushar Jogi
-2. Hemanth Kumar Sandireddy
+The following contributors are acknowledged
+    Tushar Jogi
+    Pankaj
+    Hemanth Kumar Sandireddy
+
 
 ## KKS GPU OPENCL Model
  * OpenCL code for solidification microstructure evolution 

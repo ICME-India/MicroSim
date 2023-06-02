@@ -62,11 +62,9 @@ double calcInterp5th(double **phi, long a, long idx, long NUMPHASES)
         return 0.0;
 
     double ans = 0.0, temp = 0.0;
-    double phiValue = phi[a][idx];
     double const1 = 7.5*((double)NUMPHASES-2.0)/((double)NUMPHASES-1.0);
 
-    ans  = pow(phiValue, 5)*(6.0 - const1);
-    ans += pow(phiValue, 4)*(-15.0 + 3.0*const1);
+    ans = phi[a][idx]*phi[a][idx]*phi[a][idx]*phi[a][idx]*(phi[a][idx]*(6.0 - const1) - 15.0 + 3.0*const1);
 
     for (long i = 1; i < NUMPHASES; i++)
     {
@@ -81,11 +79,15 @@ double calcInterp5th(double **phi, long a, long idx, long NUMPHASES)
             }
         }
     }
-    temp *= 7.5*(phiValue - 1.0)/((double)NUMPHASES-1.0);
-    temp += phiValue*(10.0 - 3.0*const1) + const1;
-    ans  += pow(phiValue, 2)*temp;
+    temp *= 7.5*(phi[a][idx] - 1.0)/((double)NUMPHASES-1.0);
+    temp += phi[a][idx]*(10.0 - 3.0*const1) + const1;
+    ans  += phi[a][idx]*phi[a][idx]*temp;
+
+    if (NUMPHASES == 2)
+        return ans;
 
     temp  = 0.0;
+
     if (NUMPHASES > 3)
     {
         for (long i = 2; i < NUMPHASES; i++)
@@ -107,7 +109,7 @@ double calcInterp5th(double **phi, long a, long idx, long NUMPHASES)
                 }
             }
         }
-        ans += 15.0*phiValue*phiValue*temp;
+        ans += 15.0*phi[a][idx]*phi[a][idx]*temp;
         temp = 0.0;
     }
 
@@ -138,7 +140,7 @@ double calcInterp5th(double **phi, long a, long idx, long NUMPHASES)
                 }
             }
         }
-        ans += 24.0*phiValue*temp;
+        ans += 24.0*phi[a][idx]*temp;
     }
 
     return ans;
@@ -158,8 +160,7 @@ double calcInterp5thDiff(double **phi, long a, long b, long idx, long NUMPHASES)
 
     if (a == b)
     {
-        ans  = 5.0*pow(phiValue, 4)*(6.0 - const1);
-        ans += 4.0*pow(phiValue, 3)*(-15.0 + 3.0*const1);
+        ans = phiValue*phiValue*phiValue*(5.0*phiValue*(6.0 - const1) + 4.0*(3.0*const1 - 15.0));
 
         for (long i = 1; i < NUMPHASES; i++)
         {
@@ -178,6 +179,9 @@ double calcInterp5thDiff(double **phi, long a, long b, long idx, long NUMPHASES)
         temp *= 7.5*(3.0*phiValue - 2.0)/((double)NUMPHASES-1.0);
         temp += 3.0*phiValue*(10.0 - 3.0*const1) + 2.0*const1;
         ans  += phiValue*temp;
+
+        if (NUMPHASES == 2)
+            return ans;
 
         temp  = 0.0;
         if (NUMPHASES > 3)
@@ -241,6 +245,7 @@ double calcInterp5thDiff(double **phi, long a, long b, long idx, long NUMPHASES)
         {
             //ans = 0.0;
             ans = -30.0*phiValue*phiValue*(1.0-phiValue)*(1.0-phiValue);
+            return ans;
         }
 
         if (NUMPHASES > 2)

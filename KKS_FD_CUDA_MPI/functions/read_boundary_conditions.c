@@ -3,48 +3,6 @@
 void assign_buffer_points_conditions(long j, int BOUNDARY_LEFT, int BOUNDARY_RIGHT, int BOUNDARY_FRONT, int BOUNDARY_BACK, int BOUNDARY_TOP, int BOUNDARY_BOTTOM,
                                      domainInfo *simDomain, controls *simControls, simParameters *simParams)
 {
-    //     //X-
-    //     simControls->boundary[0][j].points[0] = 2;
-    //     simControls->boundary[0][j].points[1] = 1;
-    //     simControls->boundary[0][j].points[2] = 0;
-    //     //X-
-    //
-    //     //X+
-    //     simControls->boundary[1][j].points[0] = rows_x-3;
-    //     simControls->boundary[1][j].points[1] = rows_x-2;
-    //     simControls->boundary[1][j].points[2] = rows_x-1;
-    //     //X+
-    //
-    //     if (simDomain->DIMENSION >= 2)
-    //     {
-    //         //Y+
-    //         simControls->boundary[2][j].points[0] = rows_y-3;
-    //         simControls->boundary[2][j].points[1] = rows_y-2;
-    //         simControls->boundary[2][j].points[2] = rows_y-1;
-    //         //Y+
-    //
-    //         //Y-
-    //         simControls->boundary[3][j].points[0] = 2;
-    //         simControls->boundary[3][j].points[1] = 1;
-    //         simControls->boundary[3][j].points[2] = 0;
-    //         //Y-
-    //     }
-    //
-    //     if (simDomain->DIMENSION == 3)
-    //     {
-    //         //Z+
-    //         simControls->boundary[4][j].points[0] = rows_z-3;
-    //         simControls->boundary[4][j].points[1] = rows_z-2;
-    //         simControls->boundary[4][j].points[2] = rows_z-1;
-    //         //Z+
-    //
-    //         //Z-
-    //         simControls->boundary[5][j].points[0] = 2;
-    //         simControls->boundary[5][j].points[1] = 1;
-    //         simControls->boundary[5][j].points[2] = 0;
-    //         //Z-
-    //     }
-
     simControls->boundary[0][j].type = BOUNDARY_LEFT;
     simControls->boundary[1][j].type = BOUNDARY_RIGHT;
     simControls->boundary[2][j].type = BOUNDARY_FRONT;

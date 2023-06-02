@@ -8,23 +8,23 @@ void fillCylinder(double *phi, cylinder Cylinder,
 {
     long phaseStep = subdomain.numCompCells;
     long index;
-    long xG, yG, zG;     // Global coordinates
+    long xG, yG;     // Global coordinates
     long x, y, z;        // Local coordinates
 
     double sum = 0.0;
 
-    for (z = 1; z < subdomain.sizeZ-1; z++)
+    for (x = subdomain.xS_r; x < subdomain.xE_r; x++)
     {
-        for (y = 1; y < subdomain.sizeY-1; y++)
+        for (y = subdomain.yS_r; y < subdomain.yE_r; y++)
         {
-            for (x = 1; x < subdomain.sizeX-1; x++)
+            for (z = subdomain.zS_r; z < subdomain.zE_r; z++)
             {
-                index = z*subdomain.zStep + y*subdomain.yStep + x;
+                index = x*subdomain.xStep + y*subdomain.yStep + z;
 
                 // Computing global coordinates
-                xG = subdomain.xS + x - 1;
-                yG = subdomain.yS + y - 1;
-                zG = subdomain.zS + z - 1;
+                xG = subdomain.xS + x - subdomain.xS_r;
+                yG = subdomain.yS + y - subdomain.yS_r;
+                // zG = subdomain.zS + z - subdomain.zS_r;
 
                 if (Cylinder.phase != simDomain.numPhases-1)
                 {
@@ -81,18 +81,18 @@ void fillSphere(double *phi, sphere Sphere,
 
     double sum = 0.0;
 
-    for (z = 1; z < subdomain.sizeZ-1; z++)
+    for (x = subdomain.xS_r; x < subdomain.xE_r; x++)
     {
-        for (y = 1; y < subdomain.sizeY-1; y++)
+        for (y = subdomain.yS_r; y < subdomain.yE_r; y++)
         {
-            for (x = 1; x < subdomain.sizeX-1; x++)
+            for (z = subdomain.zS_r; z < subdomain.zE_r; z++)
             {
-                index = z*subdomain.zStep + y*subdomain.yStep + x;
+                index = x*subdomain.xStep + y*subdomain.yStep + z;
 
                 // Computing global coordinates
-                xG = subdomain.xS + x - 1;
-                yG = subdomain.yS + y - 1;
-                zG = subdomain.zS + z - 1;
+                xG = subdomain.xS + x - subdomain.xS_r;
+                yG = subdomain.yS + y - subdomain.yS_r;
+                zG = subdomain.zS + z - subdomain.zS_r;
 
                 if (Sphere.phase != simDomain.numPhases-1)
                 {
@@ -151,17 +151,18 @@ void fillCube(double *phi, cube Cube,
 
     double sum = 0.0;
 
-    for (z = 1; z < subdomain.sizeZ-1; z++)
+    for (x = subdomain.xS_r; x < subdomain.xE_r; x++)
     {
-        for (y = 1; y < subdomain.sizeY-1; y++)
+        for (y = subdomain.yS_r; y < subdomain.yE_r; y++)
         {
-            for (x = 1; x < subdomain.sizeX-1; x++)
+            for (z = subdomain.zS_r; z < subdomain.zE_r; z++)
             {
-                index = z*subdomain.zStep + y*subdomain.yStep + x;
+                index = x*subdomain.xStep + y*subdomain.yStep + z;
 
-                xG = subdomain.xS + x - 1;
-                yG = subdomain.yS + y - 1;
-                zG = subdomain.zS + z - 1;
+                // Computing global coordinates
+                xG = subdomain.xS + x - subdomain.xS_r;
+                yG = subdomain.yS + y - subdomain.yS_r;
+                zG = subdomain.zS + z - subdomain.zS_r;
 
                 if (Cube.phase != simDomain.numPhases-1)
                 {
@@ -217,17 +218,18 @@ void fillEllipse(double *phi, ellipse Ellipse,
 
     double sum = 0.0;
 
-    for (z = 1; z < subdomain.sizeZ-1; z++)
+    for (x = subdomain.xS_r; x < subdomain.xE_r; x++)
     {
-        for (y = 1; y < subdomain.sizeY-1; y++)
+        for (y = subdomain.yS_r; y < subdomain.yE_r; y++)
         {
-            for (x = 1; x < subdomain.sizeX-1; x++)
+            for (z = subdomain.zS_r; z < subdomain.zE_r; z++)
             {
-                index = z*subdomain.zStep + y*subdomain.yStep + x;
+                index = x*subdomain.xStep + y*subdomain.yStep + z;
 
-                xG = subdomain.xS + x - 1;
-                yG = subdomain.yS + y - 1;
-                zG = subdomain.zS + z - 1;
+                // Computing global coordinates
+                xG = subdomain.xS + x - subdomain.xS_r;
+                yG = subdomain.yS + y - subdomain.yS_r;
+                zG = subdomain.zS + z - subdomain.zS_r;
 
                 if (Ellipse.phase != simDomain.numPhases-1)
                 {
@@ -284,13 +286,13 @@ void fillComposition(double *phi, double *comp,
     long step = subdomain.numCompCells;
     long x, y, z;
 
-    for (z = 1; z < subdomain.sizeZ-1; z++)
+    for (x = subdomain.xS_r; x < subdomain.xE_r; x++)
     {
-        for (y = 1; y < subdomain.sizeY-1; y++)
+        for (y = subdomain.yS_r; y < subdomain.yE_r; y++)
         {
-            for (x = 1; x < subdomain.sizeX-1; x++)
+            for (z = subdomain.zS_r; z < subdomain.zE_r; z++)
             {
-                index = z*subdomain.zStep + y*subdomain.yStep + x;
+                index = x*subdomain.xStep + y*subdomain.yStep + z;
 
                 PHASE_FILLED = 0;
 
@@ -472,7 +474,7 @@ void fillDomain(domainInfo simDomain, subdomainInfo subdomain,
             free(Cylinder);
         }
 
-        else if (fill->fillType[i] = FILLSPHERERANDOM)
+        else if (fill->fillType[i] == FILLSPHERERANDOM)
         {
             double volParticle = (double)(fill->radius[i]*fill->radius[i]*fill->radius[i])*4.0*M_PI/3.0;
             double volume      = (double)(simDomain.MESH_X*simDomain.MESH_Y*simDomain.MESH_Z);

@@ -52,6 +52,9 @@ double calcDoubleWellDerivative(double **phi, long phase,
                 if (k == i || k == j)
                     continue;
 
+                // if (idx == 1012)
+                // printf("%ld\t%ld\t%ld\t%le\n", i, j, k, theta_ijk[(j + i*NUMPHASES)*NUMPHASES + k]);
+
                 // Derivative of (ijk)^2
                 if (i == phase)
                     ans += 2.0*theta_ijk[(j + i*NUMPHASES)*NUMPHASES + k]*phi[i][idx]*temp2*phi[k][idx]*phi[k][idx];

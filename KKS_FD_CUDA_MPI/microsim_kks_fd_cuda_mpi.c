@@ -1,23 +1,38 @@
 // Standard libraries
-#include <stdio.h>
-#include <math.h>
+#include <numeric>
+#include <vector>
+#include <complex>
+#include <random>
+#include <cstdlib>
+#include <cstdio>
+
 #include <mpi.h>
 #include <mpi-ext.h>
 #include <sys/stat.h>
 #include <unistd.h>
 #include <cuda.h>
 #include <cuda_runtime.h>
-#include <gsl/gsl_errno.h>
-#include <gsl/gsl_spline.h>
 
-// Constant definitions
-
-// 0th process will be the master process
+// Flags and constants
 #define MASTER 0
 
-#ifndef ENABLE_HDF5
-#define ENABLE_HDF5 1
+#ifndef ENABLE_CUFFTMP
+#define ENABLE_CUFFTMP 0
 #endif
+
+#ifndef ENABLE_HDF5
+#define ENABLE_HDF5 0
+#endif
+
+// cuFFTMp
+#if ENABLE_CUFFTMP == 1
+//#include "box_iterator.hpp"
+#include "error_checks.hpp"
+#include <cufft.h>
+#include <cufftMp.h>
+#include "calc_bn.h"
+#endif
+
 
 // C header files
 // From ./functions/
@@ -41,6 +56,7 @@
 #include "computeDrivingForce.cuh"
 #include "updateComposition.cuh"
 #include "updatePhi.cuh"
+#include "computeElastic.cuh"
 #include "utilityKernels.cuh"
 
 
@@ -51,9 +67,17 @@ int main(int argc, char *argv[])
     MPI_Init(&argc, &argv);                 // Initialise MPI
     MPI_Comm comm = MPI_COMM_WORLD;
 
+    int MPI_Enabled = 1;
+
     int rank, size;                         // MPI current proc. and num. of procs.
     MPI_Comm_size(comm, &size);
     MPI_Comm_rank(comm, &rank);
+
+    if (size == 1)
+        MPI_Enabled = 0;
+
+    if (MPI_Enabled && rank == MASTER)
+        printf("MPI enabled\n");
 
     domainInfo      simDomain;              // Global mesh size and cell size
     controls        simControls;            // Timestep, num. of iterations, etc.
@@ -94,14 +118,6 @@ int main(int argc, char *argv[])
     double *maxVal, *minVal;
     double *maxVal_h, *minVal_h;
 
-    // Run with at least two processes
-    // Even if there is only 1 GPU, it will run.
-    if (size < 2)
-    {
-        printf("\n\nNot enough processes. Try again\n\n");
-        MPI_Abort(comm, 1);
-    }
-
     // Divide GPUs amongst the MPI processes
     cudaSetDevice(rank % numDevices);
 
@@ -113,13 +129,37 @@ int main(int argc, char *argv[])
         mkdir("DATA", 0777);
     }
 
-    MPI_Barrier(comm);
-    cudaDeviceSynchronize();
+    if (MPI_Enabled)
+    {
+        MPI_Barrier(comm);
+        cudaDeviceSynchronize();
+    }
 
     // Read input from specified input file
-    readInput_MPI(&simDomain, &simControls, &simParams, rank, argv);
+    if (readInput_MPI(&simDomain, &simControls, &simParams, rank, argv))
+    {
+        if (rank == MASTER)
+        {
+            printf("\n----------------------------------------------------------------------------ERROR---------------------------------------------------------------------------\n");
+            printf("\nSolver not compiled to handle required number of phases and/or components.\n");
+            printf("Please select the appropriate number for both, using the MicroSim GUI or by running GEdata_writer.py with the desired input file through the command line\n");
+            if (MAX_NUM_PHASES < simDomain.numPhases)
+                printf("Currently, the maximum number of phases supported is %ld, but attempted to run with %d phases\n", MAX_NUM_PHASES, simDomain.numPhases);
+            if (MAX_NUM_COMP < simDomain.numComponents)
+                printf("Currently, the maximum number of components supported is %ld, but you have attempted to run with %d components\n", MAX_NUM_COMP, simDomain.numComponents);
+            printf("\n------------------------------------------------------------------------------------------------------------------------------------------------------------\n");
+        }
+
+        cudaDeviceReset();
+        MPI_Abort(comm, 1);
+    }
+
     read_boundary_conditions(&simDomain, &simControls, &simParams, rank, argv);
-    MPI_Barrier(comm);
+
+    if (MPI_Enabled)
+    {
+        MPI_Barrier(comm);
+    }
 
     // Fix padding size
     simControls.padding = 1;
@@ -133,7 +173,11 @@ int main(int argc, char *argv[])
     char directory[1000];
     sprintf(directory, "DATA/Processor_%d", rank);
     mkdir(directory, 0777);
-    MPI_Barrier(comm);
+
+    if (MPI_Enabled)
+    {
+        MPI_Barrier(comm);
+    }
 
     // Distribute data to all the processors
     // Only 1-D slab decomposition is available currently
@@ -155,8 +199,101 @@ int main(int argc, char *argv[])
     for (i = 0; i < (simDomain.numComponents-1)*subdomain.numCompCells; i++)
         comp[i] = 0.0;
 
-    MPI_Barrier(comm);
-    cudaDeviceSynchronize();
+    if (simControls.FUNCTION_F == 2)
+        for (i = 0; i < (simDomain.numComponents-1)*subdomain.numCompCells; i++)
+            mu[i] = 0.0;
+
+    #if ENABLE_CUFFTMP == 0
+    simControls.ELASTICITY = 0;
+    #elif ENABLE_CUFFTMP == 1
+
+    int FFT_Alternate= 0;
+
+    double **BpqDev, **BpqHost, *B_calc, *kx, *ky, *kz;
+
+    const size_t my_nx = subdomain.numX;
+    const size_t my_ny = subdomain.numY;
+    const size_t my_nz = subdomain.numZ;
+
+    printf("cuFFTMp is enabled\n");
+    printf("For processor %d: %d, %d, %d\n", rank, (int)my_nx, (int)my_ny, (int)my_nz);
+
+    // Create a plan
+    cufftHandle plan = 0;
+
+    // Attach to a stream
+    cudaStream_t stream = nullptr;
+    CUDA_CHECK(cudaStreamCreate(&stream));
+
+    if (simControls.ELASTICITY)
+    {
+        CUFFT_CHECK(cufftCreate(&plan));
+        CUFFT_CHECK(cufftMpAttachComm(plan, CUFFT_COMM_MPI, &comm));
+        CUFFT_CHECK(cufftSetStream(plan, stream));
+    }
+
+    // Make the plan
+    size_t workspace;
+    if (simControls.ELASTICITY)
+        CUFFT_CHECK(cufftMakePlan3d(plan, simDomain.MESH_X, simDomain.MESH_Y, simDomain.MESH_Z, CUFFT_Z2Z, &workspace));
+
+    // cuFFTMp variables
+    cudaLibXtDesc *phiElDev[simDomain.numPhases], *dfEldphi[simDomain.numPhases], *tempFFT_Shuffled;
+
+    if (simControls.ELASTICITY)
+    {
+        for (i = 0; i < simDomain.numPhases; i++)
+        {
+            CUFFT_CHECK(cufftXtMalloc(plan, &phiElDev[i], CUFFT_XT_FORMAT_INPLACE));
+            CUFFT_CHECK(cufftXtMalloc(plan, &dfEldphi[i], CUFFT_XT_FORMAT_INPLACE));
+        }
+
+        CUFFT_CHECK(cufftXtMalloc(plan, &tempFFT_Shuffled, CUFFT_XT_FORMAT_INPLACE_SHUFFLED));
+    }
+
+    if (simControls.ELASTICITY)
+    {
+        cudaMalloc((void**)&BpqDev, sizeof(double*)*simDomain.numPhases*simDomain.numPhases);
+        BpqHost = (double**)malloc(sizeof(double*)*simDomain.numPhases*simDomain.numPhases);
+
+        for (i = 0; i < simDomain.numPhases*simDomain.numPhases; i++)
+        {
+            checkCudaErrors(cudaMalloc((void**)&BpqHost[i], sizeof(double)*my_nx*my_ny*my_nz));
+            checkCudaErrors(cudaMemcpy(&BpqDev[i], &BpqHost[i], sizeof(double*), cudaMemcpyHostToDevice));
+        }
+
+        B_calc = (double*)malloc(sizeof(double)*my_nx*my_ny*my_nz);
+        kx     = (double*)malloc(sizeof(double)*my_nx*my_ny*my_nz);
+        ky     = (double*)malloc(sizeof(double)*my_nx*my_ny*my_nz);
+        kz     = (double*)malloc(sizeof(double)*my_nx*my_ny*my_nz);
+
+        calc_k(kx, ky, kz, tempFFT_Shuffled,
+               my_nx, my_ny, my_nz,
+               simDomain, simControls, simParams, subdomain,
+               stream);
+
+        for (i = 0; i < simDomain.numPhases; i++)
+        {
+            for (j = 0; j < simDomain.numPhases; j++)
+            {
+                calculate_Bn(B_calc, kx, ky, kz, simDomain, simParams, subdomain, i, j);
+                cudaMemcpy(BpqHost[i*simDomain.numPhases + j], B_calc, sizeof(double)*my_nx*my_ny*my_nz, cudaMemcpyHostToDevice);
+            }
+        }
+
+        CUFFT_CHECK(cufftXtFree(tempFFT_Shuffled));
+        free(B_calc);
+        free(kx);
+        free(ky);
+        free(kz);
+    }
+    #endif
+
+    if (MPI_Enabled)
+    {
+        MPI_Barrier(comm);
+        cudaDeviceSynchronize();
+    }
 
     // Not restarting
     if (simControls.restart == 0 && simControls.startTime == 0)
@@ -177,7 +314,7 @@ int main(int argc, char *argv[])
         if (rank == MASTER)
             printf("Reading from disk\n");
 
-#if ENABLE_HDF5 == 1
+        #if ENABLE_HDF5 == 1
         if (simControls.writeHDF5)
         {
             readHDF5(phi, comp, mu,
@@ -185,14 +322,17 @@ int main(int argc, char *argv[])
                      simControls, rank, comm, argv);
         }
         else
-#endif
+            #endif
         {
             read_domain(phi, comp, mu, simDomain, subdomain, simControls, rank, comm, argv);
         }
     }
 
-    MPI_Barrier(comm);
-    cudaDeviceSynchronize();
+    if (MPI_Enabled)
+    {
+        MPI_Barrier(comm);
+        cudaDeviceSynchronize();
+    }
 
     if (rank == MASTER)
         printf("\nAllocating memory on GPUs\n");
@@ -271,8 +411,11 @@ int main(int argc, char *argv[])
     if (rank == MASTER)
         printf("Allocated memory on GPUs\n");
 
-    MPI_Barrier(comm);
-    cudaDeviceSynchronize();
+    if (MPI_Enabled)
+    {
+        MPI_Barrier(comm);
+        cudaDeviceSynchronize();
+    }
 
     // Move fields from host to device
     for (i = 0; i < simDomain.numPhases; i++)
@@ -293,60 +436,8 @@ int main(int argc, char *argv[])
      *
      */
 
-    for (i = 0; i < simDomain.numPhases; i++)
+    if (MPI_Enabled)
     {
-        MPI_Sendrecv(phiHost[i]+subdomain.shiftPointer, subdomain.shiftPointer, MPI_DOUBLE, subdomain.nbBack, 0,
-                     phiHost[i]+subdomain.numCompCells-subdomain.shiftPointer, subdomain.shiftPointer, MPI_DOUBLE, subdomain.nbFront, 0,
-                     comm, MPI_STATUS_IGNORE);
-
-        MPI_Sendrecv(phiHost[i]+subdomain.numCompCells-2*subdomain.shiftPointer, subdomain.shiftPointer, MPI_DOUBLE, subdomain.nbFront, 1,
-                     phiHost[i], subdomain.shiftPointer, MPI_DOUBLE, subdomain.nbBack, 1,
-                     comm, MPI_STATUS_IGNORE);
-    }
-
-    for (i = 0; i < simDomain.numComponents-1; i++)
-    {
-        MPI_Sendrecv(compHost[i]+subdomain.shiftPointer, subdomain.shiftPointer, MPI_DOUBLE, subdomain.nbBack, 2,
-                     compHost[i]+subdomain.numCompCells-subdomain.shiftPointer, subdomain.shiftPointer, MPI_DOUBLE, subdomain.nbFront, 2,
-                     comm, MPI_STATUS_IGNORE);
-
-        MPI_Sendrecv(compHost[i]+subdomain.numCompCells-2*subdomain.shiftPointer, subdomain.shiftPointer, MPI_DOUBLE, subdomain.nbFront, 3,
-                     compHost[i], subdomain.shiftPointer, MPI_DOUBLE, subdomain.nbBack, 3,
-                     comm, MPI_STATUS_IGNORE);
-    }
-
-    MPI_Barrier(comm);
-    cudaDeviceSynchronize();
-
-    applyBoundaryCondition(phiDev, 0, simDomain.numPhases,
-                           &simDomain, &simControls,
-                           &simParams, &subdomain,
-                           gridSize, blockSize);
-
-    applyBoundaryCondition(compDev, 2, simDomain.numComponents-1,
-                           &simDomain, &simControls,
-                           &simParams, &subdomain,
-                           gridSize, blockSize);
-
-
-    // Copy old field to new field
-    for (i = 0; i < simDomain.numPhases; i++)
-        checkCudaErrors(cudaMemcpy(phiNewHost[i], phiHost[i], sizeof(double)*subdomain.numCompCells, cudaMemcpyDeviceToDevice));
-
-    for (i = 0; i < simDomain.numComponents-1; i++)
-        checkCudaErrors(cudaMemcpy(compNewHost[i], compHost[i], sizeof(double)*subdomain.numCompCells, cudaMemcpyDeviceToDevice));
-
-    MPI_Barrier(comm);
-    cudaDeviceSynchronize();
-
-    // Smooth
-    for (j = 1; j <= simControls.nsmooth; j++)
-    {
-        smooth(phiDev, phiNewDev,
-               &simDomain, &simControls,
-               &simParams, &subdomain,
-               gridSize, blockSize);
-
         for (i = 0; i < simDomain.numPhases; i++)
         {
             MPI_Sendrecv(phiHost[i]+subdomain.shiftPointer, subdomain.shiftPointer, MPI_DOUBLE, subdomain.nbBack, 0,
@@ -358,20 +449,99 @@ int main(int argc, char *argv[])
                          comm, MPI_STATUS_IGNORE);
         }
 
-        applyBoundaryCondition(phiNewDev, 0, simDomain.numPhases,
-                               &simDomain, &simControls,
-                               &simParams, &subdomain,
-                               gridSize, blockSize);
+        for (i = 0; i < simDomain.numComponents-1; i++)
+        {
+            MPI_Sendrecv(compHost[i]+subdomain.shiftPointer, subdomain.shiftPointer, MPI_DOUBLE, subdomain.nbBack, 2,
+                         compHost[i]+subdomain.numCompCells-subdomain.shiftPointer, subdomain.shiftPointer, MPI_DOUBLE, subdomain.nbFront, 2,
+                         comm, MPI_STATUS_IGNORE);
+
+            MPI_Sendrecv(compHost[i]+subdomain.numCompCells-2*subdomain.shiftPointer, subdomain.shiftPointer, MPI_DOUBLE, subdomain.nbFront, 3,
+                         compHost[i], subdomain.shiftPointer, MPI_DOUBLE, subdomain.nbBack, 3,
+                         comm, MPI_STATUS_IGNORE);
+        }
+
+        MPI_Barrier(comm);
+        cudaDeviceSynchronize();
+    }
+
+    applyBoundaryCondition(phiDev, 0, simDomain.numPhases,
+                           simDomain, simControls,
+                           simParams, subdomain,
+                           gridSize, blockSize);
+
+    applyBoundaryCondition(compDev, 2, simDomain.numComponents-1,
+                           simDomain, simControls,
+                           simParams, subdomain,
+                           gridSize, blockSize);
+
+
+    // Copy old field to new field
+    for (i = 0; i < simDomain.numPhases; i++)
+        checkCudaErrors(cudaMemcpy(phiNewHost[i], phiHost[i], sizeof(double)*subdomain.numCompCells, cudaMemcpyDeviceToDevice));
+
+    for (i = 0; i < simDomain.numComponents-1; i++)
+        checkCudaErrors(cudaMemcpy(compNewHost[i], compHost[i], sizeof(double)*subdomain.numCompCells, cudaMemcpyDeviceToDevice));
+
+    if (MPI_Enabled)
+    {
+        MPI_Barrier(comm);
+        cudaDeviceSynchronize();
+    }
+
+    // Smooth
+    for (j = 1; j <= simControls.nsmooth; j++)
+    {
+        smooth(phiDev, phiNewDev,
+               &simDomain, &simControls,
+               &simParams, &subdomain,
+               gridSize, blockSize);
 
         for (i = 0; i < simDomain.numPhases; i++)
+        {
             checkCudaErrors(cudaMemcpy(phiHost[i], phiNewHost[i], sizeof(double)*subdomain.numCompCells, cudaMemcpyDeviceToDevice));
+        }
 
-        if (rank == MASTER && j == simControls.nsmooth)
-            printf("\nFinished smoothing\n");
+        if (MPI_Enabled)
+        {
+            for (i = 0; i < simDomain.numPhases; i++)
+            {
+                MPI_Sendrecv(phiHost[i]+subdomain.shiftPointer, subdomain.shiftPointer, MPI_DOUBLE, subdomain.nbBack, 0,
+                             phiHost[i]-subdomain.shiftPointer+subdomain.numCompCells, subdomain.shiftPointer, MPI_DOUBLE, subdomain.nbFront, 0,
+                             comm, MPI_STATUS_IGNORE);
+
+                MPI_Sendrecv(phiHost[i]+subdomain.numCompCells-2*subdomain.shiftPointer, subdomain.shiftPointer, MPI_DOUBLE, subdomain.nbFront, 1,
+                             phiHost[i], subdomain.shiftPointer, MPI_DOUBLE, subdomain.nbBack, 1,
+                             comm, MPI_STATUS_IGNORE);
+            }
+        }
+
+        applyBoundaryCondition(phiDev, 0, simDomain.numPhases,
+                               simDomain, simControls,
+                               simParams, subdomain,
+                               gridSize, blockSize);
+
+        calcPhaseComp(phiDev, compDev,
+                      phaseCompDev, muDev,
+                      &simDomain, &simControls,
+                      &simParams, &subdomain,
+                      gridSize, blockSize);
+
+        if (j == simControls.nsmooth)
+        {
+            for (i = 0; i < simDomain.numPhases; i++)
+            {
+                checkCudaErrors(cudaMemcpy(phiNewHost[i], phiHost[i], sizeof(double)*subdomain.numCompCells, cudaMemcpyDeviceToDevice));
+            }
+
+            if (rank == MASTER)
+                printf("\nFinished smoothing\n");
+        }
     }
 
     if (rank == MASTER)
         printf("\nStarting solution procedure\n");
+
+    // start2 = MPI_Wtime();
 
     // Solution timeloop
     for (simControls.count = simControls.startTime; simControls.count <= simControls.startTime + simControls.numSteps; simControls.count++)
@@ -381,6 +551,8 @@ int main(int argc, char *argv[])
          * Print max, min, change
          *
          */
+
+
         if (simControls.count % simControls.trackProgress == 0)
         {
             if (rank == MASTER)
@@ -407,7 +579,7 @@ int main(int argc, char *argv[])
                 if (rank == MASTER)
                     printf("%*s, Max = %le, Min = %le, Relative_Change = %le\n", 5, simDomain.phaseNames[i], ans2, ans3, ans1);
 
-                if (fabs(ans1) > 2)
+                if (fabs(ans1) > 2 && rank == MASTER)
                 {
                     cudaDeviceReset();
                     MPI_Abort(comm, 1);
@@ -423,7 +595,7 @@ int main(int argc, char *argv[])
                 if (rank == MASTER)
                     printf("%*s, Max = %le, Min = %le, Relative_Change = %le\n", 5, simDomain.componentNames[i], ans2, ans3, ans1);
 
-                if (fabs(ans1) > 2)
+                if (fabs(ans1) > 2 && rank == MASTER)
                 {
                     cudaDeviceReset();
                     MPI_Abort(comm, 1);
@@ -433,10 +605,10 @@ int main(int argc, char *argv[])
 
         // Copy new field to old field
         for (i = 0; i < simDomain.numPhases; i++)
-            checkCudaErrors(cudaMemcpy(phiHost[i], phiNewHost[i], sizeof(double)*subdomain.numCompCells, cudaMemcpyDeviceToDevice));
+            cudaMemcpy(phiHost[i], phiNewHost[i], sizeof(double)*subdomain.numCompCells, cudaMemcpyDeviceToDevice);
 
         for (i = 0; i < simDomain.numComponents-1; i++)
-            checkCudaErrors(cudaMemcpy(compHost[i], compNewHost[i], sizeof(double)*subdomain.numCompCells, cudaMemcpyDeviceToDevice));
+            cudaMemcpy(compHost[i], compNewHost[i], sizeof(double)*subdomain.numCompCells, cudaMemcpyDeviceToDevice);
 
         /*
          *
@@ -464,9 +636,12 @@ int main(int argc, char *argv[])
                 writeHDF5(phi, comp, mu,
                           simDomain, subdomain,
                           simControls, rank, comm, argv);
-            #endif
-                if (rank == MASTER)
+                if (rank == MASTER && simControls.writeHDF5)
                     printf("Wrote to file\n");
+            #endif
+
+            if (rank == MASTER && simControls.writeHDF5 == 0)
+                printf("Wrote to file\n");
 
             if (simControls.count == simControls.startTime + simControls.numSteps)
                 break;
@@ -475,64 +650,68 @@ int main(int argc, char *argv[])
         //Moving buffers to neighbours
         /*
          *  If CUDA-aware MPI is not found, the data will have to be staged through the host
-         *  This is, of course, highly inefficient. Hence, installing CUDA-aware MPI with UCX and GDRcopy is mandatory.
+         *  This is highly inefficient. Hence, installing CUDA-aware MPI with UCX and GDRcopy is preferable.
          *  Instructions to get it running can be found in this module's manual, and on the OpenMPI website.
          *
          */
-        for (i = 0; i < simDomain.numPhases; i++)
+
+        if (MPI_Enabled)
         {
-            MPI_Sendrecv(phiHost[i]+subdomain.shiftPointer, subdomain.shiftPointer, MPI_DOUBLE, subdomain.nbBack, 0,
-                         phiHost[i]-subdomain.shiftPointer+subdomain.numCompCells, subdomain.shiftPointer, MPI_DOUBLE, subdomain.nbFront, 0,
-                         comm, MPI_STATUS_IGNORE);
+            for (i = 0; i < simDomain.numPhases; i++)
+            {
+                MPI_Sendrecv(phiHost[i]+subdomain.shiftPointer, subdomain.shiftPointer, MPI_DOUBLE, subdomain.nbBack, 0,
+                             phiHost[i]-subdomain.shiftPointer+subdomain.numCompCells, subdomain.shiftPointer, MPI_DOUBLE, subdomain.nbFront, 0,
+                             comm, MPI_STATUS_IGNORE);
 
-            MPI_Sendrecv(phiHost[i]+subdomain.numCompCells-2*subdomain.shiftPointer, subdomain.shiftPointer, MPI_DOUBLE, subdomain.nbFront, 1,
-                         phiHost[i], subdomain.shiftPointer, MPI_DOUBLE, subdomain.nbBack, 1,
-                         comm, MPI_STATUS_IGNORE);
-        }
+                MPI_Sendrecv(phiHost[i]+subdomain.numCompCells-2*subdomain.shiftPointer, subdomain.shiftPointer, MPI_DOUBLE, subdomain.nbFront, 1,
+                             phiHost[i], subdomain.shiftPointer, MPI_DOUBLE, subdomain.nbBack, 1,
+                             comm, MPI_STATUS_IGNORE);
+            }
 
-        for (i = 0; i < simDomain.numComponents-1; i++)
-        {
-            MPI_Sendrecv(compHost[i]+subdomain.shiftPointer, subdomain.shiftPointer, MPI_DOUBLE, subdomain.nbBack, 2,
-                         compHost[i]-subdomain.shiftPointer+subdomain.numCompCells, subdomain.shiftPointer, MPI_DOUBLE, subdomain.nbFront, 2,
-                         comm, MPI_STATUS_IGNORE);
-
-            MPI_Sendrecv(compHost[i]+subdomain.numCompCells-2*subdomain.shiftPointer, subdomain.shiftPointer, MPI_DOUBLE, subdomain.nbFront, 3,
-                         compHost[i], subdomain.shiftPointer, MPI_DOUBLE, subdomain.nbBack, 3,
-                         comm, MPI_STATUS_IGNORE);
-        }
-
-        if (simControls.FUNCTION_F == 2)
-        {
             for (i = 0; i < simDomain.numComponents-1; i++)
             {
-                MPI_Sendrecv(muHost[i]+subdomain.shiftPointer, subdomain.shiftPointer, MPI_DOUBLE, subdomain.nbBack, 2,
-                             muHost[i]-subdomain.shiftPointer+subdomain.numCompCells, subdomain.shiftPointer, MPI_DOUBLE, subdomain.nbFront, 2,
+
+                MPI_Sendrecv(compHost[i]+subdomain.shiftPointer, subdomain.shiftPointer, MPI_DOUBLE, subdomain.nbBack, 2,
+                             compHost[i]-subdomain.shiftPointer+subdomain.numCompCells, subdomain.shiftPointer, MPI_DOUBLE, subdomain.nbFront, 2,
                              comm, MPI_STATUS_IGNORE);
 
-                MPI_Sendrecv(muHost[i]+subdomain.numCompCells-2*subdomain.shiftPointer, subdomain.shiftPointer, MPI_DOUBLE, subdomain.nbFront, 3,
-                             muHost[i], subdomain.shiftPointer, MPI_DOUBLE, subdomain.nbBack, 3,
+
+                MPI_Sendrecv(compHost[i]+subdomain.numCompCells-2*subdomain.shiftPointer, subdomain.shiftPointer, MPI_DOUBLE, subdomain.nbFront, 3,
+                             compHost[i], subdomain.shiftPointer, MPI_DOUBLE, subdomain.nbBack, 3,
                              comm, MPI_STATUS_IGNORE);
+
+            }
+
+            if (simControls.FUNCTION_F == 2)
+            {
+                for (i = 0; i < simDomain.numComponents-1; i++)
+                {
+                    MPI_Sendrecv(muHost[i]+subdomain.shiftPointer, subdomain.shiftPointer, MPI_DOUBLE, subdomain.nbBack, 2,
+                                 muHost[i]-subdomain.shiftPointer+subdomain.numCompCells, subdomain.shiftPointer, MPI_DOUBLE, subdomain.nbFront, 2,
+                                 comm, MPI_STATUS_IGNORE);
+
+                    MPI_Sendrecv(muHost[i]+subdomain.numCompCells-2*subdomain.shiftPointer, subdomain.shiftPointer, MPI_DOUBLE, subdomain.nbFront, 3,
+                                 muHost[i], subdomain.shiftPointer, MPI_DOUBLE, subdomain.nbBack, 3,
+                                 comm, MPI_STATUS_IGNORE);
+                }
             }
         }
 
-//         MPI_Barrier(comm);
-//         cudaDeviceSynchronize();
-//
         applyBoundaryCondition(phiDev, 0, simDomain.numPhases,
-                               &simDomain, &simControls,
-                               &simParams, &subdomain,
+                               simDomain, simControls,
+                               simParams, subdomain,
                                gridSize, blockSize);
 
         applyBoundaryCondition(compDev, 2, simDomain.numComponents-1,
-                               &simDomain, &simControls,
-                               &simParams, &subdomain,
+                               simDomain, simControls,
+                               simParams, subdomain,
                                gridSize, blockSize);
 
         if (simControls.FUNCTION_F == 2)
         {
             applyBoundaryCondition(muDev, 1, simDomain.numComponents-1,
-                                   &simDomain, &simControls,
-                                   &simParams, &subdomain,
+                                   simDomain, simControls,
+                                   simParams, subdomain,
                                    gridSize, blockSize);
         }
 
@@ -549,22 +728,161 @@ int main(int argc, char *argv[])
                       &simParams, &subdomain,
                       gridSize, blockSize);
 
-        computeDrivingForce(phiDev, compDev,
-                            dfdphiDev, phaseCompDev, muDev,
-                            &simDomain, &simControls,
-                            &simParams, &subdomain,
-                            gridSize, blockSize);
+        resetArray(dfdphiDev, simDomain.numPhases, simDomain.DIMENSION, subdomain.sizeX, subdomain.sizeY, subdomain.sizeZ, gridSize, blockSize);
+
+        #if ENABLE_CUFFTMP == 1
+        if (simControls.ELASTICITY)
+        {
+            if (FFT_Alternate == 1)
+            {
+                moveTocudaLibXtDesc(phiDev, phiElDev,
+                                    simDomain, simControls, simParams, subdomain,
+                                    stream, gridSize, blockSize, comm);
+
+                for (i = 0; i < simDomain.numPhases; i++)
+                {
+                    if (simControls.eigenSwitch[i] == 1)
+                    {
+                        CUFFT_CHECK(cufftXtExecDescriptor(plan, phiElDev[i], phiElDev[i], CUFFT_FORWARD));
+                        //CUFFT_CHECK(cufftXtExecDescriptor(plan, dfEldphi[i], dfEldphi[i], CUFFT_FORWARD));
+                    }
+                }
+
+                computeDrivingForce_Elastic(phiElDev, dfEldphi, BpqHost,
+                                            simDomain, simControls, simParams, subdomain,
+                                            stream, comm);
+
+                for (i = 0; i < simDomain.numPhases; i++)
+                {
+                    if (simControls.eigenSwitch[i] == 1)
+                    {
+                        CUFFT_CHECK(cufftXtExecDescriptor(plan, dfEldphi[i], dfEldphi[i], CUFFT_INVERSE));
+                        //CUFFT_CHECK(cufftXtExecDescriptor(plan, phiElDev[i], phiElDev[i], CUFFT_INVERSE));
+                    }
+                }
+
+                moveFromcudaLibXtDesc(dfdphiDev, dfEldphi,
+                                      simDomain, simControls, simParams, subdomain,
+                                      stream, gridSize, blockSize);
+                FFT_Alternate = 0;
+            }
+            else if (FFT_Alternate == 0)
+            {
+                moveTocudaLibXtDesc(phiDev, dfEldphi,
+                                    simDomain, simControls, simParams, subdomain,
+                                    stream, gridSize, blockSize, comm);
+
+                for (i = 0; i < simDomain.numPhases; i++)
+                {
+                    if (simControls.eigenSwitch[i] == 1)
+                    {
+                        //CUFFT_CHECK(cufftXtExecDescriptor(plan, phiElDev[i], phiElDev[i], CUFFT_FORWARD));
+                        CUFFT_CHECK(cufftXtExecDescriptor(plan, dfEldphi[i], dfEldphi[i], CUFFT_FORWARD));
+                    }
+                }
+
+                computeDrivingForce_Elastic(dfEldphi, phiElDev, BpqHost,
+                                            simDomain, simControls, simParams, subdomain,
+                                            stream, comm);
+
+                for (i = 0; i < simDomain.numPhases; i++)
+                {
+                    if (simControls.eigenSwitch[i] == 1)
+                    {
+                        //CUFFT_CHECK(cufftXtExecDescriptor(plan, dfEldphi[i], dfEldphi[i], CUFFT_INVERSE));
+                        CUFFT_CHECK(cufftXtExecDescriptor(plan, phiElDev[i], phiElDev[i], CUFFT_INVERSE));
+                    }
+                }
+
+                moveFromcudaLibXtDesc(dfdphiDev, phiElDev,
+                                      simDomain, simControls, simParams, subdomain,
+                                      stream, gridSize, blockSize);
+
+                FFT_Alternate = 1;
+            }
+        }
+        #endif
+
+        computeDrivingForce_Chemical(phiDev, compDev,
+                                     dfdphiDev, phaseCompDev, muDev,
+                                     &simDomain, &simControls,
+                                     &simParams, &subdomain,
+                                     gridSize, blockSize);
 
         updatePhi(phiDev, dfdphiDev, phiNewDev, phaseCompDev,
                   &simDomain, &simControls,
                   &simParams, &subdomain,
                   gridSize, blockSize);
 
+        if (MPI_Enabled)
+        {
+            for (i = 0; i < simDomain.numPhases; i++)
+            {
+                MPI_Sendrecv(phiNewHost[i]+subdomain.shiftPointer, subdomain.shiftPointer, MPI_DOUBLE, subdomain.nbBack, 0,
+                             phiNewHost[i]-subdomain.shiftPointer+subdomain.numCompCells, subdomain.shiftPointer, MPI_DOUBLE, subdomain.nbFront, 0,
+                             comm, MPI_STATUS_IGNORE);
+
+                MPI_Sendrecv(phiNewHost[i]+subdomain.numCompCells-2*subdomain.shiftPointer, subdomain.shiftPointer, MPI_DOUBLE, subdomain.nbFront, 1,
+                             phiNewHost[i], subdomain.shiftPointer, MPI_DOUBLE, subdomain.nbBack, 1,
+                             comm, MPI_STATUS_IGNORE);
+            }
+        }
+
+        applyBoundaryCondition(phiNewDev, 0, simDomain.numPhases,
+                               simDomain, simControls,
+                               simParams, subdomain,
+                               gridSize, blockSize);
+
         updateComposition(phiDev, compDev, phiNewDev, compNewDev,
                           phaseCompDev, muDev,
-                          &simDomain, &simControls,
-                          &simParams, &subdomain,
+                          simDomain, simControls,
+                          simParams, subdomain,
                           gridSize, blockSize);
+
+        if (MPI_Enabled)
+        {
+            for (i = 0; i < simDomain.numComponents-1; i++)
+            {
+
+                MPI_Sendrecv(compNewHost[i]+subdomain.shiftPointer, subdomain.shiftPointer, MPI_DOUBLE, subdomain.nbBack, 2,
+                             compNewHost[i]-subdomain.shiftPointer+subdomain.numCompCells, subdomain.shiftPointer, MPI_DOUBLE, subdomain.nbFront, 2,
+                             comm, MPI_STATUS_IGNORE);
+
+
+                MPI_Sendrecv(compNewHost[i]+subdomain.numCompCells-2*subdomain.shiftPointer, subdomain.shiftPointer, MPI_DOUBLE, subdomain.nbFront, 3,
+                             compNewHost[i], subdomain.shiftPointer, MPI_DOUBLE, subdomain.nbBack, 3,
+                             comm, MPI_STATUS_IGNORE);
+
+            }
+
+            if (simControls.FUNCTION_F == 2)
+            {
+                for (i = 0; i < simDomain.numComponents-1; i++)
+                {
+                    MPI_Sendrecv(muHost[i]+subdomain.shiftPointer, subdomain.shiftPointer, MPI_DOUBLE, subdomain.nbBack, 2,
+                                 muHost[i]-subdomain.shiftPointer+subdomain.numCompCells, subdomain.shiftPointer, MPI_DOUBLE, subdomain.nbFront, 2,
+                                 comm, MPI_STATUS_IGNORE);
+
+                    MPI_Sendrecv(muHost[i]+subdomain.numCompCells-2*subdomain.shiftPointer, subdomain.shiftPointer, MPI_DOUBLE, subdomain.nbFront, 3,
+                                 muHost[i], subdomain.shiftPointer, MPI_DOUBLE, subdomain.nbBack, 3,
+                                 comm, MPI_STATUS_IGNORE);
+                }
+            }
+        }
+
+        applyBoundaryCondition(compNewDev, 2, simDomain.numComponents-1,
+                               simDomain, simControls,
+                               simParams, subdomain,
+                               gridSize, blockSize);
+
+        if (simControls.FUNCTION_F == 2)
+        {
+            applyBoundaryCondition(muDev, 1, simDomain.numComponents-1,
+                                   simDomain, simControls,
+                                   simParams, subdomain,
+                                   gridSize, blockSize);
+        }
+
     } //End solution timeloop
 
     free(minVal_h);
@@ -597,6 +915,17 @@ int main(int argc, char *argv[])
         cudaFree(dfdphiHost[j]);
     }
 
+    #if ENABLE_CUFFTMP == 1
+    if (simControls.ELASTICITY)
+    {
+        for (j = 0; j < simDomain.numPhases; j++)
+        {
+            CUFFT_CHECK(cufftXtFree(phiElDev[j]));
+            CUFFT_CHECK(cufftXtFree(dfEldphi[j]));
+        }
+    }
+    #endif
+
     cudaFree(phiDev);
     cudaFree(dfdphiDev);
     cudaFree(phiNewDev);
@@ -627,6 +956,22 @@ int main(int argc, char *argv[])
 
     free(phi);
     free(comp);
+
+    #if ENABLE_CUFFTMP == 1
+    if (simControls.ELASTICITY)
+    {
+        for (i = 0; i < simDomain.numPhases*simDomain.numPhases; i++)
+        {
+            cudaFree(BpqHost[i]);
+        }
+
+        cudaFree(BpqDev);
+        free(BpqHost);
+
+        CUFFT_CHECK(cufftDestroy(plan));
+        CUDA_CHECK(cudaStreamDestroy(stream));
+    }
+    #endif
 
     MPI_Finalize();
 

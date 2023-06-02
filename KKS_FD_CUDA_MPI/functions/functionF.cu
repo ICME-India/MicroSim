@@ -1,5 +1,67 @@
 #include "functionF.cuh"
 
+#include <gsl/gsl_errno.h>
+#include <gsl/gsl_spline.h>
+
+extern __device__
+double calcPhaseEnergy(double **phaseComp, long phase,
+                       double *F0_A, double *F0_B, double *F0_C,
+                       long idx,
+                       long NUMPHASES, long NUMCOMPONENTS)
+{
+
+    // Constant C_{phase}
+    double ans = F0_C[phase];
+
+    long index1, index2;
+
+    for (long component1 = 0; component1 < NUMCOMPONENTS-1; component1++)
+    {
+        index1 = component1*NUMPHASES + phase;
+
+        // Linear terms of the parabolic free energy
+        ans += F0_B[component1 + phase*(NUMCOMPONENTS-1)]*phaseComp[index1][idx];
+
+        for (long component2 = 0; component2 <= component1; component2++)
+        {
+            index2 = component2*NUMPHASES + phase;
+
+            // Quadratic terms
+            ans += F0_A[(component1 + phase*(NUMCOMPONENTS-1))*(NUMCOMPONENTS-1) + component2]*phaseComp[index1][idx]*phaseComp[index2][idx];
+        }
+    }
+
+    return ans;
+}
+
+extern __device__
+double calcDiffusionPotential(double **phaseComp,
+                              long phase, long component,
+                              double *F0_A, double *F0_B,
+                              long idx,
+                              long NUMPHASES, long NUMCOMPONENTS)
+{
+
+    // Derivative of A_{component, component}^{phase}*c_{component}^{phase}*c_{component}^{phase}
+    // Rest of the quadratic terms are mixed
+    double ans = 2.0*F0_A[(component + phase*(NUMCOMPONENTS-1))*(NUMCOMPONENTS-1) + component]*phaseComp[(phase + component*NUMPHASES)][idx];
+
+    for (long i = 0; i < NUMCOMPONENTS-1; i++)
+    {
+
+        // Derivative of A_{component, i}^{phase}*c_{component}^{phase}*c_{i}^{phase}
+        if (i != component)
+        {
+            ans += F0_A[(component + phase*(NUMCOMPONENTS-1))*(NUMCOMPONENTS-1)+i]*phaseComp[(phase + i*NUMPHASES)][idx];
+        }
+    }
+
+    // Derivative of linear terms
+    ans += F0_B[component + phase*(NUMCOMPONENTS-1)];
+
+    return ans;
+}
+
 void function_F_04_init_propertymatrices(domainInfo *simDomain, controls *simControls, simParameters *simParams)
 {
     //Initialize property matrices
@@ -80,22 +142,19 @@ void function_F_04_init_propertymatrices(domainInfo *simDomain, controls *simCon
             fscanf(fp, "%le,", &T_ThF[a][lines]);
             for (j = 0; j < simDomain->numComponents-1; j++)
             {
-                for (k = 0; k < simDomain->numComponents-1; k++)
+                fscanf(fp, "%le,", &ThF[a][j][j][lines]);
+            }
+            for (i = 0; i < simDomain->numComponents-1; i++)
+            {
+                for (k = i+1; k < simDomain->numComponents-1; k++)
                 {
-                    if (j <= k)
-                    {
-                        fscanf(fp, "%le,", &ThF[a][j][k][lines]);
-                    }
-                    else
-                    {
-                        ThF[a][j][k][lines] = ThF[a][k][j][lines];
-                    }
+                    fscanf(fp, "%le,", &ThF[a][i][k][lines]);
+                    ThF[a][k][i][lines] = ThF[a][i][k][lines];
                 }
             }
         }
         fclose(fp);
     }
-
 
     gsl_interp_accel ****acc_ES     = (gsl_interp_accel****)malloc((simDomain->numThermoPhases-1)*sizeof(gsl_interp_accel***));
     gsl_spline       ****spline_ES  = (gsl_spline ****)malloc((simDomain->numThermoPhases-1)*sizeof(gsl_spline***));

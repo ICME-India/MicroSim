@@ -9,27 +9,23 @@
 #include "Thermo.cuh"
 #include "structures.h"
 
-extern __device__
-double calcPhaseEnergy(double **phaseComp, long phase,
-                       double *F0_A, double *F0_B, double *F0_C,
-                       long idx,
-                       long NUMPHASES, long NUMCOMPONENTS);
-
-extern __device__
-double calcDiffusionPotential(double **phaseComp,
-                              long phase, long component,
-                              double *F0_A, double *F0_B,
-                              long idx,
-                              long NUMPHASES, long NUMCOMPONENTS);
+__global__
+void __computeChange__(double *A, double *B, long DIMENSION,
+                   long sizeX, long sizeY, long sizeZ, long padding);
 
 __global__
-void computeChange(double *A, double *B, long DIMENSION,
-                   long sizeX, long sizeY, long sizeZ);
+void __resetArray__(double **arr, long numArr,
+                    long sizeX, long sizeY, long sizeZ);
 
 void printStats(double **phi, double **comp,
                 double **phiNew, double **compNew,
                 double *maxerr, double *maxVal, double *minVal,
                 domainInfo simDomain, subdomainInfo subdomain,
+                dim3 gridSize, dim3 blockSize);
+
+void resetArray(double **arr, long numArr,
+                long DIMENSION,
+                long sizeX, long sizeY, long sizeZ,
                 dim3 gridSize, dim3 blockSize);
 
 #endif

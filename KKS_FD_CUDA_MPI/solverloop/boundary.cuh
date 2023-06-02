@@ -23,19 +23,21 @@
 __global__
 void applyNeumann(double **field,
                   long face, long numFields, long DIMENSION,
-                  long sizeX, long sizeY, long sizeZ, long padding);
+                  long sizeX, long sizeY, long sizeZ,
+                  long xStep, long yStep, long padding);
 
 __global__
-void applyPeriodic(double **field,
-                   long face, long numFields, long DIMENSION,
-                   long sizeX, long sizeY, long sizeZ, long padding);
+void applyNeumann(double **field,
+                  long face, long numFields, long DIMENSION,
+                  long sizeX, long sizeY, long sizeZ,
+                  long xStep, long yStep, long padding);
 
 #ifdef __cplusplus
 extern "C"
 #endif
 void applyBoundaryCondition(double **field, long fieldCode, long numFields,
-                            domainInfo* simDomain, controls* simControls,
-                            simParameters* simParams, subdomainInfo* subdomain,
+                            domainInfo simDomain, controls simControls,
+                            simParameters simParams, subdomainInfo subdomain,
                             dim3 gridSize, dim3 blockSize);
 
 #endif

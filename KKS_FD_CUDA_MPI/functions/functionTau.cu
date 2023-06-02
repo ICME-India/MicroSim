@@ -36,16 +36,14 @@ double FunctionTau(double **phi, double *relaxCoeff, long idx, long NUMPHASES)
 
 void calculateTau(domainInfo *simDomain, controls *simControls, simParameters *simParams)
 {
-    double Tol = 1e-6;
-    int P[simDomain->numComponents];
+    double Tol = 1e-9;
 
     double sum = 0.0;
-    double minTau = 1e12;
+    double minTau = -1e12;
 
     if (simControls->FUNCTION_F != 2)
     {
         double ***dmudc = Malloc3M(simDomain->numPhases, simDomain->numComponents-1, simDomain->numComponents-1);
-        double **inverted = MallocM(simDomain->numComponents-1, simDomain->numComponents-1);
 
         for (long i = 0; i < simDomain->numPhases; i++)
         {
@@ -64,15 +62,35 @@ void calculateTau(domainInfo *simDomain, controls *simControls, simParameters *s
         // Mobility matrix
         for (long i = 0; i < simDomain->numPhases; i++)
         {
-            LUPDecompose(dmudc[i], simDomain->numComponents-1, Tol, P);
-            LUPInvert(dmudc[i], P, simDomain->numComponents-1, inverted);
+            // int P[simDomain->numComponents];
+            double **inverted = MallocM(simDomain->numComponents-1, simDomain->numComponents-1);
+            double **dmudc_local = MallocM(simDomain->numComponents-1, simDomain->numComponents-1);
+
+            for (long j = 0; j < simDomain->numComponents-1; j++)
+            {
+                for (long k = 0; k < simDomain->numComponents-1; k++)
+                {
+                    dmudc_local[j][k] = dmudc[i][j][k];
+                }
+            }
+
+            // LUPDecompose(dmudc_local, simDomain->numComponents-1, Tol, P);
+            // LUPInvert(dmudc_local, P, simDomain->numComponents-1, inverted);
+
+            matinvnew(dmudc_local, inverted, simDomain->numComponents-1);
 
             matrixMultiply(simParams->diffusivity_host[i], inverted, simParams->mobility_host[i], simDomain->numComponents-1);
+
+            FreeM(inverted, simDomain->numComponents-1);
+            FreeM(dmudc_local, simDomain->numComponents-1);
         }
 
         // Relaxation Coefficients
         double **mobilityInv = MallocM(simDomain->numComponents-1, simDomain->numComponents-1);
         double deltac[simDomain->numComponents-1], deltamu[simDomain->numComponents-1];
+        // int P[simDomain->numComponents];
+
+        double **inverted = MallocM(simDomain->numComponents-1, simDomain->numComponents-1);
 
         // Reusing inverted to hold mobility of the reference phase
         for (long i = 0; i < simDomain->numComponents-1; i++)
@@ -83,8 +101,9 @@ void calculateTau(domainInfo *simDomain, controls *simControls, simParameters *s
             }
         }
 
-        LUPDecompose(inverted, simDomain->numComponents-1, Tol, P);
-        LUPInvert(inverted, P, simDomain->numComponents-1, mobilityInv);
+        // LUPDecompose(inverted, simDomain->numComponents-1, Tol, P);
+        // LUPInvert(inverted, P, simDomain->numComponents-1, mobilityInv);
+        matinvnew(inverted, mobilityInv, simDomain->numComponents-1);
 
         for (long a = 0; a < simDomain->numPhases-1; a++)
         {
@@ -107,13 +126,14 @@ void calculateTau(domainInfo *simDomain, controls *simControls, simParameters *s
                 sum += deltac[i]*deltamu[i];
             }
 
-            simParams->Tau_host[a][simDomain->numPhases-1] = (6.0*0.783333*simParams->kappaPhi_host[a][simDomain->numPhases-1]*sum)/(simParams->theta_ij_host[a][simDomain->numPhases-1]*simParams->molarVolume);
+
+            simParams->Tau_host[a][simDomain->numPhases-1] = (3.0*0.783333*simParams->kappaPhi_host[a][simDomain->numPhases-1]*sum)/(simParams->theta_ij_host[a][simDomain->numPhases-1]*simParams->molarVolume);
             simParams->Tau_host[simDomain->numPhases-1][a] = simParams->Tau_host[a][simDomain->numPhases-1];
 
             if (a == 0)
                 minTau = simParams->Tau_host[a][simDomain->numPhases-1];
 
-            if (simParams->Tau_host[a][simDomain->numPhases-1] < minTau)
+            if (simParams->Tau_host[a][simDomain->numPhases-1] > minTau)
                 minTau = simParams->Tau_host[a][simDomain->numPhases-1];
         }
 
@@ -121,7 +141,7 @@ void calculateTau(domainInfo *simDomain, controls *simControls, simParameters *s
         {
             for (long b = 0; b < simDomain->numPhases; b++)
             {
-                simParams->Tau_host[a][b] = minTau;
+                simParams->Tau_host[a][b] = 1.0/minTau;
                 simParams->relax_coeff_host[a][b] = 1.0/minTau;
             }
         }
@@ -148,6 +168,8 @@ void calculateTau(domainInfo *simDomain, controls *simControls, simParameters *s
                 diff[i][j] = simParams->diffusivity_host[simDomain->numPhases-1][i][j];
             }
         }
+
+        int P[simDomain->numComponents];
 
         // Get D^{-1}
         LUPDecompose(diff, simDomain->numComponents-1, Tol, P);
@@ -199,13 +221,13 @@ void calculateTau(domainInfo *simDomain, controls *simControls, simParameters *s
                 sum += deltac[i]*deltamu[i];
             }
 
-            simParams->Tau_host[a][simDomain->numPhases-1] = (6.0*0.783333*simParams->kappaPhi_host[a][simDomain->numPhases-1]*sum)/(simParams->theta_ij_host[a][simDomain->numPhases-1]*simParams->molarVolume);
+            simParams->Tau_host[a][simDomain->numPhases-1] = (3.0*0.783333*simParams->kappaPhi_host[a][simDomain->numPhases-1]*sum)/(simParams->theta_ij_host[a][simDomain->numPhases-1]*simParams->molarVolume);
             simParams->Tau_host[simDomain->numPhases-1][a] = simParams->Tau_host[a][simDomain->numPhases-1];
 
             if (a == 0)
                 minTau = simParams->Tau_host[a][simDomain->numPhases-1];
 
-            if (simParams->Tau_host[a][simDomain->numPhases-1] < minTau)
+            if (simParams->Tau_host[a][simDomain->numPhases-1] > minTau)
                 minTau = simParams->Tau_host[a][simDomain->numPhases-1];
         }
 
@@ -213,7 +235,7 @@ void calculateTau(domainInfo *simDomain, controls *simControls, simParameters *s
         {
             for (long b = 0; b < simDomain->numPhases; b++)
             {
-                simParams->Tau_host[a][b] = minTau;
+                simParams->Tau_host[a][b] = 1.0/minTau;
                 simParams->relax_coeff_host[a][b] = 1.0/minTau;
             }
         }

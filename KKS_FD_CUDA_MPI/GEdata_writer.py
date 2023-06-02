@@ -121,9 +121,11 @@ print(ncomdef)
 print(npcdef)
 
 file = open("functions/defines.h", "w")
+file.write("#ifndef DEFINES_H_\n#define DEFINES_H_\n\n")
 file.write(nphadef)
 file.write(ncomdef)
 file.write(npcdef)
+file.write("\n#endif")
 
 comps=components+['VA']
 #print(comps)

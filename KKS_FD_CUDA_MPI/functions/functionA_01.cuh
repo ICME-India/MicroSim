@@ -6,6 +6,7 @@
 #include <cuda_runtime.h>
 #include "structures.h"
 #include "anisotropy_01.cuh"
+#include "matrix.cuh"
 
 #define ix 0
 #define iy 1
@@ -39,7 +40,7 @@
  *
  */
 extern __device__
-double calcAnisotropy_01(double phi[MAX_NUM_PHASES][3][3][3],
+double calcAnisotropy_01(double phi[MAX_NUM_PHASES*27],
                          double *dab, double *eps_ab,
                          double *Rotation_matrix, double *Inv_rotation_matrix,
                          long phase, long NUMPHASES, long DIMENSION,

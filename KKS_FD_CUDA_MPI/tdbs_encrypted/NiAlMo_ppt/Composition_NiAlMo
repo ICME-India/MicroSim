@@ -1,0 +1,469 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+|  Test Example 8 : Kinetic Properties  |
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+Defining user pointer:
+PanEngine 2021 (Copyright) Registered to India - 701
+Set PanEngine configuration:
+Reading database file:
+comp_name =
+	Al	B	C	Co	Cr	Cu	Fe	Hf	Ir	Mn	Mo	N	Nb	Ni	O	P	Pt	Re	Ru	S	Si	Ta	Ti	V	W	Y	Zr
+phase_name =
+	A15	A2B_oS12	A2B_tI6	A4B	A8B	AB2_oI6	AB2_tI12	AB3_oP16	AB_oS8	A_TiO	Al10V	Al11Cr2	Al11M4	Al11Mn4_HT	Al12M	Al13Co4	Al13Cr2	Al13Ir4	Al13Ru4	Al14Ni2Ru	Al1Fe1O3	Al21Pt5	Al21Pt8	Al23V4	Al2Hf3	Al2Pt	Al2Ru	Al2S3	Al2Y3	Al3Co	Al3Hf2	Al3Hf4	Al3Hf_Alpha	Al3Hf_Beta	Al3Ir	Al3M2	Al3Ni5	Al3Pt5	Al45Ir13	Al4M	Al4Mn	Al4Mn_L	Al4Re	Al5Co2	Al69Ta39	Al6M	Al73Ir27	Al7V	Al8Cr5_H	Al8Cr5_L	Al8Mn5	Al8V5	Al9Co2	Al9Cr4_H	Al9Cr4_L	Al9Ir2	AlNi8Y3	AlPt	AlRe	AlS	AlY	AlY2	Alpha	Alpha_B	Alpha_M5Si3	Alpha_TiMn	B19	B2	B2O3	BCC_A12	BETA_VO	Bcc	Bcc_B2	Beta2_Ni3Si	Beta_B	Beta_Co2Si	Beta_Cr5Si3	Beta_Si4Zr5	Beta_TiMn	CUB_A13	Chi_A12	Co11Zr2	Co17Y2	Co2P	Co3M	Co3Si	Co3Y2	Co3Y4	Co5Y8	Co7Ta2	Co7Y6	CoZr3	Corundum	Cr2B	Cr3Mn5	Cr3Ru	Cr5B3	CrB	CrB4	Cristobalite	Cu15Si4	Cu19Si6	Cu2O	Cu2Y_H	Cu2Y_R	Cu33Si7	Cu3P	Cu3Ti2	Cu4Ti	Cu4Ti3	Cu4Y	Cu6Y	Cu7Y2	CuO	CuTi	D0_19	D0_22	Delta	Diamond_Si	Epsilon_Ni3Si2	Eta	Fcc	Fcc_MC	Fe3Si7	Fe4Re	FeB	FeNb2P	FeNb4P	FeNbP	FeP2	FeP4	FeS	FeS2	FeTiP	GAS	Gamma_Ni5Si2	Gamma_double_prime	Graphite	Halite	Hcp	Hcp_M2C	HfMn	HfSiO4	Ir2Y3	Ir2Y5	Ir3Y5	IrY3	L10	L12_FCC	L_Sigma_CrMn	Laves_C14	Laves_C15	Laves_C36	Liquid	M17Y2	M23C6	M23N6	M2B	M2P	M2Si_oP12	M2Si_tI12	M3B2	M3BC	M3C2	M3P	M3Si2	M3Si_cF16	M3Si_cP8	M3Si_tP32	M3Y	M4C3	M5Si3	M5Si4	M5Y	M6C	M7C3	M7Y2	MB2	MP	MSi2_cF12	MSi2_hP9	MSi2_oC12	MSi2_oC48	MSi2_tI6	MSi_cP8	MSi_oC8	MSi_oP8	Mn11Si19	Mn12Y	Mn3O4_A	Mn3O4_B	Mn3P2	Mn3Ti	Mn4Ti	Mn5Si3	Mn6Si	Mn9Si2	MnNi2	MnP4	MnPt7	MnS	Mo2S3	Mo3P	Mo4O11	Mo8O23	Mo9O26	MoO3	MoP	MoS2	Mu_Phase	Nb2O5	Nb3P	Nb7P4	NbO	NbO2	NbP	NbP2	Ni10Hf7	Ni11Hf9	Ni12P5_H	Ni12P5_L	Ni16Si7Ti6	Ni21Hf8	Ni2Y3	Ni3Hf_Alpha	Ni3Hf_Beta	Ni3S2	Ni4Y	Ni5Hf	Ni5P2_H	Ni5P2_L	Ni5P4	Ni6AlTa	Ni7Hf2	Ni7Hf3	NiHf_Beta	NiMo	NiP2	NiS2	NiTiZr	NiV3	NiY	Orthorhombic	P4O10	P_Phase	P_Red	P_White	Phi	Pt2Si_beta	PtTa	PtTa6	Quartz	R_Phase	Re24Zr5	Re25Zr21	Re2O7	Re2Si	ReO2	ReO3	Ru25Y44	Ru2Si3	Ru2Y3	Ru2Y5	Ru4Si3	Ru5Ta3	RuY3	Rutile	Shp_MC	Si2Y_H	Si2Y_R	Si4Y5	Si5V6	Si5Y3_H	Si5Y3_R	SiO_AM	Sigma	Spinel	Ta2O5_S	Ta2O5_S2	TaV2_C14	TaV2_C15	Tau2_AlNiZr	Theta_Ni2Si	Ti10O19	Ti20O39	Ti2CS	Ti2S	Ti3O2	Ti3O5	Ti3P	Ti4O7	Ti4P3	Ti5Al11	Ti5O9	Ti5P3	Ti63P37	Ti6O11	Ti7O13	Ti8O15	Ti8S10	Ti8S3	Ti8S9	Ti9O17	TiAl2	TiOx	TiP	TiP2	TiS2	TiS3	TiSi2	Tridymite	V2B3	V2O5	V2O_SS	V3B4	V3O5_HT	V3O5_LT	V3O7	V4O7	V52O64	V5B6	V5O9	V6O11	V6O13	V7O13	V8O15	VO2	WO272	WO290	WO296	WO3_A	WO3_B	Y2O3_cub	Y2O3_hex	Zr2O	Zr3O	Zr6O	ZrO2_Cubic	ZrO2_Tetragonal	alpha_Al3Y	m_Ni4B3	o_Ni4B3
+
+
+========= Point 1 =========
+############## Point 1#############
+Temperature 800
+Phase Name = L12_FCC
+Ni 0.998512
+Al 0.00148236
+Mo 5.63725e-06
+Phase Name = L12_FCC
+Ni 0.769115
+Al 0.227008
+Mo 0.00387766
+
+############## Point 2#############
+Temperature 810
+Phase Name = L12_FCC
+Ni 0.998323
+Al 0.00167042
+Mo 6.84519e-06
+Phase Name = L12_FCC
+Ni 0.770217
+Al 0.225919
+Mo 0.00386345
+
+############## Point 3#############
+Temperature 820
+Phase Name = L12_FCC
+Ni 0.998114
+Al 0.0018778
+Mo 8.27916e-06
+Phase Name = L12_FCC
+Ni 0.771349
+Al 0.224802
+Mo 0.00384893
+
+############## Point 4#############
+Temperature 830
+Phase Name = L12_FCC
+Ni 0.997884
+Al 0.00210615
+Mo 9.9749e-06
+Phase Name = L12_FCC
+Ni 0.772511
+Al 0.223655
+Mo 0.00383409
+
+############## Point 5#############
+Temperature 840
+Phase Name = L12_FCC
+Ni 0.997631
+Al 0.00235724
+Mo 1.19726e-05
+Phase Name = L12_FCC
+Ni 0.773702
+Al 0.22248
+Mo 0.00381891
+
+############## Point 6#############
+Temperature 850
+Phase Name = L12_FCC
+Ni 0.997353
+Al 0.00263298
+Mo 1.43175e-05
+Phase Name = L12_FCC
+Ni 0.77492
+Al 0.221277
+Mo 0.00380339
+
+############## Point 7#############
+Temperature 860
+Phase Name = L12_FCC
+Ni 0.997047
+Al 0.00293548
+Mo 1.70596e-05
+Phase Name = L12_FCC
+Ni 0.776166
+Al 0.220047
+Mo 0.00378751
+
+############## Point 8#############
+Temperature 870
+Phase Name = L12_FCC
+Ni 0.996713
+Al 0.00326704
+Mo 2.02551e-05
+Phase Name = L12_FCC
+Ni 0.777438
+Al 0.218791
+Mo 0.00377124
+
+############## Point 9#############
+Temperature 880
+Phase Name = L12_FCC
+Ni 0.996346
+Al 0.00363018
+Mo 2.39657e-05
+Phase Name = L12_FCC
+Ni 0.778736
+Al 0.217509
+Mo 0.00375456
+
+############## Point 10#############
+Temperature 890
+Phase Name = L12_FCC
+Ni 0.995944
+Al 0.00402769
+Mo 2.82599e-05
+Phase Name = L12_FCC
+Ni 0.780059
+Al 0.216203
+Mo 0.00373745
+
+############## Point 11#############
+Temperature 900
+Phase Name = L12_FCC
+Ni 0.995504
+Al 0.00446265
+Mo 3.32125e-05
+Phase Name = L12_FCC
+Ni 0.781407
+Al 0.214873
+Mo 0.00371988
+
+############## Point 12#############
+Temperature 910
+Phase Name = L12_FCC
+Ni 0.995023
+Al 0.00493851
+Mo 3.89055e-05
+Phase Name = L12_FCC
+Ni 0.782778
+Al 0.21352
+Mo 0.00370182
+
+############## Point 13#############
+Temperature 920
+Phase Name = L12_FCC
+Ni 0.994495
+Al 0.00545909
+Mo 4.54284e-05
+Phase Name = L12_FCC
+Ni 0.784172
+Al 0.212144
+Mo 0.00368325
+
+############## Point 14#############
+Temperature 930
+Phase Name = L12_FCC
+Ni 0.993918
+Al 0.00602869
+Mo 5.28783e-05
+Phase Name = L12_FCC
+Ni 0.785588
+Al 0.210747
+Mo 0.00366416
+
+############## Point 15#############
+Temperature 940
+Phase Name = L12_FCC
+Ni 0.993286
+Al 0.00665216
+Mo 6.13601e-05
+Phase Name = L12_FCC
+Ni 0.787025
+Al 0.20933
+Mo 0.00364451
+
+############## Point 16#############
+Temperature 950
+Phase Name = L12_FCC
+Ni 0.992594
+Al 0.00733499
+Mo 7.09871e-05
+Phase Name = L12_FCC
+Ni 0.788483
+Al 0.207893
+Mo 0.00362432
+
+############## Point 17#############
+Temperature 960
+Phase Name = L12_FCC
+Ni 0.991835
+Al 0.00808344
+Mo 8.18808e-05
+Phase Name = L12_FCC
+Ni 0.789959
+Al 0.206438
+Mo 0.00360358
+
+############## Point 18#############
+Temperature 970
+Phase Name = L12_FCC
+Ni 0.991001
+Al 0.00890462
+Mo 9.41718e-05
+Phase Name = L12_FCC
+Ni 0.791453
+Al 0.204965
+Mo 0.00358232
+
+############## Point 19#############
+Temperature 980
+Phase Name = L12_FCC
+Ni 0.990085
+Al 0.00980674
+Mo 0.000107999
+Phase Name = L12_FCC
+Ni 0.792964
+Al 0.203476
+Mo 0.00356059
+
+############## Point 20#############
+Temperature 990
+Phase Name = L12_FCC
+Ni 0.989077
+Al 0.0107992
+Mo 0.000123513
+Phase Name = L12_FCC
+Ni 0.79449
+Al 0.201971
+Mo 0.00353847
+
+############## Point 21#############
+Temperature 1000
+Phase Name = L12_FCC
+Ni 0.987966
+Al 0.0118929
+Mo 0.00014087
+Phase Name = L12_FCC
+Ni 0.796031
+Al 0.200453
+Mo 0.00351608
+
+############## Point 22#############
+Temperature 1010
+Phase Name = L12_FCC
+Ni 0.986739
+Al 0.0131005
+Mo 0.000160242
+Phase Name = L12_FCC
+Ni 0.797583
+Al 0.198923
+Mo 0.00349359
+
+############## Point 23#############
+Temperature 1020
+Phase Name = L12_FCC
+Ni 0.985382
+Al 0.0144364
+Mo 0.000181809
+Phase Name = L12_FCC
+Ni 0.799146
+Al 0.197383
+Mo 0.00347126
+
+############## Point 24#############
+Temperature 1030
+Phase Name = L12_FCC
+Ni 0.983877
+Al 0.0159175
+Mo 0.000205766
+Phase Name = L12_FCC
+Ni 0.800717
+Al 0.195834
+Mo 0.00344941
+
+############## Point 25#############
+Temperature 1040
+Phase Name = L12_FCC
+Ni 0.982205
+Al 0.0175629
+Mo 0.000232324
+Phase Name = L12_FCC
+Ni 0.802293
+Al 0.194279
+Mo 0.00342846
+
+############## Point 26#############
+Temperature 1050
+Phase Name = L12_FCC
+Ni 0.980344
+Al 0.0193939
+Mo 0.000261712
+Phase Name = L12_FCC
+Ni 0.80387
+Al 0.192721
+Mo 0.00340898
+
+############## Point 27#############
+Temperature 1060
+Phase Name = L12_FCC
+Ni 0.978272
+Al 0.0214338
+Mo 0.000294179
+Phase Name = L12_FCC
+Ni 0.805445
+Al 0.191163
+Mo 0.00339166
+
+############## Point 28#############
+Temperature 1070
+Phase Name = L12_FCC
+Ni 0.975963
+Al 0.0237066
+Mo 0.000329999
+Phase Name = L12_FCC
+Ni 0.807013
+Al 0.18961
+Mo 0.00337732
+
+############## Point 29#############
+Temperature 1080
+Phase Name = L12_FCC
+Ni 0.973396
+Al 0.0262342
+Mo 0.00036947
+Phase Name = L12_FCC
+Ni 0.808568
+Al 0.188065
+Mo 0.00336692
+
+############## Point 30#############
+Temperature 1090
+Phase Name = L12_FCC
+Ni 0.970555
+Al 0.0290326
+Mo 0.000412909
+Phase Name = L12_FCC
+Ni 0.810103
+Al 0.186535
+Mo 0.00336138
+
+############## Point 31#############
+Temperature 1100
+Phase Name = L12_FCC
+Ni 0.967434
+Al 0.0321058
+Mo 0.000460633
+Phase Name = L12_FCC
+Ni 0.811612
+Al 0.185026
+Mo 0.00336147
+
+############## Point 32#############
+Temperature 1110
+Phase Name = L12_FCC
+Ni 0.964048
+Al 0.0354392
+Mo 0.00051292
+Phase Name = L12_FCC
+Ni 0.813088
+Al 0.183545
+Mo 0.0033675
+
+############## Point 33#############
+Temperature 1120
+Phase Name = L12_FCC
+Ni 0.960434
+Al 0.0389956
+Mo 0.000569955
+Phase Name = L12_FCC
+Ni 0.814522
+Al 0.182099
+Mo 0.00337894
+
+############## Point 34#############
+Temperature 1130
+Phase Name = L12_FCC
+Ni 0.956652
+Al 0.0427164
+Mo 0.000631753
+Phase Name = L12_FCC
+Ni 0.815909
+Al 0.180696
+Mo 0.00339421
+
+############## Point 35#############
+Temperature 1140
+Phase Name = L12_FCC
+Ni 0.952771
+Al 0.0465308
+Mo 0.000698096
+Phase Name = L12_FCC
+Ni 0.817245
+Al 0.179344
+Mo 0.00341064
+
+############## Point 36#############
+Temperature 1150
+Phase Name = L12_FCC
+Ni 0.948863
+Al 0.0503688
+Mo 0.000768485
+Phase Name = L12_FCC
+Ni 0.818526
+Al 0.178049
+Mo 0.00342472
+
+############## Point 37#############
+Temperature 1160
+Phase Name = L12_FCC
+Ni 0.944985
+Al 0.0541724
+Mo 0.000842129
+Phase Name = L12_FCC
+Ni 0.819751
+Al 0.176816
+Mo 0.00343261
+
+############## Point 38#############
+Temperature 1170
+Phase Name = L12_FCC
+Ni 0.941181
+Al 0.0579008
+Mo 0.000917958
+Phase Name = L12_FCC
+Ni 0.82092
+Al 0.17565
+Mo 0.00343052
+
+############## Point 39#############
+Temperature 1180
+Phase Name = L12_FCC
+Ni 0.937475
+Al 0.0615302
+Mo 0.000994639
+Phase Name = L12_FCC
+Ni 0.822031
+Al 0.174554
+Mo 0.00341511
+
+############## Point 40#############
+Temperature 1190
+Phase Name = L12_FCC
+Ni 0.933879
+Al 0.0650502
+Mo 0.00107062
+Phase Name = L12_FCC
+Ni 0.823086
+Al 0.17353
+Mo 0.00338361
+
+############## Point 41#############
+Temperature 1200
+Phase Name = L12_FCC
+Ni 0.930396
+Al 0.0684597
+Mo 0.00114417
+Phase Name = L12_FCC
+Ni 0.824085
+Al 0.172581
+Mo 0.00333402
+
+
+
+========= End of Example 8 =========
+

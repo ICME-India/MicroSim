@@ -11,188 +11,170 @@ void decomposeDomain(domainInfo simDomain, controls *simControls, subdomainInfo 
 {
     // Assign subdomain its rank
     subdomain->rank = rank;
+    subdomain->size = size;
     subdomain->padding = simControls->padding;
 
     /*
      * In 3-D, decomposition is done along the z-axis
      */
-    if (simDomain.DIMENSION == 3 && simDomain.MESH_Z >= size)
+    if (simDomain.DIMENSION == 3)
     {
-        // x-axis
-        subdomain->xS = 0;
-        subdomain->xE = simDomain.MESH_X-1;
-        subdomain->sizeX = subdomain->xE - subdomain->xS + 1 + 2*simControls->padding;
-        subdomain->numCells = subdomain->sizeX - 2*simControls->padding;
-        subdomain->numCompCells = subdomain->sizeX;
-
-        // Decomposing along the y-axis
-        subdomain->yS = 0;
-        subdomain->yE = simDomain.MESH_Y-1;
-        subdomain->sizeY = subdomain->yE - subdomain->yS + 1 + 2*simControls->padding;
-        subdomain->numCells *= subdomain->sizeY - 2*simControls->padding;
-        subdomain->numCompCells *= subdomain->sizeY;
-
-        if (simDomain.MESH_Z % size == 0)
-        {
-            // Decomposing along the z-axis
-            subdomain->zS = simDomain.MESH_Z*rank/size;
-            subdomain->zE = simDomain.MESH_Z*(rank + 1)/size - 1;
-        }
-        else
-        {
-            if (rank < simDomain.MESH_Z % size)
-            {
-                subdomain->zS = simDomain.MESH_Z*rank/size + rank;
-                subdomain->zE = simDomain.MESH_Z*(rank + 1)/size + rank;
-            }
-            else
-            {
-                subdomain->zS = simDomain.MESH_Z*rank/size + (simDomain.MESH_Z % size);
-                subdomain->zE = simDomain.MESH_Z*(rank + 1)/size + (simDomain.MESH_Z % size) - 1;
-            }
-        }
-
-        subdomain->sizeZ = subdomain->zE - subdomain->zS + 1 + 2*simControls->padding;
-        subdomain->numCells *= subdomain->sizeZ - 2*simControls->padding;
-        subdomain->numCompCells *= subdomain->sizeZ;
-
-        subdomain->shiftPointer = simControls->padding*subdomain->sizeX*subdomain->sizeY;
-        subdomain->yStep = subdomain->sizeX;
-        subdomain->zStep = subdomain->sizeX*subdomain->sizeY;
-
-        // Setting neighbours for every block
-        if (rank == 0)
-        {
-            subdomain->nbBack = size - 1;
-            subdomain->nbFront = rank + 1;
-        }
-        else if (rank == size - 1)
-        {
-            subdomain->nbBack = rank - 1;
-            subdomain->nbFront = 0;
-        }
-        else
-        {
-            subdomain->nbBack = rank - 1;
-            subdomain->nbFront = rank + 1;
-        }
-    }
-
-    else if (simDomain.DIMENSION == 2 && simDomain.MESH_Y >= size)
-    {
-        // x-axis
-        subdomain->xS = 0;
-        subdomain->xE = simDomain.MESH_X-1;
-        subdomain->sizeX = subdomain->xE - subdomain->xS + 1 + 2*simControls->padding;
-        subdomain->numCells = subdomain->sizeX - 2*simControls->padding;
-        subdomain->numCompCells = subdomain->sizeX;
-
-        if (simDomain.MESH_Y % size == 0)
-        {
-            // Decomposing along the y-axis
-            subdomain->yS = simDomain.MESH_Y*rank/size;
-            subdomain->yE = simDomain.MESH_Y*(rank + 1)/size - 1;
-        }
-        else
-        {
-            if (rank < simDomain.MESH_Y % size)
-            {
-                subdomain->yS = simDomain.MESH_Y*rank/size + rank;
-                subdomain->yE = simDomain.MESH_Y*(rank + 1)/size + rank;
-            }
-            else
-            {
-                subdomain->yS = simDomain.MESH_Y*rank/size + (simDomain.MESH_Y % size);
-                subdomain->yE = simDomain.MESH_Y*(rank + 1)/size + (simDomain.MESH_Y % size) - 1;
-            }
-        }
-
-        subdomain->sizeY = subdomain->yE - subdomain->yS + 1 + 2*simControls->padding;
-        subdomain->numCells *= subdomain->sizeY - 2*simControls->padding;
-        subdomain->numCompCells *= subdomain->sizeY;
-
-        simDomain.MESH_Z = 1;
+        // z-axis
         subdomain->zS = 0;
-        subdomain->zE = 0;
-        subdomain->sizeZ = 3;
+        subdomain->zE = simDomain.MESH_Z;
 
-        subdomain->shiftPointer = simControls->padding*subdomain->sizeX;
-        subdomain->yStep = subdomain->sizeX;
-        subdomain->zStep = 0;
+        subdomain->zS_c = 0;
+        subdomain->zE_c = simDomain.MESH_Z + 2*subdomain->padding;
 
-        // Setting neighbours for every block
-        if (rank == 0)
-        {
-            subdomain->nbBack = size - 1;
-            subdomain->nbFront = rank + 1;
-        }
-        else if (rank == size - 1)
-        {
-            subdomain->nbBack = rank - 1;
-            subdomain->nbFront = 0;
-        }
-        else
-        {
-            subdomain->nbBack = rank - 1;
-            subdomain->nbFront = rank + 1;
-        }
+        subdomain->zS_r = subdomain->padding;
+        subdomain->zE_r = simDomain.MESH_Z + subdomain->padding;
+
+        subdomain->numZ = subdomain->zE - subdomain->zS ;
+        subdomain->sizeZ = subdomain->zE_c - subdomain->zS_c;
+        subdomain->numCells = subdomain->numZ;
+        subdomain->numCompCells = subdomain->sizeZ;
+
+        // y-axis
+        subdomain->yS = 0;
+        subdomain->yE = simDomain.MESH_Y;
+
+        subdomain->yS_c = 0;
+        subdomain->yE_c = simDomain.MESH_Y + 2*subdomain->padding;
+
+        subdomain->yS_r = subdomain->padding;
+        subdomain->yE_r = simDomain.MESH_Y + subdomain->padding;
+
+        subdomain->numY = subdomain->yE - subdomain->yS;
+        subdomain->sizeY = subdomain->yE_c - subdomain->yS_c;
+        subdomain->numCells *= subdomain->numY;
+        subdomain->numCompCells *= subdomain->sizeY;
+    }
+    else if (simDomain.DIMENSION == 2)
+    {
+        // z-axis
+        subdomain->zS = 0;
+        subdomain->zE = 1;
+
+        subdomain->zS_c = 0;
+        subdomain->zE_c = 1;
+
+        subdomain->zS_r = 0;
+        subdomain->zE_r = 1;
+
+        subdomain->numZ = subdomain->zE - subdomain->zS;
+        subdomain->sizeZ = subdomain->zE_c - subdomain->zS_c;
+        subdomain->numCells = subdomain->numZ;
+        subdomain->numCompCells = subdomain->sizeZ;
+
+        // y-axis
+        subdomain->yS = 0;
+        subdomain->yE = simDomain.MESH_Y;
+
+        subdomain->yS_c = 0;
+        subdomain->yE_c = simDomain.MESH_Y + 2*subdomain->padding;
+
+        subdomain->yS_r = subdomain->padding;
+        subdomain->yE_r = simDomain.MESH_Y + subdomain->padding;
+
+        subdomain->numY = subdomain->yE - subdomain->yS;
+        subdomain->sizeY = subdomain->yE_c - subdomain->yS_c;
+        subdomain->numCells *= subdomain->numY;
+        subdomain->numCompCells *= subdomain->sizeY;
+
     }
     else if (simDomain.DIMENSION == 1)
     {
-        if (simDomain.MESH_X % size == 0)
-        {
-            // Decomposing along the y-axis
-            subdomain->xS = simDomain.MESH_X*rank/size;
-            subdomain->xE = simDomain.MESH_X*(rank + 1)/size - 1;
-        }
-        else
-        {
-            if (rank < simDomain.MESH_X % size)
-            {
-                subdomain->xS = simDomain.MESH_X*rank/size + rank;
-                subdomain->xE = simDomain.MESH_X*(rank + 1)/size + rank;
-            }
-            else
-            {
-                subdomain->xS = simDomain.MESH_X*rank/size + (simDomain.MESH_X % size);
-                subdomain->xE = simDomain.MESH_X*(rank + 1)/size + (simDomain.MESH_X % size) - 1;
-            }
-        }
-
-        subdomain->sizeX = subdomain->xE - subdomain->xS + 1 + 2*simControls->padding;
-        subdomain->numCells = subdomain->sizeX - 2*simControls->padding;
-        subdomain->numCompCells = subdomain->sizeX;
-
-        simDomain.MESH_Y = 1;
-        subdomain->yS = 0;
-        subdomain->yE = 0;
-        subdomain->sizeY = 3;
-
-        simDomain.MESH_Z = 1;
+        // z-axis
         subdomain->zS = 0;
-        subdomain->zE = 0;
-        subdomain->sizeZ = 3;
+        subdomain->zE = 1;
 
-        subdomain->shiftPointer = simControls->padding;
-        subdomain->yStep = 0;
-        subdomain->zStep = 0;
+        subdomain->zS_c = 0;
+        subdomain->zE_c = 1;
 
-        // Setting neighbours for every block
-        if (rank == 0)
-        {
-            subdomain->nbBack = size - 1;
-            subdomain->nbFront = rank + 1;
-        }
-        else if (rank == size - 1)
-        {
-            subdomain->nbBack = rank - 1;
-            subdomain->nbFront = 0;
-        }
-        else
-        {
-            subdomain->nbBack = rank - 1;
-            subdomain->nbFront = rank + 1;
-        }
+        subdomain->zS_r = 0;
+        subdomain->zE_r = 1;
+
+        subdomain->numZ = subdomain->zE - subdomain->zS;
+        subdomain->sizeZ = subdomain->zE_c - subdomain->zS_c;
+        subdomain->numCells = subdomain->numZ;
+        subdomain->numCompCells = subdomain->sizeZ;
+
+        // y-axis
+        subdomain->yS = 0;
+        subdomain->yE = 1;
+
+        subdomain->yS_c = 0;
+        subdomain->yE_c = 1;
+
+        subdomain->yS_r = 0;
+        subdomain->yE_r = 1;
+
+        subdomain->numY = subdomain->yE - subdomain->yS;
+        subdomain->sizeY = subdomain->yE_c - subdomain->yS_c;
+        subdomain->numCells *= subdomain->numY;
+        subdomain->numCompCells *= subdomain->sizeY;
+    }
+
+    // Decomposing along the x-axis
+    int ranks_cutoff = simDomain.MESH_X % size;
+    size_t my_nx = (simDomain.MESH_X / size) + (rank < ranks_cutoff ? 1 : 0);
+
+    if (size > 1)
+        subdomain->xS = (rank < ranks_cutoff ? rank*my_nx : ranks_cutoff*(my_nx+1) + (rank - ranks_cutoff)*my_nx);
+    else
+        subdomain->xS = 0;
+
+    subdomain->xE = subdomain->xS + my_nx;
+
+    subdomain->xS_c = 0;
+    subdomain->xE_c = my_nx + 2*subdomain->padding;
+
+    subdomain->xS_r = subdomain->padding;
+    subdomain->xE_r = my_nx + subdomain->padding;
+
+    subdomain->numX = subdomain->xE - subdomain->xS;
+    subdomain->sizeX = subdomain->xE_c - subdomain->xS_c;
+    subdomain->numCells *= subdomain->numX;
+    subdomain->numCompCells *= subdomain->sizeX;
+
+    subdomain->shiftPointer = simControls->padding*subdomain->sizeY*subdomain->sizeZ;
+
+    subdomain->xStep = subdomain->sizeY*subdomain->sizeZ;
+    subdomain->yStep = subdomain->sizeZ;
+    subdomain->zStep = 1;
+
+    // Setting neighbours for every block
+    if (rank == 0 && size)
+    {
+        subdomain->nbBack = size - 1;
+        subdomain->nbFront = rank + 1;
+    }
+    else if (rank == size - 1 && size)
+    {
+        subdomain->nbBack = rank - 1;
+        subdomain->nbFront = 0;
+    }
+    else if (size)
+    {
+        subdomain->nbBack = rank - 1;
+        subdomain->nbFront = rank + 1;
+    }
+    else
+    {
+        subdomain->nbBack = 0;
+        subdomain->nbFront = 0;
+    }
+
+    if (rank == 0)
+    {
+        printf("\nCompleted domain decomposition\n");
+
+        printf("Subdomain information for rank 0:\n");
+        printf("Size: (%ld, %ld, %ld)\n", subdomain->sizeX, subdomain->sizeY, subdomain->sizeZ);
+        printf("Boundary: (x: (%ld, %ld), y:(%ld, %ld), z:(%ld, %ld))\n", subdomain->xS, subdomain->xE, subdomain->yS, subdomain->yE, subdomain->zS, subdomain->zE);
+        printf("Computational Boundary: (x: (%ld, %ld), y:(%ld, %ld), z:(%ld, %ld))\n", subdomain->xS_c, subdomain->xE_c, subdomain->yS_c, subdomain->yE_c, subdomain->zS_c, subdomain->zE_c);
+        printf("Steps: (%ld, %ld, %ld)\n", subdomain->xStep, subdomain->yStep, subdomain->zStep);
+        printf("Num. Cells: %ld, Num. Comp. Cells: %ld, Shift Pointer: %ld\n", subdomain->numCells, subdomain->numCompCells, subdomain->shiftPointer);
     }
 }
 
@@ -229,6 +211,36 @@ void moveParamsToGPU(domainInfo *simDomain, controls *simControls, simParameters
         }
     }
 
+    simControls->antiTrapping = 0;
+
+    // for (int i = 0; i < simDomain->numPhases; i++)
+    // {
+    //     for (int j = 0; j < simDomain->numComponents-1; j++)
+    //     {
+    //         for (int k = 0; k < simDomain->numComponents-1; k++)
+    //         {
+    //             if (simParams->diffusivity_host[i][j][k] == 0.0)
+    //             {
+    //                 simControls->antiTrapping = 1;
+    //             }
+    //         }
+    //     }
+    // }
+
+    // Eigen-strain
+    for (int i = 0; i < simDomain->numPhases; i++)
+    {
+        if (simParams->eigen_strain[i].xx == 0.0 && simParams->eigen_strain[i].yy == 0.0 && simParams->eigen_strain[i].zz == 0.0 && simParams->eigen_strain[i].xy == 0.0 && simParams->eigen_strain[i].xz == 0.0 && simParams->eigen_strain[i].yz == 0.0)
+        {
+            simControls->eigenSwitch[i] = 0;
+
+        }
+        else
+        {
+            simControls->eigenSwitch[i] = 1;
+        }
+    }
+
     // Calculate phase-field mobility
     calculateTau(simDomain, simControls, simParams);
 
@@ -252,8 +264,9 @@ void moveParamsToGPU(domainInfo *simDomain, controls *simControls, simParameters
             {
                 for (int l = 0; l < 3; l++)
                 {
-                    cudaMemcpy(&simParams->Rotation_matrix_dev[((i*simDomain->numPhases + j)*simDomain->numPhases + k)*3 + l], &simParams->Rotation_matrix_host[i][j][k][l], sizeof(double),cudaMemcpyHostToDevice);
-                    cudaMemcpy(&simParams->Inv_Rotation_matrix_dev[((i*simDomain->numPhases + j)*simDomain->numPhases + k)*3 + l], &simParams->Inv_Rotation_matrix_host[i][j][k][l], sizeof(double),cudaMemcpyHostToDevice);
+                    //printf("%d\t%d\t%d\t%d\t%le\n", i, j, k, l, simParams->Rotation_matrix_host[i][j][k][l]);
+                    cudaMemcpy(&simParams->Rotation_matrix_dev[((i*simDomain->numPhases + j)*3 + k)*3 + l], &simParams->Rotation_matrix_host[i][j][k][l], sizeof(double),cudaMemcpyHostToDevice);
+                    cudaMemcpy(&simParams->Inv_Rotation_matrix_dev[((i*simDomain->numPhases + j)*3 + k)*3 + l], &simParams->Inv_Rotation_matrix_host[i][j][k][l], sizeof(double),cudaMemcpyHostToDevice);
                 }
             }
 
@@ -307,8 +320,8 @@ void calcKernelParams(dim3 *gridSize, dim3 *blockSize, domainInfo simDomain, con
     }
     else if (simDomain.DIMENSION == 2)
     {
-        blockSize->x = 16;
-        blockSize->y = 16;
+        blockSize->x = 2;
+        blockSize->y = 128;
         blockSize->z = 1;
 
         gridSize->x = ceil(subdomain->sizeX/blockSize->x);
@@ -323,9 +336,9 @@ void calcKernelParams(dim3 *gridSize, dim3 *blockSize, domainInfo simDomain, con
     }
     else if (simDomain.DIMENSION == 3)
     {
-        blockSize->x = 8;
+        blockSize->x = 4;
         blockSize->y = 8;
-        blockSize->z = 4;
+        blockSize->z = 8;
 
         gridSize->x = ceil(subdomain->sizeX/blockSize->x);
         if (subdomain->sizeX % blockSize->x)
@@ -341,5 +354,5 @@ void calcKernelParams(dim3 *gridSize, dim3 *blockSize, domainInfo simDomain, con
     }
 
     if (subdomain->rank == 0)
-        printf("\nGrid size: (%ld, %ld, %ld)\nBlock size: (%ld, %ld, %ld)\n\n", gridSize->x, gridSize->y, gridSize->z, blockSize->x, blockSize->y, blockSize->z);
+        printf("\nGrid size: (%ld, %ld, %ld)\nBlock size: (%ld, %ld, %ld)\n\n", (long)gridSize->x, (long)gridSize->y, (long)gridSize->z, (long)blockSize->x, (long)blockSize->y, (long)blockSize->z);
 }

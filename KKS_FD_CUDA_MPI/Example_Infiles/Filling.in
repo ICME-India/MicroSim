@@ -1,10 +1,7 @@
-##FILLCYLINDER = {phase, x_centre, y_centre, z_start, z_end, radius};
-FILLCYLINDER = {1, 50, 50, 0, 0, 16};
-FILLCYLINDER = {2, 100, 100, 0, 0, 16};
-FILLCYLINDER = {3, 150, 150, 0, 0, 16};
-##FILLSPHERE = {phase, x_centre, y_centre, z_centre, radius};
-#FILLSPHERE = {1, 64, 64, 64, 16};
-##FILLCYLINDERRANDOM = {phase, ppt_radius, volume_fraction, shield_dist, seed, radius variation};
-#FILLCYLINDERRANDOM = {1, 10, 0.15, 1, 0, 10};
-##FILLSPHERERANDOM = {phase, ppt_radius, volume_fraction, shield_dist, seed, radius variation};
-#FILLSPHERERANDOM = {1, 12, 0.1, 8, 0, 10};
+#FILLCUBE = {0, 10, 10, 0,  20, 20, 0};
+#FILLCUBE = {0, 10, 10, 0,  20, 20, 0};
+##FILLCYLINDER = {phase, x_centre, y_centre, z_start, z_end, radius}
+FILLCYLINDER = {0, 500, 500, 0, 0, 16};
+###FILLELLIPSE = {phase, x_center, y_center, major_axis, eccentricity, rotation_angle_deg}
+#FILLELLIPSE = {0, 50, 50, 0, 10, 0.1, 10};
+#FILLSPHERE = {0, 50, 50, 0, 10};

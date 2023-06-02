@@ -32,11 +32,18 @@ void populate_A_matrix(double ***Mat, char *tmpstr, long NUMCOMPONENTS);
 void populate_thermodynamic_matrix(double ***Mat, char *tmpstr, long NUMCOMPONENTS);
 void populate_string_array(char **string, char *tmpstr, long size);
 void populate_rotation_matrix(double ****Mat, double ****Mat_Inv, char *tmpstr);
+void populate_symmetric_tensor(symmetric_tensor *Mat, char *tmpstr, long NUMPHASES);
+void populate_cubic_stiffness(Stiffness_cubic *Mat, char *tmpstr);
 
 /*
  * Generate random number using user-specified seed.
  */
 double ran(long *idum);
+
+/*
+ *  Allocate a 1d double array
+ */
+double* MallocV(long m);
 
 /*
  * Allocate a 2d double array

@@ -435,12 +435,13 @@ void populate_rotation_matrix(double ****Mat, double ****Mat_Inv, char *tmpstr)
     double **Ry;
     double **Rz;
     double **mult;
+ //   double **LUTemp;
 
     Rx     = MallocM(3,3);
     Ry     = MallocM(3,3);
     Rz     = MallocM(3,3);
     mult   = MallocM(3,3);
-
+  //  LUTemp = MallocM(3,3);
 
     tmp = (char**)malloc(sizeof(char*)*len);
     for (i = 0; i < len; ++i) {
@@ -474,16 +475,23 @@ void populate_rotation_matrix(double ****Mat, double ****Mat_Inv, char *tmpstr)
 
     int P[4];
 
-    LUPDecompose(Mat[phase1][phase2], 3, 0.000001, P);
-    LUPInvert(Mat[phase1][phase2], P, 3, Mat_Inv[phase1][phase2]);
+    // for (i=0; i<3; i++) {
+    //     for (j=0; j<3; j++) {
+    //         LUTemp[i][j] = Mat[phase1][phase2][i][j];
+    //     }
+    // }
+
+    // LUPDecompose(LUTemp, 3, 0.000001, P);
+    // LUPInvert(LUTemp, P, 3, Mat_Inv[phase1][phase2]);
+    matinvnew(Mat[phase1][phase2], Mat_Inv[phase1][phase2], 3);
 
     for (i=0; i<3; i++) {
         for (j=0; j<3; j++) {
             Mat[phase2][phase1][i][j]     = Mat[phase1][phase2][i][j];
             Mat_Inv[phase2][phase1][i][j] = Mat_Inv[phase1][phase2][i][j];
-            //       printf("%le ",Mat_Inv[phase2][phase1][i][j]);
+                   //printf("%le ",Mat[phase1][phase2][i][j]);
         }
-        //     printf("\n");
+            // printf("\n");
     }
 
     //   exit(0);
@@ -492,6 +500,7 @@ void populate_rotation_matrix(double ****Mat, double ****Mat_Inv, char *tmpstr)
     FreeM(Ry, 3);
     FreeM(Rz, 3);
     FreeM(mult, 3);
+  //  FreeM(LUTemp, 3);
 
     for (i = 0; i < len; ++i) {
         free(tmp[i]);
@@ -500,22 +509,112 @@ void populate_rotation_matrix(double ****Mat, double ****Mat_Inv, char *tmpstr)
     tmp = NULL;
 }
 
+void populate_symmetric_tensor(symmetric_tensor *Mat, char *tmpstr, long NUMPHASES)
+{
+    char **tmp;
+    char *str1, *str2, *token;
+    char *saveptr1, *saveptr2;
+
+    int i, j, k, l;
+    long len = 7;
+    long phase;
+
+    tmp = (char**)malloc(sizeof(char*)*len);
+    for (i = 0; i < len; ++i)
+    {
+        tmp[i] = (char*)malloc(sizeof(char)*10);
+    }
+
+    for (i = 0, str1 = tmpstr; ; i++, str1 = NULL)
+    {
+        token = strtok_r(str1, "{,}", &saveptr1);
+        if (token == NULL)
+            break;
+        strcpy(tmp[i],token);
+    }
+    phase = atoi(tmp[0]);
+
+    Mat[phase].xx = atof(tmp[1]);
+    Mat[phase].yy = atof(tmp[2]);
+    Mat[phase].zz = atof(tmp[3]);
+    Mat[phase].yz = atof(tmp[4]);
+    Mat[phase].xz = atof(tmp[5]);
+    Mat[phase].xy = atof(tmp[6]);
+
+
+    for (i = 0; i < len; ++i)
+    {
+        free(tmp[i]);
+    }
+    free(tmp);
+    tmp = NULL;
+}
+
+void populate_cubic_stiffness(Stiffness_cubic *Mat, char *tmpstr)
+{
+    char **tmp;
+    char *str1, *str2, *token;
+    char *saveptr1, *saveptr2;
+    int i, l;
+
+    long len = 4;
+    long phase;
+
+    tmp = (char**)malloc(sizeof(char*)*len);
+    for (i = 0; i < len; ++i)
+    {
+        tmp[i] = (char*)malloc(sizeof(char)*10);
+    }
+
+    for (i = 0, str1 = tmpstr; ; i++, str1 = NULL)
+    {
+        token = strtok_r(str1, "{,}", &saveptr1);
+        if (token == NULL)
+            break;
+        strcpy(tmp[i],token);
+    }
+
+    phase = atoi(tmp[0]);
+
+    Mat[phase].C11 = atof(tmp[1]);
+    Mat[phase].C12 = atof(tmp[2]);
+    Mat[phase].C44 = atof(tmp[3]);
+
+    for (i = 0; i < len; ++i)
+    {
+        free(tmp[i]);
+    }
+    free(tmp);
+    tmp = NULL;
+}
+
+double* MallocV(long m)
+{
+    double *Mat;
+    Mat = (double*)malloc(m*sizeof(*Mat));
+    return Mat;
+}
+
 double** MallocM(long a, long b)
 {
-    long i;
+    long i, j;
     double** Mat;
 
     Mat = (double**)malloc(a*sizeof(**Mat));
 
     for (i = 0; i < a; i++)
+    {
         Mat[i] = (double*)malloc(b*sizeof(*Mat[i]));
+        for (j = 0; j < b; j++)
+            Mat[i][j] = 0.0;
+    }
 
     return Mat;
 }
 
 double*** Malloc3M(long a, long b, long c)
 {
-    long i, j;
+    long i, j, k;
     double*** Mat;
 
     Mat = (double***)malloc(a*sizeof(***Mat));
@@ -524,7 +623,11 @@ double*** Malloc3M(long a, long b, long c)
     {
         Mat[i] = (double**)malloc(b*sizeof(**Mat[i]));
         for (j = 0; j < b; j++)
+        {
             Mat[i][j] = (double *)malloc(c*sizeof(*Mat[i][j]));
+            for (k = 0; k < c; k++)
+                Mat[i][j][k] = 0.0;
+        }
     }
 
     return Mat;
@@ -545,6 +648,8 @@ double**** Malloc4M(long a, long b, long c, long d)
             for (p = 0; p < c; p++)
             {
                 Mat[i][j][p] = (double*)malloc(d*sizeof(*Mat[i][j][p]));
+                for (int q = 0; q < d; q++)
+                    Mat[i][j][p][q] = 0.0;
             }
         }
     }
@@ -672,6 +777,9 @@ void freeVars(domainInfo *simDomain, controls *simControls, simParameters *simPa
     FreeM(simParams->dab_host, simDomain->numPhases);
     cudaFree(simParams->dab_dev);
 
+    free(simParams->eigen_strain);
+    free(simParams->Stiffness_c);
+
     for (long i = 0; i < simDomain->numThermoPhases; i++)
         free(simDomain->phases_tdb[i]);
 
@@ -691,6 +799,8 @@ void freeVars(domainInfo *simDomain, controls *simControls, simParameters *simPa
     free(simDomain->phase_map);
     free(simDomain->thermo_phase_host);
     cudaFree(simDomain->thermo_phase_dev);
+
+    free(simControls->eigenSwitch);
 
     for (long i = 0; i < 6; i++)
     {

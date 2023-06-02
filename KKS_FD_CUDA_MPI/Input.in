@@ -4,20 +4,20 @@ MESH_X = 200;
 MESH_Y = 200;
 MESH_Z = 1;
 ##Discretization, space and time
-DELTA_X = 0.5e-9;
-DELTA_Y = 0.5e-9;
-DELTA_Z = 0.5e-9;
-DELTA_t = 0.02e-5;
+DELTA_X = 1e-8;
+DELTA_Y = 1e-8;
+DELTA_Z = 1e-8;
+DELTA_t = 18e-9;
 ##Number of phases and composition
 NUMPHASES = 2;
 NUMCOMPONENTS = 2;
 #Running and saving information
-NTIMESTEPS = 50000;
-NSMOOTH = 20;
-SAVET = 2000;
+NTIMESTEPS = 2000;
+NSMOOTH = 10;
+SAVET = 100;
 STARTTIME = 0;
 RESTART = 0;
-numworkers = 4;
+numworkers = 2;
 ## Component and Phase names
 # COMPONENTS = {Al,Cu,B};
 COMPONENTS = {Al, Zn};
@@ -26,13 +26,13 @@ PHASES = {alpha, liquid};
 ##GAMMA={12, 13, 14, 23, 24...}
 GAMMA = {0.1};
 # Diffusivity = {Diagonal:0/1, phase, 11,22,33, 12, 13, 23...};
-DIFFUSIVITY = {1, 0, 1e-13};
-DIFFUSIVITY = {1, 1, 1e-13};
+DIFFUSIVITY = {1, 0, 0};
+DIFFUSIVITY = {1, 1, 1e-9};
 ##Gas constant and molar volume
 R = 8.314;
-# V = 10e-6;
 V = 10e-6;
 ##Elasticity related parameters
+ELASTICITY = 0;
 EIGEN_STRAIN = {0, 0.01, 0.01, 0.0, 0.0, 0.0, 0.0};
 EIGEN_STRAIN = {1, 0.01, 0.01, 0.0, 0.0, 0.0, 0.0};
 VOIGT_ISOTROPIC = {0, 270, 187.5, 125.0};
@@ -58,22 +58,22 @@ ISOTHERMAL = 1;
 BINARY = 1;
 #TERNARY
 DILUTE = 0;
-T = 450;
+T = 857;
 ##FILEWRITING and OUTPUTTING TO SCREEN
 ## WRITEFORMAT ASCII/BINARY/HDF5(Only for MPI)
-##TRACK_PROGRESS: interval of writing out the progress of the simulation to stdout.
+##TRACK_PROGRESS: interval of writing out the progress of the simulation to stdout. 
 WRITEFORMAT = ASCII;
 WRITEHDF5 = 0;
-TRACK_PROGRESS = 1;
+TRACK_PROGRESS = 20;
 ##Model-specific parameters: Grand-potential model
 ##Phase-field parameters; epsilon:interface width; it is not the gradient energy coefficient
-epsilon = 4e-9;
+epsilon = 8e-8;
 tau = 1.31;
 Tau = {0.28};
 ##Anisotropy functions
 ##Anisotropy mode, FUNCTION_ANISOTROPY=0 is isotropic
-Function_anisotropy = 0;
-Anisotropy_type = 4;
+Function_anisotropy = 1;
+Anisotropy_type = 4; 
 dab = {0.01};
 #Rotation_matrix = {0, 1, Euler_x(ang), Euler_y(ang), Euler_z(ang)};
 Rotation_matrix = {0, 1, 0, 0, 45};
@@ -86,15 +86,15 @@ Shiftj = 30;
 #Writing of composition fields along with the chemical potential fields
 Writecomposition = 1;
 #Noise
-Noise_phasefield = 0;
+Noise_phasefield = 1;
 Amp_Noise_Phase = 0.1;
 ##Temperature
-Equilibrium_temperature = 500;
-Filling_temperature = 450;
+Equilibrium_temperature = 870;
+Filling_temperature = 857;
 #TEMPGRADY={BASETEMP, DELTAT, DISTANCE, OFFSET, VELOCITY}
-Tempgrady = {856.95, 0.1, 10e-6, 0, 320e-6};
+Tempgrady = {0.96, 0.06, 800.0, 0, 0.016};
 ##Function_F
-Function_F = 3;
+Function_F = 4;
 A = {0, 1};
 A = {1, 1};
 #ceq = {0, 0, 0.83};
@@ -109,23 +109,23 @@ A = {1, 1};
 #slopes = {0, 1, 238};
 #slopes = {1, 0, 238};
 #slopes = {1, 1, 238};
-ceq = {0, 0, 0.00909801};
-ceq = {0, 1, 0.92183358};
-ceq = {1, 1, 0.92183358};
-ceq = {1, 0, 0.92183358};
-cfill = {0, 0, 0.00909801};
-cfill = {0, 1, 0.92183358};
-cfill = {1, 1, 0.92183358};
-cfill = {1, 0, 0.92183358};
-c_guess = {0, 0, 0.00460311};
-c_guess = {0, 1, 0.95417599};
-c_guess = {1, 1, 0.95417599};
-c_guess = {1, 0, 0.95417599};
+ceq = {0, 0, 0.926};
+ceq = {0, 1, 0.817};
+ceq = {1, 1, 0.817};
+ceq = {1, 0, 0.817};
+cfill = {0, 0, 0.926};
+cfill = {0, 1, 0.817};
+cfill = {1, 1, 0.817};
+cfill = {1, 0, 0.817};
+c_guess = {0, 0, 0.909653};
+c_guess = {0, 1, 0.7727};
+c_guess = {1, 1, 0.7727};
+c_guess = {1, 0, 0.7727};
 slopes = {0, 0, 666};
 slopes = {0, 1, 333};
 slopes = {1, 0, 333};
 slopes = {1, 1, 333};
 num_thermo_phases = 2;
 tdbfname = alzn_mey.tdb;
-tdb_phases = {HCP_A3, FCC_A1};
-phase_map = {HCP_A3, FCC_A1};
+tdb_phases = {FCC_A1, LIQUID};
+phase_map = {FCC_A1, LIQUID};

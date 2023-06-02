@@ -5,13 +5,13 @@ void __initMu__(double **phi, double **comp, double **phaseComp, double **mu,
                 long *thermo_phase, double temperature,
                 long NUMPHASES, long NUMCOMPONENTS, long DIMENSION,
                 long sizeX, long sizeY, long sizeZ,
-                long yStep, long zStep, long padding)
+                long xStep, long yStep, long padding)
 {
     long i = threadIdx.x + blockIdx.x * blockDim.x;
     long j = threadIdx.y + blockIdx.y * blockDim.y;
     long k = threadIdx.z + blockIdx.z * blockDim.z;
 
-    long idx = k*zStep + j*yStep + i;
+    long idx = i*xStep + j*yStep + k;
 
     if (i < sizeX && ((j < sizeY && DIMENSION >= 2) || (DIMENSION == 1 && j == 0)) && ((k < sizeZ && DIMENSION == 3) || (DIMENSION < 3 && k == 0)))
     {
@@ -54,13 +54,13 @@ void __calcPhaseComp__(double **phi, double **comp,
                        double *F0_A, double *F0_B, double *F0_C,
                        long NUMPHASES, long NUMCOMPONENTS, long DIMENSION,
                        long sizeX, long sizeY, long sizeZ,
-                       long yStep, long zStep, long padding)
+                       long xStep, long yStep, long padding)
 {
     long i = threadIdx.x + blockIdx.x * blockDim.x;
     long j = threadIdx.y + blockIdx.y * blockDim.y;
     long k = threadIdx.z + blockIdx.z * blockDim.z;
 
-    long idx = k*zStep + j*yStep + i;
+    long idx = i*xStep + j*yStep + k;
 
     // Number of phase compositions
     long N = NUMPHASES*(NUMCOMPONENTS-1);
@@ -170,13 +170,13 @@ void __calcPhaseComp_02__(double **phi, double **comp,
                           double temperature, long *thermo_phase,
                           long NUMPHASES, long NUMCOMPONENTS, long DIMENSION,
                           long sizeX, long sizeY, long sizeZ,
-                          long yStep, long zStep, long padding)
+                          long xStep, long yStep, long padding)
 {
     long i = threadIdx.x + blockIdx.x * blockDim.x;
     long j = threadIdx.y + blockIdx.y * blockDim.y;
     long k = threadIdx.z + blockIdx.z * blockDim.z;
 
-    long idx = k*zStep + j*yStep + i;
+    long idx = i*xStep + j*yStep + k;
 
     if (i < sizeX && ((j < sizeY && DIMENSION >= 2) || (DIMENSION == 1 && j == 0)) && ((k < sizeZ && DIMENSION == 3) || (DIMENSION < 3 && k == 0)))
     {
@@ -287,9 +287,6 @@ void __calcPhaseComp_02__(double **phi, double **comp,
                                 norm = 1.0;
                     } while (count < maxCount && norm > 0.0);
 
-                    if (count > 500)
-                        printf("%ld\t%ld\t%le\t%le\t%le\n", i, j, phaseComp[0][idx], phaseComp[1][idx], comp[0][idx]);
-
                     for (is = 0; is < NUMCOMPONENTS-1; is++)
                         phaseComp[is*NUMPHASES + phase][idx] = cn[is];
                 }
@@ -388,7 +385,7 @@ void calcPhaseComp(double **phi, double **comp,
                                                    simParams->F0_A_dev, simParams->F0_B_dev, simParams->F0_C_dev,
                                                    simDomain->numPhases, simDomain->numComponents, simDomain->DIMENSION,
                                                    subdomain->sizeX, subdomain->sizeY, subdomain->sizeZ,
-                                                   subdomain->yStep, subdomain->zStep, subdomain->padding);
+                                                   subdomain->xStep, subdomain->yStep, subdomain->padding);
     }
     else if (simControls->FUNCTION_F == 2)
     {
@@ -398,13 +395,13 @@ void calcPhaseComp(double **phi, double **comp,
                                                 simDomain->thermo_phase_dev, simParams->Teq,
                                                 simDomain->numPhases, simDomain->numComponents, simDomain->DIMENSION,
                                                 subdomain->sizeX, subdomain->sizeY, subdomain->sizeZ,
-                                                subdomain->yStep, subdomain->zStep, subdomain->padding);
+                                                subdomain->xStep, subdomain->yStep, subdomain->padding);
         }
         __calcPhaseComp_02__<<<gridSize, blockSize>>>(phi, comp,
                                                       phaseComp, mu, simParams->cguess_dev,
                                                       simParams->T, simDomain->thermo_phase_dev,
                                                       simDomain->numPhases, simDomain->numComponents, simDomain->DIMENSION,
                                                       subdomain->sizeX, subdomain->sizeY, subdomain->sizeZ,
-                                                      subdomain->yStep, subdomain->zStep, subdomain->padding);
+                                                      subdomain->xStep, subdomain->yStep, subdomain->padding);
     }
 }

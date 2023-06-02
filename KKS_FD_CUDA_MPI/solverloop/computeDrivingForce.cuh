@@ -8,6 +8,7 @@
 #include "utilityKernels.cuh"
 #include "Thermo.cuh"
 #include "matrix.cuh"
+#include "functionF.cuh"
 #include "functionW_01.cuh"
 #include "functionW_02.cuh"
 #include "functionH.cuh"
@@ -23,9 +24,10 @@ void __computeDrivingForce__(double **phi, double **comp,
                              double *F0_A, double *F0_B, double *F0_C,
                              double molarVolume,
                              double *theta_i, double *theta_ij, double *theta_ijk,
+                             int ELASTICITY,
                              long NUMPHASES, long NUMCOMPONENTS, long DIMENSION,
                              long sizeX, long sizeY, long sizeZ,
-                             long yStep, long zStep, long padding);
+                             long xStep, long yStep, long padding);
 
 __global__
 void __computeDrivingForce_02__(double **phi, double **comp,
@@ -33,10 +35,11 @@ void __computeDrivingForce_02__(double **phi, double **comp,
                                 double **mu,
                                 double molarVolume,
                                 double *theta_i, double *theta_ij, double *theta_ijk,
+                                int ELASTICITY,
                                 double temperature, long *thermo_phase,
                                 long NUMPHASES, long NUMCOMPONENTS, long DIMENSION,
                                 long sizeX, long sizeY, long sizeZ,
-                                long yStep, long zStep, long padding);
+                                long xStep, long yStep, long padding);
 
 /*
  * Wrapper function for __computeDrivingForce__
@@ -44,10 +47,10 @@ void __computeDrivingForce_02__(double **phi, double **comp,
 #ifdef __cplusplus
 extern "C"
 #endif
-void computeDrivingForce(double **phi, double **comp,
-                         double **dfdphi,
-                         double **phaseComp ,double **mu,
-                         domainInfo* simDomain, controls* simControls,
-                         simParameters* simParams, subdomainInfo* subdomain,
-                         dim3 gridSize, dim3 blockSize);
+void computeDrivingForce_Chemical(double **phi, double **comp,
+                                  double **dfdphi,
+                                  double **phaseComp ,double **mu,
+                                  domainInfo* simDomain, controls* simControls,
+                                  simParameters* simParams, subdomainInfo* subdomain,
+                                  dim3 gridSize, dim3 blockSize);
 #endif

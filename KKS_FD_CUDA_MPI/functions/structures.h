@@ -91,7 +91,33 @@ typedef struct controls
 
     // Boundary conditions
     bc_scalars *boundary[6];
+
+    // Antitrapping
+    int antiTrapping;
+
+    // Elasticity Switch
+    int ELASTICITY;
+    // Keeps an account of phase-field variables that have non-zero eigen-strain
+    // Zero eigen-strain -> no computation required
+    int *eigenSwitch;
 } controls;
+
+typedef struct symmetric_tensor
+{
+    double xx;
+    double yy;
+    double zz;
+    double yz;
+    double xz;
+    double xy;
+} symmetric_tensor;
+
+typedef struct Stiffness_cubic
+{
+    double C11;
+    double C12;
+    double C44;
+} Stiffness_cubic;
 
 typedef struct simParameters
 {
@@ -139,6 +165,10 @@ typedef struct simParameters
 
     // Calculated from user input
     double **kappaPhi_host, *kappaPhi_dev;
+
+    // Elasticity variables
+    symmetric_tensor *eigen_strain;
+    Stiffness_cubic  *Stiffness_c;
 } simParameters;
 
 /*
@@ -147,18 +177,25 @@ typedef struct simParameters
  */
 typedef struct subdomainInfo
 {
+    // Physical
     long xS, yS, zS;
     long xE, yE, zE;
-
-    long sizeX, sizeY, sizeZ;
-
+    long numX, numY, numZ;
     long numCells;
+
+    // Computational
+    long xS_c, yS_c, zS_c;      //Including boundary and communication layer
+    long xE_c, yE_c, zE_c;      //Including boundary and communication layer
+    long xS_r, yS_r, zS_r;      //Map of physical to computational
+    long xE_r, yE_r, zE_r;      //Map of physical to computational
+    long sizeX, sizeY, sizeZ;
     long numCompCells;
+
     long shiftPointer;
     long padding;
-    long yStep, zStep;
+    long xStep, yStep, zStep;
 
-    int rank;
+    int rank, size;
 
     int nbLeft, nbRight;        //Along x-axis
     int nbUp, nbDown;           //Along y-axis

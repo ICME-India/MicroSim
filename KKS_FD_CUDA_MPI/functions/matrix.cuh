@@ -3,8 +3,23 @@
 
 #include <cuda.h>
 #include <cuda_runtime.h>
+#include <stdio.h>
 
 #include "structures.h"
+#include "utilityFunctions.h"
+
+/*
+ * Matrix operations, taken from the MicroSim GP solver's matrix.h
+ */
+void matinvnew(double **coeffmatrix,double **inv, long size);
+void multiply(double **inv,double *y,double *prod, long size);
+void multiply2d(double **m1,double **m2,double **prod, long size);
+void vectorsum(double *y1,double *y2, double *sum, long size);
+void substituteb(double **fac,double *y,double *vec, long size);
+void substitutef(double **fac,double **y1,int index,double *vec, long size);
+void pivot(double **coeffmatrix,double **factor,int k,int *tag, long size);
+void colswap(double **m1,double **m2,int *tag, long size);
+void rowswap(double **m1,double **m2,int *tag, long size);
 
 /*
  *  The following are host-side functions
@@ -13,10 +28,12 @@ int LUPDecompose(double **A, int N, double Tol, int *P);
 void LUPInvert(double **A, int *P, int N, double **IA);
 void matrixMultiply(double **A, double **B, double **C, int N);
 
-
 /*
  *  The following are device-side functions
  */
+extern __device__
+void multiply(double *A, double *B, double *C, long ip1, long ip2, long NUMPHASES, int N);
+
 extern __device__
 int LUPDecomposeC1(double A[][MAX_NUM_COMP], long N, double Tol, int *P);
 

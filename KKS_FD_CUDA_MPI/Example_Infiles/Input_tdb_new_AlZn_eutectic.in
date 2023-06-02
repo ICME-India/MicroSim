@@ -7,14 +7,14 @@ MESH_Z = 1;
 DELTA_X = 1e-8;
 DELTA_Y = 1e-8;
 DELTA_Z = 1e-8;
-DELTA_t = 18e-9;
+DELTA_t = 1.8e-9;
 ##Number of phases and composition
 NUMPHASES = 3;
 NUMCOMPONENTS = 2;
 #Running and saving information
-NTIMESTEPS = 400000;
+NTIMESTEPS = 5000;
 NSMOOTH = 10;
-SAVET = 10000;
+SAVET = 100;
 STARTTIME = 0;
 RESTART = 0;
 numworkers = 2;
@@ -33,6 +33,7 @@ DIFFUSIVITY = {1, 2, 1e-9};
 R = 8.314;
 V = 10e-6;
 ##Elasticity related parameters
+ELASTICITY = 0;
 EIGEN_STRAIN = {0, 0.01, 0.01, 0.0, 0.0, 0.0, 0.0};
 EIGEN_STRAIN = {1, 0.01, 0.01, 0.0, 0.0, 0.0, 0.0};
 VOIGT_ISOTROPIC = {0, 270, 187.5, 125.0};
@@ -63,7 +64,7 @@ T = 653;
 ## WRITEFORMAT ASCII/BINARY/HDF5(Only for MPI)
 ##TRACK_PROGRESS: interval of writing out the progress of the simulation to stdout. 
 WRITEFORMAT = ASCII;
-WRITEHDF5 = 0;
+WRITEHDF5 = 1;
 TRACK_PROGRESS = 100;
 ##Model-specific parameters: Grand-potential model
 ##Phase-field parameters; epsilon:interface width; it is not the gradient energy coefficient
@@ -94,7 +95,7 @@ Filling_temperature = 653;
 #TEMPGRADY={BASETEMP, DELTAT, DISTANCE, OFFSET, VELOCITY}
 Tempgrady = {856.95, 0.1, 10e-6, 0, 320e-6};
 ##Function_F
-Function_F = 3;
+Function_F = 4;
 A = {0, 1};
 A = {1, 1};
 #ceq = {0, 0, 0.83};

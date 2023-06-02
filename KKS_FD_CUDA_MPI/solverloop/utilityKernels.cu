@@ -1,98 +1,5 @@
 #include "utilityKernels.cuh"
-#include <cub.cuh>
-
-/*
- * __device__ double calcPhaseEnergy
- *
- * Calculate f_{p}(c^{p}) = \sum_{i = 1}^{K-1}\sum_{j = 1}^{K-1} A_{ij}^{p}c_{i}^{p}c_{j}^{p}
- *                          + \sum_{i = 1}^{K-1} c_{i}^{p}
- *                          + C^{p}
- *
- * Arguments:
- *              1. double **phaseComp -> all the phase compositions, ordered phase-by-phase
- *              2. long phase -> phase for which energy is being calculated
- *              3. double *F0_A -> coefficients for F0_A (quadratic)
- *              4. double *F0_B -> coefficients for F0_B (linear)
- *              5. double *F0_C -> coefficients for F0_C (constant in a phase)
- *              6. long idx -> position of cell in 1D
- *              7. long NUMCOMPONENTS -> number of components
- * Return:
- *              numerical evaluation of bulk energy of the phase, as a double datatype
- */
-extern __device__
-double calcPhaseEnergy(double **phaseComp, long phase,
-                       double *F0_A, double *F0_B, double *F0_C,
-                       long idx,
-                       long NUMPHASES, long NUMCOMPONENTS)
-{
-
-    // Constant C_{phase}
-    double ans = F0_C[phase];
-
-    long index1, index2;
-
-    for (long component1 = 0; component1 < NUMCOMPONENTS-1; component1++)
-    {
-        index1 = component1*NUMPHASES + phase;
-
-        // Linear terms of the parabolic free energy
-        ans += F0_B[component1 + phase*(NUMCOMPONENTS-1)]*phaseComp[index1][idx];
-
-        for (long component2 = 0; component2 <= component1; component2++)
-        {
-            index2 = component2*NUMPHASES + phase;
-
-            // Quadratic terms
-            ans += F0_A[(component1 + phase*(NUMCOMPONENTS-1))*(NUMCOMPONENTS-1) + component2]*phaseComp[index1][idx]*phaseComp[index2][idx];
-        }
-    }
-
-    return ans;
-}
-
-/*
- * __device__ double calcDiffusionPotential
- *
- * Calculate \frac{df_{p}}{dc^{p}_{c}}
- *
- * Arguments:
- *              1. double **phaseComp -> all the phase compositions, ordered phase-by-phase
- *              2. long phase -> phase for which energy is being calculated
- *              3. double *F0_A -> coefficients for F0_A (quadratic)
- *              4. double *F0_B -> coefficients for F0_B (linear)
- *              5. double *F0_C -> coefficients for F0_C (constant in a phase)
- *              6. long idx -> position of cell in 1D
- *              7. long NUMCOMPONENTS -> number of components
- * Return:
- *              numerical evaluation of bulk energy of the phase, as a double datatype
- */
-extern __device__
-double calcDiffusionPotential(double **phaseComp,
-                              long phase, long component,
-                              double *F0_A, double *F0_B,
-                              long idx,
-                              long NUMPHASES, long NUMCOMPONENTS)
-{
-
-    // Derivative of A_{component, component}^{phase}*c_{component}^{phase}*c_{component}^{phase}
-    // Rest of the quadratic terms are mixed
-    double ans = 2.0*F0_A[(component + phase*(NUMCOMPONENTS-1))*(NUMCOMPONENTS-1) + component]*phaseComp[(phase + component*NUMPHASES)][idx];
-
-    for (long i = 0; i < NUMCOMPONENTS-1; i++)
-    {
-
-        // Derivative of A_{component, i}^{phase}*c_{component}^{phase}*c_{i}^{phase}
-        if (i != component)
-        {
-            ans += F0_A[(component + phase*(NUMCOMPONENTS-1))*(NUMCOMPONENTS-1)+i]*phaseComp[(phase + i*NUMPHASES)][idx];
-        }
-    }
-
-    // Derivative of linear terms
-    ans += F0_B[component + phase*(NUMCOMPONENTS-1)];
-
-    return ans;
-}
+#include <cub/device/device_reduce.cuh>
 
 /*
  *  This kernel will compute the change in every cell
@@ -103,14 +10,14 @@ double calcDiffusionPotential(double **phaseComp,
  *  In practice, A is the old field, B is the new field.
  */
 __global__
-void computeChange(double *A, double *B, long DIMENSION,
-                   long sizeX, long sizeY, long sizeZ)
+void __computeChange__(double *A, double *B, long DIMENSION,
+                       long sizeX, long sizeY, long sizeZ)
 {
     long i = threadIdx.x + blockIdx.x*blockDim.x;
     long j = threadIdx.y + blockIdx.y*blockDim.y;
     long k = threadIdx.z + blockIdx.z*blockDim.z;
 
-    long idx = (j + k*sizeY)*sizeX + i;
+    long idx = (j + i*sizeY)*sizeZ + k;
 
     if (i < sizeX && ((j < sizeY && DIMENSION >= 2) || (DIMENSION == 1 && j == 0)) && ((k < sizeZ && DIMENSION == 3) || (DIMENSION < 3 && k == 0)))
     {
@@ -118,6 +25,24 @@ void computeChange(double *A, double *B, long DIMENSION,
     }
 
     __syncthreads();
+}
+
+__global__
+void __resetArray__(double **arr, long numArr,
+                    long DIMENSION,
+                    long sizeX, long sizeY, long sizeZ)
+{
+    long i = threadIdx.x + blockIdx.x*blockDim.x;
+    long j = threadIdx.y + blockIdx.y*blockDim.y;
+    long k = threadIdx.z + blockIdx.z*blockDim.z;
+
+    long idx = (j + i*sizeY)*sizeZ + k;
+
+    if (i < sizeX && ((j < sizeY && DIMENSION >= 2) || (DIMENSION == 1 && j == 0)) && ((k < sizeZ && DIMENSION == 3) || (DIMENSION < 3 && k == 0)))
+    {
+        for (long iter = 0; iter < numArr; iter++)
+            arr[iter][idx] = 0.0;
+    }
 }
 
 /*
@@ -160,7 +85,7 @@ void printStats(double **phi, double **comp,
         checkCudaErrors(cub::DeviceReduce::Min(t_storage, t_storage_bytes, compNew[i], temp, subdomain.numCompCells));
         checkCudaErrors(cudaMemcpy(minVal+j, temp, sizeof(double), cudaMemcpyDeviceToDevice));
 
-        computeChange<<<gridSize, blockSize>>>(comp[i], compNew[i], simDomain.DIMENSION, subdomain.sizeX, subdomain.sizeY, subdomain.sizeZ);
+        __computeChange__<<<gridSize, blockSize>>>(comp[i], compNew[i], simDomain.DIMENSION, subdomain.sizeX, subdomain.sizeY, subdomain.sizeZ);
 
         checkCudaErrors(cub::DeviceReduce::Max(t_storage, t_storage_bytes, comp[i], temp, subdomain.numCompCells));
         checkCudaErrors(cudaMemcpy(maxerr+j, temp, sizeof(double), cudaMemcpyDeviceToDevice));
@@ -176,7 +101,7 @@ void printStats(double **phi, double **comp,
         checkCudaErrors(cub::DeviceReduce::Min(t_storage, t_storage_bytes, phiNew[i], temp, subdomain.numCompCells));
         checkCudaErrors(cudaMemcpy(minVal+j, temp, sizeof(double), cudaMemcpyDeviceToDevice));
 
-        computeChange<<<gridSize, blockSize>>>(phi[i], phiNew[i], simDomain.DIMENSION, subdomain.sizeX, subdomain.sizeY, subdomain.sizeZ);
+        __computeChange__<<<gridSize, blockSize>>>(phi[i], phiNew[i], simDomain.DIMENSION, subdomain.sizeX, subdomain.sizeY, subdomain.sizeZ);
 
         checkCudaErrors(cub::DeviceReduce::Max(t_storage, t_storage_bytes, phi[i], temp, subdomain.numCompCells));
         checkCudaErrors(cudaMemcpy(maxerr+j, temp, sizeof(double), cudaMemcpyDeviceToDevice));
@@ -186,4 +111,12 @@ void printStats(double **phi, double **comp,
 
     checkCudaErrors(cudaFree(temp));
     checkCudaErrors(cudaFree(t_storage));
+}
+
+void resetArray(double **arr, long numArr,
+                long DIMENSION,
+                long sizeX, long sizeY, long sizeZ,
+                dim3 gridSize, dim3 blockSize)
+{
+    __resetArray__<<<gridSize, blockSize>>>(arr, numArr, DIMENSION, sizeX, sizeY, sizeZ);
 }
