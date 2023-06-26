@@ -2578,374 +2578,12 @@ color: rgb(255, 255, 255);</string>
       </property>
      </widget>
     </widget>
-    <widget class="QWidget" name="frame5_elas" native="true">
-     <property name="geometry">
-      <rect>
-       <x>260</x>
-       <y>30</y>
-       <width>331</width>
-       <height>320</height>
-      </rect>
-     </property>
-     <widget class="QLabel" name="label_253">
-      <property name="geometry">
-       <rect>
-        <x>180</x>
-        <y>82</y>
-        <width>20</width>
-        <height>20</height>
-       </rect>
-      </property>
-      <property name="font">
-       <font>
-        <family>Segoe UI Symbol</family>
-        <pointsize>11</pointsize>
-        <weight>75</weight>
-        <italic>false</italic>
-        <bold>true</bold>
-       </font>
-      </property>
-      <property name="toolTip">
-       <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;The key rho refers to the density of material.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-      </property>
-      <property name="styleSheet">
-       <string notr="true">background-color: rgb(225, 225, 225);
-color:rgb(0, 0, 0);
-border-radius : 10px; 
-border : 1px solid rgb(225, 225, 225);</string>
-      </property>
-      <property name="text">
-       <string>?</string>
-      </property>
-     </widget>
-     <widget class="QLineEdit" name="damping">
-      <property name="geometry">
-       <rect>
-        <x>90</x>
-        <y>152</y>
-        <width>80</width>
-        <height>28</height>
-       </rect>
-      </property>
-      <property name="styleSheet">
-       <string notr="true">background-color: rgb(255, 255, 255);</string>
-      </property>
-     </widget>
-     <widget class="QLabel" name="label_254">
-      <property name="geometry">
-       <rect>
-        <x>180</x>
-        <y>155</y>
-        <width>20</width>
-        <height>20</height>
-       </rect>
-      </property>
-      <property name="font">
-       <font>
-        <family>Segoe UI Symbol</family>
-        <pointsize>11</pointsize>
-        <weight>75</weight>
-        <italic>false</italic>
-        <bold>true</bold>
-       </font>
-      </property>
-      <property name="toolTip">
-       <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;The damping factor key refers to the damping coefficient in equilibrium equation.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-      </property>
-      <property name="styleSheet">
-       <string notr="true">background-color: rgb(225, 225, 225);
-color:rgb(0, 0, 0);
-border-radius : 10px; 
-border : 1px solid rgb(225, 225, 225);</string>
-      </property>
-      <property name="text">
-       <string>?</string>
-      </property>
-     </widget>
-     <widget class="QLabel" name="label_198">
-      <property name="geometry">
-       <rect>
-        <x>90</x>
-        <y>50</y>
-        <width>131</width>
-        <height>31</height>
-       </rect>
-      </property>
-      <property name="font">
-       <font>
-        <family>Ubuntu</family>
-        <pointsize>11</pointsize>
-        <weight>75</weight>
-        <italic>false</italic>
-        <bold>true</bold>
-       </font>
-      </property>
-      <property name="styleSheet">
-       <string notr="true">color : white;</string>
-      </property>
-      <property name="text">
-       <string>rho  :</string>
-      </property>
-     </widget>
-     <widget class="QLabel" name="label_199">
-      <property name="geometry">
-       <rect>
-        <x>90</x>
-        <y>-10</y>
-        <width>151</width>
-        <height>31</height>
-       </rect>
-      </property>
-      <property name="font">
-       <font>
-        <family>Ubuntu</family>
-        <pointsize>11</pointsize>
-        <weight>75</weight>
-        <italic>false</italic>
-        <bold>true</bold>
-       </font>
-      </property>
-      <property name="styleSheet">
-       <string notr="true">color : white;</string>
-      </property>
-      <property name="text">
-       <string>ELASTICITY  :</string>
-      </property>
-     </widget>
-     <widget class="QLineEdit" name="elasticity">
-      <property name="geometry">
-       <rect>
-        <x>90</x>
-        <y>20</y>
-        <width>80</width>
-        <height>31</height>
-       </rect>
-      </property>
-      <property name="styleSheet">
-       <string notr="true">background-color: rgb(255, 255, 255);</string>
-      </property>
-     </widget>
-     <widget class="QLineEdit" name="rho">
-      <property name="geometry">
-       <rect>
-        <x>90</x>
-        <y>80</y>
-        <width>80</width>
-        <height>31</height>
-       </rect>
-      </property>
-      <property name="styleSheet">
-       <string notr="true">background-color: rgb(255, 255, 255);</string>
-      </property>
-      <property name="text">
-       <string/>
-      </property>
-     </widget>
-     <widget class="QLabel" name="label_200">
-      <property name="geometry">
-       <rect>
-        <x>90</x>
-        <y>110</y>
-        <width>155</width>
-        <height>50</height>
-       </rect>
-      </property>
-      <property name="font">
-       <font>
-        <family>Ubuntu</family>
-        <pointsize>11</pointsize>
-        <weight>75</weight>
-        <italic>false</italic>
-        <bold>true</bold>
-       </font>
-      </property>
-      <property name="styleSheet">
-       <string notr="true">color : white;</string>
-      </property>
-      <property name="text">
-       <string>damping 
-factor   :</string>
-      </property>
-     </widget>
-     <widget class="QLabel" name="label_255">
-      <property name="geometry">
-       <rect>
-        <x>180</x>
-        <y>22</y>
-        <width>20</width>
-        <height>20</height>
-       </rect>
-      </property>
-      <property name="font">
-       <font>
-        <family>Segoe UI Symbol</family>
-        <pointsize>11</pointsize>
-        <weight>75</weight>
-        <italic>false</italic>
-        <bold>true</bold>
-       </font>
-      </property>
-      <property name="toolTip">
-       <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Elasticity is the key to relate to solving mechanical equilibrium equation.&lt;/p&gt;&lt;p&gt;• For a value of 0, equilibrium equation is not solved.&lt;/p&gt;&lt;p&gt;• A value of 1 corresponds to solving equilibrium equation.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-      </property>
-      <property name="styleSheet">
-       <string notr="true">background-color: rgb(225, 225, 225);
-color:rgb(0, 0, 0);
-border-radius : 10px; 
-border : 1px solid rgb(225, 225, 225);</string>
-      </property>
-      <property name="text">
-       <string>?</string>
-      </property>
-     </widget>
-     <widget class="QLineEdit" name="maxiter">
-      <property name="geometry">
-       <rect>
-        <x>90</x>
-        <y>215</y>
-        <width>80</width>
-        <height>28</height>
-       </rect>
-      </property>
-      <property name="styleSheet">
-       <string notr="true">background-color: rgb(255, 255, 255);</string>
-      </property>
-     </widget>
-     <widget class="QLabel" name="label_256">
-      <property name="geometry">
-       <rect>
-        <x>180</x>
-        <y>217</y>
-        <width>20</width>
-        <height>20</height>
-       </rect>
-      </property>
-      <property name="font">
-       <font>
-        <family>Segoe UI Symbol</family>
-        <pointsize>11</pointsize>
-        <weight>75</weight>
-        <italic>false</italic>
-        <bold>true</bold>
-       </font>
-      </property>
-      <property name="toolTip">
-       <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;The max iterations key refers to number of iterations for reaching equilibrium.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-      </property>
-      <property name="styleSheet">
-       <string notr="true">background-color: rgb(225, 225, 225);
-color:rgb(0, 0, 0);
-border-radius : 10px; 
-border : 1px solid rgb(225, 225, 225);</string>
-      </property>
-      <property name="text">
-       <string>?</string>
-      </property>
-     </widget>
-     <widget class="QLabel" name="label_201">
-      <property name="geometry">
-       <rect>
-        <x>90</x>
-        <y>170</y>
-        <width>151</width>
-        <height>50</height>
-       </rect>
-      </property>
-      <property name="font">
-       <font>
-        <family>Ubuntu</family>
-        <pointsize>11</pointsize>
-        <weight>75</weight>
-        <italic>false</italic>
-        <bold>true</bold>
-       </font>
-      </property>
-      <property name="styleSheet">
-       <string notr="true">color : white;</string>
-      </property>
-      <property name="text">
-       <string>max 
-iterations  :</string>
-      </property>
-     </widget>
-     <widget class="QLabel" name="label_257">
-      <property name="geometry">
-       <rect>
-        <x>180</x>
-        <y>280</y>
-        <width>20</width>
-        <height>20</height>
-       </rect>
-      </property>
-      <property name="font">
-       <font>
-        <family>Segoe UI Symbol</family>
-        <pointsize>11</pointsize>
-        <weight>75</weight>
-        <italic>false</italic>
-        <bold>true</bold>
-       </font>
-      </property>
-      <property name="toolTip">
-       <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;grain growth is the key to relate to solving grain growth problem.&lt;/p&gt;&lt;p&gt;• For a value of 0, a single grain is simulated.&lt;/p&gt;&lt;p&gt;• A value of 1 corresponds to multiple grains.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-      </property>
-      <property name="styleSheet">
-       <string notr="true">background-color: rgb(225, 225, 225);
-color:rgb(0, 0, 0);
-border-radius : 10px; 
-border : 1px solid rgb(225, 225, 225);</string>
-      </property>
-      <property name="text">
-       <string>?</string>
-      </property>
-     </widget>
-     <widget class="QLineEdit" name="graingrowth">
-      <property name="geometry">
-       <rect>
-        <x>90</x>
-        <y>277</y>
-        <width>80</width>
-        <height>28</height>
-       </rect>
-      </property>
-      <property name="styleSheet">
-       <string notr="true">background-color: rgb(255, 255, 255);</string>
-      </property>
-     </widget>
-     <widget class="QLabel" name="label_202">
-      <property name="geometry">
-       <rect>
-        <x>90</x>
-        <y>232</y>
-        <width>151</width>
-        <height>50</height>
-       </rect>
-      </property>
-      <property name="font">
-       <font>
-        <family>Ubuntu</family>
-        <pointsize>11</pointsize>
-        <weight>75</weight>
-        <italic>false</italic>
-        <bold>true</bold>
-       </font>
-      </property>
-      <property name="styleSheet">
-       <string notr="true">color : white;</string>
-      </property>
-      <property name="text">
-       <string>GRAIN 
-GROWTH  :</string>
-      </property>
-     </widget>
-    </widget>
     <zorder>diffMat</zorder>
     <zorder>pDropdown</zorder>
     <zorder>allCheck</zorder>
     <zorder>marker</zorder>
     <zorder>frame5_widget</zorder>
     <zorder>error5</zorder>
-    <zorder>frame5_elas</zorder>
    </widget>
    <widget class="QPushButton" name="btn3">
     <property name="enabled">
@@ -5326,6 +4964,367 @@ background-color: rgb(238, 238, 236);
          </property>
         </widget>
        </widget>
+       <widget class="QWidget" name="frame9GP_widget8" native="true">
+        <property name="geometry">
+         <rect>
+          <x>300</x>
+          <y>30</y>
+          <width>400</width>
+          <height>320</height>
+         </rect>
+        </property>
+        <widget class="QLabel" name="label_253">
+         <property name="geometry">
+          <rect>
+           <x>300</x>
+           <y>60</y>
+           <width>20</width>
+           <height>20</height>
+          </rect>
+         </property>
+         <property name="font">
+          <font>
+           <family>Segoe UI Symbol</family>
+           <pointsize>11</pointsize>
+           <weight>75</weight>
+           <italic>false</italic>
+           <bold>true</bold>
+          </font>
+         </property>
+         <property name="toolTip">
+          <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;The key rho refers to the density of material.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">background-color: rgb(225, 225, 225);
+color:rgb(0, 0, 0);
+border-radius : 10px; 
+border : 1px solid rgb(225, 225, 225);</string>
+         </property>
+         <property name="text">
+          <string>?</string>
+         </property>
+        </widget>
+        <widget class="QLineEdit" name="damping">
+         <property name="geometry">
+          <rect>
+           <x>210</x>
+           <y>110</y>
+           <width>80</width>
+           <height>31</height>
+          </rect>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">background-color: rgb(255, 255, 255);</string>
+         </property>
+        </widget>
+        <widget class="QLabel" name="label_254">
+         <property name="geometry">
+          <rect>
+           <x>300</x>
+           <y>120</y>
+           <width>20</width>
+           <height>20</height>
+          </rect>
+         </property>
+         <property name="font">
+          <font>
+           <family>Segoe UI Symbol</family>
+           <pointsize>11</pointsize>
+           <weight>75</weight>
+           <italic>false</italic>
+           <bold>true</bold>
+          </font>
+         </property>
+         <property name="toolTip">
+          <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;The damping factor key refers to the damping coefficient in equilibrium equation.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">background-color: rgb(225, 225, 225);
+color:rgb(0, 0, 0);
+border-radius : 10px; 
+border : 1px solid rgb(225, 225, 225);</string>
+         </property>
+         <property name="text">
+          <string>?</string>
+         </property>
+        </widget>
+        <widget class="QLabel" name="label_198">
+         <property name="geometry">
+          <rect>
+           <x>90</x>
+           <y>50</y>
+           <width>131</width>
+           <height>31</height>
+          </rect>
+         </property>
+         <property name="font">
+          <font>
+           <family>Ubuntu</family>
+           <pointsize>11</pointsize>
+           <weight>75</weight>
+           <italic>false</italic>
+           <bold>true</bold>
+          </font>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">color : white;</string>
+         </property>
+         <property name="text">
+          <string>rho  :</string>
+         </property>
+        </widget>
+        <widget class="QLabel" name="label_199">
+         <property name="geometry">
+          <rect>
+           <x>90</x>
+           <y>0</y>
+           <width>130</width>
+           <height>31</height>
+          </rect>
+         </property>
+         <property name="font">
+          <font>
+           <family>Ubuntu</family>
+           <pointsize>11</pointsize>
+           <weight>75</weight>
+           <italic>false</italic>
+           <bold>true</bold>
+          </font>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">color : white;</string>
+         </property>
+         <property name="text">
+          <string>ELASTICITY  :</string>
+         </property>
+        </widget>
+        <widget class="QLineEdit" name="elasticity">
+         <property name="geometry">
+          <rect>
+           <x>210</x>
+           <y>0</y>
+           <width>80</width>
+           <height>31</height>
+          </rect>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">background-color: rgb(255, 255, 255);</string>
+         </property>
+        </widget>
+        <widget class="QLineEdit" name="rho">
+         <property name="geometry">
+          <rect>
+           <x>210</x>
+           <y>50</y>
+           <width>80</width>
+           <height>31</height>
+          </rect>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">background-color: rgb(255, 255, 255);</string>
+         </property>
+         <property name="text">
+          <string/>
+         </property>
+        </widget>
+        <widget class="QLabel" name="label_200">
+         <property name="geometry">
+          <rect>
+           <x>90</x>
+           <y>100</y>
+           <width>155</width>
+           <height>50</height>
+          </rect>
+         </property>
+         <property name="font">
+          <font>
+           <family>Ubuntu</family>
+           <pointsize>11</pointsize>
+           <weight>75</weight>
+           <italic>false</italic>
+           <bold>true</bold>
+          </font>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">color : white;</string>
+         </property>
+         <property name="text">
+          <string>damping 
+factor   :</string>
+         </property>
+        </widget>
+        <widget class="QLabel" name="label_255">
+         <property name="geometry">
+          <rect>
+           <x>300</x>
+           <y>0</y>
+           <width>20</width>
+           <height>20</height>
+          </rect>
+         </property>
+         <property name="font">
+          <font>
+           <family>Segoe UI Symbol</family>
+           <pointsize>11</pointsize>
+           <weight>75</weight>
+           <italic>false</italic>
+           <bold>true</bold>
+          </font>
+         </property>
+         <property name="toolTip">
+          <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Elasticity is the key to relate to solving mechanical equilibrium equation.&lt;/p&gt;&lt;p&gt;• For a value of 0, equilibrium equation is not solved.&lt;/p&gt;&lt;p&gt;• A value of 1 corresponds to solving equilibrium equation.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">background-color: rgb(225, 225, 225);
+color:rgb(0, 0, 0);
+border-radius : 10px; 
+border : 1px solid rgb(225, 225, 225);</string>
+         </property>
+         <property name="text">
+          <string>?</string>
+         </property>
+        </widget>
+        <widget class="QLineEdit" name="maxiter">
+         <property name="geometry">
+          <rect>
+           <x>210</x>
+           <y>170</y>
+           <width>80</width>
+           <height>31</height>
+          </rect>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">background-color: rgb(255, 255, 255);</string>
+         </property>
+        </widget>
+        <widget class="QLabel" name="label_256">
+         <property name="geometry">
+          <rect>
+           <x>300</x>
+           <y>180</y>
+           <width>20</width>
+           <height>20</height>
+          </rect>
+         </property>
+         <property name="font">
+          <font>
+           <family>Segoe UI Symbol</family>
+           <pointsize>11</pointsize>
+           <weight>75</weight>
+           <italic>false</italic>
+           <bold>true</bold>
+          </font>
+         </property>
+         <property name="toolTip">
+          <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;The max iterations key refers to number of iterations for reaching equilibrium.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">background-color: rgb(225, 225, 225);
+color:rgb(0, 0, 0);
+border-radius : 10px; 
+border : 1px solid rgb(225, 225, 225);</string>
+         </property>
+         <property name="text">
+          <string>?</string>
+         </property>
+        </widget>
+        <widget class="QLabel" name="label_201">
+         <property name="geometry">
+          <rect>
+           <x>90</x>
+           <y>160</y>
+           <width>151</width>
+           <height>50</height>
+          </rect>
+         </property>
+         <property name="font">
+          <font>
+           <family>Ubuntu</family>
+           <pointsize>11</pointsize>
+           <weight>75</weight>
+           <italic>false</italic>
+           <bold>true</bold>
+          </font>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">color : white;</string>
+         </property>
+         <property name="text">
+          <string>max 
+iterations  :</string>
+         </property>
+        </widget>
+        <widget class="QLabel" name="label_257">
+         <property name="geometry">
+          <rect>
+           <x>300</x>
+           <y>240</y>
+           <width>20</width>
+           <height>20</height>
+          </rect>
+         </property>
+         <property name="font">
+          <font>
+           <family>Segoe UI Symbol</family>
+           <pointsize>11</pointsize>
+           <weight>75</weight>
+           <italic>false</italic>
+           <bold>true</bold>
+          </font>
+         </property>
+         <property name="toolTip">
+          <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;grain growth is the key to relate to solving grain growth problem.&lt;/p&gt;&lt;p&gt;• For a value of 0, a single grain is simulated.&lt;/p&gt;&lt;p&gt;• A value of 1 corresponds to multiple grains.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">background-color: rgb(225, 225, 225);
+color:rgb(0, 0, 0);
+border-radius : 10px; 
+border : 1px solid rgb(225, 225, 225);</string>
+         </property>
+         <property name="text">
+          <string>?</string>
+         </property>
+        </widget>
+        <widget class="QLineEdit" name="graingrowth">
+         <property name="geometry">
+          <rect>
+           <x>210</x>
+           <y>232</y>
+           <width>80</width>
+           <height>31</height>
+          </rect>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">background-color: rgb(255, 255, 255);</string>
+         </property>
+        </widget>
+        <widget class="QLabel" name="label_202">
+         <property name="geometry">
+          <rect>
+           <x>90</x>
+           <y>220</y>
+           <width>151</width>
+           <height>50</height>
+          </rect>
+         </property>
+         <property name="font">
+          <font>
+           <family>Ubuntu</family>
+           <pointsize>11</pointsize>
+           <weight>75</weight>
+           <italic>false</italic>
+           <bold>true</bold>
+          </font>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">color : white;</string>
+         </property>
+         <property name="text">
+          <string>GRAIN 
+GROWTH  :</string>
+         </property>
+        </widget>
+       </widget>
       </widget>
       <widget class="QWidget" name="page_3">
        <property name="styleSheet">
@@ -7281,7 +7280,7 @@ background-color: rgb(238, 238, 236);
         <property name="geometry">
          <rect>
           <x>350</x>
-          <y>30</y>
+          <y>0</y>
           <width>281</width>
           <height>251</height>
          </rect>
@@ -7407,6 +7406,93 @@ background-color: rgb(238, 238, 236);
          </property>
          <property name="text">
           <string>Epsilon :</string>
+         </property>
+        </widget>
+       </widget>
+       <widget class="QWidget" name="frame9KKS_widget3" native="true">
+        <property name="geometry">
+         <rect>
+          <x>350</x>
+          <y>220</y>
+          <width>281</width>
+          <height>100</height>
+         </rect>
+        </property>
+        <widget class="QLabel" name="label_205">
+         <property name="geometry">
+          <rect>
+           <x>0</x>
+           <y>0</y>
+           <width>130</width>
+           <height>31</height>
+          </rect>
+         </property>
+         <property name="font">
+          <font>
+           <family>Ubuntu</family>
+           <pointsize>11</pointsize>
+           <weight>75</weight>
+           <italic>false</italic>
+           <bold>true</bold>
+          </font>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">color : white;</string>
+         </property>
+         <property name="text">
+          <string>ELASTICITY  :</string>
+         </property>
+        </widget>
+        <widget class="QLineEdit" name="elasticityKKS">
+         <property name="geometry">
+          <rect>
+           <x>120</x>
+           <y>0</y>
+           <width>80</width>
+           <height>31</height>
+          </rect>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">background-color: rgb(255, 255, 255);</string>
+         </property>
+        </widget>
+        <widget class="QLabel" name="label_206">
+         <property name="geometry">
+          <rect>
+           <x>0</x>
+           <y>50</y>
+           <width>151</width>
+           <height>50</height>
+          </rect>
+         </property>
+         <property name="font">
+          <font>
+           <family>Ubuntu</family>
+           <pointsize>11</pointsize>
+           <weight>75</weight>
+           <italic>false</italic>
+           <bold>true</bold>
+          </font>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">color : white;</string>
+         </property>
+         <property name="text">
+          <string>GRAIN 
+GROWTH  :</string>
+         </property>
+        </widget>
+        <widget class="QLineEdit" name="graingrowthKKS">
+         <property name="geometry">
+          <rect>
+           <x>120</x>
+           <y>50</y>
+           <width>80</width>
+           <height>31</height>
+          </rect>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">background-color: rgb(255, 255, 255);</string>
          </property>
         </widget>
        </widget>
@@ -8372,7 +8458,7 @@ color :rgb(64, 140, 191);</string>
        <widget class="QWidget" name="frame9KKS2_widget" native="true">
         <property name="geometry">
          <rect>
-          <x>150</x>
+          <x>0</x>
           <y>60</y>
           <width>361</width>
           <height>221</height>
@@ -8673,6 +8759,155 @@ border : 1px solid rgb(225, 225, 225);</string>
          </property>
          <property name="text">
           <string>NO</string>
+         </property>
+        </widget>
+       </widget>
+       <widget class="QWidget" name="frame9KKS2_widget1" native="true">
+        <property name="geometry">
+         <rect>
+          <x>400</x>
+          <y>70</y>
+          <width>281</width>
+          <height>100</height>
+         </rect>
+        </property>
+        <widget class="QLabel" name="label_249">
+         <property name="geometry">
+          <rect>
+           <x>240</x>
+           <y>0</y>
+           <width>20</width>
+           <height>20</height>
+          </rect>
+         </property>
+         <property name="font">
+          <font>
+           <family>Segoe UI Symbol</family>
+           <pointsize>11</pointsize>
+           <weight>75</weight>
+           <italic>false</italic>
+           <bold>true</bold>
+          </font>
+         </property>
+         <property name="toolTip">
+          <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Elasticity is the key to relate to solving mechanical equilibrium equation.&lt;/p&gt;&lt;p&gt;• For a value of 0, equilibrium equation is not solved.&lt;/p&gt;&lt;p&gt;• A value of 1 corresponds to solving equilibrium equation.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">background-color: rgb(225, 225, 225);
+color:rgb(0, 0, 0);
+border-radius : 10px; 
+border : 1px solid rgb(225, 225, 225);</string>
+         </property>
+         <property name="text">
+          <string>?</string>
+         </property>
+        </widget>
+        <widget class="QLabel" name="label_250">
+         <property name="geometry">
+          <rect>
+           <x>240</x>
+           <y>50</y>
+           <width>20</width>
+           <height>20</height>
+          </rect>
+         </property>
+         <property name="font">
+          <font>
+           <family>Segoe UI Symbol</family>
+           <pointsize>11</pointsize>
+           <weight>75</weight>
+           <italic>false</italic>
+           <bold>true</bold>
+          </font>
+         </property>
+         <property name="toolTip">
+          <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;grain growth is the key to relate to solving grain growth problem.&lt;/p&gt;&lt;p&gt;• For a value of 0, a single grain is simulated.&lt;/p&gt;&lt;p&gt;• A value of 1 corresponds to multiple grains.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">background-color: rgb(225, 225, 225);
+color:rgb(0, 0, 0);
+border-radius : 10px; 
+border : 1px solid rgb(225, 225, 225);</string>
+         </property>
+         <property name="text">
+          <string>?</string>
+         </property>
+        </widget>
+        <widget class="QLineEdit" name="graingrowthKKS2">
+         <property name="geometry">
+          <rect>
+           <x>150</x>
+           <y>50</y>
+           <width>80</width>
+           <height>31</height>
+          </rect>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">background-color: rgb(255, 255, 255);</string>
+         </property>
+        </widget>
+        <widget class="QLabel" name="label_207">
+         <property name="geometry">
+          <rect>
+           <x>0</x>
+           <y>0</y>
+           <width>130</width>
+           <height>31</height>
+          </rect>
+         </property>
+         <property name="font">
+          <font>
+           <family>Ubuntu</family>
+           <pointsize>11</pointsize>
+           <weight>75</weight>
+           <italic>false</italic>
+           <bold>true</bold>
+          </font>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">color : white;</string>
+         </property>
+         <property name="text">
+          <string>ELASTICITY  :</string>
+         </property>
+        </widget>
+        <widget class="QLineEdit" name="elasticityKKS2">
+         <property name="geometry">
+          <rect>
+           <x>150</x>
+           <y>0</y>
+           <width>80</width>
+           <height>31</height>
+          </rect>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">background-color: rgb(255, 255, 255);</string>
+         </property>
+        </widget>
+        <widget class="QLabel" name="label_208">
+         <property name="geometry">
+          <rect>
+           <x>0</x>
+           <y>50</y>
+           <width>151</width>
+           <height>50</height>
+          </rect>
+         </property>
+         <property name="font">
+          <font>
+           <family>Ubuntu</family>
+           <pointsize>11</pointsize>
+           <weight>75</weight>
+           <italic>false</italic>
+           <bold>true</bold>
+          </font>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">color : white;</string>
+         </property>
+         <property name="text">
+          <string>GRAIN 
+GROWTH  :</string>
          </property>
         </widget>
        </widget>
@@ -13916,8 +14151,8 @@ border :1px solid rgb(192, 191, 188);
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>206</width>
-             <height>1379</height>
+             <width>251</width>
+             <height>1416</height>
             </rect>
            </property>
            <property name="styleSheet">
