@@ -224,7 +224,7 @@ def SolverExecute(self):
         os.system("gnome-terminal -e 'bash -c  \""+commandLine+";bash\"'")
     
     elif self.radio_KKR.isChecked():
-        commandLine ="cd KKS_CuFFT/; python3 GEdata_writer.py " +self.runDir +"/"+self.infile.text() + " ;make clean;make; cp microsim_kks_cufft ~/MicroSim/bin/;cd " + self.runDir + ";mpirun -n 4 ~/MicroSim/bin/microsim_kks_cufft "  +self.infile.text()+" "+self.filling.text()+" "+self.output.text()
+        commandLine ="cd KKS_FD_CUDA_MPI/; python3 GEdata_writer.py " +self.runDir +"/"+self.infile.text() + " ;make clean;make; cp microsim_kks_fd_cuda_mpi ~/MicroSim/bin/;cd " + self.runDir + ";mpirun -np 1 ~/MicroSim/bin/microsim_kks_fd_cuda_mpi "  +self.infile.text()+" "+self.filling.text()+" "+self.output.text()
         
         os.system("gnome-terminal -e 'bash -c \""+commandLine+";bash\"'")
 
@@ -262,9 +262,9 @@ def SolverExecuteHelp(self):
     
     elif self.radio_KKR.isChecked():
 
-        Model_Folder= "KKS_CuFFT"
-        Model_code ="microsim_kks_cufft"
-        runcmdhelp = "This action will execute the following command:\n\n\n     1) Solver compilation\n\n       cd MicroSim/"+Model_Folder+"/  \n \n      python3 GEdata_writer.py " +self.runDir +"/"+self.infile.text() + "\n\n      make clean\n\n      make\n\n\n     2) Solver execution\n\n      cp "+ Model_code+" ~/MicroSim/bin/\n\n      cd " + self.runDir + "\n\n      mpirun -p 4 ~/MicroSim/bin/"+ Model_code+" "  +self.infile.text()+" "+self.filling.text()+" "+self.output.text()
+        Model_Folder= "KKS_FD_CUDA_MPI"
+        Model_code ="microsim_kks_fd_cuda_mpi"
+        runcmdhelp = "This action will execute the following command:\n\n\n     1) Solver compilation\n\n       cd MicroSim/"+Model_Folder+"/  \n \n      python3 GEdata_writer.py " +self.runDir +"/"+self.infile.text() + "\n\n      make clean\n\n      make\n\n\n     2) Solver execution\n\n      cp "+ Model_code+" ~/MicroSim/bin/\n\n      cd " + self.runDir + "\n\n      mpirun -np 4 ~/MicroSim/bin/"+ Model_code+" "  +self.infile.text()+" "+self.filling.text()+" "+self.output.text()
     
 
     elif self.radio_KKS2.isChecked():
@@ -309,7 +309,7 @@ def generateJobscript(self):
         os.system("gnome-terminal -e 'bash -c  \""+commandLine+";bash\"'")
     
     elif self.radio_KKR.isChecked():
-        commandLine ="cd KKS_CuFFT/; python3 GEdata_writer.py " +self.runDir +"/"+self.infile.text() + " ;make clean;make; cp microsim_kks_cufft ~/MicroSim/bin/;cp microsim_kks_cufft "+ self.runDir +"/JOB_FILE/;cp reconstruct "+ self.runDir +"/JOB_FILE/;cp write_xdmf "+ self.runDir +"/JOB_FILE/"
+        commandLine ="cd KKS_FD_CUDA_MPI/; python3 GEdata_writer.py " +self.runDir +"/"+self.infile.text() + " ;make clean;make; cp microsim_kks_fd_cuda_mpi ~/MicroSim/bin/;cp microsim_kks_fd_cuda_mpi "+ self.runDir +"/JOB_FILE/;cp reconstruct "+ self.runDir +"/JOB_FILE/;cp write_xdmf "+ self.runDir +"/JOB_FILE/"
         
         os.system("gnome-terminal -e 'bash -c \""+commandLine+";bash\"'")
 
