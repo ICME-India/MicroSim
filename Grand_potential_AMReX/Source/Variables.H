@@ -61,7 +61,8 @@ Real gammaa;
 Vector <std::string> val;
 Vector <Real> dbl;
 Vector <std::string> s_diff;
-Vector <Vector<double>> diff;
+Vector <Vector<double>> diffu;
+Vector<double> diff;
 //Gas constant and molar volume
 std::string s_R;
 Real R;
@@ -112,8 +113,8 @@ int ANItype;
 std::string s_dab;
 Real dab;
 //Rotation matrix
-std::string s_rotmat;
-Vector<Real> rotmat;
+Vector<std::string> s_rotmat;
+Vector<Vector<Real>> rotmat;
 //Potential function
 std::string s_funcW;
 int funcW;
@@ -201,6 +202,7 @@ gsl_spline *A_spline_ptr;
 
 //dcdmu
 Vector <amrex::Real> dcdmu;
+Vector <amrex::Real> dcdmu_eq;
 
 //cmu
 Vector <amrex::Real> cmu;
@@ -216,6 +218,7 @@ void (*Mu)(MultiFab& ray);
 void (*function_A)();
 void (*function_B)();
 void (*function_D)();
+void (*free_energy)();
 void (*Initialise_phi)(MultiFab& qer);
 
 
@@ -229,12 +232,14 @@ int n=0;
 Vector <int> numb;
 int val1=0;
 int val2=0;
+Vector<Real> fe;
 
 double strt_time;
 double stop_time;
 double rst_time=0.0;
 
-Vector<Vector<Real>> conc;
+Vector<Vector<Vector<Real>>> conc;
+Vector<Vector<Vector<Real>>> conceq;
 Vector<Vector<double>> conc_Sol;
 Vector<Vector<double>> conc_Liq;
 Vector<Vector<double>> temprt;

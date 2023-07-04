@@ -32,6 +32,7 @@ void advance(	MultiFab& phi_old,
 		MultiFab& h_phi,
 		MultiFab& dh_dphi,
 		MultiFab& psi,
+		MultiFab& lambad,
 		Geometry const& geom,
 		Vector<BCRec> const& BoundaryCondition)
 {
@@ -51,12 +52,13 @@ void advance(	MultiFab& phi_old,
 
 	//Computing the anisotropy term(term1) in the phi evolution equation (Refer to anisotropy.H for the formulation)
 	computeterm1(term1, phi_old, derivx, derivy, geom);
+	//computeterm1(phi_old, term1, geom);
 
 	//Fill ghost cells for term1 along with periodic boundaries
 	//term1.FillBoundary(geom.periodicity());
 
 	//Computing the Double well Potential(term2) in the phi evolution equation (Refer to FunctionW.H for the formulation of double well potential calculation)
-	computeterm2(term2, phi_old);
+	computeterm2(term2, phi_old, geom);
 
 	//Fill ghost cells for term2 along with periodic boundaries
 	//term2.FillBoundary(geom.periodicity());
@@ -68,7 +70,7 @@ void advance(	MultiFab& phi_old,
 	//term3.FillBoundary(geom.periodicity());
 
 	//Now we have all the terms for terms for phi evolution, we simply add them (Refer to calc.H for the formulation of update_phi function)
-	update_phi(phi_new, phi_old, term1,term2,term3);
+	update_phi(phi_new, phi_old, term1,term2,term3,lambad,derivx,derivy,geom);
 
 	//Fill ghost cells of phi_new along with periodic boundaries
 	phi_new.FillBoundary();

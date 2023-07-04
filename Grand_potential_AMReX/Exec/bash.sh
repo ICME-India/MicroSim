@@ -4,6 +4,7 @@ make
 
 g++ -o Replace Replace.cpp
 
-./Replace
+./Replace Input.in Filling.in
+#./Replace Input_TP.in Filling_TP.in
 
-mpirun -np 64 ./main2d.gnu.MPI.ex input2.in
+mpirun -np 4 ./main2d.gnu.MPI.ex input2.in

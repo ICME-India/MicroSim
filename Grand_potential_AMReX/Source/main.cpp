@@ -40,7 +40,7 @@ int main(int argc, char* argv[])
 		strt_time = ParallelDescriptor::second();
 
 		//Read the input parameters from the infile
-    		readinput(); 
+    	readinput(); 
 		//Calling the Grand Potential function  
 		GPotential();
 
@@ -114,7 +114,6 @@ void GPotential()
 		}
 	}
 
-
 	BoxArray ba;
 	Geometry geom;
 		//Lower Boundary of the domain 
@@ -151,20 +150,21 @@ void GPotential()
 	//  Print()<<ba<<"\n";
 
 	//Declaring Multifabs
-	 MultiFab phi_old(ba, dm, nump-1, ghost);	
-	 MultiFab phi_new(ba, dm, nump-1, ghost);
+	 MultiFab phi_old(ba, dm, nump, ghost);	
+	 MultiFab phi_new(ba, dm, nump, ghost);
 	 MultiFab mu_old(ba, dm, numcom-1, ghost);
 	 MultiFab mu_new(ba, dm, numcom-1, ghost);
-	 MultiFab term1(ba, dm, nump-1, ghost);
-	 MultiFab term2(ba, dm, nump-1, ghost);
-	 MultiFab term3(ba, dm, nump-1, ghost);
-	 MultiFab h_phi(ba, dm, nump-1, ghost);
-	 MultiFab dh_dphi(ba, dm, nump-1, ghost);
-	 MultiFab derivx(ba, dm, 4, ghost);
-	 MultiFab derivy(ba, dm, 4, ghost);
+	 MultiFab term1(ba, dm, nump, ghost);
+	 MultiFab term2(ba, dm, nump, ghost);
+	 MultiFab term3(ba, dm, nump, ghost);
+	 MultiFab h_phi(ba, dm, nump, ghost);
+	 MultiFab dh_dphi(ba, dm, nump, ghost);
+	 MultiFab derivx(ba, dm, 4*nump, ghost);
+	 MultiFab derivy(ba, dm, 4*nump, ghost);
 	 MultiFab psi(ba, dm, nump, ghost);
-	 MultiFab print(ba,dm,2,1);
-	
+	 MultiFab lambad(ba, dm, nump, ghost);
+	 //MultiFab print(ba,dm,nump+numcom-1,1);
+	MultiFab print(ba,dm,15,1);
 
 	//Initialsing MultiFabs
 	 phi_old.setVal(0.0);
@@ -172,7 +172,7 @@ void GPotential()
 	 mu_old.setVal(0.0);
 	 mu_new.setVal(0.0);
 	 term1.setVal(0.0);
-	 term2.setVal(0.0);
+	 term2.setVal(1.0);
 	 term3.setVal(0.0);
 
 	Vector<BCRec> bc(phi_old.nComp());
@@ -186,8 +186,10 @@ void GPotential()
 	function_A();
 	function_B();
 	function_D();
-	dc_dmu();
 	Mu(mu_new);
+	//free_energy();
+	dc_dmu();
+	
 
 	if(restart == 1 && restart_chkfile != ""){
 		Readchkfile(phi_new, mu_new);
@@ -196,15 +198,36 @@ void GPotential()
 	//Calculating tau from Function_tau
 	tau_final = Function_tau(phi_new);
 	
+	Print()<<"tau_final: "<<tau_final<<"\n";
 
-	MultiFab::Copy(print, phi_new, 0, 0, 1, 0);
-	MultiFab::Copy(print, mu_new, 0, 1, 1, 0);
+	Print()<<"comp: "<<print.nComp()<<"\n";
 
+	MultiFab::Copy(print, phi_new, 0, 0, nump, 0);
+	MultiFab::Copy(print, mu_new, 0, nump, 1, 0);
+	// MultiFab::Copy(print, term1, 0, nump+1, 2, 0);
+	// MultiFab::Copy(print, term2, 0, nump+3, 2, 0);
+	// MultiFab::Copy(print, term3, 0, nump+5, 2, 0);
+	// MultiFab::Copy(print, lambad, 0, nump+7, 2, 0);
+
+	Print()<<"Val6"<<"\n";
+	phase.push_back("mu_new");
+	// phase.push_back("term1_a");
+	// phase.push_back("term1_b");
+	// phase.push_back("term2_a");
+	// phase.push_back("term2_b");
+	// phase.push_back("term3_a");
+	// phase.push_back("term3_b");
+	// phase.push_back("lambda_a");
+	// phase.push_back("lambda_b");
+	
+	// phase.push_back("h_phi_b");
+	// phase.push_back("dh_dphi_a");
+	// phase.push_back("dh_dphi_b");
 
 	if(trackprog>0 && restart_chkfile == "")
 	 {
 	 	const std::string& pltfile  = amrex::Concatenate("plt",0,1);
-	 	WriteSingleLevelPlotfile(pltfile, print, {"phi","mu_new"},geom,timee,0);
+	 	WriteSingleLevelPlotfile(pltfile, print, phase,geom,timee,0);
 		Writechkfile(phi_new, mu_new,n,chk_file);
 	 }
 	
@@ -212,39 +235,45 @@ void GPotential()
 
 	for(n=stepnum+1; n<=nsteps; ++n)
 	 {
-	 	MultiFab::Copy(phi_old, phi_new, 0,0,1,0);
+	 	MultiFab::Copy(phi_old, phi_new, 0,0,nump,0);
 	 	MultiFab::Copy(mu_old, mu_new, 0,0,1,0);
 	 	FillDomainBoundary(phi_old, geom, bc);
 		FillDomainBoundary(mu_old, geom, bc);
 
-		compute_der(phi_old,derivx,derivy,geom);
+		//compute_der(phi_old,derivx,derivy,geom);
 
 		//derivx.FillBoundary(geom.periodicity());
 		//derivy.FillBoundary(geom.periodicity());
 
-	 	advance(phi_old, phi_new, mu_old, mu_new, term1, term2, term3, derivx, derivy,h_phi, dh_dphi,psi,geom,bc);
+	 	advance(phi_old, phi_new, mu_old, mu_new, term1, term2, term3, derivx, derivy,h_phi, dh_dphi,psi,lambad,geom,bc);
 	 	
 	 	timee=timee+dt;
 
 		if(n%1000==0){
-		amrex::Print()<<"Advanced step"<<n<<"\n";
+		 amrex::Print()<<"Advanced step"<<n<<"\n";
 		}
-
-		MultiFab::Copy(print, phi_new, 0, 0, 1, 0);
-		MultiFab::Copy(print, mu_new, 0, 1, 1, 0);
-
 		// Print()<<"1_max = "<<term1.max(0,0,0)*eps<<"\n";
 		// Print()<<"1_min = "<<term1.min(0,0,0)*eps<<"\n";
 		// Print()<<"2_max = "<<term2.max(0,0,0)/eps<<"\n";
 		// Print()<<"2_min = "<<term2.min(0,0,0)/eps<<"\n";
 		// Print()<<"3_max = "<<term3.max(0,0,0)/Vm<<"\n";
 		// Print()<<"3_min = "<<term3.min(0,0,0)/Vm<<"\n";
+		//}
+
+		MultiFab::Copy(print, phi_new, 0, 0, nump, 0);
+		MultiFab::Copy(print, mu_new, 0, nump, 1, 0);
+		// MultiFab::Copy(print, term1, 0, nump+1, 2, 0);
+		// MultiFab::Copy(print, term2, 0, nump+3, 2, 0);
+		// MultiFab::Copy(print, term3, 0, nump+5, 2, 0);
+		// MultiFab::Copy(print, lambad, 0, nump+7, 2, 0);
+		// MultiFab::Copy(print, h_phi, 0, nump+1, 2, 0);
+		// MultiFab::Copy(print, dh_dphi, 0, nump+3, 2, 0);
 
 	
 	 	if(trackprog>0 && n%trackprog==0)
 	 	{
 	 		const std::string& pltfile = amrex::Concatenate("plt",n,1);
-	 		WriteSingleLevelPlotfile( pltfile, print, {"phi","mu_new"},geom,timee,n);
+	 		WriteSingleLevelPlotfile( pltfile, print, phase,geom,timee,n);
 	 	}
 
 		if(n%savet == 0){

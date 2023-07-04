@@ -1,0 +1,16 @@
+nsteps = 10000
+
+dt = 0.01
+c0 = 0.4
+mob = 1.0
+grad_coef = 0.5
+
+plot_int = 50
+n_cell = 64
+max_grid_size = 32
+
+# 0 = periodic
+# 2 = homogeneous Neumann (zero flux)
+# 3 = Dirichlet (prescribed value)
+bc_lo = 0 0
+bc_hi = 0 0

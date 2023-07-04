@@ -101,7 +101,7 @@ void Readchkfile (MultiFab& phi_new, MultiFab& mu_new)
     std::getline(is, line);
     {
         std::istringstream lis(line);
-        int i = 0;
+        //int i = 0;
         while (lis >> word) {
             stepnum = std::stoi(word);
         }
@@ -110,7 +110,7 @@ void Readchkfile (MultiFab& phi_new, MultiFab& mu_new)
     std::getline(is, line);
     {
         std::istringstream lis(line);
-        int i = 0;
+        //int i = 0;
         while (lis >> word) {
             timee = std::stod(word);
         }
@@ -119,7 +119,7 @@ void Readchkfile (MultiFab& phi_new, MultiFab& mu_new)
     std::getline(is, line);
     {
         std::istringstream lis(line);
-        int i = 0;
+        //int i = 0;
         while (lis >> word) {
             rst_time = std::stod(word);
         }

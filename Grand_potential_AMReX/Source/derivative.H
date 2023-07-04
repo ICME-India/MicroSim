@@ -20,21 +20,22 @@ void compute_der(MultiFab& phi_old, MultiFab& derivx, MultiFab& derivy, Geometry
         Array4<Real> const& phiOld = phi_old.array(mfi);
         Array4<Real> const& derivxx = derivx.array(mfi);
         Array4<Real> const& derivyy = derivy.array(mfi);
+        int numphase = nump;
         
         amrex::ParallelFor(gbx, 
         [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
         {
+          for(int a=0; a<numphase; a++){
+            derivxx(i,j,k,4*a+0)=(phiOld(i+1,j,k,a)-phiOld(i,j,k,a))/dx[0];
+            derivxx(i,j,k,4*a+1)=(phiOld(i,j,k,a)-phiOld(i-1,j,k,a))/dx[0];
+            derivxx(i,j,k,4*a+2)=(phiOld(i+1,j+1,k,a)-phiOld(i-1,j+1,k,a)+phiOld(i+1,j,k,a)-phiOld(i-1,j,k,a))/(4*dx[0]);
+            derivxx(i,j,k,4*a+3)=(phiOld(i+1,j,k,a)-phiOld(i-1,j,k,a)+phiOld(i+1,j-1,k,a)-phiOld(i-1,j-1,k,a))/(4*dx[0]);
 
-            derivxx(i,j,k,0)=(phiOld(i+1,j,k)-phiOld(i,j,k))/dx[0];
-            derivxx(i,j,k,1)=(phiOld(i,j,k)-phiOld(i-1,j,k))/dx[0];
-            derivxx(i,j,k,2)=(phiOld(i+1,j+1,k)-phiOld(i-1,j+1,k)+phiOld(i+1,j,k)-phiOld(i-1,j,k))/(4*dx[0]);
-            derivxx(i,j,k,3)=(phiOld(i+1,j,k)-phiOld(i-1,j,k)+phiOld(i+1,j-1,k)-phiOld(i-1,j-1,k))/(4*dx[0]);
-
-            derivyy(i,j,k,0)=(phiOld(i+1,j+1,k)-phiOld(i+1,j-1,k)+phiOld(i,j+1,k)-phiOld(i,j-1,k))/(4*dx[1]);
-            derivyy(i,j,k,1)=(phiOld(i,j+1,k)-phiOld(i,j-1,k)+phiOld(i-1,j+1,k)-phiOld(i-1,j-1,k))/(4*dx[1]);
-            derivyy(i,j,k,2)=(phiOld(i,j+1,k)-phiOld(i,j,k))/dx[1];
-            derivyy(i,j,k,3)=(phiOld(i,j,k)-phiOld(i,j-1,k))/dx[1];
-
+            derivyy(i,j,k,4*a+0)=(phiOld(i+1,j+1,k,a)-phiOld(i+1,j-1,k,a)+phiOld(i,j+1,k,a)-phiOld(i,j-1,k,a))/(4*dx[1]);
+            derivyy(i,j,k,4*a+1)=(phiOld(i,j+1,k,a)-phiOld(i,j-1,k,a)+phiOld(i-1,j+1,k,a)-phiOld(i-1,j-1,k,a))/(4*dx[1]);
+            derivyy(i,j,k,4*a+2)=(phiOld(i,j+1,k,a)-phiOld(i,j,k,a))/dx[1];
+            derivyy(i,j,k,4*a+3)=(phiOld(i,j,k,a)-phiOld(i,j-1,k,a))/dx[1];
+          }
         });
 }
 }

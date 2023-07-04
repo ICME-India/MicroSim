@@ -95,7 +95,16 @@ void readinput(){
         pp.get("Function_anisotropy",s_funcANI);
         pp.get("Anisotropy_type",s_ANItype);
         pp.get("dab",s_dab);
-        pp.get("Rotation_matrix",s_rotmat);
+        //pp.get("Rotation_matrix",s_rotmat);
+
+        ss = pp.countname("Rotation_matrix");
+    	for(int i=0;i<ss;i++){
+        std::string n;
+    	pp.getkth ("Rotation_matrix", i, n, 0); 
+    	s_rotmat.push_back(n);
+    	}
+        ss=0;
+
         pp.get("Function_W",s_funcW);
         //pp.get("Gamma_abc",gamma_abc);
         pp.get("Shift",s_shiftdom);
@@ -132,6 +141,7 @@ void readinput(){
     	}
         ss=0;
 
+        if (stoi(s_funcf) != 4){
         ss = pp.countname("c_guess");
     	for(int i=0;i<ss;i++){
         std::string n;
@@ -147,6 +157,7 @@ void readinput(){
     	s_slopes.push_back(n);
     	}
         ss=0;
+        }
 
         pp.get("num_thermo_phases",s_ntp);
         pp.get("tdbfname",s_tdbname);
@@ -253,10 +264,15 @@ void readinput(){
         ss.str("");
         ss.clear();
         convert_string(val, dbl);
-        diff.push_back(dbl);
+        diffu.push_back(dbl);
         dul++;
         val.clear();
         dbl.clear();
+    }
+
+    diff = Vector<Real>(nump,0);
+    for (int a=0; a<nump; a++){
+        diff[diffu[a][1]] = diffu[a][2];
     }
     
     count=0;
@@ -391,12 +407,19 @@ void readinput(){
     }
     dab=stod(s_dab);
     
-    for(char c:chars){
-        s_rotmat.erase(remove(s_rotmat.begin(),s_rotmat.end(),c),s_rotmat.end());
+    count=0;
+
+    while(count<s_rotmat.size()){
+        for(char c:chars){
+            s_rotmat[count].erase(remove(s_rotmat[count].begin(),s_rotmat[count].end(),c),s_rotmat[count].end());
+        }
+    count++;
     }
-    ss.str("");
-    ss.clear();
-    ss.str(s_rotmat);
+
+    count=0;
+    dul = 0;
+    while(dul<s_rotmat.size()){
+    ss.str(s_rotmat[dul]);
     while(ss.good()){
         std::string substr;
         getline(ss,substr,',');
@@ -404,12 +427,12 @@ void readinput(){
     }
     ss.str("");
     ss.clear();
-    for (int i = 0; i < val.size(); i++)
-    {
-        rotmat.push_back(stod(val[i]));
-    }
-    
+    convert_string(val, dbl);
+    rotmat.push_back(dbl);
+    dul++;
     val.clear();
+    dbl.clear();
+    }
     
     funcW=stoi(s_funcW);
     shiftdom=stod(s_shiftdom);
@@ -540,6 +563,7 @@ void readinput(){
     }	  
     count=0;
 
+    if (stoi(s_funcf) != 4){
     while(count< s_cguess.size()){
         for(char c:chars){
             s_cguess[count].erase(std::remove(s_cguess[count].begin(),s_cguess[count].end(),c),s_cguess[count].end());
@@ -601,6 +625,7 @@ void readinput(){
         dbl.clear();
     }
     count=0;
+    }
 
     ntp = stoi(s_ntp);
 

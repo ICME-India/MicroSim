@@ -25,6 +25,7 @@ void init_functions(MultiFab& phi_new){
     function_A = function_F_04_function_A;
     function_B = function_F_04_function_B;
     function_D = function_F_04_function_D;
+    free_energy = function_F_04_free_energy;
     }
 
     Vector<int> flag(4,0);
@@ -61,7 +62,8 @@ void init_functions(MultiFab& phi_new){
         //Print()<<"Inside ellipse func point"<<"\n";
         Initialise_phi(phi_new);
     }
-        
+
+    Init_liq(phi_new);
     
 }
 #endif

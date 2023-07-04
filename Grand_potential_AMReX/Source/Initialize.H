@@ -115,7 +115,7 @@ void init_mu (MultiFab& mu_new)
 		const Box& wbx = mfi.validbox();
 		Array4<Real> const& muNew = mu_new.array(mfi);
 		Real A_liq = A[nump-1][0][0];
-		Real cequil = ceq[1][2];
+		Real cequil = conceq[nump-1][0][0];
 
 		amrex::ParallelFor( wbx, [=] AMREX_GPU_DEVICE( int i, int j ,int k)
 		{
@@ -124,6 +124,32 @@ void init_mu (MultiFab& mu_new)
 		});
 	}
 }	
+
+
+
+
+void Init_liq(MultiFab& phi_new){
+
+		for (MFIter mfi(phi_new); mfi.isValid(); ++mfi)
+	{
+		const Box& wbx = mfi.validbox();
+		Array4<Real> const& phiNew = phi_new.array(mfi);
+		Real numphase = nump;
+		
+		amrex::ParallelFor( wbx, [=] AMREX_GPU_DEVICE( int i, int j ,int k)
+		{		
+				Real sum{0.0};
+
+				for(int a=0; a<numphase-1; a++){
+					
+					sum = sum + phiNew(i,j,k,a);
+				
+				}
+
+				phiNew(i,j,k,numphase-1) = 1.0 - sum;
+		});
+		}
+}
 
 
 
