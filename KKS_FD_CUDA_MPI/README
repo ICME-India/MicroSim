@@ -13,7 +13,7 @@ System requirements:
     c. Once installed to a directory of your convenience, export the NVHPC root directory and version by using
        $ export HPCSDK_VERSION=23.1; export NVHPC_ROOT=</path/to/directory/nvidia>
        $ export NVHPC_HOME=${NVHPC_ROOT}/hpc_sdk/Linux_x86_64/{HPCSDK_VERSION}
-       $ export MPI_HOME=${NVHPC_HOME}/comm_libs/openmpi4/openmpi-4.0.5
+       $ export MPI_HOME=${NVHPC_HOME}/comm_libs/mpi (NOTE: comm_libs contains other installations of OpenMPI, choose these if /mpi does not work)
     d. The Param supercomputers provide NVHPC package access through spack, and in some cases, through modules.
     e. Using the cuFFTMp library to run elastic calculations requires at Nvidia cards with SM_70 support or higher.
 
