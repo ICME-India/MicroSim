@@ -403,6 +403,8 @@ void fillDomain(domainInfo simDomain, subdomainInfo subdomain,
             double volume      = (double)(simDomain.MESH_X*simDomain.MESH_Y);
             long numParticles   =  ceil(volume*fill->volFrac[i] / volParticle);
 
+            simParams.SEED = clock();
+
             srand48(simParams.SEED);
 
             Cylinder = (cylinder*)malloc(sizeof(cylinder) * numParticles);
@@ -479,6 +481,8 @@ void fillDomain(domainInfo simDomain, subdomainInfo subdomain,
             double volParticle = (double)(fill->radius[i]*fill->radius[i]*fill->radius[i])*4.0*M_PI/3.0;
             double volume      = (double)(simDomain.MESH_X*simDomain.MESH_Y*simDomain.MESH_Z);
             long numParticles   =  ceil(volume*fill->volFrac[i] / volParticle);
+
+            simParams.SEED = clock();
 
             srand48(simParams.SEED);
 

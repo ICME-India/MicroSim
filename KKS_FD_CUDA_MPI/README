@@ -1,6 +1,6 @@
 This module solves a multiphase, multicomponent KKS-formulation of the phase-field equations.
 The code is written using CUDA and OpenMPI, and can be employ multiple GPUs in a multi-node setting.
-It has been tested using Nvidia Tesla V100s, Nvidia Tesla P100s, and Nvidia Tesla K80s, with CUDA 11.x, 12.x and OpenMPI 4.0.x.
+It has been tested using Nvidia Tesla V100s, Nvidia Tesla P100s, Nvidia Tesla K80s, Nvidia RTX 30x0, and Nvidia GTX 1650, with CUDA 11.x, 12.x and OpenMPI 4.0.x.
 
 System requirements:
 
@@ -53,6 +53,12 @@ $ ./write_xdmf <name_of_infile> <name_of_output_file> <start_time> <end_time>
 For ASCII/BINARY files in .vtk format the consolidated output files needs to be reconstructed out of separate processor files that are written in the DATA folder that is created upon execution
 $ ./reconstruct <name_of_infile> <name_of_output_file> <Number of processes> <start_time> <end_time>
 
+**********************************************
+************** Additional Info ***************
+**********************************************
+-> This module can be used without CUDA-aware MPI and cuFFTMp, using CUDA (11.0+) and any MPI implementation (the CUDA-aware requirement need not be fulfilled). This can be run only by launching one process.
+-> If the compilation returns errors stating that some header or library could not be found, check the PATH and LD_LIBRARY_PATH variables. They must respectively point to the bin and lib(64) directories 
+   of MPI, CUDA, NVSHMEM (if using cuFFTMp), and HPC-SDK's math_libs directory.
 
  - GPU Phase-Field Developer Team @ IITH (Saurav Shenoy, Saswata Bhattacharya)
 

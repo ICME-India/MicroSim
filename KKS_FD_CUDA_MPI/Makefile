@@ -4,15 +4,15 @@ NPROCS = 2
 
 HPCSDK_VERSION ?= 23.1
 
-NVHPC_ROOT       = /opt/nvidia
-NVHPC_HOME       = ${NVHPC_ROOT}/hpc_sdk/Linux_x86_64/${HPCSDK_VERSION}
-NVHPC_CUDA_HOME  = ${NVHPC_HOME}/cuda
-MPI_HOME         = ${NVHPC_HOME}/comm_libs/openmpi4/openmpi-4.0.5
-HDF5_HOME        = /usr/local
-CUFFT_LIB        = ${NVHPC_HOME}/math_libs/lib64
-CUFFT_INC        = ${NVHPC_HOME}/math_libs/include/cufftmp
-NVSHMEM_LIB      = ${NVHPC_HOME}/math_libs/12.0/lib64/compat/nvshmem_2.6.0-1
-GSL_HOME         = /usr/local
+NVHPC_ROOT       ?= /opt/nvidia
+NVHPC_HOME       ?= ${NVHPC_ROOT}/hpc_sdk/Linux_x86_64/${HPCSDK_VERSION}
+NVHPC_CUDA_HOME  ?= ${NVHPC_HOME}/cuda
+MPI_HOME         ?= ${NVHPC_HOME}/comm_libs/openmpi4/openmpi-4.0.5
+HDF5_HOME        ?= /usr/local
+CUFFT_LIB        ?= ${NVHPC_HOME}/math_libs/lib64
+CUFFT_INC        ?= ${NVHPC_HOME}/math_libs/include/cufftmp
+NVSHMEM_LIB      ?= ${NVHPC_HOME}/math_libs/12.0/lib64/compat/nvshmem_2.6.0-1
+GSL_HOME         ?= /usr/local
 
 # Arguments
 INPUT = Input.in
@@ -168,7 +168,7 @@ reconstruct: reconstruct.c $(FUNCTIONS)/structures.h $(FUNCTIONS)/reading_input_
 	$(MPICC) $(INCFLAGS) $(CFLAGS)  --diag_suppress declared_but_not_referenced -I${NVHPC_CUDA_HOME}/include -L${NVHPC_CUDA_HOME}/lib64 -lcudart -DTHERMO=0 reconstruct.c -o reconstruct
 
 run:
-	LD_LIBRARY_PATH="${NVSHMEM_LIB}:${CUFFT_LIB}:${NVHPC_CUDA_HOME}/lib64:${LD_LIBRARY_PATH}" mpiexec -n $(NPROCS) -x UCX_TLS=rc_x,cuda_copy,gdr_copy $(KKS_OUT) $(INPUT) $(FILLING) $(OUTPUT)
+	LD_LIBRARY_PATH="${NVSHMEM_LIB}:${CUFFT_LIB}:${NVHPC_CUDA_HOME}/lib64:${LD_LIBRARY_PATH}" ${MPI_HOME}/bin/mpiexec -n $(NPROCS) $(KKS_OUT) $(INPUT) $(FILLING) $(OUTPUT)
 
 profile:
 	LD_LIBRARY_PATH="${NVSHMEM_LIB}:${CUFFT_LIB}:${NVHPC_CUDA_HOME}/lib64:${LD_LIBRARY_PATH}" nvprof  --profile-child-processes mpiexec -n $(NPROCS) $(KKS_OUT) $(INPUT) $(FILLING) $(OUTPUT)
