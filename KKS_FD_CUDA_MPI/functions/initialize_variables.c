@@ -211,7 +211,7 @@ void moveParamsToGPU(domainInfo *simDomain, controls *simControls, simParameters
         }
     }
 
-    simControls->antiTrapping = 0;
+    simControls->antiTrapping = 1;
 
     // for (int i = 0; i < simDomain->numPhases; i++)
     // {
