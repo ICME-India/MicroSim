@@ -7163,7 +7163,7 @@ class StartScreen(QDialog):
             self.errorKKS.setText("Required " + str((noP_value * ((noP_value - 1) / 2))) + " values for Tau" )
             return False
 
-        elif len(self.gammaABCKKS.text().split(",")) != int(noP_value * ((noP_value - 1)*(noP_value - 2) / 6)) and self.gammaABCKKS.text() != "":
+        elif len(self.gammaABCKKS.text().split(",")) != int(noP_value * ((noP_value - 1)*(noP_value - 2) / 6)) and self.gammaABCKKS.text() != "" and (int((noP_value * ((noP_value - 1)*(noP_value - 2) / 6)))) != 0:
             self.errorKKS.setText("Required " + str(int((noP_value * ((noP_value - 1)*(noP_value - 2) / 6)))) + " values for Gamma abc" )
             return False
 
