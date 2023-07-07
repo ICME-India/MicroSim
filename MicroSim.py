@@ -4567,6 +4567,9 @@ class StartScreen(QDialog):
         self.equTKKS.setText("")
         self.graingrowthKKS.setText("0")
         self.elasticityKKS.setText("0")    
+        self.FanisotropyKKS.setText("")
+        self.debKKS.setText("")
+        self.gammaABCKKS.setText("")
 
         #KKS2
         '''
@@ -7136,12 +7139,32 @@ class StartScreen(QDialog):
             self.errorKKS.setText("Please fill relaxCoeff value")
             return False
 
+        elif self.gammaABCKKS.text() == "":
+            self.errorKKS.setText("Please fill gamma_ABC values")
+            return False
+
         elif self.TauKKS.text() == "":
             self.errorKKS.setText("Please fill Tau values")
             return False
 
+        elif self.FanisotropyKKS.text() == "":
+            self.errorKKS.setText("Please fill Function Anisotropy")
+            return False
+
+        elif self.debKKS.text() == "":
+            self.errorKKS.setText("Please fill dab values")
+            return False
+
+        elif len(self.debKKS.text().split(",")) != int(noP_value * ((noP_value - 1) / 2)):
+            self.errorKKS.setText("Required " + str((noP_value * ((noP_value - 1) / 2))) + " values for dab" )
+            return False
+
         elif len(self.TauKKS.text().split(",")) != (noP_value * ((noP_value - 1) / 2)):
             self.errorKKS.setText("Required " + str((noP_value * ((noP_value - 1) / 2))) + " values for Tau" )
+            return False
+
+        elif len(self.gammaABCKKS.text().split(",")) != int(noP_value * ((noP_value - 1)*(noP_value - 2) / 6)) and self.gammaABCKKS.text() != "":
+            self.errorKKS.setText("Required " + str(int((noP_value * ((noP_value - 1)*(noP_value - 2) / 6)))) + " values for Gamma abc" )
             return False
 
         elif self.equTKKS.text() == "":
@@ -7896,7 +7919,10 @@ class StartScreen(QDialog):
                 	"ELASTICITY = " +self.elasticityKKS.text()+ ";\n"
                 	"WRITEFORMAT = "+self.writeFormatKKS.currentText()+";\n"
                         "TRACK_PROGRESS = " + self.trackprogressKKS.text()+";\n"
+                        "Function_anisotropy = " + self.FanisotropyKKS.text()+";\n"
+                        "dab = {" + self.debKKS.text()+"};\n"
                         "Tau = {" + self.TauKKS.text()+"};\n"
+                        "Gamma_abc = {" + self.gammaABCKKS.text()+"};\n"
                         "epsilon = " + self.EpsilonKKS.text()+";\n"
                         "Equilibrium_temperature = " + self.equTKKS.text()+";\n"
                         "T = " + self.TKKS.text()+";\n"
@@ -8093,7 +8119,10 @@ class StartScreen(QDialog):
                 
                 if self.radio_GP.isChecked() and self.FanisotropyGP.text() == "0":
                     pass
-                
+
+                elif self.radio_KKS.isChecked() and self.FanisotropyKKS.text() == "0":
+                    pass
+
                 elif self.radio_KKS2.isChecked() and self.FanisotropyKKS2.text() == "0":
                     pass
                 
@@ -9416,9 +9445,10 @@ class StartScreen(QDialog):
         self.kksFlag[25] =  1
         self.kksFlag[26] =  1
         self.kksFlag[30] =  1
+        self.kksFlag[31] =  1
         self.kksFlag[32] =  1
         self.kksFlag[33] =  1
-
+        self.kksFlag[36] =  1
 
         self.clickedBtn1()
         self.radio_KKR.setChecked(True)
@@ -9441,6 +9471,15 @@ class StartScreen(QDialog):
             self.TKKS.setText(entryvalue)
             self.kksFlag[29] = 1
 
+        elif entryname == "Function_anisotropy":
+            self.FanisotropyKKS.setText(entryvalue)
+            self.kks2Flag[36] =  1
+
+        elif entryname == "dab":
+            entryvalue = entryvalue.replace("{","")
+            entryvalue = entryvalue.replace("}","")
+            self.debKKS.setText(entryvalue)
+            self.kksFlag[30] =  1
 
         elif entryname == "Equilibrium_temperature":
             self.equTKKS.setText(entryvalue)
@@ -9456,8 +9495,12 @@ class StartScreen(QDialog):
             self.EpsilonKKS.setText(entryvalue)
             self.kksFlag[35] = 1
 
-        
-            
+        elif entryname == "Gamma_abc":
+            entryvalue = entryvalue.replace("{","")
+            entryvalue = entryvalue.replace("}","")
+            self.gammaABCKKS.setText(entryvalue)
+            self.kksFlag[37] = 1
+
         elif entryname == "Function_F":
             self.funcF.setValue(int(entryvalue))
 

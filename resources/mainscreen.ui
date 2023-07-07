@@ -369,7 +369,6 @@ padding-left:10px;</string>
      <font>
       <family>Ubuntu</family>
       <pointsize>12</pointsize>
-      <weight>50</weight>
       <italic>false</italic>
       <bold>false</bold>
      </font>
@@ -471,7 +470,6 @@ font: 12pt &quot;Calibri&quot;;</string>
        <font>
         <family>Ubuntu</family>
         <pointsize>11</pointsize>
-        <weight>75</weight>
         <bold>true</bold>
        </font>
       </property>
@@ -495,7 +493,6 @@ font: 12pt &quot;Calibri&quot;;</string>
        <font>
         <family>Ubuntu</family>
         <pointsize>11</pointsize>
-        <weight>75</weight>
         <bold>true</bold>
        </font>
       </property>
@@ -529,7 +526,6 @@ font: 12pt &quot;Calibri&quot;;</string>
        <font>
         <family>Segoe UI Symbol</family>
         <pointsize>11</pointsize>
-        <weight>75</weight>
         <italic>false</italic>
         <bold>true</bold>
        </font>
@@ -580,7 +576,6 @@ border : 1px solid rgb(225, 225, 225);</string>
        <font>
         <family>Ubuntu</family>
         <pointsize>11</pointsize>
-        <weight>75</weight>
         <bold>true</bold>
        </font>
       </property>
@@ -614,7 +609,6 @@ border : 1px solid rgb(225, 225, 225);</string>
        <font>
         <family>Ubuntu</family>
         <pointsize>11</pointsize>
-        <weight>75</weight>
         <bold>true</bold>
        </font>
       </property>
@@ -638,7 +632,6 @@ border : 1px solid rgb(225, 225, 225);</string>
        <font>
         <family>Segoe UI Symbol</family>
         <pointsize>11</pointsize>
-        <weight>75</weight>
         <italic>false</italic>
         <bold>true</bold>
        </font>
@@ -692,7 +685,6 @@ border : 1px solid rgb(225, 225, 225);</string>
      <font>
       <family>Ubuntu</family>
       <pointsize>12</pointsize>
-      <weight>50</weight>
       <italic>false</italic>
       <bold>false</bold>
      </font>
@@ -769,7 +761,6 @@ font: 12pt &quot;Calibri&quot;;</string>
        <font>
         <family>Ubuntu</family>
         <pointsize>11</pointsize>
-        <weight>75</weight>
         <bold>true</bold>
        </font>
       </property>
@@ -793,7 +784,6 @@ font: 12pt &quot;Calibri&quot;;</string>
        <font>
         <family>Ubuntu</family>
         <pointsize>11</pointsize>
-        <weight>75</weight>
         <bold>true</bold>
        </font>
       </property>
@@ -827,7 +817,6 @@ font: 12pt &quot;Calibri&quot;;</string>
        <font>
         <family>Segoe UI Symbol</family>
         <pointsize>11</pointsize>
-        <weight>75</weight>
         <italic>false</italic>
         <bold>true</bold>
        </font>
@@ -858,7 +847,6 @@ border : 1px solid rgb(225, 225, 225);</string>
        <font>
         <family>Segoe UI Symbol</family>
         <pointsize>11</pointsize>
-        <weight>75</weight>
         <italic>false</italic>
         <bold>true</bold>
        </font>
@@ -918,7 +906,6 @@ border : 1px solid rgb(225, 225, 225);</string>
        <font>
         <family>Ubuntu</family>
         <pointsize>11</pointsize>
-        <weight>75</weight>
         <bold>true</bold>
        </font>
       </property>
@@ -958,7 +945,6 @@ border : 1px solid rgb(225, 225, 225);</string>
        <font>
         <family>Ubuntu</family>
         <pointsize>11</pointsize>
-        <weight>75</weight>
         <bold>true</bold>
        </font>
       </property>
@@ -1096,7 +1082,6 @@ border: 2px black;
        <font>
         <family>Calibri</family>
         <pointsize>12</pointsize>
-        <weight>50</weight>
         <bold>false</bold>
        </font>
       </property>
@@ -1225,7 +1210,6 @@ color: #fff;</string>
        <font>
         <family>Ubuntu</family>
         <pointsize>11</pointsize>
-        <weight>75</weight>
         <bold>true</bold>
        </font>
       </property>
@@ -1249,7 +1233,6 @@ color: #fff;</string>
        <font>
         <family>Segoe UI Symbol</family>
         <pointsize>11</pointsize>
-        <weight>75</weight>
         <italic>false</italic>
         <bold>true</bold>
        </font>
@@ -1280,7 +1263,6 @@ border : 1px solid rgb(225, 225, 225);</string>
        <font>
         <family>Segoe UI Symbol</family>
         <pointsize>11</pointsize>
-        <weight>75</weight>
         <italic>false</italic>
         <bold>true</bold>
        </font>
@@ -1311,7 +1293,6 @@ border : 1px solid rgb(225, 225, 225);</string>
        <font>
         <family>Segoe UI</family>
         <pointsize>10</pointsize>
-        <weight>50</weight>
         <italic>false</italic>
         <bold>false</bold>
         <underline>true</underline>
@@ -1348,7 +1329,6 @@ border : none;
        <font>
         <family>Ubuntu</family>
         <pointsize>11</pointsize>
-        <weight>75</weight>
         <bold>true</bold>
        </font>
       </property>
@@ -1372,7 +1352,6 @@ border : none;
        <font>
         <family>Segoe UI</family>
         <pointsize>10</pointsize>
-        <weight>50</weight>
         <italic>false</italic>
         <bold>false</bold>
         <underline>true</underline>
@@ -1442,7 +1421,6 @@ border: 2px black;
        <font>
         <family>Calibri</family>
         <pointsize>12</pointsize>
-        <weight>50</weight>
         <bold>false</bold>
        </font>
       </property>
@@ -1636,7 +1614,6 @@ color: #fff;</string>
        <font>
         <family>Segoe UI Symbol</family>
         <pointsize>11</pointsize>
-        <weight>75</weight>
         <italic>false</italic>
         <bold>true</bold>
        </font>
@@ -1667,7 +1644,6 @@ border : 1px solid rgb(225, 225, 225);</string>
        <font>
         <family>Ubuntu</family>
         <pointsize>11</pointsize>
-        <weight>75</weight>
         <bold>true</bold>
        </font>
       </property>
@@ -1701,7 +1677,6 @@ border : 1px solid rgb(225, 225, 225);</string>
        <font>
         <family>Ubuntu</family>
         <pointsize>11</pointsize>
-        <weight>75</weight>
         <bold>true</bold>
        </font>
       </property>
@@ -1758,7 +1733,6 @@ border : 1px solid rgb(225, 225, 225);</string>
        <font>
         <family>Ubuntu</family>
         <pointsize>11</pointsize>
-        <weight>75</weight>
         <bold>true</bold>
        </font>
       </property>
@@ -1782,7 +1756,6 @@ border : 1px solid rgb(225, 225, 225);</string>
        <font>
         <family>Ubuntu</family>
         <pointsize>11</pointsize>
-        <weight>75</weight>
         <bold>true</bold>
        </font>
       </property>
@@ -1806,7 +1779,6 @@ border : 1px solid rgb(225, 225, 225);</string>
        <font>
         <family>Segoe UI Symbol</family>
         <pointsize>11</pointsize>
-        <weight>75</weight>
         <italic>false</italic>
         <bold>true</bold>
        </font>
@@ -1837,7 +1809,6 @@ border : 1px solid rgb(225, 225, 225);</string>
        <font>
         <family>Segoe UI Symbol</family>
         <pointsize>11</pointsize>
-        <weight>75</weight>
         <italic>false</italic>
         <bold>true</bold>
        </font>
@@ -1878,7 +1849,6 @@ border : 1px solid rgb(225, 225, 225);</string>
        <font>
         <family>Segoe UI Symbol</family>
         <pointsize>11</pointsize>
-        <weight>75</weight>
         <italic>false</italic>
         <bold>true</bold>
        </font>
@@ -1909,7 +1879,6 @@ border : 1px solid rgb(225, 225, 225);</string>
        <font>
         <family>Ubuntu</family>
         <pointsize>11</pointsize>
-        <weight>75</weight>
         <bold>true</bold>
        </font>
       </property>
@@ -1946,7 +1915,6 @@ border : 1px solid rgb(225, 225, 225);</string>
        <font>
         <family>Ubuntu</family>
         <pointsize>11</pointsize>
-        <weight>75</weight>
         <bold>true</bold>
        </font>
       </property>
@@ -1970,7 +1938,6 @@ border : 1px solid rgb(225, 225, 225);</string>
        <font>
         <family>Segoe UI Symbol</family>
         <pointsize>11</pointsize>
-        <weight>75</weight>
         <italic>false</italic>
         <bold>true</bold>
        </font>
@@ -2001,7 +1968,6 @@ border : 1px solid rgb(225, 225, 225);</string>
        <font>
         <family>Segoe UI Symbol</family>
         <pointsize>11</pointsize>
-        <weight>75</weight>
         <italic>false</italic>
         <bold>true</bold>
        </font>
@@ -2044,7 +2010,6 @@ border : 1px solid rgb(225, 225, 225);</string>
      <font>
       <family>Ubuntu</family>
       <pointsize>12</pointsize>
-      <weight>75</weight>
       <italic>false</italic>
       <bold>true</bold>
      </font>
@@ -2069,7 +2034,6 @@ background-color: rgb(64, 140, 191);
       <font>
        <family>Ubuntu</family>
        <pointsize>10</pointsize>
-       <weight>75</weight>
        <italic>false</italic>
        <bold>true</bold>
       </font>
@@ -2145,7 +2109,6 @@ border-width : 0px 2px 0px 2px;}</string>
       <font>
        <family>Ubuntu</family>
        <pointsize>12</pointsize>
-       <weight>50</weight>
        <italic>false</italic>
        <bold>false</bold>
       </font>
@@ -2246,7 +2209,6 @@ color : black;
        <font>
         <family>Ubuntu</family>
         <pointsize>11</pointsize>
-        <weight>75</weight>
         <italic>false</italic>
         <bold>true</bold>
        </font>
@@ -2271,7 +2233,6 @@ color : black;
        <font>
         <family>Segoe UI Symbol</family>
         <pointsize>11</pointsize>
-        <weight>75</weight>
         <italic>false</italic>
         <bold>true</bold>
        </font>
@@ -2302,7 +2263,6 @@ border : 1px solid rgb(225, 225, 225);</string>
        <font>
         <family>Ubuntu</family>
         <pointsize>11</pointsize>
-        <weight>75</weight>
         <italic>false</italic>
         <bold>true</bold>
        </font>
@@ -2347,7 +2307,6 @@ border : 1px solid rgb(225, 225, 225);</string>
        <font>
         <family>Ubuntu</family>
         <pointsize>12</pointsize>
-        <weight>75</weight>
         <italic>false</italic>
         <bold>true</bold>
        </font>
@@ -2382,7 +2341,6 @@ color: rgb(255, 255, 255);</string>
         <font>
          <family>Ubuntu</family>
          <pointsize>12</pointsize>
-         <weight>75</weight>
          <bold>true</bold>
         </font>
        </property>
@@ -2409,7 +2367,6 @@ color: rgb(255, 255, 255);</string>
         <font>
          <family>Ubuntu</family>
          <pointsize>12</pointsize>
-         <weight>75</weight>
          <bold>true</bold>
         </font>
        </property>
@@ -2437,7 +2394,6 @@ color: rgb(255, 255, 255);</string>
        <font>
         <family>Ubuntu</family>
         <pointsize>11</pointsize>
-        <weight>75</weight>
         <italic>false</italic>
         <bold>true</bold>
        </font>
@@ -2462,7 +2418,6 @@ color: rgb(255, 255, 255);</string>
        <font>
         <family>Segoe UI Symbol</family>
         <pointsize>11</pointsize>
-        <weight>75</weight>
         <italic>false</italic>
         <bold>true</bold>
        </font>
@@ -2493,7 +2448,6 @@ border : 1px solid rgb(225, 225, 225);</string>
        <font>
         <family>Segoe UI Symbol</family>
         <pointsize>11</pointsize>
-        <weight>75</weight>
         <italic>false</italic>
         <bold>true</bold>
        </font>
@@ -2524,7 +2478,6 @@ border : 1px solid rgb(225, 225, 225);</string>
        <font>
         <family>Ubuntu</family>
         <pointsize>12</pointsize>
-        <weight>75</weight>
         <bold>true</bold>
        </font>
       </property>
@@ -2565,7 +2518,6 @@ color: rgb(255, 255, 255);</string>
        <font>
         <family>Ubuntu</family>
         <pointsize>12</pointsize>
-        <weight>75</weight>
         <italic>false</italic>
         <bold>true</bold>
        </font>
@@ -2619,7 +2571,6 @@ color: rgb(255, 255, 255);</string>
      <font>
       <family>Ubuntu</family>
       <pointsize>12</pointsize>
-      <weight>50</weight>
       <italic>false</italic>
       <bold>false</bold>
      </font>
@@ -2672,7 +2623,6 @@ and Elasticity</string>
      <font>
       <family>Ubuntu</family>
       <pointsize>12</pointsize>
-      <weight>50</weight>
       <italic>false</italic>
       <bold>false</bold>
      </font>
@@ -2741,7 +2691,6 @@ background-color: rgb(64, 140, 191);
        <font>
         <family>Ubuntu</family>
         <pointsize>29</pointsize>
-        <weight>50</weight>
         <italic>false</italic>
         <bold>false</bold>
        </font>
@@ -2830,7 +2779,6 @@ background-color: rgb(64, 140, 191);
       <property name="font">
        <font>
         <pointsize>16</pointsize>
-        <weight>75</weight>
         <italic>false</italic>
         <bold>true</bold>
        </font>
@@ -2878,7 +2826,6 @@ background-color: rgb(64, 140, 191);
        <font>
         <family>Ubuntu</family>
         <pointsize>13</pointsize>
-        <weight>75</weight>
         <italic>false</italic>
         <bold>true</bold>
        </font>
@@ -2921,7 +2868,6 @@ background-color: rgb(64, 140, 191);
        <font>
         <family>Segoe UI Symbol</family>
         <pointsize>11</pointsize>
-        <weight>75</weight>
         <italic>false</italic>
         <bold>true</bold>
        </font>
@@ -2952,7 +2898,6 @@ border : 1px solid rgb(225, 225, 225);</string>
        <font>
         <family>Ubuntu</family>
         <pointsize>12</pointsize>
-        <weight>75</weight>
         <italic>false</italic>
         <bold>true</bold>
        </font>
@@ -2977,7 +2922,6 @@ border : 1px solid rgb(225, 225, 225);</string>
        <font>
         <family>Ubuntu</family>
         <pointsize>11</pointsize>
-        <weight>75</weight>
         <italic>false</italic>
         <bold>true</bold>
        </font>
@@ -3033,7 +2977,6 @@ border : 1px solid rgb(225, 225, 225);</string>
        <font>
         <family>Segoe UI Symbol</family>
         <pointsize>11</pointsize>
-        <weight>75</weight>
         <italic>false</italic>
         <bold>true</bold>
        </font>
@@ -3064,7 +3007,6 @@ border : 1px solid rgb(225, 225, 225);</string>
        <font>
         <family>Segoe UI Symbol</family>
         <pointsize>11</pointsize>
-        <weight>75</weight>
         <italic>false</italic>
         <bold>true</bold>
        </font>
@@ -3118,7 +3060,6 @@ border : 1px solid rgb(225, 225, 225);</string>
      <font>
       <family>Ubuntu</family>
       <pointsize>12</pointsize>
-      <weight>50</weight>
       <italic>false</italic>
       <bold>false</bold>
      </font>
@@ -3167,7 +3108,6 @@ Properties</string>
      <font>
       <family>Ubuntu</family>
       <pointsize>12</pointsize>
-      <weight>50</weight>
       <italic>false</italic>
       <bold>false</bold>
      </font>
@@ -3286,7 +3226,6 @@ background-color: rgb(64, 140, 191);
        <font>
         <family>Ubuntu</family>
         <pointsize>11</pointsize>
-        <weight>75</weight>
         <italic>false</italic>
         <bold>true</bold>
        </font>
@@ -3324,7 +3263,6 @@ background-color: rgb(64, 140, 191);
        <font>
         <family>Ubuntu</family>
         <pointsize>11</pointsize>
-        <weight>75</weight>
         <italic>false</italic>
         <bold>true</bold>
        </font>
@@ -3362,7 +3300,6 @@ background-color: rgb(64, 140, 191);
        <font>
         <family>Ubuntu</family>
         <pointsize>11</pointsize>
-        <weight>75</weight>
         <italic>false</italic>
         <bold>true</bold>
        </font>
@@ -3400,7 +3337,6 @@ background-color: rgb(64, 140, 191);
        <font>
         <family>Ubuntu</family>
         <pointsize>11</pointsize>
-        <weight>75</weight>
         <italic>false</italic>
         <bold>true</bold>
        </font>
@@ -3496,7 +3432,6 @@ background-color: rgb(64, 140, 191);
        <font>
         <family>Segoe UI Symbol</family>
         <pointsize>11</pointsize>
-        <weight>75</weight>
         <italic>false</italic>
         <bold>true</bold>
        </font>
@@ -3527,7 +3462,6 @@ border : 1px solid rgb(225, 225, 225);</string>
        <font>
         <family>Ubuntu</family>
         <pointsize>11</pointsize>
-        <weight>75</weight>
         <italic>false</italic>
         <bold>true</bold>
        </font>
@@ -3574,7 +3508,6 @@ background-color: rgb(64, 140, 191);
       <font>
        <family>Ubuntu</family>
        <pointsize>12</pointsize>
-       <weight>50</weight>
        <italic>false</italic>
        <bold>false</bold>
       </font>
@@ -3751,7 +3684,6 @@ border : none;
       <font>
        <family>Ubuntu</family>
        <pointsize>12</pointsize>
-       <weight>75</weight>
        <italic>false</italic>
        <bold>true</bold>
        <underline>true</underline>
@@ -3796,7 +3728,6 @@ border : none;
      <font>
       <family>Ubuntu</family>
       <pointsize>12</pointsize>
-      <weight>75</weight>
       <italic>false</italic>
       <bold>true</bold>
      </font>
@@ -3822,7 +3753,6 @@ background-color: rgb(64, 140, 191);
       <font>
        <family>Ubuntu</family>
        <pointsize>12</pointsize>
-       <weight>50</weight>
        <italic>false</italic>
        <bold>false</bold>
       </font>
@@ -3912,7 +3842,6 @@ color: rgb(255, 255, 255);
       <font>
        <family>Ubuntu</family>
        <pointsize>10</pointsize>
-       <weight>50</weight>
        <italic>false</italic>
        <bold>false</bold>
       </font>
@@ -3971,7 +3900,6 @@ color: #fff;</string>
       <font>
        <family>Ubuntu</family>
        <pointsize>12</pointsize>
-       <weight>50</weight>
        <bold>false</bold>
       </font>
      </property>
@@ -4017,7 +3945,6 @@ color: #fff;</string>
        <font>
         <family>Ubuntu</family>
         <pointsize>9</pointsize>
-        <weight>50</weight>
         <italic>false</italic>
         <bold>false</bold>
        </font>
@@ -4065,7 +3992,6 @@ background-color: rgb(238, 238, 236);</string>
        <font>
         <family>Ubuntu</family>
         <pointsize>13</pointsize>
-        <weight>75</weight>
         <italic>false</italic>
         <bold>true</bold>
        </font>
@@ -4090,7 +4016,6 @@ background-color: rgb(238, 238, 236);</string>
        <font>
         <family>Ubuntu</family>
         <pointsize>9</pointsize>
-        <weight>50</weight>
         <italic>false</italic>
         <bold>false</bold>
        </font>
@@ -4138,7 +4063,6 @@ background-color: rgb(238, 238, 236);</string>
        <font>
         <family>Ubuntu</family>
         <pointsize>9</pointsize>
-        <weight>50</weight>
         <italic>false</italic>
         <bold>false</bold>
        </font>
@@ -4186,7 +4110,6 @@ background-color: rgb(238, 238, 236);</string>
        <font>
         <family>Ubuntu</family>
         <pointsize>11</pointsize>
-        <weight>75</weight>
         <italic>false</italic>
         <bold>true</bold>
        </font>
@@ -4252,7 +4175,6 @@ background-color: rgb(238, 238, 236);</string>
        <font>
         <family>Ubuntu</family>
         <pointsize>13</pointsize>
-        <weight>75</weight>
         <italic>false</italic>
         <bold>true</bold>
        </font>
@@ -4277,7 +4199,6 @@ background-color: rgb(238, 238, 236);</string>
        <font>
         <family>Ubuntu</family>
         <pointsize>9</pointsize>
-        <weight>50</weight>
         <italic>false</italic>
         <bold>false</bold>
        </font>
@@ -4373,7 +4294,6 @@ background-color: rgb(238, 238, 236);</string>
        <font>
         <family>Segoe UI Symbol</family>
         <pointsize>11</pointsize>
-        <weight>75</weight>
         <italic>false</italic>
         <bold>true</bold>
        </font>
@@ -4404,7 +4324,6 @@ border : 1px solid rgb(225, 225, 225);</string>
        <font>
         <family>Ubuntu</family>
         <pointsize>13</pointsize>
-        <weight>75</weight>
         <italic>false</italic>
         <bold>true</bold>
        </font>
@@ -4429,7 +4348,6 @@ border : 1px solid rgb(225, 225, 225);</string>
        <font>
         <family>Ubuntu</family>
         <pointsize>13</pointsize>
-        <weight>75</weight>
         <italic>false</italic>
         <bold>true</bold>
        </font>
@@ -4466,7 +4384,6 @@ border : 1px solid rgb(225, 225, 225);</string>
      <font>
       <family>Ubuntu</family>
       <pointsize>12</pointsize>
-      <weight>50</weight>
       <italic>false</italic>
       <bold>false</bold>
      </font>
@@ -4554,7 +4471,7 @@ background-color: rgb(64, 140, 191);
        <enum>QFrame::Raised</enum>
       </property>
       <property name="currentIndex">
-       <number>0</number>
+       <number>1</number>
       </property>
       <widget class="QWidget" name="page">
        <property name="styleSheet">
@@ -4576,7 +4493,6 @@ background-color: rgb(64, 140, 191);
          <font>
           <family>Ubuntu</family>
           <pointsize>11</pointsize>
-          <weight>75</weight>
           <italic>false</italic>
           <bold>true</bold>
           <underline>true</underline>
@@ -4602,7 +4518,6 @@ background-color: rgb(64, 140, 191);
          <font>
           <family>Ubuntu</family>
           <pointsize>10</pointsize>
-          <weight>75</weight>
           <bold>true</bold>
          </font>
         </property>
@@ -4638,7 +4553,6 @@ color :rgb(64, 140, 191);</string>
           <font>
            <family>Ubuntu</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -4663,7 +4577,6 @@ color :rgb(64, 140, 191);</string>
           <font>
            <family>Ubuntu</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -4688,7 +4601,6 @@ color :rgb(64, 140, 191);</string>
           <font>
            <family>Ubuntu</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -4713,7 +4625,6 @@ color :rgb(64, 140, 191);</string>
           <font>
            <family>Ubuntu</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -4738,7 +4649,6 @@ color :rgb(64, 140, 191);</string>
           <font>
            <family>Segoe UI Symbol</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -4769,7 +4679,6 @@ border : 1px solid rgb(225, 225, 225);</string>
           <font>
            <family>Segoe UI Symbol</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -4800,7 +4709,6 @@ border : 1px solid rgb(225, 225, 225);</string>
           <font>
            <family>Ubuntu</family>
            <pointsize>10</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -4913,7 +4821,6 @@ background-color: rgb(238, 238, 236);
           <font>
            <family>Ubuntu</family>
            <pointsize>10</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -4951,7 +4858,6 @@ background-color: rgb(238, 238, 236);
           <font>
            <family>Ubuntu</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -4986,7 +4892,6 @@ background-color: rgb(238, 238, 236);
           <font>
            <family>Segoe UI Symbol</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -5030,7 +4935,6 @@ border : 1px solid rgb(225, 225, 225);</string>
           <font>
            <family>Segoe UI Symbol</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -5061,7 +4965,6 @@ border : 1px solid rgb(225, 225, 225);</string>
           <font>
            <family>Ubuntu</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -5086,7 +4989,6 @@ border : 1px solid rgb(225, 225, 225);</string>
           <font>
            <family>Ubuntu</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -5140,7 +5042,6 @@ border : 1px solid rgb(225, 225, 225);</string>
           <font>
            <family>Ubuntu</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -5166,7 +5067,6 @@ factor   :</string>
           <font>
            <family>Segoe UI Symbol</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -5210,7 +5110,6 @@ border : 1px solid rgb(225, 225, 225);</string>
           <font>
            <family>Segoe UI Symbol</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -5241,7 +5140,6 @@ border : 1px solid rgb(225, 225, 225);</string>
           <font>
            <family>Ubuntu</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -5267,7 +5165,6 @@ iterations  :</string>
           <font>
            <family>Segoe UI Symbol</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -5311,7 +5208,6 @@ border : 1px solid rgb(225, 225, 225);</string>
           <font>
            <family>Ubuntu</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -5343,7 +5239,6 @@ GROWTH  :</string>
          <font>
           <family>Ubuntu</family>
           <pointsize>10</pointsize>
-          <weight>75</weight>
           <bold>true</bold>
          </font>
         </property>
@@ -5379,7 +5274,6 @@ color :rgb(64, 140, 191);</string>
           <font>
            <family>Ubuntu</family>
            <pointsize>12</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
            <underline>true</underline>
@@ -5405,7 +5299,6 @@ color :rgb(64, 140, 191);</string>
           <font>
            <family>Segoe UI Symbol</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -5449,7 +5342,6 @@ border : 1px solid rgb(225, 225, 225);</string>
           <font>
            <family>Segoe UI Symbol</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -5480,7 +5372,6 @@ border : 1px solid rgb(225, 225, 225);</string>
           <font>
            <family>Segoe UI Symbol</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -5511,7 +5402,6 @@ border : 1px solid rgb(225, 225, 225);</string>
           <font>
            <family>Ubuntu</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -5549,7 +5439,6 @@ border : 1px solid rgb(225, 225, 225);</string>
           <font>
            <family>Ubuntu</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -5574,7 +5463,6 @@ border : 1px solid rgb(225, 225, 225);</string>
           <font>
            <family>Ubuntu</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -5622,7 +5510,6 @@ border : 1px solid rgb(225, 225, 225);</string>
           <font>
            <family>Ubuntu</family>
            <pointsize>12</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
            <underline>true</underline>
@@ -5648,7 +5535,6 @@ border : 1px solid rgb(225, 225, 225);</string>
           <font>
            <family>Segoe UI Symbol</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -5692,7 +5578,6 @@ border : 1px solid rgb(225, 225, 225);</string>
           <font>
            <family>Segoe UI Symbol</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -5723,7 +5608,6 @@ border : 1px solid rgb(225, 225, 225);</string>
           <font>
            <family>Ubuntu</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -5748,7 +5632,6 @@ border : 1px solid rgb(225, 225, 225);</string>
           <font>
            <family>Ubuntu</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -5802,7 +5685,6 @@ border : 1px solid rgb(225, 225, 225);</string>
           <font>
            <family>Ubuntu</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -5827,7 +5709,6 @@ border : 1px solid rgb(225, 225, 225);</string>
           <font>
            <family>Segoe UI Symbol</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -5864,7 +5745,6 @@ border : 1px solid rgb(225, 225, 225);</string>
          <font>
           <family>Ubuntu</family>
           <pointsize>10</pointsize>
-          <weight>75</weight>
           <bold>true</bold>
          </font>
         </property>
@@ -5900,7 +5780,6 @@ color :rgb(64, 140, 191);</string>
           <font>
            <family>Ubuntu</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -5925,7 +5804,6 @@ color :rgb(64, 140, 191);</string>
           <font>
            <family>Ubuntu</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -5950,7 +5828,6 @@ color :rgb(64, 140, 191);</string>
           <font>
            <family>Segoe UI Symbol</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -6070,7 +5947,6 @@ border : 1px solid rgb(225, 225, 225);</string>
           <font>
            <family>Segoe UI Symbol</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -6101,7 +5977,6 @@ border : 1px solid rgb(225, 225, 225);</string>
           <font>
            <family>Ubuntu</family>
            <pointsize>12</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
            <underline>true</underline>
@@ -6174,7 +6049,6 @@ border : 1px solid rgb(225, 225, 225);</string>
           <font>
            <family>Ubuntu</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -6199,7 +6073,6 @@ border : 1px solid rgb(225, 225, 225);</string>
           <font>
            <family>Ubuntu</family>
            <pointsize>12</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
            <underline>true</underline>
@@ -6225,7 +6098,6 @@ border : 1px solid rgb(225, 225, 225);</string>
           <font>
            <family>Segoe UI Symbol</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -6256,7 +6128,6 @@ border : 1px solid rgb(225, 225, 225);</string>
           <font>
            <family>Ubuntu</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -6281,7 +6152,6 @@ border : 1px solid rgb(225, 225, 225);</string>
           <font>
            <family>Segoe UI Symbol</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -6312,7 +6182,6 @@ border : 1px solid rgb(225, 225, 225);</string>
           <font>
            <family>Segoe UI Symbol</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -6356,7 +6225,6 @@ border : 1px solid rgb(225, 225, 225);</string>
           <font>
            <family>Ubuntu</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -6381,7 +6249,6 @@ border : 1px solid rgb(225, 225, 225);</string>
           <font>
            <family>Ubuntu</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -6425,7 +6292,6 @@ border : 1px solid rgb(225, 225, 225);</string>
           <font>
            <family>Segoe UI Symbol</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -6488,7 +6354,6 @@ border : 1px solid rgb(225, 225, 225);</string>
          <font>
           <family>Ubuntu</family>
           <pointsize>10</pointsize>
-          <weight>75</weight>
           <bold>true</bold>
          </font>
         </property>
@@ -6524,7 +6389,6 @@ color :rgb(64, 140, 191);</string>
           <font>
            <family>Ubuntu</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -6549,7 +6413,6 @@ color :rgb(64, 140, 191);</string>
           <font>
            <family>Segoe UI Symbol</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -6580,7 +6443,6 @@ border : 1px solid rgb(225, 225, 225);</string>
           <font>
            <family>Segoe UI Symbol</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -6646,7 +6508,6 @@ border : 1px solid rgb(225, 225, 225);</string>
           <font>
            <family>Ubuntu</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -6671,7 +6532,6 @@ border : 1px solid rgb(225, 225, 225);</string>
           <font>
            <family>Segoe UI Symbol</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -6702,7 +6562,6 @@ border : 1px solid rgb(225, 225, 225);</string>
           <font>
            <family>Ubuntu</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -6743,7 +6602,6 @@ border : 1px solid rgb(225, 225, 225);</string>
           <font>
            <family>Ubuntu</family>
            <pointsize>12</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
            <underline>true</underline>
@@ -6814,7 +6672,6 @@ border : 1px solid rgb(225, 225, 225);</string>
           <font>
            <family>Segoe UI Symbol</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -6845,7 +6702,6 @@ border : 1px solid rgb(225, 225, 225);</string>
           <font>
            <family>Ubuntu</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -6870,7 +6726,6 @@ border : 1px solid rgb(225, 225, 225);</string>
           <font>
            <family>Ubuntu</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -6895,7 +6750,6 @@ border : 1px solid rgb(225, 225, 225);</string>
           <font>
            <family>Segoe UI Symbol</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -6926,7 +6780,6 @@ border : 1px solid rgb(225, 225, 225);</string>
           <font>
            <family>Ubuntu</family>
            <pointsize>12</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
            <underline>true</underline>
@@ -7038,10 +6891,10 @@ background-color: rgb(238, 238, 236);
       </property>
      </widget>
      <zorder>saveGP</zorder>
-     <zorder>stackedWidgetGP</zorder>
      <zorder>GP_pre</zorder>
      <zorder>GP_next</zorder>
      <zorder>errorGP</zorder>
+     <zorder>stackedWidgetGP</zorder>
     </widget>
     <widget class="QWidget" name="frame_9KKS" native="true">
      <property name="geometry">
@@ -7087,7 +6940,6 @@ background-color: rgb(64, 140, 191);
          <font>
           <family>Ubuntu</family>
           <pointsize>10</pointsize>
-          <weight>75</weight>
           <bold>true</bold>
          </font>
         </property>
@@ -7107,14 +6959,14 @@ color :rgb(64, 140, 191);</string>
           <x>40</x>
           <y>30</y>
           <width>301</width>
-          <height>251</height>
+          <height>261</height>
          </rect>
         </property>
         <widget class="QLabel" name="label_90">
          <property name="geometry">
           <rect>
-           <x>120</x>
-           <y>185</y>
+           <x>10</x>
+           <y>120</y>
            <width>41</width>
            <height>31</height>
           </rect>
@@ -7123,7 +6975,6 @@ color :rgb(64, 140, 191);</string>
           <font>
            <family>Ubuntu</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -7138,8 +6989,8 @@ color :rgb(64, 140, 191);</string>
         <widget class="QLabel" name="label_84">
          <property name="geometry">
           <rect>
-           <x>50</x>
-           <y>75</y>
+           <x>10</x>
+           <y>40</y>
            <width>111</width>
            <height>31</height>
           </rect>
@@ -7148,7 +6999,6 @@ color :rgb(64, 140, 191);</string>
           <font>
            <family>Ubuntu</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -7163,8 +7013,8 @@ color :rgb(64, 140, 191);</string>
         <widget class="QLineEdit" name="TauKKS">
          <property name="geometry">
           <rect>
-           <x>165</x>
-           <y>185</y>
+           <x>140</x>
+           <y>120</y>
            <width>131</width>
            <height>31</height>
           </rect>
@@ -7179,9 +7029,9 @@ color :rgb(64, 140, 191);</string>
         <widget class="QComboBox" name="writeFormatKKS">
          <property name="geometry">
           <rect>
-           <x>165</x>
-           <y>75</y>
-           <width>101</width>
+           <x>140</x>
+           <y>40</y>
+           <width>110</width>
            <height>31</height>
           </rect>
          </property>
@@ -7211,9 +7061,9 @@ background-color: rgb(238, 238, 236);
         <widget class="QLineEdit" name="trackprogressKKS">
          <property name="geometry">
           <rect>
-           <x>165</x>
-           <y>130</y>
-           <width>131</width>
+           <x>140</x>
+           <y>80</y>
+           <width>50</width>
            <height>31</height>
           </rect>
          </property>
@@ -7237,7 +7087,6 @@ background-color: rgb(238, 238, 236);
           <font>
            <family>Ubuntu</family>
            <pointsize>12</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
            <underline>true</underline>
@@ -7253,8 +7102,8 @@ background-color: rgb(238, 238, 236);
         <widget class="QLabel" name="label_92">
          <property name="geometry">
           <rect>
-           <x>40</x>
-           <y>130</y>
+           <x>10</x>
+           <y>80</y>
            <width>121</width>
            <height>31</height>
           </rect>
@@ -7263,7 +7112,6 @@ background-color: rgb(238, 238, 236);
           <font>
            <family>Ubuntu</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -7275,6 +7123,80 @@ background-color: rgb(238, 238, 236);
           <string>Track Progress  :</string>
          </property>
         </widget>
+        <widget class="QLineEdit" name="debKKS">
+         <property name="geometry">
+          <rect>
+           <x>60</x>
+           <y>200</y>
+           <width>211</width>
+           <height>31</height>
+          </rect>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">background-color: rgb(255, 255, 255);</string>
+         </property>
+        </widget>
+        <widget class="QLineEdit" name="FanisotropyKKS">
+         <property name="geometry">
+          <rect>
+           <x>140</x>
+           <y>160</y>
+           <width>51</width>
+           <height>31</height>
+          </rect>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">background-color: rgb(255, 255, 255);</string>
+         </property>
+        </widget>
+        <widget class="QLabel" name="label_188">
+         <property name="geometry">
+          <rect>
+           <x>10</x>
+           <y>200</y>
+           <width>51</width>
+           <height>31</height>
+          </rect>
+         </property>
+         <property name="font">
+          <font>
+           <family>Ubuntu</family>
+           <pointsize>11</pointsize>
+           <italic>false</italic>
+           <bold>true</bold>
+          </font>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">color : white;</string>
+         </property>
+         <property name="text">
+          <string>dab   :</string>
+         </property>
+        </widget>
+        <widget class="QLabel" name="label_190">
+         <property name="geometry">
+          <rect>
+           <x>10</x>
+           <y>160</y>
+           <width>91</width>
+           <height>31</height>
+          </rect>
+         </property>
+         <property name="font">
+          <font>
+           <family>Ubuntu</family>
+           <pointsize>11</pointsize>
+           <italic>false</italic>
+           <bold>true</bold>
+          </font>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">color : white;</string>
+         </property>
+         <property name="text">
+          <string>F Anisotropy :</string>
+         </property>
+        </widget>
        </widget>
        <widget class="QWidget" name="frame9KKS_widget2" native="true">
         <property name="geometry">
@@ -7282,14 +7204,14 @@ background-color: rgb(238, 238, 236);
           <x>350</x>
           <y>0</y>
           <width>281</width>
-          <height>251</height>
+          <height>191</height>
          </rect>
         </property>
         <widget class="QLabel" name="label_101">
          <property name="geometry">
           <rect>
-           <x>37</x>
-           <y>120</y>
+           <x>10</x>
+           <y>110</y>
            <width>71</width>
            <height>31</height>
           </rect>
@@ -7298,7 +7220,6 @@ background-color: rgb(238, 238, 236);
           <font>
            <family>Ubuntu</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -7314,8 +7235,8 @@ background-color: rgb(238, 238, 236);
          <property name="geometry">
           <rect>
            <x>110</x>
-           <y>120</y>
-           <width>131</width>
+           <y>110</y>
+           <width>41</width>
            <height>31</height>
           </rect>
          </property>
@@ -7329,9 +7250,9 @@ background-color: rgb(238, 238, 236);
         <widget class="QLineEdit" name="TKKS">
          <property name="geometry">
           <rect>
-           <x>110</x>
-           <y>170</y>
-           <width>131</width>
+           <x>200</x>
+           <y>110</y>
+           <width>41</width>
            <height>31</height>
           </rect>
          </property>
@@ -7361,8 +7282,8 @@ background-color: rgb(238, 238, 236);
         <widget class="QLabel" name="label_94">
          <property name="geometry">
           <rect>
-           <x>80</x>
-           <y>170</y>
+           <x>170</x>
+           <y>110</y>
            <width>21</width>
            <height>31</height>
           </rect>
@@ -7371,7 +7292,6 @@ background-color: rgb(238, 238, 236);
           <font>
            <family>Ubuntu</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -7386,7 +7306,7 @@ background-color: rgb(238, 238, 236);
         <widget class="QLabel" name="label_99">
          <property name="geometry">
           <rect>
-           <x>40</x>
+           <x>10</x>
            <y>70</y>
            <width>71</width>
            <height>31</height>
@@ -7396,7 +7316,6 @@ background-color: rgb(238, 238, 236);
           <font>
            <family>Ubuntu</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -7408,14 +7327,54 @@ background-color: rgb(238, 238, 236);
           <string>Epsilon :</string>
          </property>
         </widget>
+        <widget class="QLabel" name="gammaABC">
+         <property name="geometry">
+          <rect>
+           <x>10</x>
+           <y>150</y>
+           <width>101</width>
+           <height>31</height>
+          </rect>
+         </property>
+         <property name="font">
+          <font>
+           <family>Ubuntu</family>
+           <pointsize>11</pointsize>
+           <italic>false</italic>
+           <bold>true</bold>
+          </font>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">color : white;</string>
+         </property>
+         <property name="text">
+          <string>gammaABC  :</string>
+         </property>
+        </widget>
+        <widget class="QLineEdit" name="gammaABCKKS">
+         <property name="geometry">
+          <rect>
+           <x>110</x>
+           <y>150</y>
+           <width>131</width>
+           <height>31</height>
+          </rect>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">background-color: rgb(255, 255, 255);</string>
+         </property>
+         <property name="text">
+          <string/>
+         </property>
+        </widget>
        </widget>
        <widget class="QWidget" name="frame9KKS_widget3" native="true">
         <property name="geometry">
          <rect>
           <x>350</x>
-          <y>220</y>
+          <y>199</y>
           <width>281</width>
-          <height>100</height>
+          <height>121</height>
          </rect>
         </property>
         <widget class="QLabel" name="label_205">
@@ -7431,7 +7390,6 @@ background-color: rgb(238, 238, 236);
           <font>
            <family>Ubuntu</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -7446,7 +7404,7 @@ background-color: rgb(238, 238, 236);
         <widget class="QLineEdit" name="elasticityKKS">
          <property name="geometry">
           <rect>
-           <x>120</x>
+           <x>110</x>
            <y>0</y>
            <width>80</width>
            <height>31</height>
@@ -7460,16 +7418,15 @@ background-color: rgb(238, 238, 236);
          <property name="geometry">
           <rect>
            <x>0</x>
-           <y>50</y>
+           <y>30</y>
            <width>151</width>
-           <height>50</height>
+           <height>41</height>
           </rect>
          </property>
          <property name="font">
           <font>
            <family>Ubuntu</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -7485,8 +7442,8 @@ GROWTH  :</string>
         <widget class="QLineEdit" name="graingrowthKKS">
          <property name="geometry">
           <rect>
-           <x>120</x>
-           <y>50</y>
+           <x>110</x>
+           <y>40</y>
            <width>80</width>
            <height>31</height>
           </rect>
@@ -7496,6 +7453,10 @@ GROWTH  :</string>
          </property>
         </widget>
        </widget>
+       <zorder>label_100</zorder>
+       <zorder>frame9KKS_widget2</zorder>
+       <zorder>frame9KKS_widget3</zorder>
+       <zorder>frame9KKS_widget1</zorder>
       </widget>
      </widget>
      <widget class="QPushButton" name="KKS_pre">
@@ -7599,6 +7560,11 @@ background-color: rgb(238, 238, 236);
        <string/>
       </property>
      </widget>
+     <zorder>stackedWidgetKKS</zorder>
+     <zorder>KKS_pre</zorder>
+     <zorder>saveKKS</zorder>
+     <zorder>errorKKS</zorder>
+     <zorder>KKS_next</zorder>
     </widget>
     <widget class="QWidget" name="frame_9CH" native="true">
      <property name="geometry">
@@ -7727,7 +7693,6 @@ background-color: rgb(64, 140, 191);
          <font>
           <family>Ubuntu</family>
           <pointsize>10</pointsize>
-          <weight>75</weight>
           <bold>true</bold>
          </font>
         </property>
@@ -7808,7 +7773,6 @@ background-color: rgb(238, 238, 236);
           <font>
            <family>Ubuntu</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -7833,7 +7797,6 @@ background-color: rgb(238, 238, 236);
           <font>
            <family>Ubuntu</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -7874,7 +7837,6 @@ background-color: rgb(238, 238, 236);
           <font>
            <family>Ubuntu</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -7899,7 +7861,6 @@ background-color: rgb(238, 238, 236);
           <font>
            <family>Ubuntu</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -7940,7 +7901,6 @@ background-color: rgb(238, 238, 236);
           <font>
            <family>Ubuntu</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -7965,7 +7925,6 @@ background-color: rgb(238, 238, 236);
           <font>
            <family>Ubuntu</family>
            <pointsize>12</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
            <underline>true</underline>
@@ -8030,7 +7989,6 @@ background-color: rgb(238, 238, 236);
           <font>
            <family>Ubuntu</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -8071,7 +8029,6 @@ background-color: rgb(238, 238, 236);
           <font>
            <family>Ubuntu</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -8128,7 +8085,6 @@ background-color: rgb(238, 238, 236);
           <font>
            <family>Ubuntu</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -8153,7 +8109,6 @@ background-color: rgb(238, 238, 236);
           <font>
            <family>Ubuntu</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -8194,7 +8149,6 @@ background-color: rgb(238, 238, 236);
           <font>
            <family>Ubuntu</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -8227,7 +8181,6 @@ background-color: rgb(64, 140, 191);
          <font>
           <family>Ubuntu</family>
           <pointsize>10</pointsize>
-          <weight>75</weight>
           <bold>true</bold>
          </font>
         </property>
@@ -8254,7 +8207,6 @@ color :rgb(64, 140, 191);</string>
          <font>
           <family>Ubuntu</family>
           <pointsize>10</pointsize>
-          <weight>50</weight>
           <italic>false</italic>
           <bold>false</bold>
          </font>
@@ -8330,7 +8282,6 @@ border : none;
          <font>
           <family>Ubuntu</family>
           <pointsize>12</pointsize>
-          <weight>75</weight>
           <italic>false</italic>
           <bold>true</bold>
           <underline>true</underline>
@@ -8415,7 +8366,6 @@ background-color: rgb(64, 140, 191);
          <font>
           <family>Ubuntu</family>
           <pointsize>10</pointsize>
-          <weight>75</weight>
           <bold>true</bold>
          </font>
         </property>
@@ -8442,7 +8392,6 @@ color :rgb(64, 140, 191);</string>
          <font>
           <family>Ubuntu</family>
           <pointsize>11</pointsize>
-          <weight>75</weight>
           <italic>false</italic>
           <bold>true</bold>
           <underline>true</underline>
@@ -8477,7 +8426,6 @@ color :rgb(64, 140, 191);</string>
           <font>
            <family>Ubuntu</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -8571,7 +8519,6 @@ background-color: rgb(238, 238, 236);
           <font>
            <family>Segoe UI Symbol</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -8602,7 +8549,6 @@ border : 1px solid rgb(225, 225, 225);</string>
           <font>
            <family>Ubuntu</family>
            <pointsize>10</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -8630,7 +8576,6 @@ border : 1px solid rgb(225, 225, 225);</string>
           <font>
            <family>Ubuntu</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -8655,7 +8600,6 @@ border : 1px solid rgb(225, 225, 225);</string>
           <font>
            <family>Ubuntu</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -8680,7 +8624,6 @@ border : 1px solid rgb(225, 225, 225);</string>
           <font>
            <family>Segoe UI Symbol</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -8724,7 +8667,6 @@ border : 1px solid rgb(225, 225, 225);</string>
           <font>
            <family>Ubuntu</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -8749,7 +8691,6 @@ border : 1px solid rgb(225, 225, 225);</string>
           <font>
            <family>Ubuntu</family>
            <pointsize>10</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -8784,7 +8725,6 @@ border : 1px solid rgb(225, 225, 225);</string>
           <font>
            <family>Segoe UI Symbol</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -8815,7 +8755,6 @@ border : 1px solid rgb(225, 225, 225);</string>
           <font>
            <family>Segoe UI Symbol</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -8859,7 +8798,6 @@ border : 1px solid rgb(225, 225, 225);</string>
           <font>
            <family>Ubuntu</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -8897,7 +8835,6 @@ border : 1px solid rgb(225, 225, 225);</string>
           <font>
            <family>Ubuntu</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -8929,7 +8866,6 @@ GROWTH  :</string>
          <font>
           <family>Ubuntu</family>
           <pointsize>10</pointsize>
-          <weight>75</weight>
           <bold>true</bold>
          </font>
         </property>
@@ -8965,7 +8901,6 @@ color :rgb(64, 140, 191);</string>
           <font>
            <family>Segoe UI Symbol</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -8996,7 +8931,6 @@ border : 1px solid rgb(225, 225, 225);</string>
           <font>
            <family>Ubuntu</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -9021,7 +8955,6 @@ border : 1px solid rgb(225, 225, 225);</string>
           <font>
            <family>Ubuntu</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -9046,7 +8979,6 @@ border : 1px solid rgb(225, 225, 225);</string>
           <font>
            <family>Ubuntu</family>
            <pointsize>12</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
            <underline>true</underline>
@@ -9085,7 +9017,6 @@ border : 1px solid rgb(225, 225, 225);</string>
           <font>
            <family>Segoe UI Symbol</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -9145,7 +9076,6 @@ border : 1px solid rgb(225, 225, 225);</string>
           <font>
            <family>Ubuntu</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -9170,7 +9100,6 @@ border : 1px solid rgb(225, 225, 225);</string>
           <font>
            <family>Ubuntu</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -9195,7 +9124,6 @@ border : 1px solid rgb(225, 225, 225);</string>
           <font>
            <family>Segoe UI Symbol</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -9226,7 +9154,6 @@ border : 1px solid rgb(225, 225, 225);</string>
           <font>
            <family>Segoe UI Symbol</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -9280,7 +9207,6 @@ border : 1px solid rgb(225, 225, 225);</string>
           <font>
            <family>Segoe UI Symbol</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -9311,7 +9237,6 @@ border : 1px solid rgb(225, 225, 225);</string>
           <font>
            <family>Segoe UI Symbol</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -9377,7 +9302,6 @@ border : 1px solid rgb(225, 225, 225);</string>
           <font>
            <family>Ubuntu</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -9415,7 +9339,6 @@ border : 1px solid rgb(225, 225, 225);</string>
           <font>
            <family>Ubuntu</family>
            <pointsize>12</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
            <underline>true</underline>
@@ -9441,7 +9364,6 @@ border : 1px solid rgb(225, 225, 225);</string>
           <font>
            <family>Ubuntu</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -9466,7 +9388,6 @@ border : 1px solid rgb(225, 225, 225);</string>
           <font>
            <family>Ubuntu</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -9499,7 +9420,6 @@ background-color: rgb(64, 140, 191);
          <font>
           <family>Ubuntu</family>
           <pointsize>10</pointsize>
-          <weight>75</weight>
           <bold>true</bold>
          </font>
         </property>
@@ -9554,7 +9474,6 @@ color :rgb(64, 140, 191);</string>
           <font>
            <family>Ubuntu</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -9579,7 +9498,6 @@ color :rgb(64, 140, 191);</string>
           <font>
            <family>Ubuntu</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -9604,7 +9522,6 @@ color :rgb(64, 140, 191);</string>
           <font>
            <family>Segoe UI Symbol</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -9635,7 +9552,6 @@ border : 1px solid rgb(225, 225, 225);</string>
           <font>
            <family>Ubuntu</family>
            <pointsize>12</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
            <underline>true</underline>
@@ -9661,7 +9577,6 @@ border : 1px solid rgb(225, 225, 225);</string>
           <font>
            <family>Ubuntu</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -9728,7 +9643,6 @@ border : 1px solid rgb(225, 225, 225);</string>
           <font>
            <family>Ubuntu</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -9753,7 +9667,6 @@ border : 1px solid rgb(225, 225, 225);</string>
           <font>
            <family>Segoe UI Symbol</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -9810,7 +9723,6 @@ border : 1px solid rgb(225, 225, 225);</string>
           <font>
            <family>Segoe UI Symbol</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -9854,7 +9766,6 @@ border : 1px solid rgb(225, 225, 225);</string>
           <font>
            <family>Segoe UI Symbol</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -9885,7 +9796,6 @@ border : 1px solid rgb(225, 225, 225);</string>
           <font>
            <family>Ubuntu</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -9910,7 +9820,6 @@ border : 1px solid rgb(225, 225, 225);</string>
           <font>
            <family>Ubuntu</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -9951,7 +9860,6 @@ border : 1px solid rgb(225, 225, 225);</string>
           <font>
            <family>Ubuntu</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -9995,7 +9903,6 @@ border : 1px solid rgb(225, 225, 225);</string>
           <font>
            <family>Ubuntu</family>
            <pointsize>11</pointsize>
-           <weight>75</weight>
            <italic>false</italic>
            <bold>true</bold>
           </font>
@@ -10107,9 +10014,9 @@ background-color: rgb(238, 238, 236);
      </widget>
     </widget>
     <zorder>frame_9CH</zorder>
-    <zorder>frame_9KKS</zorder>
     <zorder>frame_9KKS2</zorder>
     <zorder>frame_9GP</zorder>
+    <zorder>frame_9KKS</zorder>
    </widget>
    <widget class="QWidget" name="frame_8" native="true">
     <property name="geometry">
@@ -10149,7 +10056,6 @@ background-color: rgb(64, 140, 191);
          <font>
           <family>Ubuntu</family>
           <pointsize>10</pointsize>
-          <weight>75</weight>
           <italic>false</italic>
           <bold>true</bold>
          </font>
@@ -10188,7 +10094,6 @@ border : 2px solid rgb(0, 0, 0);
          <font>
           <family>Ubuntu</family>
           <pointsize>10</pointsize>
-          <weight>75</weight>
           <italic>false</italic>
           <bold>true</bold>
          </font>
@@ -10227,7 +10132,6 @@ border : 2px solid rgb(0, 0, 0);
          <font>
           <family>Ubuntu</family>
           <pointsize>10</pointsize>
-          <weight>75</weight>
           <italic>false</italic>
           <bold>true</bold>
          </font>
@@ -10269,7 +10173,6 @@ border : 2px solid rgb(0, 0, 0);
          <font>
           <family>Ubuntu</family>
           <pointsize>10</pointsize>
-          <weight>75</weight>
           <italic>false</italic>
           <bold>true</bold>
          </font>
@@ -10308,7 +10211,6 @@ border : 2px solid rgb(0, 0, 0);
          <font>
           <family>Ubuntu</family>
           <pointsize>10</pointsize>
-          <weight>75</weight>
           <italic>false</italic>
           <bold>true</bold>
          </font>
@@ -10347,7 +10249,6 @@ border : 2px solid rgb(0, 0, 0);
          <font>
           <family>Ubuntu</family>
           <pointsize>10</pointsize>
-          <weight>75</weight>
           <italic>false</italic>
           <bold>true</bold>
          </font>
@@ -10440,7 +10341,6 @@ background-color: rgb(238, 238, 236);
       <font>
        <family>Ubuntu</family>
        <pointsize>12</pointsize>
-       <weight>75</weight>
        <italic>false</italic>
        <bold>true</bold>
        <underline>true</underline>
@@ -10573,7 +10473,6 @@ border-bottom-color: rgb(124, 172, 205);
         <font>
          <family>Comic Sans MS</family>
          <pointsize>14</pointsize>
-         <weight>50</weight>
          <italic>false</italic>
          <bold>false</bold>
         </font>
@@ -10681,7 +10580,6 @@ border-top-color: rgb(64, 140, 191);
        </property>
        <property name="font">
         <font>
-         <weight>50</weight>
          <italic>false</italic>
          <bold>false</bold>
         </font>
@@ -10753,7 +10651,6 @@ border-top-color: rgb(64, 140, 191);
                <font>
                 <family>Ubuntu</family>
                 <pointsize>11</pointsize>
-                <weight>75</weight>
                 <italic>false</italic>
                 <bold>true</bold>
                </font>
@@ -10805,7 +10702,6 @@ border-top-color: rgb(64, 140, 191);
                <font>
                 <family>Ubuntu</family>
                 <pointsize>11</pointsize>
-                <weight>75</weight>
                 <italic>false</italic>
                 <bold>true</bold>
                </font>
@@ -10908,7 +10804,6 @@ border-top-color: rgb(64, 140, 191);
                <font>
                 <family>Ubuntu</family>
                 <pointsize>11</pointsize>
-                <weight>75</weight>
                 <italic>false</italic>
                 <bold>true</bold>
                </font>
@@ -11066,7 +10961,6 @@ color:white;
               </property>
               <property name="font">
                <font>
-                <weight>75</weight>
                 <bold>true</bold>
                </font>
               </property>
@@ -11130,7 +11024,6 @@ border : 1px solid rgb(225, 225, 225);
             <font>
              <family>Ubuntu</family>
              <pointsize>11</pointsize>
-             <weight>75</weight>
              <italic>false</italic>
              <bold>true</bold>
             </font>
@@ -11217,9 +11110,9 @@ Tool</string>
    <zorder>btn5</zorder>
    <zorder>btn6</zorder>
    <zorder>btn7</zorder>
-   <zorder>frame_9</zorder>
    <zorder>frame_11</zorder>
    <zorder>frame_8</zorder>
+   <zorder>frame_9</zorder>
   </widget>
   <widget class="QWidget" name="Sixth_widget" native="true">
    <property name="geometry">
@@ -11325,7 +11218,6 @@ color: #fff;</string>
        <font>
         <family>Ubuntu</family>
         <pointsize>9</pointsize>
-        <weight>75</weight>
         <italic>false</italic>
         <bold>true</bold>
        </font>
@@ -11354,7 +11246,6 @@ color: rgb(255, 255, 255);</string>
        <font>
         <family>Ubuntu</family>
         <pointsize>9</pointsize>
-        <weight>75</weight>
         <italic>false</italic>
         <bold>true</bold>
        </font>
@@ -11382,7 +11273,6 @@ color: rgb(255, 255, 255);</string>
      </property>
      <property name="font">
       <font>
-       <weight>50</weight>
        <italic>false</italic>
        <bold>false</bold>
       </font>
@@ -11508,7 +11398,6 @@ border-bottom-color: rgb(124, 172, 205);
         <font>
          <family>Ubuntu</family>
          <pointsize>14</pointsize>
-         <weight>50</weight>
          <bold>false</bold>
         </font>
        </property>
@@ -11541,7 +11430,6 @@ background-color: rgb(135, 44, 0);
         <font>
          <family>Ubuntu</family>
          <pointsize>11</pointsize>
-         <weight>50</weight>
          <bold>false</bold>
         </font>
        </property>
@@ -11575,7 +11463,6 @@ background-color: rgb(135, 44, 0);
         <font>
          <family>Ubuntu</family>
          <pointsize>11</pointsize>
-         <weight>75</weight>
          <bold>true</bold>
         </font>
        </property>
@@ -11617,7 +11504,6 @@ border-bottom-color: rgb(0, 0, 0);</string>
         <font>
          <family>Ubuntu</family>
          <pointsize>11</pointsize>
-         <weight>75</weight>
          <bold>true</bold>
         </font>
        </property>
@@ -11685,7 +11571,6 @@ border-bottom-color: rgb(0, 0, 0);</string>
         <font>
          <family>Ubuntu</family>
          <pointsize>11</pointsize>
-         <weight>75</weight>
          <bold>true</bold>
         </font>
        </property>
@@ -11727,7 +11612,6 @@ border-bottom-color: rgb(0, 0, 0);</string>
         <font>
          <family>Ubuntu</family>
          <pointsize>11</pointsize>
-         <weight>75</weight>
          <bold>true</bold>
         </font>
        </property>
@@ -11769,7 +11653,6 @@ border-bottom-color: rgb(0, 0, 0);</string>
         <font>
          <family>Ubuntu</family>
          <pointsize>11</pointsize>
-         <weight>75</weight>
          <bold>true</bold>
         </font>
        </property>
@@ -11838,7 +11721,6 @@ border-bottom-color: rgb(0, 0, 0);</string>
         <font>
          <family>Ubuntu</family>
          <pointsize>11</pointsize>
-         <weight>75</weight>
          <bold>true</bold>
         </font>
        </property>
@@ -11885,7 +11767,6 @@ border-bottom-color: rgb(0, 0, 0);</string>
         <font>
          <family>Ubuntu</family>
          <pointsize>11</pointsize>
-         <weight>75</weight>
          <bold>true</bold>
         </font>
        </property>
@@ -11927,7 +11808,6 @@ border-bottom-color: rgb(0, 0, 0);</string>
         <font>
          <family>Ubuntu</family>
          <pointsize>11</pointsize>
-         <weight>75</weight>
          <bold>true</bold>
         </font>
        </property>
@@ -11969,7 +11849,6 @@ border-bottom-color: rgb(0, 0, 0);</string>
         <font>
          <family>Ubuntu</family>
          <pointsize>11</pointsize>
-         <weight>75</weight>
          <bold>true</bold>
         </font>
        </property>
@@ -12032,7 +11911,6 @@ border-bottom-color: rgb(0, 0, 0);</string>
         <font>
          <family>Ubuntu</family>
          <pointsize>11</pointsize>
-         <weight>75</weight>
          <bold>true</bold>
         </font>
        </property>
@@ -12088,7 +11966,6 @@ border-bottom-color: rgb(0, 0, 0);</string>
         <font>
          <family>Ubuntu</family>
          <pointsize>11</pointsize>
-         <weight>75</weight>
          <bold>true</bold>
         </font>
        </property>
@@ -12133,7 +12010,6 @@ border-bottom-color: rgb(0, 0, 0);</string>
         <font>
          <family>Ubuntu</family>
          <pointsize>11</pointsize>
-         <weight>75</weight>
          <bold>true</bold>
         </font>
        </property>
@@ -12201,7 +12077,6 @@ border-bottom-color: rgb(0, 0, 0);</string>
         <font>
          <family>Ubuntu</family>
          <pointsize>11</pointsize>
-         <weight>75</weight>
          <bold>true</bold>
         </font>
        </property>
@@ -12243,7 +12118,6 @@ border-bottom-color: rgb(0, 0, 0);</string>
         <font>
          <family>Ubuntu</family>
          <pointsize>11</pointsize>
-         <weight>75</weight>
          <bold>true</bold>
         </font>
        </property>
@@ -12285,7 +12159,6 @@ border-bottom-color: rgb(0, 0, 0);</string>
         <font>
          <family>Ubuntu</family>
          <pointsize>11</pointsize>
-         <weight>75</weight>
          <bold>true</bold>
         </font>
        </property>
@@ -12364,7 +12237,6 @@ border-bottom-color: rgb(0, 0, 0);</string>
         <font>
          <family>Ubuntu</family>
          <pointsize>11</pointsize>
-         <weight>75</weight>
          <bold>true</bold>
         </font>
        </property>
@@ -12398,7 +12270,6 @@ border-bottom-color: rgb(0, 0, 0);</string>
         <font>
          <family>Ubuntu</family>
          <pointsize>11</pointsize>
-         <weight>75</weight>
          <bold>true</bold>
         </font>
        </property>
@@ -12440,7 +12311,6 @@ border-bottom-color: rgb(0, 0, 0);</string>
         <font>
          <family>Ubuntu</family>
          <pointsize>11</pointsize>
-         <weight>75</weight>
          <bold>true</bold>
         </font>
        </property>
@@ -12482,7 +12352,6 @@ border-bottom-color: rgb(0, 0, 0);</string>
         <font>
          <family>Ubuntu</family>
          <pointsize>11</pointsize>
-         <weight>75</weight>
          <bold>true</bold>
         </font>
        </property>
@@ -12561,7 +12430,6 @@ border-bottom-color: rgb(0, 0, 0);</string>
         <font>
          <family>Ubuntu</family>
          <pointsize>11</pointsize>
-         <weight>75</weight>
          <bold>true</bold>
         </font>
        </property>
@@ -12644,7 +12512,6 @@ border-bottom-color: rgb(0, 0, 0);</string>
        <font>
         <family>Ubuntu</family>
         <pointsize>11</pointsize>
-        <weight>75</weight>
         <italic>false</italic>
         <bold>true</bold>
        </font>
@@ -12669,7 +12536,6 @@ border-bottom-color: rgb(0, 0, 0);</string>
        <font>
         <family>Ubuntu</family>
         <pointsize>12</pointsize>
-        <weight>50</weight>
         <italic>false</italic>
         <bold>false</bold>
        </font>
@@ -12705,7 +12571,6 @@ color : black;</string>
        <font>
         <family>Ubuntu</family>
         <pointsize>11</pointsize>
-        <weight>50</weight>
         <italic>false</italic>
         <bold>false</bold>
        </font>
@@ -12758,7 +12623,6 @@ background-color: rgb(238, 238, 236);</string>
        <font>
         <family>Ubuntu</family>
         <pointsize>10</pointsize>
-        <weight>50</weight>
         <italic>false</italic>
         <bold>false</bold>
        </font>
@@ -12783,7 +12647,6 @@ background-color: rgb(238, 238, 236);</string>
        <font>
         <family>Ubuntu</family>
         <pointsize>11</pointsize>
-        <weight>75</weight>
         <italic>false</italic>
         <bold>true</bold>
        </font>
@@ -12808,7 +12671,6 @@ background-color: rgb(238, 238, 236);</string>
        <font>
         <family>Ubuntu</family>
         <pointsize>11</pointsize>
-        <weight>50</weight>
         <italic>false</italic>
         <bold>false</bold>
        </font>
@@ -12827,8 +12689,8 @@ background-color: rgb(238, 238, 236);</string>
     <zorder>widget_2</zorder>
     <zorder>next6</zorder>
     <zorder>error10</zorder>
-    <zorder>frame10_widget</zorder>
     <zorder>shapeframe</zorder>
+    <zorder>frame10_widget</zorder>
    </widget>
   </widget>
   <widget class="QWidget" name="StartFrame" native="true">
@@ -12887,7 +12749,6 @@ background-color : qlineargradient(spread:pad, x1:0.03, y1:0.028, x2:1, y2:1, st
      <font>
       <family>Ubuntu</family>
       <pointsize>48</pointsize>
-      <weight>50</weight>
       <italic>false</italic>
       <bold>false</bold>
      </font>
@@ -12913,7 +12774,6 @@ background-color : qlineargradient(spread:pad, x1:0.03, y1:0.028, x2:1, y2:1, st
      <font>
       <family>Ubuntu</family>
       <pointsize>54</pointsize>
-      <weight>50</weight>
       <italic>false</italic>
       <bold>false</bold>
      </font>
@@ -12937,7 +12797,6 @@ background-color : qlineargradient(spread:pad, x1:0.03, y1:0.028, x2:1, y2:1, st
     <property name="font">
      <font>
       <pointsize>23</pointsize>
-      <weight>75</weight>
       <italic>false</italic>
       <bold>true</bold>
      </font>
@@ -13024,7 +12883,6 @@ border-radius : 2px;
       <font>
        <family>Ubuntu</family>
        <pointsize>10</pointsize>
-       <weight>75</weight>
        <italic>false</italic>
        <bold>true</bold>
       </font>
@@ -13063,7 +12921,6 @@ border : 2px solid rgb(0, 0, 0);
       <font>
        <family>Ubuntu</family>
        <pointsize>10</pointsize>
-       <weight>75</weight>
        <italic>false</italic>
        <bold>true</bold>
       </font>
@@ -13103,7 +12960,6 @@ border : 2px solid rgb(0, 0, 0);
       <font>
        <family>Ubuntu</family>
        <pointsize>10</pointsize>
-       <weight>75</weight>
        <italic>false</italic>
        <bold>true</bold>
       </font>
@@ -13149,7 +13005,6 @@ border : 2px solid rgb(0, 0, 0);
       <font>
        <family>Ubuntu</family>
        <pointsize>10</pointsize>
-       <weight>75</weight>
        <italic>false</italic>
        <bold>true</bold>
       </font>
@@ -13188,7 +13043,6 @@ border : 2px solid rgb(0, 0, 0);
       <font>
        <family>Ubuntu</family>
        <pointsize>11</pointsize>
-       <weight>50</weight>
        <italic>false</italic>
        <bold>false</bold>
       </font>
@@ -13268,7 +13122,6 @@ background-color: rgb(172, 48, 26);
       <font>
        <family>Ubuntu</family>
        <pointsize>10</pointsize>
-       <weight>75</weight>
        <italic>false</italic>
        <bold>true</bold>
       </font>
@@ -13307,7 +13160,6 @@ border : 2px solid rgb(0, 0, 0);
       <font>
        <family>Ubuntu</family>
        <pointsize>10</pointsize>
-       <weight>75</weight>
        <italic>false</italic>
        <bold>true</bold>
       </font>
@@ -13397,7 +13249,6 @@ border : 2px solid rgb(0, 0, 0);
          <font>
           <family>Ubuntu</family>
           <pointsize>15</pointsize>
-          <weight>50</weight>
           <italic>false</italic>
           <bold>false</bold>
          </font>
@@ -13517,7 +13368,6 @@ Processing</string>
          <font>
           <family>Ubuntu</family>
           <pointsize>15</pointsize>
-          <weight>50</weight>
           <italic>false</italic>
           <bold>false</bold>
          </font>
@@ -13696,7 +13546,6 @@ background: none;
     <font>
      <family>Ubuntu</family>
      <pointsize>12</pointsize>
-     <weight>50</weight>
      <italic>false</italic>
      <bold>false</bold>
     </font>
@@ -14151,8 +14000,8 @@ border :1px solid rgb(192, 191, 188);
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>251</width>
-             <height>1416</height>
+             <width>208</width>
+             <height>1379</height>
             </rect>
            </property>
            <property name="styleSheet">
@@ -16681,7 +16530,6 @@ border : 0.5px solid rgba(15, 15, 15, 112);
       <property name="font">
        <font>
         <pointsize>13</pointsize>
-        <weight>75</weight>
         <italic>false</italic>
         <bold>true</bold>
        </font>
@@ -16758,7 +16606,6 @@ border : 0.5px solid rgba(15, 15, 15, 112);
       <property name="font">
        <font>
         <pointsize>13</pointsize>
-        <weight>75</weight>
         <italic>false</italic>
         <bold>true</bold>
        </font>
@@ -16835,7 +16682,6 @@ border : 0.5px solid rgba(15, 15, 15, 112);
       <property name="font">
        <font>
         <pointsize>13</pointsize>
-        <weight>75</weight>
         <italic>false</italic>
         <bold>true</bold>
        </font>
@@ -17632,7 +17478,6 @@ background-color: rgb(164, 0, 0);
      <font>
       <family>Ubuntu</family>
       <pointsize>24</pointsize>
-      <weight>50</weight>
       <italic>false</italic>
       <bold>false</bold>
      </font>
@@ -17694,7 +17539,6 @@ background-color: rgb(164, 0, 0);
      <font>
       <family>Ubuntu</family>
       <pointsize>24</pointsize>
-      <weight>50</weight>
       <italic>false</italic>
       <bold>false</bold>
      </font>
@@ -19111,13 +18955,13 @@ background-color: rgb(164, 0, 0);
   <zorder>Second_widget</zorder>
   <zorder>Third_widget</zorder>
   <zorder>Four_widget</zorder>
-  <zorder>Fifth_widget</zorder>
   <zorder>Qbox</zorder>
   <zorder>Sixth_widget</zorder>
-  <zorder>Seven_widget</zorder>
-  <zorder>jobscriptFrame</zorder>
   <zorder>StartFrame</zorder>
   <zorder>postProcessingScreen</zorder>
+  <zorder>jobscriptFrame</zorder>
+  <zorder>Fifth_widget</zorder>
+  <zorder>Seven_widget</zorder>
  </widget>
  <resources/>
  <connections/>
