@@ -4471,7 +4471,7 @@ background-color: rgb(64, 140, 191);
        <enum>QFrame::Raised</enum>
       </property>
       <property name="currentIndex">
-       <number>1</number>
+       <number>2</number>
       </property>
       <widget class="QWidget" name="page">
        <property name="styleSheet">
@@ -6891,10 +6891,10 @@ background-color: rgb(238, 238, 236);
       </property>
      </widget>
      <zorder>saveGP</zorder>
+     <zorder>stackedWidgetGP</zorder>
      <zorder>GP_pre</zorder>
      <zorder>GP_next</zorder>
      <zorder>errorGP</zorder>
-     <zorder>stackedWidgetGP</zorder>
     </widget>
     <widget class="QWidget" name="frame_9KKS" native="true">
      <property name="geometry">
@@ -6930,7 +6930,7 @@ background-color: rgb(64, 140, 191);
        <widget class="QLabel" name="label_100">
         <property name="geometry">
          <rect>
-          <x>560</x>
+          <x>570</x>
           <y>0</y>
           <width>71</width>
           <height>25</height>
@@ -6959,7 +6959,7 @@ color :rgb(64, 140, 191);</string>
           <x>40</x>
           <y>30</y>
           <width>301</width>
-          <height>261</height>
+          <height>251</height>
          </rect>
         </property>
         <widget class="QLabel" name="label_90">
@@ -7031,7 +7031,7 @@ color :rgb(64, 140, 191);</string>
           <rect>
            <x>140</x>
            <y>40</y>
-           <width>110</width>
+           <width>101</width>
            <height>31</height>
           </rect>
          </property>
@@ -7063,7 +7063,7 @@ background-color: rgb(238, 238, 236);
           <rect>
            <x>140</x>
            <y>80</y>
-           <width>50</width>
+           <width>131</width>
            <height>31</height>
           </rect>
          </property>
@@ -7126,22 +7126,9 @@ background-color: rgb(238, 238, 236);
         <widget class="QLineEdit" name="debKKS">
          <property name="geometry">
           <rect>
-           <x>60</x>
-           <y>200</y>
-           <width>211</width>
-           <height>31</height>
-          </rect>
-         </property>
-         <property name="styleSheet">
-          <string notr="true">background-color: rgb(255, 255, 255);</string>
-         </property>
-        </widget>
-        <widget class="QLineEdit" name="FanisotropyKKS">
-         <property name="geometry">
-          <rect>
            <x>140</x>
-           <y>160</y>
-           <width>51</width>
+           <y>200</y>
+           <width>131</width>
            <height>31</height>
           </rect>
          </property>
@@ -7173,12 +7160,25 @@ background-color: rgb(238, 238, 236);
           <string>dab   :</string>
          </property>
         </widget>
-        <widget class="QLabel" name="label_190">
+        <widget class="QLineEdit" name="FanisotropyKKS">
+         <property name="geometry">
+          <rect>
+           <x>140</x>
+           <y>160</y>
+           <width>131</width>
+           <height>31</height>
+          </rect>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">background-color: rgb(255, 255, 255);</string>
+         </property>
+        </widget>
+        <widget class="QLabel" name="label_189">
          <property name="geometry">
           <rect>
            <x>10</x>
            <y>160</y>
-           <width>91</width>
+           <width>111</width>
            <height>31</height>
           </rect>
          </property>
@@ -7194,7 +7194,7 @@ background-color: rgb(238, 238, 236);
           <string notr="true">color : white;</string>
          </property>
          <property name="text">
-          <string>F Anisotropy :</string>
+          <string>F Anisotropy  :</string>
          </property>
         </widget>
        </widget>
@@ -7234,9 +7234,9 @@ background-color: rgb(238, 238, 236);
         <widget class="QLineEdit" name="equTKKS">
          <property name="geometry">
           <rect>
-           <x>110</x>
+           <x>80</x>
            <y>110</y>
-           <width>41</width>
+           <width>70</width>
            <height>31</height>
           </rect>
          </property>
@@ -7252,7 +7252,7 @@ background-color: rgb(238, 238, 236);
           <rect>
            <x>200</x>
            <y>110</y>
-           <width>41</width>
+           <width>71</width>
            <height>31</height>
           </rect>
          </property>
@@ -7266,9 +7266,9 @@ background-color: rgb(238, 238, 236);
         <widget class="QLineEdit" name="EpsilonKKS">
          <property name="geometry">
           <rect>
-           <x>110</x>
+           <x>80</x>
            <y>70</y>
-           <width>131</width>
+           <width>191</width>
            <height>31</height>
           </rect>
          </property>
@@ -7327,7 +7327,23 @@ background-color: rgb(238, 238, 236);
           <string>Epsilon :</string>
          </property>
         </widget>
-        <widget class="QLabel" name="gammaABC">
+        <widget class="QLineEdit" name="gammaABCKKS">
+         <property name="enabled">
+          <bool>true</bool>
+         </property>
+         <property name="geometry">
+          <rect>
+           <x>110</x>
+           <y>150</y>
+           <width>161</width>
+           <height>31</height>
+          </rect>
+         </property>
+         <property name="styleSheet">
+          <string notr="true">background-color: rgb(255, 255, 255);</string>
+         </property>
+        </widget>
+        <widget class="QLabel" name="label_190">
          <property name="geometry">
           <rect>
            <x>10</x>
@@ -7348,23 +7364,7 @@ background-color: rgb(238, 238, 236);
           <string notr="true">color : white;</string>
          </property>
          <property name="text">
-          <string>gammaABC  :</string>
-         </property>
-        </widget>
-        <widget class="QLineEdit" name="gammaABCKKS">
-         <property name="geometry">
-          <rect>
-           <x>110</x>
-           <y>150</y>
-           <width>131</width>
-           <height>31</height>
-          </rect>
-         </property>
-         <property name="styleSheet">
-          <string notr="true">background-color: rgb(255, 255, 255);</string>
-         </property>
-         <property name="text">
-          <string/>
+          <string>Gamma abc  :</string>
          </property>
         </widget>
        </widget>
@@ -7372,17 +7372,17 @@ background-color: rgb(238, 238, 236);
         <property name="geometry">
          <rect>
           <x>350</x>
-          <y>199</y>
+          <y>190</y>
           <width>281</width>
-          <height>121</height>
+          <height>91</height>
          </rect>
         </property>
         <widget class="QLabel" name="label_205">
          <property name="geometry">
           <rect>
-           <x>0</x>
-           <y>0</y>
-           <width>130</width>
+           <x>10</x>
+           <y>10</y>
+           <width>101</width>
            <height>31</height>
           </rect>
          </property>
@@ -7404,8 +7404,8 @@ background-color: rgb(238, 238, 236);
         <widget class="QLineEdit" name="elasticityKKS">
          <property name="geometry">
           <rect>
-           <x>110</x>
-           <y>0</y>
+           <x>120</x>
+           <y>10</y>
            <width>80</width>
            <height>31</height>
           </rect>
@@ -7417,10 +7417,10 @@ background-color: rgb(238, 238, 236);
         <widget class="QLabel" name="label_206">
          <property name="geometry">
           <rect>
-           <x>0</x>
-           <y>30</y>
-           <width>151</width>
-           <height>41</height>
+           <x>10</x>
+           <y>40</y>
+           <width>101</width>
+           <height>50</height>
           </rect>
          </property>
          <property name="font">
@@ -7442,8 +7442,8 @@ GROWTH  :</string>
         <widget class="QLineEdit" name="graingrowthKKS">
          <property name="geometry">
           <rect>
-           <x>110</x>
-           <y>40</y>
+           <x>120</x>
+           <y>50</y>
            <width>80</width>
            <height>31</height>
           </rect>
@@ -7453,10 +7453,10 @@ GROWTH  :</string>
          </property>
         </widget>
        </widget>
-       <zorder>label_100</zorder>
+       <zorder>frame9KKS_widget1</zorder>
        <zorder>frame9KKS_widget2</zorder>
        <zorder>frame9KKS_widget3</zorder>
-       <zorder>frame9KKS_widget1</zorder>
+       <zorder>label_100</zorder>
       </widget>
      </widget>
      <widget class="QPushButton" name="KKS_pre">
@@ -7560,11 +7560,6 @@ background-color: rgb(238, 238, 236);
        <string/>
       </property>
      </widget>
-     <zorder>stackedWidgetKKS</zorder>
-     <zorder>KKS_pre</zorder>
-     <zorder>saveKKS</zorder>
-     <zorder>errorKKS</zorder>
-     <zorder>KKS_next</zorder>
     </widget>
     <widget class="QWidget" name="frame_9CH" native="true">
      <property name="geometry">
@@ -11107,10 +11102,10 @@ Tool</string>
      </layout>
     </widget>
    </widget>
+   <zorder>frame_11</zorder>
    <zorder>btn5</zorder>
    <zorder>btn6</zorder>
    <zorder>btn7</zorder>
-   <zorder>frame_11</zorder>
    <zorder>frame_8</zorder>
    <zorder>frame_9</zorder>
   </widget>
@@ -12689,8 +12684,8 @@ background-color: rgb(238, 238, 236);</string>
     <zorder>widget_2</zorder>
     <zorder>next6</zorder>
     <zorder>error10</zorder>
-    <zorder>shapeframe</zorder>
     <zorder>frame10_widget</zorder>
+    <zorder>shapeframe</zorder>
    </widget>
   </widget>
   <widget class="QWidget" name="StartFrame" native="true">
@@ -18947,6 +18942,7 @@ background-color: rgb(164, 0, 0);
     </widget>
    </widget>
   </widget>
+  <zorder>Seven_widget</zorder>
   <zorder>sideInfileBtn</zorder>
   <zorder>vline1</zorder>
   <zorder>Side_widget</zorder>
@@ -18955,13 +18951,12 @@ background-color: rgb(164, 0, 0);
   <zorder>Second_widget</zorder>
   <zorder>Third_widget</zorder>
   <zorder>Four_widget</zorder>
+  <zorder>Fifth_widget</zorder>
   <zorder>Qbox</zorder>
   <zorder>Sixth_widget</zorder>
+  <zorder>jobscriptFrame</zorder>
   <zorder>StartFrame</zorder>
   <zorder>postProcessingScreen</zorder>
-  <zorder>jobscriptFrame</zorder>
-  <zorder>Fifth_widget</zorder>
-  <zorder>Seven_widget</zorder>
  </widget>
  <resources/>
  <connections/>
