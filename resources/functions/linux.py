@@ -224,7 +224,7 @@ def SolverExecute(self):
         os.system("gnome-terminal -e 'bash -c  \""+commandLine+";bash\"'")
     
     elif self.radio_KKR.isChecked():
-        commandLine ="cd KKS_FD_CUDA_MPI/; python3 GEdata_writer.py " +self.runDir +"/"+self.infile.text() + " ;make clean;make; cp microsim_kks_fd_cuda_mpi ~/MicroSim/bin/;cd " + self.runDir + "; make run KKS_OUT=~/MicroSim/bin/microsim_kks_fd_cuda_mpi INPUT="+self.infile.text()+" FILLING="+self.filling.text()+" OUTPUT="+self.output.text()+" NPROCS=1"
+        commandLine ="cd KKS_FD_CUDA_MPI/; python3 GEdata_writer.py " +self.runDir +"/"+self.infile.text() + " ;make clean;make; cp microsim_kks_fd_cuda_mpi ~/MicroSim/bin/;cp Makefile "+ self.runDir + ";cd " + self.runDir + ";make run KKS_OUT=~/MicroSim/bin/microsim_kks_fd_cuda_mpi INPUT="+self.infile.text()+" FILLING="+self.filling.text()+" OUTPUT="+self.output.text()+" NPROCS=1"
         
         os.system("gnome-terminal -e 'bash -c \""+commandLine+";bash\"'")
 
