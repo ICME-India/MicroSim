@@ -340,13 +340,13 @@ void reading_input_parameters(char *argv[]) {
       else if ((strcmp(tmpstr1, "ELASTICITY") == 0)) {
         ELASTICITY = atoi(tmpstr2);
       }
-      else if ((strcmp(tmpstr1, "EIGEN_STRAIN") == 0) && (NUMPHASES > 0) && ELASTICITY) {
+      else if ((strcmp(tmpstr1, "EIGEN_STRAIN") == 0) && (NUMPHASES > 0)) {
         populate_symmetric_tensor(eigen_strain_phase, tmpstr2, NUMPHASES);
       }
-      else if ((strcmp(tmpstr1, "VOIGT_ISOTROPIC") == 0) && (NUMPHASES > 0) && ELASTICITY) {
+      else if ((strcmp(tmpstr1, "VOIGT_ISOTROPIC") == 0) && (NUMPHASES > 0)) {
         populate_cubic_stiffness(stiffness_phase, tmpstr2);
       }
-      else if ((strcmp(tmpstr1, "VOIGT_CUBIC") == 0) && (NUMPHASES > 0) && ELASTICITY) {
+      else if ((strcmp(tmpstr1, "VOIGT_CUBIC") == 0) && (NUMPHASES > 0)) {
         populate_cubic_stiffness(stiffness_phase, tmpstr2);
       }
       else if ((strcmp(tmpstr1, "rho") == 0) && ELASTICITY) {
