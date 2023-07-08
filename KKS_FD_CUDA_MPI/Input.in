@@ -1,13 +1,13 @@
 ##Geometrical dimensions of the simulation domain
-DIMENSION = 2;
-MESH_X = 500;
-MESH_Y = 500;
-MESH_Z = 1;
+DIMENSION = 3;
+MESH_X = 50;
+MESH_Y = 50;
+MESH_Z = 50;
 ##Discretization, space and time
 DELTA_X = 1e-8;
 DELTA_Y = 1e-8;
 DELTA_Z = 1e-8;
-DELTA_t = 18e-9;
+DELTA_t = 14e-9;
 ##Number of phases and composition
 NUMPHASES = 2;
 NUMCOMPONENTS = 2;
@@ -32,10 +32,10 @@ EIGEN_STRAIN = {1,0.01, 0.01, 0.0, 0.0, 0.0, 0.0};
 VOIGT_ISOTROPIC = {0,270, 187.5, 125.0};
 VOIGT_ISOTROPIC = {1,270, 187.5, 125.0};
 ##Boundary conditions
-BOUNDARY = {phi,1,1,1,1,0,0};
-BOUNDARY = {mu,1,1,1,1,0,0};
-BOUNDARY = {c,1,1,1,1,0,0};
-BOUNDARY = {T,1,1,1,1,0,0};
+BOUNDARY = {phi,3,3,3,3,0,0};
+BOUNDARY = {mu,3,3,3,3,0,0};
+BOUNDARY = {c,3,3,3,3,0,0};
+BOUNDARY = {T,3,3,3,3,0,0};
 BOUNDARY_VALUE = {phi,0,0,0,0,0,0};
 BOUNDARY_VALUE = {mu,0,0,0,0,0,0};
 BOUNDARY_VALUE = {c,0,0,0,0,0,0};

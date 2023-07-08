@@ -8386,9 +8386,6 @@ class StartScreen(QDialog):
                 if self.radio_GP.isChecked() and self.FanisotropyGP.text() == "0":
                     pass
 
-                elif self.radio_KKS.isChecked() and self.FanisotropyKKS.text() == "0":
-                    pass
-
                 elif self.radio_KKS2.isChecked() and self.FanisotropyKKS2.text() == "0":
                     pass
                 

@@ -229,7 +229,7 @@ def SolverExecute(self):
         os.system("gnome-terminal -e 'bash -c \""+commandLine+";bash\"'")
 
     elif self.radio_KKS2.isChecked():
-        commandLine ="cd KKS_OpenCl/; python3 GEdata_writer.py " +self.runDir +"/"+self.infile.text() + " ;make clean;make; cp microsim_kks_opencl ~/MicroSim/bin/;cd " + self.runDir + ";~/MicroSim/bin/microsim_kks_opencl "  +self.infile.text()+" "+self.filling.text()+" "+self.output.text()
+        commandLine ="cd KKS_OpenCl/; python3 GEdata_writer.py " +self.runDir +"/"+self.infile.text() + " ;make clean;make; cp microsim_kks_opencl ~/MicroSim/bin/;cd " + self.runDir + ";mpirun -np 1 ~/MicroSim/bin/microsim_kks_opencl "  +self.infile.text()+" "+self.filling.text()+" "+self.output.text()
         
         os.system("gnome-terminal -e 'bash -c  \""+commandLine+";bash\"'")
 

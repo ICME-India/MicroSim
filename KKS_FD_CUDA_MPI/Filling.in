@@ -1,1 +1,1 @@
-FILLCYLINDER = {0,0,0,0,0,5};
+FILLSPHERE = {0,0,0,0,8};
