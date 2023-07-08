@@ -20,7 +20,7 @@ int readInput_MPI(domainInfo *simDomain, controls *simControls,
     char tmpstr1[100];
     char tmpstr2[100];
 
-    sprintf(outfile, "DATA/%s.out", argv[1]);
+    sprintf(outfile, "%s.out", argv[1]);
     fp = fopen(outfile, "w");
 
     // Setting defaults

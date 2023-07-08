@@ -9530,10 +9530,10 @@ class StartScreen(QDialog):
             self.kksFlag[10] = 1
             return
 
-        
-        self.Nsmooth.setText("0")
-        self.kksFlag[11] = 1
-            
+        elif entryname == "NSMOOTH":
+            self.Nsmooth.setText(entryvalue)
+            self.kksFlag[11] = 1
+            return
 
         if entryname == "SAVET":
             self.saveAt.setText(entryvalue)

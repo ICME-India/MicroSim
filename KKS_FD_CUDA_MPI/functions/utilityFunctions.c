@@ -97,41 +97,44 @@ void populate_matrix3M(double ***Mat, char *tmpstr, long NUMPHASES) {
     long i,j,k,l;
     long len = NUMPHASES*(NUMPHASES-1)*(NUMPHASES-2)/6;
 
-    tmp = (char**)malloc(sizeof(char*)*len);
+    if (len != 0)
+    {
+        tmp = (char**)malloc(sizeof(char*)*len);
 
-    for (i = 0; i < len; ++i) {
-        tmp[i] = (char*)malloc(sizeof(char)*10);
-    }
-    for (i = 0, str1 = tmpstr; ; i++, str1 = NULL) {
-        token = strtok_r(str1, "{,}", &saveptr1);
-        if (token == NULL)
-            break;
-        strcpy(tmp[i],token);
-    }
-    l=0;
-    for(i=0; i < NUMPHASES; i++) {
-        for (j=i+1; j < NUMPHASES; j++) {
-            for (k=j+1; k < NUMPHASES; k++) {
-                Mat[i][i][i] = 0.0;
-                Mat[i][j][j] = 0.0;
-                Mat[i][k][k] = 0.0;
+        for (i = 0; i < len; ++i) {
+            tmp[i] = (char*)malloc(sizeof(char)*10);
+        }
+        for (i = 0, str1 = tmpstr; ; i++, str1 = NULL) {
+            token = strtok_r(str1, "{,}", &saveptr1);
+            if (token == NULL)
+                break;
+            strcpy(tmp[i],token);
+        }
+        l=0;
+        for(i=0; i < NUMPHASES; i++) {
+            for (j=i+1; j < NUMPHASES; j++) {
+                for (k=j+1; k < NUMPHASES; k++) {
+                    Mat[i][i][i] = 0.0;
+                    Mat[i][j][j] = 0.0;
+                    Mat[i][k][k] = 0.0;
 
-                Mat[i][j][k] = atof(tmp[l]);
-                Mat[i][k][j] = Mat[i][j][k];
-                Mat[j][i][k] = Mat[i][j][k];
-                Mat[j][k][i] = Mat[i][j][k];
-                Mat[k][i][j] = Mat[i][j][k];
-                Mat[k][j][i] = Mat[i][j][k];
+                    Mat[i][j][k] = atof(tmp[l]);
+                    Mat[i][k][j] = Mat[i][j][k];
+                    Mat[j][i][k] = Mat[i][j][k];
+                    Mat[j][k][i] = Mat[i][j][k];
+                    Mat[k][i][j] = Mat[i][j][k];
+                    Mat[k][j][i] = Mat[i][j][k];
 
-                l++;
+                    l++;
+                }
             }
         }
+        for (i = 0; i < len; ++i) {
+            free(tmp[i]);
+        }
+        free(tmp);
+        tmp = NULL;
     }
-    for (i = 0; i < len; ++i) {
-        free(tmp[i]);
-    }
-    free(tmp);
-    tmp = NULL;
 }
 
 void populate_thetaij_matrix(double **Mat, char *tmpstr, long NUMPHASES)
