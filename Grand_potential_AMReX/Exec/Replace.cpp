@@ -23,11 +23,11 @@ void find_and_replace(std::string& file_contents,
   }
 }
 
-int main()
+int main(int argc, char *argv[])
 {   
     string s1,s2;
-    ifstream ifile1("Input.in");
-    ifstream ifile2("Filling.in");
+    ifstream ifile1(argv[1]);
+    ifstream ifile2(argv[2]);
     ofstream ofile("input1.in");
     
     while(getline(ifile1,s1)){
