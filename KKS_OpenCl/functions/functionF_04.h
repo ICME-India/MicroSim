@@ -291,7 +291,7 @@ void function_F_04_init_propertymatrices(double T) {
   //Initialize property matrices
   FILE *fp;
   long a;
-  long k,j;
+  long k,j,i;
   char filename[1000];
   long numlines,lines;
   double composition_solid[NUMCOMPONENTS-1];
@@ -301,27 +301,27 @@ void function_F_04_init_propertymatrices(double T) {
   struct stat sb;
   
   
-  for (a=0; a < NUM_THERMO_PHASES-1; a++) {
-    sprintf(filename,"tdbs_encrypted/Composition_%s.csv",Phases_tdb[a]);
-    fp = fopen(filename, "r");
-    if (stat(filename, &sb) == -1) {
-      perror("stat");
-      exit(EXIT_FAILURE);
-    }
-    
-    file_contents = malloc(sb.st_size);
-    
-    numlines = 0;
-    while (fscanf(fp, "%[^\n] ", file_contents) != EOF) {
-      numlines++;
-    }
-    fclose(fp);
-    
-    comp_ES = Malloc4M(NUM_THERMO_PHASES, NUMCOMPONENTS-1, 2, numlines);
-    ThF     = Malloc4M(NUM_THERMO_PHASES, NUMCOMPONENTS-1, NUMCOMPONENTS-1, numlines);
-    T_ES    = MallocM(NUM_THERMO_PHASES, numlines);
-    T_ThF   = MallocM(NUM_THERMO_PHASES, numlines);
+//   for (a=0; a < NUM_THERMO_PHASES-1; a++) {
+  sprintf(filename,"tdbs_encrypted/Composition_%s.csv",Phases_tdb[0]);
+  fp = fopen(filename, "r");
+  if (stat(filename, &sb) == -1) {
+    perror("stat");
+    exit(EXIT_FAILURE);
   }
+  
+  file_contents = malloc(sb.st_size);
+  
+  numlines = 0;
+  while (fscanf(fp, "%[^\n] ", file_contents) != EOF) {
+    numlines++;
+  }
+  fclose(fp);
+//   }
+  comp_ES = Malloc4M(NUM_THERMO_PHASES, NUMCOMPONENTS-1, 2,              numlines);
+  ThF     = Malloc4M(NUM_THERMO_PHASES, NUMCOMPONENTS-1, NUMCOMPONENTS-1, numlines);
+  T_ES    = MallocM(NUM_THERMO_PHASES, numlines);
+  T_ThF   = MallocM(NUM_THERMO_PHASES, numlines);
+  
   for (a=0; a < NUM_THERMO_PHASES-1; a++) {
     sprintf(filename,"tdbs_encrypted/Composition_%s.csv",Phases_tdb[a]);
     fp = fopen(filename, "r");
@@ -348,12 +348,12 @@ void function_F_04_init_propertymatrices(double T) {
       fscanf(fp, "%le,",&T_ThF[a][lines]);
 //       printf("%le\n", T_ThF[a][lines]);
       for (j=0; j < NUMCOMPONENTS-1; j++) {
-        for (k=0; k < NUMCOMPONENTS-1; k++) {
-          if (j <= k) {
-            fscanf(fp, "%le,",&ThF[a][j][k][lines]);
-          } else {
-            ThF[a][j][k][lines] = ThF[a][k][j][lines];
-          }
+        fscanf(fp, "%le,",&ThF[a][j][j][lines]);
+      }
+      for (i=0; i < NUMCOMPONENTS-1; i++) {
+        for (k=i+1; k < NUMCOMPONENTS-1; k++) {
+           fscanf(fp, "%le,",&ThF[a][i][k][lines]);
+           ThF[a][k][i][lines] = ThF[a][i][k][lines];
         }
       }
     }
@@ -403,11 +403,11 @@ void function_F_04_init_propertymatrices(double T) {
   for (a=0;a<NUMPHASES;a++) {
     for (i=0;i<NUMCOMPONENTS-1;i++) {
       for (j=0;j<NUMCOMPONENTS-1;j++) {
-	if (i==j) {
-	  muc[a][i][j]=2.0*A[a][i][j];
-	} else {
-	  muc[a][i][j]=A[a][i][j];
-	}
+        if (i==j) {
+          muc[a][i][j]=2.0*A[a][i][j];
+        } else {
+          muc[a][i][j]=A[a][i][j];
+        }
       }
     }
     matinvnew(muc[a], cmu[a], NUMCOMPONENTS-1);

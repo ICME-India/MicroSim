@@ -184,7 +184,8 @@ double function_F_03_ComputeSlopes(double T, long a) {
     slopes[a][NUMPHASES-1][k] = sum_cl[k]/(dS - dmuL);
     slopes[NUMPHASES-1][a][k] = slopes[a][NUMPHASES-1][k];
   }
-  //printf("%le, %le, %le\n", slopes[0][0][0], sum_cs[0], DT);
+  //printf("Slopes => %le, %le, %le\n", slopes[0][0][0], sum_cs[0], DT);
+  //printf("Slopes => %le, %le, %le\n", slopes[0][0][0], slopes[0][1][0], DT);
 }
 
 double function_F_03_function_B(double T, long i, long a) {
@@ -205,6 +206,7 @@ double function_F_03_function_B(double T, long i, long a) {
     }
     B_ai = (2.0*(A[NUMPHASES-1][i][i]*c_liq[i] - A[a][i][i]*c_sol[i]) + sum_c);
   }
+  //printf("--> In F3 %ld, %ld, %le\n", i, a, B_ai);
   return B_ai;
 }
 
@@ -284,6 +286,7 @@ void function_F_03_init_propertymatrices(double T) {
   for (a=0; a < NUMPHASES; a++) {
     for (i=0; i < NUMCOMPONENTS-1; i++) {
       B[a][i] = function_B(T, i, a); 
+      //printf("##%ld, %ld, B = %le\n", a, i, B[a][i]);
     }
     C[a] = function_C(T,a);
   }

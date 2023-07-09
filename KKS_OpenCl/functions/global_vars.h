@@ -12,6 +12,8 @@ double deltay=1;
 double deltaz=1;
 double deltat=1;
 
+double deltat_e = 0.2;
+
 int NUMPHASES;
 int NUM_THERMO_PHASES;
 int NUMCOMPONENTS;
@@ -23,6 +25,7 @@ long saveT;
 long nsmooth;
 long STARTTIME=0;
 long RESTART=0;
+long WRITEHDF5=0;
 
 double Teq;
 double Tfill;
@@ -117,6 +120,8 @@ long bulk_phase;
 double **Gamma;
 // double dab[NUMPHASES][NUMPHASES];
 double **dab;
+// double Gamma_abc[NUMPHASES][NUMPHASES][NUMPHASES];
+double ***Gamma_abc;
 
 int BOUNDARY_LEFT;
 int BOUNDARY_RIGHT;
@@ -131,11 +136,16 @@ struct max_min {
   double *phi_min;
   double *com_max;
   double *com_min;
+  double *composition_max;
+  double *composition_min;
   double *rel_change_phi;
   double *rel_change_com;
+  double *rel_change_composition;
 };
 
 struct max_min global_max_min;
+struct max_min workers_max_min;
+struct max_min global_max_min1;
 
 
 struct bc_scalars {
@@ -146,6 +156,45 @@ struct bc_scalars {
 };
 
 struct bc_scalars *boundary[6];
+
+
+
+struct mpiparameters {
+  long rows_x;
+  long rows_y;
+  long rows_z;
+  long startx;
+  long starty;
+  long startz;
+  long endx;
+  long endy;
+  long endz;
+};
+
+struct mpiparameters mpiparam;
+#define cart_grid_ndim (1)
+#define MASTER      (0)
+double *buffer_sxs;
+double *buffer_sxe;
+double *buffer_rxs;
+double *buffer_rxe;
+double *buffer_sxs2;
+double *buffer_sxe2;
+double *buffer_rxs2;
+double *buffer_rxe2;
+double *iter_buffer_sxs;
+double *iter_buffer_sxe;
+double *iter_buffer_rxs;
+double *iter_buffer_rxe;
+
+MPI_Comm comm=MPI_COMM_WORLD, COMM_NEW;
+MPI_Status status1, status2;
+MPI_Datatype MPI_gridinfo;
+int tag_dim0_m, tag_dim0_p;
+int numtasks;
+int rank, numworkers;
+int sizempixyz, size_buffer, sizebufyz, size_buffer2, iter_size_buffer;
+int dim0_rank_p, dim0_rank_m;
 
 
 long rows_x, rows_y, rows_z;
@@ -161,8 +210,14 @@ double Deltaphi;
 long interface;
 double scalprod;
 //long k;
+long iter;
 double mu;
+double global_error=0.0;
+double error;
+double tolerance=1e-12;
+long MAX_ITERATIONS=5;
 int ASCII=0;
+//herr_t status_h;
 long time_output;
 int max_length;
 
@@ -178,8 +233,6 @@ struct Tempgrad temperature_gradientY;
 double BASE_POS=0;
 double GRADIENT;
 double temp_bottom;
-
-
 
 struct fill_cube {
   long x_start;
@@ -231,6 +284,7 @@ long file_iter;
 
 long INTERFACE_POS_GLOBAL=0;
 long MAX_INTERFACE_POS=0;
+
   
 struct filling_type {
   long NUMCUBES;
@@ -241,15 +295,97 @@ struct filling_type {
 };
 struct filling_type *filling_type_phase;
 
-struct fields {
-  double *phia;
-  double *compi;
-  double *composition;
-  double temperature;
+// struct tensor {
+//   
+// }
+// 
+struct symmetric_tensor {
+  double xx;
+  double yy;
+  double zz;
+  double yz;
+  double xz;
+  double xy;
 };
 
+struct symmetric_tensor *eigen_strain_phase;
+struct symmetric_tensor strain[3];
+struct symmetric_tensor eigen_strain[3];
+
+
+struct elast_properties {
+  double Poisson_ratio;
+  double Y_modulus;
+  double B_modulus;
+  double S_modulus;
+  char symmetry[10];
+};
+
+struct Stiffness_cubic {
+  double C11;
+  double C12;
+  double C44;
+};
+
+struct Stiffness_cubic *stiffness_phase;
+struct Stiffness_cubic *stiffness_phase_n;
+struct Stiffness_cubic  stiffness_c[3];
+
+struct Stiffness_tetragonal {
+   double C11;
+   double C12;
+   double C13;
+   double C33;
+   double C44;
+   double C66;
+};
+
+struct Stiffness_tetragonal *stiffness_t_phase;
+
+struct fields {
+  double phia[npha];
+  double compi[nsol];
+  double composition[nsol];
+  double temperature;
+};
+double rho=10;
+double damping_factor=0.8;
+
+struct iter_variables {
+ double disp[3][3];
+};
+
+// struct iter_variables *iter_gridinfo;
+struct iter_variables *iter_gridinfo;
+struct iter_variables *iter_gridinfom;
+struct iter_variables *iter_gridinfo_buf2Dss;
+struct iter_variables *iter_gridinfo_buf2Dse;
+struct iter_variables *iter_gridinfo_buf2Drs;
+struct iter_variables *iter_gridinfo_buf2Dre;
+
+
+double *buffer;
+double *buffer_boundary_x;
+double *buffer_boundary_y;
+double *buffer_boundary_z;
+double *buffer_boundary_x_stress;
+double *buffer_boundary_y_stress;
+double *buffer_boundary_z_stress;
+
+
 struct fields *gridinfo;
-struct fields *gridinfoO;
+struct fields *gridinfomN;
+struct fields *gridinfomO;
+struct fields *gridinfo_buf1Dss;
+struct fields *gridinfo_buf1Dse;
+struct fields *gridinfo_buf1Drs;
+struct fields *gridinfo_buf1Dre;
+struct fields *gridinfo_buf2Dss;
+struct fields *gridinfo_buf2Dse;
+struct fields *gridinfo_buf2Drs;
+struct fields *gridinfo_buf2Dre;
+
+#define SIZE_STRUCT_FIELDS (NUMPHASES+2*(NUMCOMPONENTS-1)+1)
 
 struct gradlayer {
  double **gradphi;
@@ -264,7 +400,17 @@ struct gradlayer {
  double ***dcdmu_phase;
  int interface;
  int bulk_phase;
+//  struct symmetric_tensor strain[3];
+//  struct symmetric_tensor eigen_strain[3];
+//  struct Stiffness_cubic  stiffness_c[3];
 };
+
+
+
+
+int ELASTICITY=0;
+int GRAIN_GROWTH=0;
+
 struct gradlayer **gradient;
 struct gradlayer *gradient1[4];
 struct gradlayer *tmp;
@@ -278,7 +424,7 @@ double TemperatureGradient=1e6;
 double PullingVelocity=0.05;
 int PositionOffset=20;
 double T_Offset=1696.0;
-double *RotAngles;
+double ***RotAngles;
 int atr=1;
 char tdbfname[100];
 
@@ -293,13 +439,7 @@ int FUNCTION_F = 3;
 // #define MU  1
 // #define T   2
 
-char *Scalars[] = {"PHI", "MU", "T"}; 
-char dirname[1000];
-char **coordNames;
-long size_fields;
-FILE *fp;
-long position,file_iter;
-long time_file;
+
 
 
 double (*free_energy)(double *c, double T, long a);
@@ -316,5 +456,15 @@ double (*function_B)(double T, long i, long a);
 double (*function_C)(double T, long a);
 void (*init_propertymatrices)(double T);
 
+void CL_define_npha_com();
+void CL_thermo_function_calls();
+
+char *Scalars[] = {"PHI", "MU", "T", "U"};
+char dirname[1000];
+char **coordNames;
+long size_fields;
+FILE *fp;
+long position,file_iter;
+long time_file;
 
 #endif

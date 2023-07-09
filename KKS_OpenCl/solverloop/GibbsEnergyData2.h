@@ -4,8 +4,8 @@
 
 void Ge(double T, double *y, double *Ge, int tpha);
 void Mu(double T, double *y, double *MU, int tpha);
-void dMudc(double T, double *y, double *Dmudc, int tpha
-);
+void dMudc(double T, double *y, double *Dmudc, int tpha);
+
 
 void Ge(double T, double *y, double *Ge, int tpha) { 
 

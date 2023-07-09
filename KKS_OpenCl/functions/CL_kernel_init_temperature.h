@@ -1,5 +1,7 @@
 void CL_kernel_init_temperature() {
 
+  printf("In CL_kernel_init_temperature()\n");
+
   if ( ISOTHERMAL ) { 
     ret = clEnqueueNDRangeKernel(cmdQ, kernel10[0], work_dim, NULL, globaldim, NULL, 0, NULL, NULL);
     if (ret!=CL_SUCCESS) {
@@ -55,5 +57,7 @@ void CL_kernel_init_temperature() {
     printf("ooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo\n");
     exit(1);
   }
+
+  printf("Exit CL_kernel_init_temperature()\n");
 
 }

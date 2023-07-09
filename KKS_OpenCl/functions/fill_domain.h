@@ -174,6 +174,77 @@ void fill_domain(char *argv[]) {
         free(tmp);
         printf("End filling cylinders at random\n");
       }
+      else if ((strcmp(tmpstr1, "FILLVORONOI2D") == 0) && (NUMPHASES > 0)) {
+        printf("Filling Voronoi 2D\n");
+        tmp = (char**)malloc(sizeof(char*)*6);
+        for (i = 0; i < 6; i++) {
+          tmp[i] = (char*)malloc(sizeof(char)*10);
+        }
+        for (i = 0, str1 = tmpstr2; ; i++, str1 = NULL) {
+          token = strtok_r(str1, "{,}", &saveptr1);
+          if (token == NULL)
+              break;
+          strcpy(tmp[i],token);
+        }
+        
+        long x_start                 = atol(tmp[0]) + start[X];
+        long x_end                   = atol(tmp[1]) + start[X];
+        long y_start                 = atol(tmp[2]) + start[Y];
+        long y_end                   = atol(tmp[3]) + start[Y];
+        long NUMPOINTS               = atol(tmp[4]);
+        double SIZE                  = atof(tmp[5]);
+        
+        fill_cube_parameters.x_start = x_start;
+        fill_cube_parameters.x_end   = x_end;
+        fill_cube_parameters.y_start = y_start;
+        fill_cube_parameters.y_end   = y_end;
+       
+        fill_phase_voronoi_2D(fill_cube_parameters, gridinfo, NUMPOINTS, SIZE);
+        
+        
+        for (i = 0; i < 6; i++) { 
+          free(tmp[i]);
+        }
+        free(tmp);
+        printf("End filling Voronoi 2D");
+      }
+      else if ((strcmp(tmpstr1, "FILLVORONOI3D") == 0) && (NUMPHASES > 0)) {
+        printf("Filling Voronoi 3D\n");
+        tmp = (char**)malloc(sizeof(char*)*8);
+        for (i = 0; i < 8; i++) {
+          tmp[i] = (char*)malloc(sizeof(char)*10);
+        }
+        for (i = 0, str1 = tmpstr2; ; i++, str1 = NULL) {
+          token = strtok_r(str1, "{,}", &saveptr1);
+          if (token == NULL)
+              break;
+          strcpy(tmp[i],token);
+        }
+        
+        long x_start                 = atol(tmp[0]) + start[X];
+        long x_end                   = atol(tmp[1]) + start[X];
+        long y_start                 = atol(tmp[2]) + start[Y];
+        long y_end                   = atol(tmp[3]) + start[Y];
+        long z_start                 = atol(tmp[4]) + start[Z];
+        long z_end                   = atol(tmp[5]) + start[Z];
+        long NUMPOINTS               = atol(tmp[6]);
+        double SIZE                  = atof(tmp[7]);
+        
+        fill_cube_parameters.x_start = x_start;
+        fill_cube_parameters.x_end   = x_end;
+        fill_cube_parameters.y_start = y_start;
+        fill_cube_parameters.y_end   = y_end;
+        fill_cube_parameters.z_start = z_start;
+        fill_cube_parameters.z_end   = z_end;
+       
+        fill_phase_voronoi_3D(fill_cube_parameters, gridinfo, NUMPOINTS, SIZE);
+        
+        for (i = 0; i < 8; i++) { 
+          free(tmp[i]);
+        }
+        free(tmp);
+        printf("End filling Voronoi 3D");
+      }
       else if ((strcmp(tmpstr1, "FILLSPHERERANDOM") == 0) && (NUMPHASES > 0) && ((NUMCOMPONENTS-1) > 0)) {
         printf("Filling spheres at random\n");
         tmp = (char**)malloc(sizeof(char*)*5);
@@ -205,6 +276,30 @@ void fill_domain(char *argv[]) {
         }
         free(tmp);
         printf("End filling spheres at random\n");
+      }
+      else if ((strcmp(tmpstr1, "FILLCUBEPATTERN") == 0) && (NUMPHASES > 0)) {
+        printf("Filling cylinders at random\n");
+        tmp = (char**)malloc(sizeof(char*)*3);
+        for (i = 0; i < 3; i++) {
+          tmp[i] = (char*)malloc(sizeof(char)*10);
+        }
+        for (i = 0, str1 = tmpstr2; ; i++, str1 = NULL) {
+          token = strtok_r(str1, "{,}", &saveptr1);
+          if (token == NULL)
+              break;
+          strcpy(tmp[i],token);
+        }
+        long cube_x             = atol(tmp[0]);
+        long cube_y             = atol(tmp[1]);
+        long cube_z             = atol(tmp[2]);
+        
+        fill_cube_pattern(cube_x, cube_y, cube_z);
+
+        for (i = 0; i < 3; i++) { 
+          free(tmp[i]);
+        }
+        free(tmp);
+        printf("End filling cylinders at random\n");
       }
     }
   }

@@ -4,6 +4,7 @@
 #include <stdlib.h> 
 #include <stdbool.h>
 #include <sys/stat.h>
+#include <mpi.h>
 #include <gsl/gsl_errno.h>
 #include <gsl/gsl_spline.h>
 #include <gsl/gsl_vector.h>
@@ -12,6 +13,8 @@
 #include <gsl/gsl_roots.h>
 #include "tdbs/Thermo.h"
 #include "tdbs/Thermo.c"
+#include "solverloop/defines.h"
+#include "solverloop/defines1.h"
 #include "functions/global_vars.h"
 #include "functions/CL_global_vars.h" 
 #include "functions/CL_initialize_variables.h"
@@ -21,8 +24,13 @@
 #include "functions/CL_Initialize_domain.h"
 #include "functions/CL_kernel_init_temperature.h"
 #include "functions/CL_DeviceToHost.h"
+#include "solverloop/FunctionDefines_CL.h"
+#include "solverloop/Function_Thermo_calls.h"
 #include "solverloop/CL_Update_Temperature.h"
 #include "solverloop/CL_Solve_phi_com.h"
+#include "solverloop/CL_Solve_phi_com_Function_F_2.h"
+#include "solverloop/CL_Solve_phi_com_Function_F_3.h"
+#include "solverloop/CL_Solve_phi_com_Function_F_4.h"
 #include "functions/functions.h"
 #include "functions/matrix.h"
 #include "functions/utility_functions.h"
@@ -44,23 +52,39 @@
 #include "functions/shift.h"
 #include "functions/CL_Shift.h"
 #include "solverloop/serialinfo_xy.h"
+#include "solverloop/mpi_xy.h"
 #include "solverloop/initialize_functions_solverloop.h"
 #include "solverloop/file_writer.h" 
 
 int main(int argc, char * argv[]) { 
   
-  mkdir("DATA",0777);
+  // MPI_Comm comm=MPI_COMM_WORLD;
 
+
+  MPI_Init(&argc,&argv);
+  MPI_Comm_size(comm,&numtasks);
+  MPI_Comm_rank(comm,&rank);
+
+  printf("No. of processors in execution %d\n", numtasks);
+  
   reading_input_parameters(argv);
+
+  if ( RESTART ) {
+    if ( (numworkers != numtasks)  ) {
+      printf("ERROR:\n");
+      printf("No. of numworkers = %d (processors) in input file are not same as no. of processors executed = %d (np)\n", numworkers, numtasks);
+      exit(1);
+    }
+  }
   
   initialize_variables();
   
-  serialinfo_xy();
+  //serialinfo_xy();
   
   initialize_functions_solverloop();
   
   read_boundary_conditions(argv);
-  
+
   if (!(FUNCTION_F == 2)) {
     init_propertymatrices(T);
     if ( FUNCTION_F == 3 ) { 
@@ -70,55 +94,61 @@ int main(int argc, char * argv[]) {
       propf4Hostupdate(&propf4);
     }
   }
-  
-  for (a=0; a<NUMPHASES-1; a++) {
-    for(k=0; k<NUMCOMPONENTS-1; k++) {
-      printf("slopes[a][NUMPHASES-1][k]=%le, %le\n", slopes[a][NUMPHASES-1][k], propf3.slopes[a][NUMPHASES-1][k]);
-      printf("slopes[a][a][k]=%le, %le\n", slopes[a][a][k], propf3.slopes[a][a][k]);
-    }
-  }
-  
 
 
-  double c_x;
-  double c[NUMCOMPONENTS-1];
-  double c_calc[NUMCOMPONENTS-1];
-  double mu[NUMCOMPONENTS-1];
-  double dpsi;
-  char filename[1000];
-  double fe;
-  FILE *fp_check;
-  for (a=0; a<NUMPHASES; a++) {
-    sprintf(filename, "Thermodynamic_functions_%ld.dat", a);
-    fp_check = fopen(filename, "w");
-    for(c_x=0.001; c_x < 0.99;) {
-      c[0] = c_x;
-      Mu(c, T, a, mu);
-      dc_dmu(mu, c, T, a, dcdmu);
-      fe = free_energy(c, T, a);
-      dpsi = fe - mu[0]*c[0];
-      c_mu(mu, c, T, a, ceq[a][a]);
-      fprintf(fp_check, "%le %le %le %le %le %le %le\n", T, c_x, mu[0], dcdmu[0][0], fe,  dpsi, c_calc[0]);
-      c_x += 0.001;
-    }
-    fclose(fp_check);
-  }
-  
+  serialinfo_xy();
   if ((STARTTIME == 0) && (RESTART ==0)) {
     fill_domain(argv);
-    if (TEMPGRADY) {
-      t = STARTTIME;
-      shift_OFFSET = 0;
-      BASE_POS    = (temperature_gradientY.gradient_OFFSET/deltay) - shift_OFFSET + ((temperature_gradientY.velocity/deltay)*(t*deltat));
-      GRADIENT    = (temperature_gradientY.DeltaT)*deltay/(temperature_gradientY.Distance);
-      temp_bottom = temperature_gradientY.base_temp - BASE_POS*GRADIENT;
-      apply_temperature_gradientY(gridinfo, shift_OFFSET, t);
+  }
+
+  if ( rank == MASTER ) { 
+    mkdir("DATA",0777);
+    if (!WRITEHDF5){
+     for (n=0; n < numtasks; n++) {
+       sprintf(dirname,"DATA/Processor_%d",n);
+       mkdir(dirname, 0777);
+     }
     }
-  } else {
+    else {
+      printf("Writing VTK format\n");
+      for (n=0; n < numtasks; n++) {
+        sprintf(dirname,"DATA/Processor_%d",n);
+        mkdir(dirname, 0777);
+      }
+    }
+
+    //print_input_parameters(argv);
+    //print_boundary_conditions(argv);
+    
+    //serialinfo_xy();
+
+    //if ((STARTTIME == 0) && (RESTART ==0)) {
+    //  fill_domain(argv);
+    //}
+  }
+
+  populate_table_names();
+
+  if(ELASTICITY) {
+    for (b=0; b<NUMPHASES; b++) {
+      stiffness_phase_n[b].C11 = stiffness_phase[b].C11/stiffness_phase[NUMPHASES-1].C44;
+      stiffness_phase_n[b].C12 = stiffness_phase[b].C12/stiffness_phase[NUMPHASES-1].C44;
+      stiffness_phase_n[b].C44 = stiffness_phase[b].C44/stiffness_phase[NUMPHASES-1].C44;
+    }
+  }
+
+  mpi_xy(rank, argv);
+  
+  if ((STARTTIME == 0) && (RESTART == 0)) {
+    printf("Starting a new simulation\n");
+    //fill_domain(argv);
+  }
+  else {
+    printf("Restarting a simulation\n");
     if (ASCII) {
-      readfromfile_serial2D(gridinfo, argv, STARTTIME);
+      readfromfile_serialmpi(gridinfomN, argv, STARTTIME);
     } else {
-      readfromfile_serial2D_binary(gridinfo, argv, STARTTIME);
+      readfromfile_serialmpi_binary(gridinfomN, argv, STARTTIME);
     }
     if (SHIFT) {
       FILE *fp;
@@ -138,7 +168,15 @@ int main(int argc, char * argv[]) {
       }
     }
   }
-  
+    if (TEMPGRADY) {
+      t = STARTTIME;
+      shift_OFFSET = 0;
+      BASE_POS    = (temperature_gradientY.gradient_OFFSET/deltay) - shift_OFFSET + ((temperature_gradientY.velocity/deltay)*(t*deltat));
+      GRADIENT    = (temperature_gradientY.DeltaT)*deltay/(temperature_gradientY.Distance);
+      temp_bottom = temperature_gradientY.base_temp - BASE_POS*GRADIENT;
+      apply_temperature_gradientY(gridinfomN, shift_OFFSET, t);
+    }
+
   CL_initialize_variables();
 
   CL_device_kernel_build();
@@ -149,25 +187,29 @@ int main(int argc, char * argv[]) {
 
   CL_create_kernel_args();
   
-  CL_kernel_init_temperature();
+  //CL_kernel_init_temperature();
+
+  //writetofile_mpi(gridinfomN, argv, 0+STARTTIME);
+
+  printf("All Initializations are done\n");
 
   if((RESTART == 0) || (STARTTIME ==0)) {
     if (ASCII == 0) {
-      writetofile_serial2D_binary(gridinfo, argv, 0);
+      writetofile_mpi_binary(gridinfomN, argv, 0);
     } else {
-      writetofile_serial2D(gridinfo, argv, 0);
+      writetofile_mpi(gridinfomN, argv, 0);
     }
-  } 
+  }
   
   //Time-loop
   for(t=1;t<=ntimesteps;t++) {
     
+    if (rank==MASTER)
     printf("Timestep=%ld\n",t);
 
-    CL_Solve_phi_com_Function(t + STARTTIME);
+    CL_Solve_phi_com_Function();
     
     CL_Update_Temperature(t + STARTTIME);
-  
     
     if (SHIFT) {
       if (t%100 == 0) {
@@ -178,29 +220,46 @@ int main(int argc, char * argv[]) {
     if(t%saveT == 0) {
       CL_DeviceToHost();
       if (ASCII == 0) {
-        writetofile_serial2D_binary(gridinfo, argv, t + STARTTIME);
+        writetofile_mpi_binary(gridinfomN, argv, t + STARTTIME);
       } else {
-        writetofile_serial2D(gridinfo, argv, t + STARTTIME);
+        writetofile_mpi(gridinfomN, argv, t + STARTTIME);
       }
       fp=fopen("DATA/shift.dat","a");
       fprintf(fp,"%ld %ld\n", t + STARTTIME, shift_OFFSET + shift_position);
       fclose(fp);
+      if (rank==MASTER)
       printf("Written time step = %ld\n", t + STARTTIME);
     }
-    if (t%time_output == 0) {
-      fprintf(stdout, "Time=%le\n", t*deltat);
-      CL_Global_Max_Min();
-      for (b=0; b<NUMPHASES-1; b++) {
-        fprintf(stdout, "%*s, Max = %le, Min = %le, Relative_Change=%le\n", max_length, Phases[b], global_max_min.phi_max[b], global_max_min.phi_min[b], sqrt(global_max_min.rel_change_phi[b]));
+    if (t%time_output == 0 ) {
+     CL_Global_Max_Min();
+      for (b=0; b<NUMPHASES; b++) {
+        MPI_Reduce(&global_max_min.phi_max[b],        &global_max_min1.phi_max[b],         1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
+        MPI_Reduce(&global_max_min.phi_min[b],        &global_max_min1.phi_min[b],         1, MPI_DOUBLE, MPI_MIN, 0, MPI_COMM_WORLD);
+        MPI_Reduce(&global_max_min.rel_change_phi[b], &global_max_min1.rel_change_phi[b],  1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
       }
-      for (k=0; k<NUMCOMPONENTS-1; k++) {
-        fprintf(stdout, "%*s, Max = %le, Min = %le, Relative_Change=%le\n", max_length, Components[k], global_max_min.com_max[k], global_max_min.com_min[k], sqrt(global_max_min.rel_change_com[k]));
+      for (k=0; k<(NUMCOMPONENTS-1); k++) {
+        MPI_Reduce(&global_max_min.com_max[k],         &global_max_min1.com_max[k],          1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
+        MPI_Reduce(&global_max_min.com_min[k],         &global_max_min1.com_min[k],          1, MPI_DOUBLE, MPI_MIN, 0, MPI_COMM_WORLD);
+        MPI_Reduce(&global_max_min.rel_change_com[k],  &global_max_min1.rel_change_com[k],   1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
       }
-      fprintf(stdout, "\n");
+      if (rank == MASTER) {
+     fprintf(stdout, "Time=%le\n", t*deltat);
+     for (b=0; b<NUMPHASES; b++) {
+       fprintf(stdout, "%*s, Max = %le, Min = %le, Relative_Change=%le\n", max_length, Phases[b], global_max_min1.phi_max[b], global_max_min1.phi_min[b], sqrt(global_max_min1.rel_change_phi[b]));
+     }
+     for (k=0; k<NUMCOMPONENTS-1; k++) {
+       fprintf(stdout, "%*s, Max = %le, Min = %le, Relative_Change=%le\n", max_length, Components[k], global_max_min1.com_max[k], global_max_min1.com_min[k], sqrt(global_max_min1.rel_change_com[k]));
+     }
+     fprintf(stdout, "\n");
     }
-
+    }
   }
   free_variables();
+  if(rank==MASTER) {
+
+  printf("\nCompleted simulations!!!\n\n");
+  }
+  MPI_Finalize();
 }
 
 

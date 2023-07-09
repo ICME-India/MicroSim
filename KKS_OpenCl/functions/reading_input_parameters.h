@@ -4,6 +4,7 @@ void reading_input_parameters(char *argv[]) {
   if(fr == NULL) {
     printf("file %s not found", argv[1]);
   }
+  printf("Processor:%d--Reading Infile\n",rank);
   int i;
   char tempbuff[1000];
   
@@ -107,9 +108,14 @@ void reading_input_parameters(char *argv[]) {
           Rotation_matrix     = Malloc4M(NUMPHASES,       NUMPHASES,   3,             3);
           Inv_Rotation_matrix = Malloc4M(NUMPHASES,       NUMPHASES,   3,             3);
 
+          eigen_strain_phase = (struct symmetric_tensor *)malloc(NUMPHASES*sizeof(*eigen_strain_phase));
+          stiffness_phase    = (struct Stiffness_cubic *)malloc(NUMPHASES*sizeof(*stiffness_phase));
+          stiffness_phase_n  = (struct Stiffness_cubic *)malloc(NUMPHASES*sizeof(*stiffness_phase_n));
+          stiffness_t_phase  = (struct Stiffness_tetragonal *)malloc(NUMPHASES*sizeof(*stiffness_t_phase));
+
 
           for (i=0; i < 6; i++) {
-            boundary[i] = (struct bc_scalars*)malloc(3*sizeof(*boundary[i])); //3=Number of scalar fields
+            boundary[i] = (struct bc_scalars*)malloc(4*sizeof(*boundary[i])); //3=Number of scalar fields
           }
           
         }
@@ -132,6 +138,10 @@ void reading_input_parameters(char *argv[]) {
       else if (strcmp(tmpstr1,"RESTART")==0) {
         RESTART = atol(tmpstr2);
       }
+      else if ((strcmp(tmpstr1,"numworkers")==0) && RESTART) {
+        numworkers = atol(tmpstr2);
+        printf("%d\n", numworkers);
+      }
       else if (strcmp(tmpstr1,"R")==0) {
         R = atof(tmpstr2);
       }
@@ -145,6 +155,9 @@ void reading_input_parameters(char *argv[]) {
         else if (strcmp(tmpstr2,"BINARY") == 0) {
           ASCII = 0;
         }
+      }
+      else if (strcmp(tmpstr1,"WRITEHDF5")==0) {
+        WRITEHDF5 = atoi(tmpstr2);
       }
       else if (strcmp(tmpstr1,"TRACK_PROGRESS")==0) {
         time_output = atol(tmpstr2);
@@ -182,8 +195,12 @@ void reading_input_parameters(char *argv[]) {
       else if ((strcmp(tmpstr1, "Function_anisotropy") == 0) && (NUMPHASES > 0) && ((NUMCOMPONENTS-1) >0)) {
         FUNCTION_ANISOTROPY = atoi(tmpstr2);
       }
+      else if ((strcmp(tmpstr1, "Anisotropy_type") == 0) && (FUNCTION_ANISOTROPY !=0)) {
+         FOLD = atoi(tmpstr2);
+      }
       else if ((strcmp(tmpstr1, "Rotation_matrix") == 0) && (FUNCTION_ANISOTROPY !=0)) {
-        RotAngles = MallocV(3);
+        //RotAngles = MallocV(3);
+        RotAngles = Malloc3M(NUMPHASES, NUMPHASES, 3);
         //Read_Rotation_Angles(RotAngles, tmpstr2);
         populate_rotation_matrix(Rotation_matrix, Inv_Rotation_matrix, tmpstr2);
       }
@@ -244,6 +261,10 @@ void reading_input_parameters(char *argv[]) {
         dab = MallocM(NUMPHASES, NUMPHASES);
         populate_matrix(dab, tmpstr2, NUMPHASES);
       }
+      else if ((strcmp(tmpstr1, "Gamma_abc") == 0) && (NUMPHASES > 0)) {
+        Gamma_abc = Malloc3M(NUMPHASES, NUMPHASES, NUMPHASES);
+        populate_matrix3M(Gamma_abc, tmpstr2, NUMPHASES);
+      }
       else if ((strcmp(tmpstr1, "DIFFUSIVITY") == 0) && (NUMPHASES > 0) && ((NUMCOMPONENTS-1) >0)) {
         populate_diffusivity_matrix(Diffusivity, tmpstr2, NUMCOMPONENTS);
         for ( a = 0; a < NUMPHASES; a++ ) { 
@@ -258,7 +279,6 @@ void reading_input_parameters(char *argv[]) {
       }
       else if ((strcmp(tmpstr1, "Function_F") == 0) && (NUMPHASES > 0) && ((NUMCOMPONENTS-1) >0)) {
         FUNCTION_F = atoi(tmpstr2);
-        printf("%d\n", FUNCTION_F);
         // if (FUNCTION_F == 2) {
           c_guess = Malloc3M(NUMPHASES, NUMPHASES,       NUMCOMPONENTS-1);
         // }
@@ -304,6 +324,33 @@ void reading_input_parameters(char *argv[]) {
       }
       else if (strcmp(tmpstr1,"tdbfname")==0) {
         strcpy(tdbfname,tmpstr2);
+      }
+      else if ((strcmp(tmpstr1, "ELASTICITY") == 0)) {
+        ELASTICITY = atoi(tmpstr2);
+      }
+      else if ((strcmp(tmpstr1, "EIGEN_STRAIN") == 0) && (NUMPHASES > 0) && ELASTICITY) {
+        populate_symmetric_tensor(eigen_strain_phase, tmpstr2, NUMPHASES);
+      }
+      else if ((strcmp(tmpstr1, "VOIGT_ISOTROPIC") == 0) && (NUMPHASES > 0) && ELASTICITY) {
+        populate_cubic_stiffness(stiffness_phase, tmpstr2);
+      }
+      else if ((strcmp(tmpstr1, "VOIGT_CUBIC") == 0) && (NUMPHASES > 0) && ELASTICITY) {
+        populate_cubic_stiffness(stiffness_phase, tmpstr2);
+      }
+      else if ((strcmp(tmpstr1, "rho") == 0) && ELASTICITY) {
+        rho = atof(tmpstr2);
+      }
+      else if ((strcmp(tmpstr1, "damping_factor") == 0) && ELASTICITY) {
+        damping_factor = atof(tmpstr2);
+      }
+      else if ((strcmp(tmpstr1, "tolerance") == 0) && ELASTICITY) {
+        tolerance = atof(tmpstr2);
+      }
+      else if ((strcmp(tmpstr1, "max_iterations") == 0) && ELASTICITY) {
+        MAX_ITERATIONS = atof(tmpstr2);
+      }
+      else if ((strcmp(tmpstr1, "deltat_e") == 0) && ELASTICITY) {
+        deltat_e = atof(tmpstr2);
       }
 //       else {
 //         printf("Unrecongized parameter : \"%s\"\n", tmpstr1);
@@ -423,7 +470,7 @@ void reading_input_parameters(char *argv[]) {
   
   strcpy(key, "PHASES");
   
-  PRINT_STRING_ARRAY(key, Phases, NUMCOMPONENTS, fr);
+  PRINT_STRING_ARRAY(key, Phases, NUMPHASES, fr);
   
   for (i=0; i<NUMPHASES; i++) {
     sprintf(key, "ceq[Solidus,%s]",Phases[i]);

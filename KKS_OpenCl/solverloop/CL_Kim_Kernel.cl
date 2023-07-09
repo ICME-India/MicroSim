@@ -1,4039 +1,7183 @@
 #pragma OPENCL EXTENSION cl_khr_fp64 : enable
 #include "solverloop/defines.h"
 #include "solverloop/defines1.h"
+#include "solverloop/CL_struct_var_kernels.h"
 #include "solverloop/ThermoCL_2.h"
 #include "solverloop/ThermoCL_2.c"
 //#include "solverloop/GibbsEnergyData1.h"
 #include "solverloop/GibbsEnergyData2.h"
+#include "solverloop/MatrixInversion.h"
+#include "solverloop/matrix_nsolCL.h"
 #include "solverloop/FunctionF_2_c_mu_NR_GEData2.h"
-//#include "solverloop/GibbsEnergyData_1.h"
-
-/*
-      0          ---- j ----->           nx (X)
-    
- 0    #  #  #  #  #  #  #  #  #  #  #  #  # 
-               
-      #  #  #  #  #  #  #  #  #  #  #  #  #
-               
- |    #  #  #  #  #  #  #  #  #  #  #  #  # 
- |             
- |    #  #  #  #  0  1  2  #  #  #  #  #  # 
-               
- i    #  #  #  #  3  4  5  #  #  #  #  #  # 
-               
- |    #  #  #  #  6  7  8  #  #  #  #  #  # 
- |             
- V    #  #  #  #  #  #  #  #  #  #  #  #  # 
-               
-      #  #  #  #  #  #  #  #  #  #  #  #  # 
-               
- ny   #  #  #  #  #  #  #  #  #  #  #  #  # 
- 
- (Y)
-
-*/
-
-struct grid {
-    double phi;
-    double c1;
-    double mu[1];
-};
-struct csle {
-    double c1l;
-    double c1s;
-};
-struct pfmpar {
-    double E0;
-    double surfTen;
-    double ee;
-    double w;
-    double deltax;
-    double deltay;
-    double deltat;
-    //double dx;
-    //double dy;
-    //double dt;
-    double eesqrt;
-    double Er;
-    double IntMob;
-    double IntMobInv;
-};
-struct pfmval {
-  double Rotation_matrix[2][2][3][3];
-  double Inv_Rotation_matrix[2][2][3][3];
-    double Tr;
-    double sigma;
-    double Vm;
-    double D11l;
-    double D11s;
-    double phisolid;
-    double philiquid;
-    double Rg;
-    double T0;
-    double Teq;
-    double Tfill;
-    double lrep;
-    double c1l_Initial;
-    double c1s_Initial;
-    double c1l_1stguess;
-    double c1s_1stguess;
-    double a2;
-    double rad;
-    double epsc;
-    double intwidth;
-    double dxIntfcPoints;
-    double dtParam;
-    double epsm;
-    double InterfaceMobility;
-    double RefD;
-    double angle;
-  double TLiquidus;
-  double Toffset;
-  //double PosOffset;
-  //double TG;
-  //double Vp;
-  double TPosOffset; 
-  double TGRADIENT;
-  double velocity;
-  double NoiseFac;
-  double interfaceUplimit;
-  double interfaceDownlimit;
-  long shift_OFFSET;
-  int thermophase[npha];
-    int   nproc;
-    int   jNx;
-    int   iNy;
-    int   jDimX;
-    int   iDimY;
-    int   ntimesteps;
-    int   savetime;
-    int   myrank;
-  int   ISOTHERMAL;
-};
-struct propmatf3 {
-  double ceq[npha][npha][nsol];
-  double cfill[npha][npha][nsol];
-  double slopes[npha][npha][nsol];
-  double dcbdT[npha][npha][nsol];
-  double A[npha][nsol][nsol]; 
-  double DELTA_T[npha][npha]; 
-  double DELTA_C[npha][nsol]; 
-  double dcbdT_phase[npha][nsol];
-  double B[npha][nsol];
-  double Beq[npha][nsol];
-  double dBbdT[npha][nsol];
-  double C[npha];
-  double cmu[npha][nsol][nsol];
-  double muc[npha][nsol][nsol];
-};
-struct propmatf4 {
-  double ceq[npha][npha][nsol];
-  double cfill[npha][npha][nsol];
-  double slopes[npha][npha][nsol];
-  double dcbdT[npha][npha][nsol];
-  double A[npha][nsol][nsol]; 
-  double DELTA_T[npha][npha]; 
-  double DELTA_C[npha][nsol]; 
-  double dcbdT_phase[npha][nsol];
-  double B[npha][nsol];
-  double Beq[npha][nsol];
-  double dBbdT[npha][nsol];
-  double C[npha];
-  double cmu[npha][nsol][nsol];
-  double muc[npha][nsol][nsol];
-};
-struct propmatf4spline {
-  double A[npha][nsol][nsol]; 
-  double B[npha][nsol];
-  double C[npha];
-};
+#include "solverloop/functionH_CL_5th.h"
+#include "solverloop/functionW_02_CL.h"
+#include "solverloop/anisotropy_01_CL.h"
+#include "solverloop/functionA_01_CL.h"
+#include "solverloop/functionF_03_CL.h" 
 
 
-__kernel void SolverCsClEq_2(__global struct grid *gridOld, __global struct csle *cscl, __constant struct pfmval *pfmdat, __constant struct pfmpar *pfmvar, __global double *temp, __global int *tstep, __constant struct propmatf3 *propf3) {
-    
-    int i;
-    int j;
-    int nx;
-    int ny;
+__kernel void SolverCsClEq_F2(__global struct fields *gridinfoO, __global struct csle *cscl, __constant struct pfmval *pfmdat, __constant struct pfmpar *pfmvar, __global double *temp, __global int *tstep) {
+
+    int x, y, z;
+    int nx, ny, nz;
     int index;
-    int interface, phaseliquid, phasesolid, bulkphase;
+    int is, ip, is1, is2;
+
+    int interface, bulkphase;
     double cg[nsol], mu[nsol], cphas[nsol];
-    
-    double Ti, tmp0, fi;
-
-    j = get_global_id(0);
-    i = get_global_id(1);
-    
-    nx = pfmdat->jNx;
-    ny = pfmdat->iNy;
-
-    index = (i*nx + j);
-    
-    Ti = temp[j];
-    fi = gridOld[index].phi;
-    mu[0] = gridOld[index].mu[0];
-    
-    interface = 1; 
-    phaseliquid = 1; 
-    phasesolid = 0; 
-    
-    if ( fi >= pfmdat->interfaceUplimit ) { 
-      interface = 0;
-    }
-    else if ( fi <= pfmdat->interfaceDownlimit ) { 
-      interface = 0; 
-    }
-    
-    mu[0] = gridOld[index].mu[0];
-    
-    if ( interface ) {
-      
-      cg[0] = pfmdat->c1s_1stguess; 
-      
-      c_mu(mu, cphas, Ti, phasesolid, cg, tstep[0], i, j, pfmdat->thermophase[phasesolid]);
-      
-      cscl[index].c1s = cphas[0];
-      
-      cg[0] = pfmdat->c1l_1stguess; 
-      
-      c_mu(mu, cphas, Ti, phaseliquid, cg, tstep[0], i, j, pfmdat->thermophase[phaseliquid]);
-      
-      cscl[index].c1l = cphas[0];
-      
-    }
- 
-}
-
-__kernel void SolverCsClEq_3(__global struct grid *gridOld, __global struct csle *cscl, __constant struct pfmval *pfmdat, __constant struct pfmpar *pfmvar, __global double *temp, __global int *tstep, __constant struct propmatf3 *propf3) {
-    
-    int i, j;
-    int nx, ny;
-    int index;
-    
-    int interface, phaseliquid, phasesolid;
-    int bulkphase; 
-    double cg[nsol], ci[nsol];
     double Ti;
     double tmp0;
-    double fi, mu[1];
 
-    j = get_global_id(0);
-    i = get_global_id(1);
-    
-    nx = pfmdat->jNx;
-    ny = pfmdat->iNy;
+    y = get_global_id(0);
+    z = get_global_id(1);
+    x = get_global_id(2);
 
-    index = (i*nx + j);
-    
-    Ti = temp[j];
- 
-    fi = gridOld[index].phi;
-    
-    mu[0] = gridOld[index].mu[0];
-    
-    interface = 1; 
-    phaseliquid = 1; 
-    phasesolid = 0; 
-    
-    if ( fi >= pfmdat->interfaceUplimit ) { 
-      interface = 0;
+    ny = get_global_size(0);
+    nz = get_global_size(1);
+    nx = get_global_size(2);
+
+    index = y + ny*(z + x*nz);
+
+    Ti = pfmdat->T0;
+    Ti = gridinfoO[index].temperature;
+
+    interface = 1;
+    bulkphase = 0;
+    for ( ip = 0; ip < npha; ip++ ) {
+      if ( gridinfoO[index].phi[ip] >= pfmdat->interfaceUplimit ) {
+        bulkphase = ip;
+        interface = 0;
+        break;
+      }
     }
-    else if ( fi <= pfmdat->interfaceDownlimit ) { 
-      interface = 0; 
-    }
-    
+
     if ( interface ) {
 
-      cscl[index].c1s = propf3->cmu[0][0][0] * ( gridOld[index].mu[0] - ( propf3->Beq[0][0] + propf3->dBbdT[0][0] * (Ti-pfmdat->Teq) ) );
+      for ( ip = 0; ip < npha; ip++ ) {
 
-      cscl[index].c1l = propf3->cmu[1][0][0] * ( gridOld[index].mu[0] - ( propf3->Beq[1][0] + propf3->dBbdT[1][0] * (Ti-pfmdat->Teq) ) );
-      
-    }
-    
- 
-}
+        for ( is = 0; is < nsol; is++ ) {
 
-__kernel void SolverCsClEq_4(__global struct grid *gridOld, __global struct csle *cscl, __constant struct pfmval *pfmdat, __constant struct pfmpar *pfmvar, __global double *temp, __global int *tstep, __constant struct propmatf4 *propf4, __constant struct propmatf4spline *propf4spline) {
-    
-    int i, j;
-    int nx, ny;
-    int index;
-    
-    int interface, phaseliquid, phasesolid;
-    int bulkphase; 
-    double cg[nsol], ci[nsol];
-    double Ti;
-    double tmp0;
-    double fi, mu[1];
-    double muc[1], cmu[1];
-
-    j = get_global_id(0);
-    i = get_global_id(1);
-    
-    nx = pfmdat->jNx;
-    ny = pfmdat->iNy;
-
-    index = (i*nx + j);
-    
-    Ti = temp[j];
-    
-    fi = gridOld[index].phi;
-    
-    mu[0] = gridOld[index].mu[0];
-    
-    interface = 1; 
-    phaseliquid = 1; 
-    phasesolid = 0; 
-    
-    if ( fi >= pfmdat->interfaceUplimit ) { 
-      interface = 0;
-    }
-    else if ( fi <= pfmdat->interfaceDownlimit ) { 
-      interface = 0; 
-    }
-    
-    
-    if ( interface ) {
-
-        if ( pfmdat->ISOTHERMAL ) { 
-          cscl[index].c1s = propf4->cmu[0][0][0] * ( gridOld[index].mu[0] - propf4->B[0][0] );
-          
-          cscl[index].c1l = propf4->cmu[1][0][0] * ( gridOld[index].mu[0] - propf4->B[1][0] );
-          
-        }
-        else { 
-          
-          muc[0] = 2.0 * propf4spline[j].A[0][0][0]; 
-          
-          cmu[0] = 1.0 / muc[0]; 
-          
-          cscl[index].c1s = cmu[0] * ( gridOld[index].mu[0] - propf4spline[j].B[0][0] );
-          
-          
-          muc[0] = 2.0 * propf4spline[j].A[1][0][0]; 
-          
-          cmu[0] = 1.0 / muc[0]; 
-          
-          cscl[index].c1l = cmu[0] * ( gridOld[index].mu[0] - propf4spline[j].B[1][0] );
-          
-        }
-        
-    }
-    
- 
-}
-
-__kernel void SolverCWoatr_2(__global struct grid *gridOld, __global struct grid *gridNew, __global struct csle *cscl, __constant struct pfmval *pfmdat, __constant struct pfmpar *pfmvar, __global double *temp, __global int *tstep, __constant struct propmatf3 *propf3) { 
-
-    int i;
-    int j;
-    int k;
-    int ii;    
-    int nx;
-    int ny;
-    int nz;
-    int index;
-    int interface, phaseliquid, phasesolid, bulkphase;
-
-    double hphi[5], fhi[5], hphid[5];
-    double term1lx;
-    double term1sx;
-    double term1ly;
-    double term1sy;
-    double term1l;
-    double term1s;
-    double c1dot;
-
-    double gradmux1[1], gradmux2[1], gradmuy1[1], gradmuy2[1], mu[1]; 
-    double Ti, ddgldx1ldx1l, ddgsdx1sdx1s, dcdmu[2][1][1], dc_dmu[5][2][1][1];
-    double Da[5], Damidx1, Damidx2, Damidy1, Damidy2, divflux, deltamu; 
-    double suma, deltac, dcdmudenom, y[2], retmu[1], Tij[5]; 
-    double retdmuphase[1], DELTAT, cg[1], dcbdT_phase[2][1], c_tdt[1], sum_dcbdT; 
-
-    struct grid stgridO[9];
-    struct csle stcscl[5];
-
-    j = get_global_id(0);
-    i = get_global_id(1);
-    
-    nx = pfmdat->jNx;
-    ny = pfmdat->iNy;
-    
-    Ti = temp[j];
-    
-    if ( i != 0 && i != ny-1 && j != 0 && j != nx-1 ) {
-
-        index = (i*nx + j);
-
-        stgridO[0] = gridOld[(i-1)*nx + (j-1)];
-        stgridO[1] = gridOld[(i-1)*nx + ( j )];
-        stgridO[2] = gridOld[(i-1)*nx + (j+1)];
-        stgridO[3] = gridOld[( i )*nx + (j-1)];
-        stgridO[4] = gridOld[( i )*nx + ( j )];
-        stgridO[5] = gridOld[( i )*nx + (j+1)];
-        stgridO[6] = gridOld[(i+1)*nx + (j-1)];
-        stgridO[7] = gridOld[(i+1)*nx + ( j )];
-        stgridO[8] = gridOld[(i+1)*nx + (j+1)];
-
-        stcscl[0] = cscl[(i-1)*nx + ( j )];
-        stcscl[1] = cscl[( i )*nx + (j-1)];
-        stcscl[4] = cscl[( i )*nx + ( j )];
-        stcscl[2] = cscl[( i )*nx + (j+1)];
-        stcscl[3] = cscl[(i+1)*nx + ( j )];
-
-        Tij[0] = temp[( j )];
-        Tij[1] = temp[(j-1)];
-        Tij[4] = temp[( j )];
-        Tij[2] = temp[(j+1)];
-        Tij[3] = temp[( j )];
-
-        fhi[0] = stgridO[1].phi;
-        fhi[1] = stgridO[3].phi;
-        fhi[4] = stgridO[4].phi;
-        fhi[2] = stgridO[5].phi;
-        fhi[3] = stgridO[7].phi;
-
-        hphid[0] = fhi[0]; //stgridO[1].phi;
-        hphid[1] = fhi[1]; //stgridO[3].phi;
-        hphid[4] = fhi[4]; //stgridO[4].phi;
-        hphid[2] = fhi[2]; //stgridO[5].phi;
-        hphid[3] = fhi[3]; //stgridO[7].phi;
-        
-
-        for ( ii = 0; ii < 5; ii++ ) { 
-          //printf("%d, %d, %d, %d, %le\n", tstep[0], i, j, ii, fhi[ii]);
-
-          interface = 1;
-          phaseliquid = 1; 
-          phasesolid = 0; 
-          
-          if (fhi[ii] >= pfmdat->interfaceUplimit) { 
-            bulkphase = 0;
-            interface = 0;
-          }
-          else if (fhi[ii] <= pfmdat->interfaceDownlimit) { 
-            bulkphase = 1;
-            interface = 0;
-          }
-
-          if ( interface ) { 
-            
-            y[0] = stcscl[ii].c1s; 
-            y[1] = 1.0-y[0];
-            
-            dMudc(Tij[ii], y, retdmuphase, pfmdat->thermophase[phasesolid]);
-            dc_dmu[ii][0][0][0] = 1.0 / retdmuphase[0];
-            
-            y[0] = stcscl[ii].c1l; 
-            y[1] = 1.0-y[0];
-            
-            dMudc(Tij[ii], y, retdmuphase, pfmdat->thermophase[phaseliquid]);
-            dc_dmu[ii][1][0][0] = 1.0 / retdmuphase[0];
-
-            Da[ii] = pfmdat->D11l * (1.0-hphid[ii]) * dc_dmu[ii][1][0][0] + pfmdat->D11s * (hphid[ii]) * dc_dmu[ii][0][0][0];
-          }
-          else { 
-              
-              y[0] = stgridO[ii].c1;
-              y[1] = 1.0 -y[0];
-              
-            if ( bulkphase == 0 ) { 
-              
-              dMudc(Tij[ii], y, retdmuphase, pfmdat->thermophase[0]);
-              
-              Da[ii] = pfmdat->D11s * ( 1.0 / retdmuphase[0] );
-              
-            }
-            else if ( bulkphase == 1 ) { 
-              
-              dMudc(Tij[ii], y, retdmuphase, pfmdat->thermophase[1]);
-              
-              Da[ii] = pfmdat->D11l * ( 1.0 / retdmuphase[0] );
-              
-            }
-          }
-        }
-        
-        Damidx1 = ( Da[2] + Da[4] ) / 2.0;
-        Damidx2 = ( Da[4] + Da[1] ) / 2.0;
-        Damidy1 = ( Da[3] + Da[4] ) / 2.0;
-        Damidy2 = ( Da[4] + Da[0] ) / 2.0;
-        
-        gradmux1[0] = ( stgridO[5].mu[0] - stgridO[4].mu[0] ) / pfmvar->deltax;
-        gradmux2[0] = ( stgridO[4].mu[0] - stgridO[3].mu[0] ) / pfmvar->deltax;
-        gradmuy1[0] = ( stgridO[7].mu[0] - stgridO[4].mu[0] ) / pfmvar->deltay;
-        gradmuy2[0] = ( stgridO[4].mu[0] - stgridO[1].mu[0] ) / pfmvar->deltay;
-
-        divflux = ( Damidx1*gradmux1[0] - Damidx2*gradmux2[0] ) / pfmvar->deltax + ( Damidy1*gradmuy1[0] - Damidy2*gradmuy2[0] ) / pfmvar->deltay;
-        
-        interface = 1;
-        phaseliquid = 1; 
-        phasesolid = 0; 
-        
-        if (stgridO[4].phi >= pfmdat->interfaceUplimit) {
-          bulkphase=0;
-          interface = 0;
-        }
-        else if (stgridO[4].phi <= pfmdat->interfaceDownlimit) {
-          bulkphase = 1;
-          interface = 0; 
-        }
-
-        if ( interface == 0) { 
-          
-          gridNew[index].c1 = stgridO[4].c1 + pfmvar->deltat * divflux;
-          
-          y[0] = gridNew[index].c1; 
-          y[1] = 1.0 - y[0];
-          
-          Mu(Ti, y, retmu, pfmdat->thermophase[bulkphase]);
-          
-          // if ( phasesolid ) { 
-          //   //Mu_0(Ti, y, retmu);
-          //   Mu(Ti, y, retmu, pfmdat->thermophase[0]);
-          // }
-          // else if ( phaseliquid ) { 
-          //   //Mu_1(Ti, y, retmu);
-          //   Mu(Ti, y, retmu, pfmdat->thermophase[1]);
-          // }
-          
-          deltamu = retmu[0] - stgridO[4].mu[0];
-          gridNew[index].mu[0] = retmu[0];
-          
-        }
-        else if ( interface ) { 
-        
-        if ( !pfmdat->ISOTHERMAL ) {
-          DELTAT = pfmvar->deltat * ( -pfmdat->TGRADIENT * pfmdat->velocity ); 
-          
-          cg[0] = pfmdat->c1s_1stguess; 
-          
-          mu[0] = gridOld[index].mu[0];
-          
-          c_mu(mu, c_tdt, Ti+DELTAT, phasesolid, cg, tstep[0], i, j, pfmdat->thermophase[phasesolid]);
-          
-          dcbdT_phase[0][0] = c_tdt[0] - stcscl[4].c1l;
-          
-          cg[0] = pfmdat->c1l_1stguess; 
-          
-          c_mu(mu, c_tdt, Ti+DELTAT, phaseliquid, cg, tstep[0], i, j, pfmdat->thermophase[phaseliquid]);
-          
-          dcbdT_phase[1][0] = c_tdt[0] - stcscl[4].c1s;
-          
-        } 
-
-          suma = ( stcscl[4].c1s - stcscl[4].c1l ) * (1.0) * ( gridNew[index].phi - stgridO[4].phi );
-          
-          sum_dcbdT = fhi[4] * dcbdT_phase[0][0] + (1.0-fhi[4]) * dcbdT_phase[1][0];
-
-          deltac = pfmvar->deltat * divflux; 
-
-          gridNew[index].c1 = stgridO[4].c1 + deltac;
-          
-          if ( pfmdat->ISOTHERMAL ) { 
-            deltac = deltac - suma;
-          }
-          else { 
-            deltac = deltac - suma  - sum_dcbdT;
-          }
-          
-          hphi[4] = fhi[4];
-          dcdmudenom = dc_dmu[4][0][0][0]*hphi[4] + dc_dmu[4][1][0][0]*(1.0-hphi[4]);
-          
-          gridNew[index].mu[0] = stgridO[4].mu[0] + deltac / dcdmudenom;
-          
+          cg[is] = pfmdat->cguess[ip*npha+ip][is];
+          mu[is] = gridinfoO[index].mu[is];
+          //printf("%d, %d, %d, %d, %d, %le, %le, %le, %le, %d\n", tstep[0], i, j, ip, is, pfmdat->cguess[ip][ip][is], cg[is], gridinfoO[index].mu[is], mu[is],pfmdat->thermophase[ip]);
 
         }
-        
-    }
-}
 
-__kernel void SolverCWoatr_3(__global struct grid *gridOld, __global struct grid *gridNew, __global struct csle *cscl, __constant struct pfmval *pfmdat, __constant struct pfmpar *pfmvar, __global double *temp, __global int *tstep, __constant struct propmatf3 *propf3) { 
+        c_mu(mu, cphas, Ti, ip, cg, tstep[0], y, z, x, pfmdat->thermophase[ip]);
 
-    int i;
-    int j;
-    int k;
-    int ii;    
-    int nx;
-    int ny;
-    int nz;
-    int index;
-    int interface, phaseliquid, phasesolid, bulkphase;
-
-    double hphi[5], fhi[5], hphid[5];
-    double term1lx;
-    double term1sx;
-    double term1ly;
-    double term1sy;
-    double term1l;
-    double term1s;
-    double c1dot;
-
-    double gradmux1[1], gradmux2[1], gradmuy1[1], gradmuy2[1], mu[1]; 
-    double Ti, ddgldx1ldx1l, ddgsdx1sdx1s, dcdmu[2][1][1], dc_dmu[5][2][1][1];
-    double Da[5], Damidx1, Damidx2, Damidy1, Damidy2, divflux, deltamu; 
-    double suma, deltac, dcdmudenom, y[2], retmu[1]; 
-    double retdmuphase[1], DELTAT, cgs, cgl, dcbdT_phase[2][1], c_tdt[1], sum_dcbdT; 
-
-    struct grid stgridO[9];
-    struct csle stcscl[5];
-
-    j = get_global_id(0);
-    i = get_global_id(1);
-    
-    nx = pfmdat->jNx;
-    ny = pfmdat->iNy;
-    
-    Ti = temp[j];
-    
-    if ( i != 0 && i != ny-1 && j != 0 && j != nx-1 ) {
-
-        index = (i*nx + j);
-
-        stgridO[0] = gridOld[(i-1)*nx + (j-1)];
-        stgridO[1] = gridOld[(i-1)*nx + ( j )];
-        stgridO[2] = gridOld[(i-1)*nx + (j+1)];
-        stgridO[3] = gridOld[( i )*nx + (j-1)];
-        stgridO[4] = gridOld[( i )*nx + ( j )];
-        stgridO[5] = gridOld[( i )*nx + (j+1)];
-        stgridO[6] = gridOld[(i+1)*nx + (j-1)];
-        stgridO[7] = gridOld[(i+1)*nx + ( j )];
-        stgridO[8] = gridOld[(i+1)*nx + (j+1)];
-
-        stcscl[0] = cscl[(i-1)*nx + ( j )];
-        stcscl[1] = cscl[( i )*nx + (j-1)];
-        stcscl[4] = cscl[( i )*nx + ( j )];
-        stcscl[2] = cscl[( i )*nx + (j+1)];
-        stcscl[3] = cscl[(i+1)*nx + ( j )];
-
-        fhi[0] = stgridO[1].phi;
-        fhi[1] = stgridO[3].phi;
-        fhi[4] = stgridO[4].phi;
-        fhi[2] = stgridO[5].phi;
-        fhi[3] = stgridO[7].phi;
-
-        hphid[0] = fhi[0]; //stgridO[1].phi;
-        hphid[1] = fhi[1]; //stgridO[3].phi;
-        hphid[4] = fhi[4]; //stgridO[4].phi;
-        hphid[2] = fhi[2]; //stgridO[5].phi;
-        hphid[3] = fhi[3]; //stgridO[7].phi;
-        
-
-        for ( ii = 0; ii < 5; ii++ ) { 
-          //printf("%d, %d, %d, %d, %le\n", tstep[0], i, j, ii, fhi[ii]);
-
-          interface = 1;
-          phaseliquid = 1; 
-          phasesolid = 0; 
-          
-          if (fhi[ii] >= pfmdat->interfaceUplimit) { 
-            bulkphase = 0;
-            interface = 0;
-          }
-          else if (fhi[ii] <= pfmdat->interfaceDownlimit) { 
-            bulkphase = 1;
-            interface = 0;
-          }
-
-          if ( interface ) { 
-
-            //dc_dmu[ii][0][0][0] = 1.0 / (2.0*propf3->A[0][0][0]);
-            //dc_dmu[ii][1][0][0] = 1.0 / (2.0*propf3->A[1][0][0]);
-
-            dc_dmu[ii][0][0][0] = propf3->cmu[0][0][0];
-            dc_dmu[ii][1][0][0] = propf3->cmu[1][0][0];
-
-            Da[ii] = pfmdat->D11l * (1.0-hphid[ii]) * dc_dmu[ii][1][0][0] + pfmdat->D11s * (hphid[ii]) * dc_dmu[ii][0][0][0];
-            
-          }
-          else { 
-            if ( bulkphase == 0 ) { 
-              
-              //Da[ii] = pfmdat->D11s * ( 1.0 / (2.0*propf3->A[0][0][0]) );
-              
-              Da[ii] = pfmdat->D11s * propf3->cmu[0][0][0];
-              
-            }
-            else if ( bulkphase == 1 ) { 
-              
-              Da[ii] = pfmdat->D11l * propf3->cmu[1][0][0];
-              
-            }
-          }
+        for ( is = 0; is < nsol; is++ ) {
+          cscl[index].comie[ip][is]= cphas[is];
+          //printf("%d, %d, %d, %d, %d, %le\n", tstep[0], i, j, ip, is, cscl[index].comie[ip][is]);
         }
-        
-        Damidx1 = ( Da[2] + Da[4] ) / 2.0;
-        Damidx2 = ( Da[4] + Da[1] ) / 2.0;
-        Damidy1 = ( Da[3] + Da[4] ) / 2.0;
-        Damidy2 = ( Da[4] + Da[0] ) / 2.0;
-        
-        
-        gradmux1[0] = ( stgridO[5].mu[0] - stgridO[4].mu[0] ) / pfmvar->deltax;
-        gradmux2[0] = ( stgridO[4].mu[0] - stgridO[3].mu[0] ) / pfmvar->deltax;
-        gradmuy1[0] = ( stgridO[7].mu[0] - stgridO[4].mu[0] ) / pfmvar->deltay;
-        gradmuy2[0] = ( stgridO[4].mu[0] - stgridO[1].mu[0] ) / pfmvar->deltay;
-
-        divflux = ( Damidx1*gradmux1[0] - Damidx2*gradmux2[0] ) / pfmvar->deltax + ( Damidy1*gradmuy1[0] - Damidy2*gradmuy2[0] ) / pfmvar->deltay;
-        
-        
-        interface = 1;
-        phaseliquid = 1; 
-        phasesolid = 0;
-        
-        if (stgridO[4].phi >= pfmdat->interfaceUplimit) {
-          bulkphase = 0;
-          interface = 0;
-        }
-        else if (stgridO[4].phi <= pfmdat->interfaceDownlimit) {
-          bulkphase = 1;
-          interface = 0; 
-        }
-
-        if ( interface == 0) { 
-
-          gridNew[index].c1 = stgridO[4].c1 + pfmvar->deltat * divflux;
-          
-          if ( bulkphase == 0 ) { 
-            retmu[0] = 2.0*propf3->A[0][0][0]*gridNew[index].c1 + (propf3->Beq[0][0] + propf3->dBbdT[0][0]*(Ti-pfmdat->Teq));
-          }
-          else if ( bulkphase == 1 ) { 
-            retmu[0] = 2.0*propf3->A[1][0][0]*gridNew[index].c1 + (propf3->Beq[1][0] + propf3->dBbdT[1][0]*(Ti-pfmdat->Teq));
-          }
-          deltamu = retmu[0] - stgridO[4].mu[0];
-          gridNew[index].mu[0] = retmu[0];
-          
-          
-        }
-        else if ( interface ) { 
-          
-          if ( !pfmdat->ISOTHERMAL ) {
-            
-            DELTAT = pfmvar->deltat * ( -pfmdat->TGRADIENT * pfmdat->velocity ); 
-            
-            c_tdt[0] = propf3->cmu[0][0][0] * ( stgridO[4].mu[0] - ( propf3->Beq[0][0] + propf3->dBbdT[0][0] * (Ti+DELTAT-pfmdat->Teq) ) );
-            
-            dcbdT_phase[0][0] = c_tdt[0] - stcscl[4].c1s;
-            
-            c_tdt[0] = propf3->cmu[1][0][0] * ( stgridO[4].mu[0] - ( propf3->Beq[1][0] + propf3->dBbdT[1][0] * (Ti+DELTAT-pfmdat->Teq) ) );
-            
-            dcbdT_phase[1][0] = c_tdt[0] - stcscl[4].c1l;
-          
-          }
-        
-          
-          suma = ( stcscl[4].c1s - stcscl[4].c1l ) * (1.0) * ( gridNew[index].phi - stgridO[4].phi );
-          
-          sum_dcbdT = fhi[4] * dcbdT_phase[0][0] + (1.0-fhi[4]) * dcbdT_phase[1][0];
-
-          deltac = pfmvar->deltat * divflux; 
-
-          gridNew[index].c1 = stgridO[4].c1 + deltac;
-          
-          if ( pfmdat->ISOTHERMAL ) { 
-            deltac = deltac - suma;
-          }
-          else { 
-            deltac = deltac - suma  - sum_dcbdT;
-          }
-          
-          hphi[4] = fhi[4];
-          dcdmudenom = dc_dmu[4][0][0][0]*hphi[4] + dc_dmu[4][1][0][0]*(1.0-hphi[4]);
-          
-          gridNew[index].mu[0] = stgridO[4].mu[0] + deltac / dcdmudenom;
-        }
-        
-    }
-}
-
-__kernel void SolverCWoatr_4(__global struct grid *gridOld, __global struct grid *gridNew, __global struct csle *cscl, __constant struct pfmval *pfmdat, __constant struct pfmpar *pfmvar, __global double *temp, __global int *tstep, __constant struct propmatf4 *propf4, __constant struct propmatf4spline *propf4spline, __constant struct propmatf4spline *propf4spline1) { 
-
-    int i;
-    int j;
-    int k;
-    int ii;    
-    int nx;
-    int ny;
-    int nz;
-    int index;
-    int interface, phaseliquid, phasesolid, bulkphase, indij[5];
-
-    double hphi[5], fhi[5], hphid[5], Tij[5];
-    double term1lx;
-    double term1sx;
-    double term1ly;
-    double term1sy;
-    double term1l;
-    double term1s;
-    double c1dot;
-
-    double gradmux1[1], gradmux2[1], gradmuy1[1], gradmuy2[1], mu[1]; 
-    double Ti, ddgldx1ldx1l, ddgsdx1sdx1s, dcdmu[2][1][1], dc_dmu[5][2][1][1];
-    double Da[5], Damidx1, Damidx2, Damidy1, Damidy2, divflux, deltamu; 
-    double suma, deltac, dcdmudenom, y[2], retmu[1]; 
-    double retdmuphase[1], DELTAT, cgs, cgl, dcbdT_phase[2][1], c_tdt[1], sum_dcbdT, muc1[1], cmu1[1]; 
-
-    struct grid stgridO[9];
-    struct csle stcscl[5];
-
-    j = get_global_id(0);
-    i = get_global_id(1);
-    
-    nx = pfmdat->jNx;
-    ny = pfmdat->iNy;
-    
-    Ti = temp[j];
-    
-    if ( i != 0 && i != ny-1 && j != 0 && j != nx-1 ) {
-
-        index = (i*nx + j);
-
-        stgridO[0] = gridOld[(i-1)*nx + (j-1)];
-        stgridO[1] = gridOld[(i-1)*nx + ( j )];
-        stgridO[2] = gridOld[(i-1)*nx + (j+1)];
-        stgridO[3] = gridOld[( i )*nx + (j-1)];
-        stgridO[4] = gridOld[( i )*nx + ( j )];
-        stgridO[5] = gridOld[( i )*nx + (j+1)];
-        stgridO[6] = gridOld[(i+1)*nx + (j-1)];
-        stgridO[7] = gridOld[(i+1)*nx + ( j )];
-        stgridO[8] = gridOld[(i+1)*nx + (j+1)];
-
-        stcscl[0] = cscl[(i-1)*nx + ( j )];
-        stcscl[1] = cscl[( i )*nx + (j-1)];
-        stcscl[4] = cscl[( i )*nx + ( j )];
-        stcscl[2] = cscl[( i )*nx + (j+1)];
-        stcscl[3] = cscl[(i+1)*nx + ( j )];
-
-        fhi[0] = stgridO[1].phi;
-        fhi[1] = stgridO[3].phi;
-        fhi[4] = stgridO[4].phi;
-        fhi[2] = stgridO[5].phi;
-        fhi[3] = stgridO[7].phi;
-
-        hphid[0] = fhi[0]; //stgridO[1].phi;
-        hphid[1] = fhi[1]; //stgridO[3].phi;
-        hphid[4] = fhi[4]; //stgridO[4].phi;
-        hphid[2] = fhi[2]; //stgridO[5].phi;
-        hphid[3] = fhi[3]; //stgridO[7].phi;
-
-        Tij[0] = temp[( j )];
-        Tij[1] = temp[(j-1)];
-        Tij[4] = temp[( j )];
-        Tij[2] = temp[(j+1)];
-        Tij[3] = temp[( j )];
-        
-        indij[0] = ( j );
-        indij[1] = (j-1);
-        indij[4] = ( j );
-        indij[2] = (j+1);
-        indij[3] = ( j );
-        
-
-        for ( ii = 0; ii < 5; ii++ ) { 
-          //printf("%d, %d, %d, %d, %le\n", tstep[0], i, j, ii, fhi[ii]);
-
-          interface = 1;
-          phaseliquid = 1; 
-          phasesolid = 0; 
-          
-          if (fhi[ii] >= pfmdat->interfaceUplimit) { 
-            bulkphase = 0;
-            interface = 0;
-          }
-          else if (fhi[ii] <= pfmdat->interfaceDownlimit) { 
-            bulkphase = 1;
-            interface = 0;
-          }
-
-          if ( interface ) { 
-             if ( pfmdat->ISOTHERMAL ) { 
-               dc_dmu[ii][0][0][0] = propf4->cmu[0][0][0];
-               dc_dmu[ii][1][0][0] = propf4->cmu[1][0][0];
-             }
-             else { 
-               dc_dmu[ii][0][0][0] = 1 / (2.0 * propf4spline[indij[ii]].A[0][0][0]);
-               dc_dmu[ii][1][0][0] = 1 / (2.0 * propf4spline[indij[ii]].A[1][0][0]);
-             }
-
-            Da[ii] = pfmdat->D11l * (1.0-hphid[ii]) * dc_dmu[ii][1][0][0] + pfmdat->D11s * (hphid[ii]) * dc_dmu[ii][0][0][0];
-            
-          }
-          else {
-           if ( pfmdat->ISOTHERMAL ) { 
-            if ( bulkphase == 0 ) { 
-              
-              dc_dmu[ii][0][0][0] = propf4->cmu[bulkphase][0][0];
-              
-              
-              Da[ii] = pfmdat->D11s * dc_dmu[ii][0][0][0];
-              
-            }
-            else if ( bulkphase == 1 ) { 
-              
-              dc_dmu[ii][1][0][0] = propf4->cmu[bulkphase][0][0];
-              
-              Da[ii] = pfmdat->D11l * dc_dmu[ii][1][0][0];
-              
-            }
-           }
-           else {
-              
-            if ( bulkphase == 0 ) { 
-              
-              dc_dmu[ii][0][0][0] = 1.0 / (2.0 * propf4spline[indij[ii]].A[bulkphase][0][0]);
-              
-              
-              Da[ii] = pfmdat->D11s * dc_dmu[ii][0][0][0];
-              
-            }
-            else if ( bulkphase == 1 ) { 
-              
-              dc_dmu[ii][1][0][0] = 1.0 / (2.0 * propf4spline[indij[ii]].A[bulkphase][0][0]);
-              
-              Da[ii] = pfmdat->D11l * dc_dmu[ii][1][0][0];
-              
-            }
-           }
-          }
-        }
-        
-        Damidx1 = ( Da[2] + Da[4] ) / 2.0;
-        Damidx2 = ( Da[4] + Da[1] ) / 2.0;
-        Damidy1 = ( Da[3] + Da[4] ) / 2.0;
-        Damidy2 = ( Da[4] + Da[0] ) / 2.0;
-        
-        
-        gradmux1[0] = ( stgridO[5].mu[0] - stgridO[4].mu[0] ) / pfmvar->deltax;
-        gradmux2[0] = ( stgridO[4].mu[0] - stgridO[3].mu[0] ) / pfmvar->deltax;
-        gradmuy1[0] = ( stgridO[7].mu[0] - stgridO[4].mu[0] ) / pfmvar->deltay;
-        gradmuy2[0] = ( stgridO[4].mu[0] - stgridO[1].mu[0] ) / pfmvar->deltay;
-
-        divflux = ( Damidx1*gradmux1[0] - Damidx2*gradmux2[0] ) / pfmvar->deltax + ( Damidy1*gradmuy1[0] - Damidy2*gradmuy2[0] ) / pfmvar->deltay;
-        
-        
-        interface = 1;
-        phaseliquid = 1; 
-        phasesolid = 0;
-        
-        if (stgridO[4].phi >= pfmdat->interfaceUplimit) {
-          bulkphase = 0;
-          interface = 0;
-        }
-        else if (stgridO[4].phi <= pfmdat->interfaceDownlimit) {
-          bulkphase = 1;
-          interface = 0; 
-        }
-
-        if ( interface == 0) { 
-
-          gridNew[index].c1 = stgridO[4].c1 + pfmvar->deltat * divflux;
-          
-         if ( pfmdat->ISOTHERMAL ) { 
-          
-          if ( bulkphase == 0 ) { 
-            retmu[0] = 2.0*propf4->A[bulkphase][0][0]*gridNew[index].c1 + propf4->B[bulkphase][0];
-          }
-          else if ( bulkphase == 1 ) { 
-            retmu[0] = 2.0*propf4->A[bulkphase][0][0]*gridNew[index].c1 + propf4->B[bulkphase][0];
-          }
-          
-         }
-         else { 
-           
-           if ( bulkphase == 0 ) { 
-            retmu[0] = 2.0*propf4spline[j].A[bulkphase][0][0]*gridNew[index].c1 + propf4spline[j].B[bulkphase][0];
-          }
-          else if ( bulkphase == 1 ) { 
-            retmu[0] = 2.0*propf4spline[j].A[bulkphase][0][0]*gridNew[index].c1 + propf4spline[j].B[bulkphase][0];
-          }
-           
-         }
-          
-          
-          deltamu = retmu[0] - stgridO[4].mu[0];
-          gridNew[index].mu[0] = retmu[0];
-          
-        }
-        else if ( interface ) {
-          
-          if ( pfmdat->ISOTHERMAL ) { 
-               dcbdT_phase[0][0] = 0.0;
-               dcbdT_phase[1][0] = 0.0;
-          }
-          else { 
-            
-            DELTAT = ( pfmvar->deltat ) * ( -pfmdat->TGRADIENT * pfmdat->velocity ); 
-            
-            muc1[0] = 2.0 * propf4spline1[j].A[0][0][0]; 
-            
-            cmu1[0] = 1.0 / muc1[0];
-            
-            c_tdt[0] = cmu1[0] * ( gridOld[index].mu[0] - propf4spline1[j].B[0][0] );
-            
-            dcbdT_phase[0][0] = c_tdt[0] - stcscl[4].c1s;
-            
-            muc1[0] = 2.0 * propf4spline1[j].A[1][0][0]; 
-            
-            cmu1[0] = 1.0 / muc1[0];
-            
-            c_tdt[0] = cmu1[0] * ( gridOld[index].mu[0] - propf4spline1[j].B[1][0] );
-            
-            dcbdT_phase[1][0] = c_tdt[0] - stcscl[4].c1l;
-            
-          }
-        
-          
-          suma = ( stcscl[4].c1s - stcscl[4].c1l ) * (1.0) * ( gridNew[index].phi - stgridO[4].phi );
-          
-          sum_dcbdT = fhi[4] * dcbdT_phase[0][0] + (1.0-fhi[4]) * dcbdT_phase[1][0];
-
-          deltac = pfmvar->deltat * divflux; 
-
-          gridNew[index].c1 = stgridO[4].c1 + deltac;
-          
-          if ( pfmdat->ISOTHERMAL ) { 
-            deltac = deltac - suma;
-          }
-          else { 
-            deltac = deltac - suma  - sum_dcbdT;
-          }
-          
-          hphi[4] = fhi[4];
-          dcdmudenom = dc_dmu[4][0][0][0]*hphi[4] + dc_dmu[4][1][0][0]*(1.0-hphi[4]);
-          
-          gridNew[index].mu[0] = stgridO[4].mu[0] + deltac / dcdmudenom;
-        }
-        
-    }
-}
-
-
-__kernel void SolverPhiIso_2(__global struct grid *gridOld, __global struct grid *gridNew, __global struct csle *cscl, __constant struct pfmval *pfmdat, __constant struct pfmpar *pfmvar, __global double *temp, __global int *tstep, __constant struct propmatf3 *propf3) {   
-  
-    int i;
-    int j;
-    int k;
-    int ii;    
-    int nx;
-    int ny;
-    int nz;
-    int index;
-    int interface, phaseliquid, phasesolid, bulkphase;
-
-    double gphi;
-    double dgphidphi;
-    double dhphidphi; 
-    double DetDL;
-    double D11invL;
-    double gl;
-    double gs;
-    double dgldc1l;
-    double ddgldc1ldc1l;
-    double zeta;
-    double div_phi;
-    double Mphi;
-    double Mphi_aniso;
-    double Mphi_FiniteMobility;
-    double Mphi_FiniteMobilityAniso;
-    double phidot_iso;
-    
-    double cliq1;
-    double csol1;
-    double cliq2;
-    double csol2;
-
-    double Bf3[npha][nsol], Cf3[npha];
-
-    double Ti;
-
-    double tmp1;
-    
-    double y[2], retGphase[1], retdmuphase[1], c_sol[1], c_liq[1];
-    
-    struct grid stgridO[9];
-
-    j = get_global_id(0);
-    i = get_global_id(1);
-    
-    nx = pfmdat->jNx;
-    ny = pfmdat->iNy;
-    
-    if ( i != 0 && i != ny-1 && j != 0 && j != nx-1 ) {
-
-        Ti = temp[j];
-
-        index = (i)*nx + (j);
-
-        stgridO[0] = gridOld[(i-1)*nx + (j-1)];
-        stgridO[1] = gridOld[(i-1)*nx + ( j )];
-        stgridO[2] = gridOld[(i-1)*nx + (j+1)];
-        stgridO[3] = gridOld[( i )*nx + (j-1)];
-        stgridO[4] = gridOld[( i )*nx + ( j )];
-        stgridO[5] = gridOld[( i )*nx + (j+1)];
-        stgridO[6] = gridOld[(i+1)*nx + (j-1)];
-        stgridO[7] = gridOld[(i+1)*nx + ( j )];
-        stgridO[8] = gridOld[(i+1)*nx + (j+1)];
-
-        cliq1 = cscl[( i )*nx + ( j )].c1l;
-        csol1 = cscl[( i )*nx + ( j )].c1s;
-
-        div_phi = ( 4.0*(stgridO[1].phi+stgridO[3].phi+stgridO[7].phi+stgridO[5].phi ) + stgridO[0].phi+stgridO[6].phi+stgridO[8].phi+stgridO[2].phi - 20.0*stgridO[4].phi ) / ( 6.0*(pfmvar->deltax)*(pfmvar->deltax) );
-
-          D11invL = 1.0/pfmdat->D11l;
-          
-          y[0] = csol1;
-          y[1] = 1.0 - y[0];
-          
-          Ge(Ti, y, retGphase, pfmdat->thermophase[0]);
-          gs = retGphase[0]/(pfmdat->Vm);
-          
-          y[0] = cliq1;
-          y[1] = 1.0 - y[0];
-          
-          Ge(Ti, y, retGphase, pfmdat->thermophase[1]); 
-          
-          gl = retGphase[0]/(pfmdat->Vm);
-          
-          dgldc1l = stgridO[4].mu[0] / (pfmdat->Vm);
-          
-          //ddgldc1ldc1l = (ddGLIQdX1LdX1L(Ti, cliq1))/(pfmdat->Vm);
-          
-          dMudc(Ti, y, retdmuphase, pfmdat->thermophase[1]);
-          ddgldc1ldc1l = retdmuphase[0] / pfmdat->Vm;
-          
-          zeta = ((cliq1-csol1)*(cliq1-csol1)*ddgldc1ldc1l)*D11invL;
-          Mphi = (pfmvar->w)/(3.0*(pfmvar->ee)*(pfmdat->a2)*zeta);
-          
-          gphi = stgridO[4].phi*stgridO[4].phi*(1.0-stgridO[4].phi)*(1.0-stgridO[4].phi);
-          dgphidphi = 2.0*stgridO[4].phi*(1.0-stgridO[4].phi)*(1.0-2.0*stgridO[4].phi);
-          dhphidphi = 30.0*gphi;
-          
-
-        if ( fabs(div_phi) > 0.0 )  { 
-          
-          phidot_iso =  Mphi*((pfmvar->ee)*div_phi - (pfmvar->w)*dgphidphi - dhphidphi*(gs-gl-(csol1-cliq1)*dgldc1l));
-
-          //printf("%d, %d, %d, %le\n", tstep[0], i, j, phidot_iso*pfmvar->deltat);
-          //printf("%d, %d, %d, %le, %le, %le, %le\n", tstep[0], i, j, csol1, gs*pfmdat->Vm, cliq1, gl*pfmdat->Vm);
-          
-          gridNew[ ( ( i )*nx + ( j ) ) ].phi = stgridO[4].phi + (pfmvar->deltat)*phidot_iso;
-
-        }
-        // else { 
-        //   phidot_iso = 0.0;
-        //   gridNew[ ( ( i )*nx + ( j ) ) ].phi = stgridO[4].phi + (pfmvar->deltat)*phidot_iso;
-        //   //printf("%d, %d, %d, %le\n", tstep[0], i, j, phidot_iso*pfmvar->deltat);
-        //   //printf("%d, %d, %d, %le, %le\n", tstep[0], i, j, phidot_iso, phidot_iso);
-        // }
-        
-        //printf(">> %d, %d, %d, %le, %le, %le, %le, %le, %le, %le, %le, %le\n", tstep[0], i, j, Mphi, div_phi, dgphidphi, dhphidphi, gs, gl,csol1, cliq1,dgldc1l);
-
-        
-        //printf("%le,\t%le,\t%le,\t%le,\t%le,\t%le,\t%le,\t%le\n", Mphi, pfmvar->w, pfmvar->ee, pfmdat->a2, zeta, cliq1, csol1, ddgldc1ldc1l);
-    }
-}
-
-__kernel void SolverPhiIso_3(__global struct grid *gridOld, __global struct grid *gridNew, __global struct csle *cscl, __constant struct pfmval *pfmdat, __constant struct pfmpar *pfmvar, __global double *temp, __global int *tstep, __constant struct propmatf3 *propf3) {   
-  
-    int i;
-    int j;
-    int k;
-    int ii;    
-    int nx;
-    int ny;
-    int nz;
-    int index;
-
-    double gphi;
-    double dgphidphi;
-    double dhphidphi; 
-    double DetDL;
-    double D11invL;
-    double gl;
-    double gs;
-    double dgldc1l;
-    double ddgldc1ldc1l;
-    double zeta;
-    double div_phi;
-    double Mphi;
-    double Mphi_aniso;
-    double Mphi_FiniteMobility;
-    double Mphi_FiniteMobilityAniso;
-    double phidot_iso;
-    
-    double cliq1;
-    double csol1;
-    double cliq2;
-    double csol2;
-
-    double Bf3[npha][nsol], Cf3[npha];
-    
-    double y[2], retGphase[1], retdmuphase[1], c_sol[1], c_liq[1];
-
-    double Ti;
-
-    double tmp1;
-    
-    struct grid stgridO[9];
-
-    j = get_global_id(0);
-    i = get_global_id(1);
-    
-    nx = pfmdat->jNx;
-    ny = pfmdat->iNy;
-    
-    if ( i != 0 && i != ny-1 && j != 0 && j != nx-1 ) {
-
-        Ti = temp[j];
-
-        index = (i)*nx + (j);
-
-        stgridO[0] = gridOld[(i-1)*nx + (j-1)];
-        stgridO[1] = gridOld[(i-1)*nx + ( j )];
-        stgridO[2] = gridOld[(i-1)*nx + (j+1)];
-        stgridO[3] = gridOld[( i )*nx + (j-1)];
-        stgridO[4] = gridOld[( i )*nx + ( j )];
-        stgridO[5] = gridOld[( i )*nx + (j+1)];
-        stgridO[6] = gridOld[(i+1)*nx + (j-1)];
-        stgridO[7] = gridOld[(i+1)*nx + ( j )];
-        stgridO[8] = gridOld[(i+1)*nx + (j+1)];
-
-        cliq1 = cscl[( i )*nx + ( j )].c1l;
-        csol1 = cscl[( i )*nx + ( j )].c1s;
-
-        div_phi = ( 4.0*(stgridO[1].phi+stgridO[3].phi+stgridO[7].phi+stgridO[5].phi ) + stgridO[0].phi+stgridO[6].phi+stgridO[8].phi+stgridO[2].phi - 20.0*stgridO[4].phi ) / ( 6.0*(pfmvar->deltax)*(pfmvar->deltax) );
-
-        D11invL = 1.0/pfmdat->D11l;
-        
-        if ( !pfmdat->ISOTHERMAL ) { 
-          Bf3[0][0] = propf3->Beq[0][0] + propf3->dBbdT[0][0]*(Ti-pfmdat->Teq);
-          Bf3[1][0] = propf3->Beq[1][0] + propf3->dBbdT[1][0]*(Ti-pfmdat->Teq);
-        }
-        else {
-          Bf3[0][0] = propf3->B[0][0];
-          Bf3[1][0] = propf3->B[1][0];
-        }
-        
-        if ( !pfmdat->ISOTHERMAL ) { 
-          c_liq[0] = propf3->ceq[0][1][0] - propf3->DELTA_C[0][0]*(pfmdat->Teq-Ti) / propf3->DELTA_T[0][1];
-          
-          c_sol[0] = propf3->ceq[0][0][0] - propf3->DELTA_C[0][0]*(pfmdat->Teq-Ti) / propf3->DELTA_T[0][0]; 
-          
-          Cf3[0] = propf3->A[0][0][0] * c_sol[0]  * c_sol[0] - propf3->A[1][0][0] * c_liq[0] * c_liq[0]; 
-          
-          Cf3[1] = propf3->C[1];
-        }
-        else { 
-          Cf3[0] = propf3->C[0]; 
-          Cf3[1] = propf3->C[1];
-        }
-          
-        
-        
-        gs = ( propf3->A[0][0][0]*csol1*csol1 + Bf3[0][0]*csol1 + Cf3[0] ) / pfmdat->Vm; 
-        gl = ( propf3->A[1][0][0]*cliq1*cliq1 + Bf3[1][0]*cliq1 + Cf3[1] ) / pfmdat->Vm; 
-        //printf("%d, %d, %d, %le, %le, %le, %le, %le, %le\n", tstep[0], i, j, gs, propf3->A[0][0][0],  propf3->Beq[0][0], Bf3[0][0], csol1,  Cf3[0]);
-        
-         dgldc1l = stgridO[4].mu[0] / (pfmdat->Vm);
-         
-        ddgldc1ldc1l = ( 2.0*propf3->A[1][0][0] )/(pfmdat->Vm);
-        
-        zeta = ((cliq1-csol1)*(cliq1-csol1)*ddgldc1ldc1l)*D11invL;
-
-        gphi = stgridO[4].phi*stgridO[4].phi*(1.0-stgridO[4].phi)*(1.0-stgridO[4].phi);
-        dgphidphi = 2.0*stgridO[4].phi*(1.0-stgridO[4].phi)*(1.0-2.0*stgridO[4].phi);
-        dhphidphi = 30.0*gphi;
-
-        Mphi = (pfmvar->w)/(3.0*(pfmvar->ee)*(pfmdat->a2)*zeta);
-
-        if ( fabs(div_phi) > 0.0 )  { 
-
-        phidot_iso =  Mphi*((pfmvar->ee)*div_phi - (pfmvar->w)*dgphidphi - dhphidphi*(gs-gl-(csol1-cliq1)*dgldc1l));
-
-        gridNew[ ( ( i )*nx + ( j ) ) ].phi = stgridO[4].phi + (pfmvar->deltat)*phidot_iso;
-        
-        //printf("%d, %d, %d, %le, %le, %le, %le, %le, %le, %le\n", tstep[0], i, j, stgridO[4].phi, pfmvar->deltat, phidot_iso/Mphi, Mphi, gridNew[ ( ( i )*nx + ( j ) ) ].phi, stgridO[4].c1, stgridO[4].mu[0]);
-        
-        //printf("%d, %d, %d, %le, %le, %le, %le, %le, %le, %le, %le, %le, %le\n", tstep[0], i, j, pfmvar->ee, div_phi, pfmvar->w, dgphidphi, dhphidphi, gs, gl, csol1, cliq1, dgldc1l);
-
-        }
-
-    }
-}
-
-__kernel void SolverPhiIso_4(__global struct grid *gridOld, __global struct grid *gridNew, __global struct csle *cscl, __constant struct pfmval *pfmdat, __constant struct pfmpar *pfmvar, __global double *temp, __global int *tstep, __constant struct propmatf4 *propf4, __constant struct propmatf4spline *propf4spline) {   
-  
-    int i;
-    int j;
-    int k;
-    int ii;    
-    int nx;
-    int ny;
-    int nz;
-    int index;
-
-    double gphi;
-    double dgphidphi;
-    double dhphidphi; 
-    double DetDL;
-    double D11invL;
-    double gl;
-    double gs;
-    double dgldc1l;
-    double ddgldc1ldc1l;
-    double zeta;
-    double div_phi;
-    double Mphi;
-    double Mphi_aniso;
-    double Mphi_FiniteMobility;
-    double Mphi_FiniteMobilityAniso;
-    double phidot_iso;
-    
-    double cliq1;
-    double csol1;
-    double cliq2;
-    double csol2;
-
-    double Bf3[npha][nsol], Cf3[npha];
-    
-    double y[2], retGphase[1], retdmuphase[1], c_sol[1], c_liq[1];
-
-    double Ti;
-
-    double tmp1, tmp0;
-    
-    struct grid stgridO[9];
-
-    j = get_global_id(0);
-    i = get_global_id(1);
-    
-    nx = pfmdat->jNx;
-    ny = pfmdat->iNy;
-    
-    if ( i != 0 && i != ny-1 && j != 0 && j != nx-1 ) {
-
-        Ti = temp[j];
-
-        index = (i)*nx + (j);
-
-        stgridO[0] = gridOld[(i-1)*nx + (j-1)];
-        stgridO[1] = gridOld[(i-1)*nx + ( j )];
-        stgridO[2] = gridOld[(i-1)*nx + (j+1)];
-        stgridO[3] = gridOld[( i )*nx + (j-1)];
-        stgridO[4] = gridOld[( i )*nx + ( j )];
-        stgridO[5] = gridOld[( i )*nx + (j+1)];
-        stgridO[6] = gridOld[(i+1)*nx + (j-1)];
-        stgridO[7] = gridOld[(i+1)*nx + ( j )];
-        stgridO[8] = gridOld[(i+1)*nx + (j+1)];
-
-        cliq1 = cscl[( i )*nx + ( j )].c1l;
-        csol1 = cscl[( i )*nx + ( j )].c1s;
-
-        div_phi = ( 4.0*(stgridO[1].phi+stgridO[3].phi+stgridO[7].phi+stgridO[5].phi ) + stgridO[0].phi+stgridO[6].phi+stgridO[8].phi+stgridO[2].phi - 20.0*stgridO[4].phi ) / ( 6.0*(pfmvar->deltax)*(pfmvar->deltax) );
-
-        D11invL = 1.0/pfmdat->D11l;
-        
-        if ( pfmdat->ISOTHERMAL ) { 
-          
-          gs = ( propf4->A[0][0][0]*csol1*csol1 + propf4->B[0][0]*csol1 + propf4->C[0] ) / pfmdat->Vm;
-          
-          gl = ( propf4->A[1][0][0]*cliq1*cliq1 + propf4->B[1][0]*cliq1 + propf4->C[1] ) / pfmdat->Vm;
-          
-        }
-        else { 
-          tmp0 = propf4spline[j].A[0][0][0]*csol1*csol1;
-          
-          tmp1 = propf4spline[j].B[0][0]*csol1; 
-        
-          gs = ( tmp0 + tmp1 + propf4spline[j].C[0] ) / pfmdat->Vm;
-        
-          tmp0 = propf4spline[j].A[1][0][0]*cliq1*cliq1;
-          
-          tmp1 = propf4spline[j].B[1][0]*cliq1; 
-        
-          gl = ( tmp0 + tmp1 + propf4spline[j].C[1] ) / pfmdat->Vm;
-        }
-        
-        if ( pfmdat->ISOTHERMAL ) { 
-          ddgldc1ldc1l = 2.0*propf4->A[1][0][0] / pfmdat->Vm;
-        }
-        else { 
-          ddgldc1ldc1l = 2.0*propf4spline[j].A[1][0][0] / pfmdat->Vm;
-        }
-        
-        dgldc1l = gridOld[index].mu[0] / pfmdat->Vm;
-        
-        zeta = ((cliq1-csol1)*(cliq1-csol1)*ddgldc1ldc1l)*D11invL;
-
-        gphi = stgridO[4].phi*stgridO[4].phi*(1.0-stgridO[4].phi)*(1.0-stgridO[4].phi);
-        dgphidphi = 2.0*stgridO[4].phi*(1.0-stgridO[4].phi)*(1.0-2.0*stgridO[4].phi);
-        dhphidphi = 30.0*gphi;
-
-        Mphi = (pfmvar->w)/(3.0*(pfmvar->ee)*(pfmdat->a2)*zeta);
-
-        if ( fabs(div_phi) > 0.0 )  { 
-
-        phidot_iso =  Mphi*((pfmvar->ee)*div_phi - (pfmvar->w)*dgphidphi - dhphidphi*(gs-gl-(csol1-cliq1)*dgldc1l));
-
-        gridNew[ ( ( i )*nx + ( j ) ) ].phi = stgridO[4].phi + (pfmvar->deltat)*phidot_iso;
-
-        }
-
-    }
-}
-
-__kernel void SolverPhi_2(__global struct grid *gridOld, __global struct grid *gridNew, __global struct csle *cscl, __constant struct pfmval *pfmdat, __constant struct pfmpar *pfmvar, __global double *temp, __global int *tstep, __constant struct propmatf3 *propf3) {   
-  
-    int i;
-    int j;
-    int k;
-    int ii, i1, ii1, jj1;  
-    int nx;
-    int ny;
-    int nz;
-    int index;
-
-    double gphi;
-    double dgphidphi;
-    double dhphidphi; 
-    double DetDL;
-    double D11invL;
-    double gl;
-    double gs;
-    double dgldc1l;
-    double ddgldc1ldc1l;
-    double zeta;
-    double gradx_phi[3];
-    double grady_phi[3];
-    double phix[5];
-    double phiy[5];
-    double div_phi;
-    double angleig;
-    double Nnx;
-    double Nny;
-    double neta[5];
-    double etam[5];
-    double B[5];
-    double neta_x;
-    double neta_y;
-    double alp1;
-    double eep_x;
-    double eep_y;
-    double alp2;
-    double alp3;
-    double alp;
-    double Mphi;
-    double Mphi_aniso;
-    double Mphi_FiniteMobility;
-    double Mphi_FiniteMobilityAniso;
-    double phidot_aniso;
-    
-    double cliq1;
-    double csol1;
-    double cliq2;
-    double csol2;
-
-    double Bf3[npha][nsol];
-    
-     double y[2], retGphase[1], retdmuphase[1], c_sol[1], c_liq[1];
-
-    double Ti;
-
-    double tmp1;
-
-    double phiz[5], phia[5][3], tmp0, phir[5][3], phixr[5], phiyr[5], phizr[5], Bx[5], By[5], Bz[5], modgradphi1, modgradphi4, Bxir[5], Byir[5], Bzir[5], Ba[5][3], Bir[5][3];
-    
-    struct grid stgridO[9];
-
-    j = get_global_id(0);
-    i = get_global_id(1);
-    
-    nx = pfmdat->jNx;
-    ny = pfmdat->iNy;
-    
-    if ( i != 0 && i != ny-1 && j != 0 && j != nx-1 ) {
-
-        Ti = temp[j];
-
-        index = (i)*nx + (j);
-
-        stgridO[0] = gridOld[(i-1)*nx + (j-1)];
-        stgridO[1] = gridOld[(i-1)*nx + ( j )];
-        stgridO[2] = gridOld[(i-1)*nx + (j+1)];
-        stgridO[3] = gridOld[( i )*nx + (j-1)];
-        stgridO[4] = gridOld[( i )*nx + ( j )];
-        stgridO[5] = gridOld[( i )*nx + (j+1)];
-        stgridO[6] = gridOld[(i+1)*nx + (j-1)];
-        stgridO[7] = gridOld[(i+1)*nx + ( j )];
-        stgridO[8] = gridOld[(i+1)*nx + (j+1)];
-
-        cliq1 = cscl[( i )*nx + ( j )].c1l;
-        csol1 = cscl[( i )*nx + ( j )].c1s;
-
-        gradx_phi[0] = ( stgridO[5].phi - stgridO[3].phi ) / ( 2.0*(pfmvar->deltax) );
-        gradx_phi[1] = ( stgridO[8].phi - stgridO[6].phi ) / ( 2.0*(pfmvar->deltax) );
-        gradx_phi[2] = ( stgridO[2].phi - stgridO[0].phi ) / ( 2.0*(pfmvar->deltax) );
-
-        grady_phi[0] = ( stgridO[7].phi - stgridO[1].phi ) / ( 2.0*(pfmvar->deltay) );
-        grady_phi[1] = ( stgridO[8].phi - stgridO[2].phi ) / ( 2.0*(pfmvar->deltay) );
-        grady_phi[2] = ( stgridO[6].phi - stgridO[0].phi ) / ( 2.0*(pfmvar->deltay) );
-
-        phix[0] = gradx_phi[0];
-        phix[1] = ( stgridO[5].phi - stgridO[4].phi ) / ( (pfmvar->deltax) );
-        phix[2] = ( stgridO[4].phi - stgridO[3].phi ) / ( (pfmvar->deltax) );
-        phix[3] = ( gradx_phi[0] + gradx_phi[1] ) / ( 2.0 );
-        phix[4] = ( gradx_phi[0] + gradx_phi[2] ) / ( 2.0 );
-
-        phiy[0] = grady_phi[0];
-        phiy[1] = ( grady_phi[0] + grady_phi[1] ) / ( 2.0 );
-        phiy[2] = ( grady_phi[0] + grady_phi[2] ) / ( 2.0 );
-        phiy[3] = ( stgridO[7].phi - stgridO[4].phi ) / ( (pfmvar->deltay) );
-        phiy[4] = ( stgridO[4].phi - stgridO[1].phi ) / ( (pfmvar->deltay) );
-
-        div_phi = ( 4.0*(stgridO[1].phi+stgridO[3].phi+stgridO[7].phi+stgridO[5].phi ) + stgridO[0].phi+stgridO[6].phi+stgridO[8].phi+stgridO[2].phi - 20.0*stgridO[4].phi ) / ( 6.0*(pfmvar->deltax)*(pfmvar->deltax) );
-        
-          
-        D11invL = 1.0/pfmdat->D11l;
-
-        y[0] = csol1;
-        y[1] = 1.0 - y[0];
-        
-        Ge(Ti, y, retGphase, pfmdat->thermophase[0]);
-        gs = retGphase[0]/(pfmdat->Vm);
-        
-        y[0] = cliq1;
-        y[1] = 1.0 - y[0];
-        
-        Ge(Ti, y, retGphase, pfmdat->thermophase[1]); 
-        
-        gl = retGphase[0]/(pfmdat->Vm);
-        
-        dgldc1l = stgridO[4].mu[0] / (pfmdat->Vm);
-        
-        //ddgldc1ldc1l = (ddGLIQdX1LdX1L(Ti, cliq1))/(pfmdat->Vm);
-        
-        dMudc(Ti, y, retdmuphase, pfmdat->thermophase[1]);
-        ddgldc1ldc1l = retdmuphase[0] / pfmdat->Vm;
-          
-        zeta = ((cliq1-csol1)*(cliq1-csol1)*ddgldc1ldc1l)*D11invL;
-        Mphi = (pfmvar->w)/(3.0*(pfmvar->ee)*(pfmdat->a2)*zeta);
-        
-        // ddgldc1ldc1l = (ddGLIQdX1LdX1L(Ti, pfmdat->c1l_Initial))/(pfmdat->Vm);
-        // zeta = ((pfmdat->c1l_Initial-pfmdat->c1s_Initial)*(pfmdat->c1l_Initial-pfmdat->c1s_Initial)*ddgldc1ldc1l)*D11invL;
-        // Mphi = (pfmvar->w)/(3.0*(pfmvar->ee)*(pfmdat->a2)*zeta);
-        
-        //printf("%d, %d, %d, %le %le\n", tstep[0], i, j, zeta, Mphi)
-
-        gphi = stgridO[4].phi*stgridO[4].phi*(1.0-stgridO[4].phi)*(1.0-stgridO[4].phi);
-        dgphidphi = 2.0*stgridO[4].phi*(1.0-stgridO[4].phi)*(1.0-2.0*stgridO[4].phi);
-        dhphidphi = 30.0*gphi;
-        
-        // gphi = stgridO[4].phi*stgridO[4].phi*(1.0-stgridO[4].phi)*(1.0-stgridO[4].phi);
-        // dgphidphi = 2.0*stgridO[4].phi*(1.0-stgridO[4].phi)*(1.0-2.0*stgridO[4].phi);
-        // dhphidphi = 6.0*stgridO[4].phi*(1.0-stgridO[4].phi);
-        
-        phiz[0] = 0.0; 
-        phiz[1] = 0.0; 
-        phiz[2] = 0.0; 
-        phiz[3] = 0.0; 
-        phiz[4] = 0.0; 
-        
-        for ( i1 = 0; i1 < 5; i1++ ) { 
-          phia[i1][0] = phix[i1];
-          phia[i1][1] = phiy[i1];
-          phia[i1][2] = phiz[i1];
-        }
-        
-        // Rotation Matrix multiplication with gradients vector
-        for ( i1 = 0; i1 < 5; i1++ ) { 
-          for ( ii1 = 0; ii1 < 3; ii1++ ) { 
-            tmp0 = 0.0;
-            for ( jj1 = 0; jj1 < 3; jj1++ ) { 
-              tmp0 += pfmdat->Rotation_matrix[0][1][ii1][jj1]*phia[i1][jj1];
-              // if ( i == 1 && j == 1 && i1 ==0 && ip1 == 0 && ip2 == 1 ) { 
-              //   printf("%le\t", pfmdat->Rotation_matrix[ii1][jj1]);
-              // }
-            }
-            // if ( i == 1 && j == 1 && i1 ==0 && ip1 == 0 && ip2 == 1 ) { 
-            //   printf("\n");
-            // }
-            phir[i1][ii1] = tmp0;
-          }
-        }
-        
-        for ( i1 = 0; i1 < 5; i1++ ) { 
-          phixr[i1] = phir[i1][0];
-          phiyr[i1] = phir[i1][1];
-          phizr[i1] = phir[i1][2];
-        }
-        
-        for (ii = 0; ii < 5; ii++) { 
-          neta[ii] = 0.0;
-          Bx[ii] = 0.0; 
-          By[ii] = 0.0; 
-          Bz[ii] = 0.0; 
-          B[ii] = 0.0; 
-        }
-        
-        for (ii = 0; ii <5; ii++) { 
-          
-          modgradphi1 = sqrt( phixr[ii]*phixr[ii] + phiyr[ii]*phiyr[ii] );
-          modgradphi4 = modgradphi1*modgradphi1*modgradphi1*modgradphi1;
-          
-          if ( modgradphi4 != 0.0 ) { 
-            
-            Nnx = phixr[ii] / modgradphi1;
-            Nny = phiyr[ii] / modgradphi1;
-            
-            tmp1 = ( Nnx*Nnx*Nnx*Nnx + Nny*Nny*Nny*Nny );
-            
-            //tmp2 = ( phixr[ii]*phixr[ii] + phiyr[ii]*phiyr[ii] ); 
-            
-            neta[ii] = ( 1.0 - 3.0*(pfmdat->epsc) ) * ( 1.0 + ( (4.0*(pfmdat->epsc))/(1.0-3.0*(pfmdat->epsc)) )*tmp1 );
-            
-            //Bx[ii] = neta[ii] *  16.0 * pfmdat->epsc * ( Nnx*Nnx - tmp1 ) * tmp2;
-            //By[ii] = neta[ii] *  16.0 * pfmdat->epsc * ( Nny*Nny - tmp1 ) * tmp2;
-            
-            Bx[ii] = 16.0 * pfmdat->epsc * ( Nnx*Nnx - tmp1 ) * phixr[ii];
-            By[ii] = 16.0 * pfmdat->epsc * ( Nny*Nny - tmp1 ) * phiyr[ii];
-            
-            //etam[ii] = ( 1.0 - 3.0*(pfmdat->epsm) ) * ( 1.0 + ( (4.0*(pfmdat->epsm))/(1.0-3.0*(pfmdat->epsm)) )*tmp1 );
-             
-          }
-          else {
-            
-            neta[ii] = ( 1.0 - 3.0*(pfmdat->epsc) );
-            
-            Bx[ii] = 0.0;
-            By[ii] = 0.0;
-            
-            //etam[ii] = ( 1.0 - 3.0*(pfmdat->epsm) );
-
-          }
-        }
-        
-        for ( i1 = 0; i1 < 5; i1++ ) { 
-          Ba[i1][0] = Bx[i1];
-          Ba[i1][1] = By[i1];
-          Ba[i1][2] = Bz[i1];
-        }
-        
-        // Inverse Rotation Matrix multiplication with depsilon/dphix, depsilon/dphiy
-        for ( i1 = 0; i1 < 5; i1++ ) { 
-          for ( ii1 = 0; ii1 < 3; ii1++ ) { 
-            tmp0 = 0.0;
-            for ( jj1 = 0; jj1 < 3; jj1++ ) { 
-              tmp0 += pfmdat->Inv_Rotation_matrix[0][1][ii1][jj1]*Ba[i1][jj1];
-            }
-            Bir[i1][ii1] = tmp0;
-          }
-        }
-        
-        for ( i1 = 0; i1 < 5; i1++ ) { 
-          Bxir[i1] = Bir[i1][0];
-          Byir[i1] = Bir[i1][1];
-          Bzir[i1] = Bir[i1][2];
-        }
-        
-        neta_x = ( neta[1] - neta[2] ) / ( (pfmvar->deltax) ); 
-        neta_y = ( neta[3] - neta[4] ) / ( (pfmvar->deltay) );
-
-        alp1 = neta[0]*neta[0]*div_phi + 2.0*neta[0] * ( neta_x * phix[0] + neta_y * phiy[0] );
-        
-        alp2 = ( neta[1] * Bxir[1] - neta[2] * Bxir[2] ) / ( (pfmvar->deltax) );
-        alp3 = ( neta[3] * Byir[3] - neta[4] * Byir[4] ) / ( (pfmvar->deltay) );
-
-        alp = alp1 + alp2 + alp3;
-        
-        if ( fabs(div_phi) > 0.0 )  { 
-        phidot_aniso =  Mphi*((pfmvar->ee)*alp - (pfmvar->w)*dgphidphi - dhphidphi*(gs-gl-(csol1-cliq1)*dgldc1l));
-        gridNew[ ( ( i )*nx + ( j ) ) ].phi = stgridO[4].phi + (pfmvar->deltat)*phidot_aniso;
 
       }
-      // else { 
-      //   phidot_aniso = 0.0;
-      //   gridNew[ ( ( i )*nx + ( j ) ) ].phi = stgridO[4].phi + (pfmvar->deltat)*phidot_aniso;
-      //   //printf("%d, %d, %d, %le\n", tstep[0], i, j, phidot_iso*pfmvar->deltat);
-      //   //printf("%d, %d, %d, %le, %le\n", tstep[0], i, j, phidot_iso, phidot_iso);
-      // }
+
+    }
+
+}
+
+__kernel void SolverCsClEq_F3(__global struct fields *gridinfoO, __global struct csle *cscl, __constant struct pfmval *pfmdat, __constant struct pfmpar *pfmvar, __global double *temp, __global int *tstep, __constant struct propmatf3 *propf3) {
+    
+    int x, y, z;
+    int nx, ny, nz;
+    int index;
+    int is, ip, is1, is2; ;
+    
+    int interface, bulkphase; 
+    double cg[nsol], ci[nsol];
+    double Ti;
+    double tmp0;
+    
+    double F3_Beq[npha*nsol], F3_dBbdT[npha*nsol], F3_cmu[npha*nsol*nsol], Tequ, mu[nsol];
+    
+    // id0 = get_global_id(0);
+    // id1 = get_global_id(1);
+    // id2 = get_global_id(2);
+    // 
+    // sz0 = get_global_size(0);
+    // sz1 = get_global_size(1);
+    // sz2 = get_global_size(2);
+    // 
+    // index = id0 + sz0*(id1 + sz1*id2);
+    
+    y = get_global_id(0);
+    z = get_global_id(1);
+    x = get_global_id(2);
+    
+    ny = get_global_size(0);
+    nz = get_global_size(1);
+    nx = get_global_size(2);
+    
+    index = y + ny*(z + x*nz);
+    
+    Ti = pfmdat->T0;
+    
+    interface = 1; 
+    bulkphase = 0;
+    for ( ip = 0; ip < npha; ip++ ) {
+      if ( gridinfoO[index].phi[ip] >= pfmdat->interfaceUplimit ) { 
+        bulkphase = ip;
+        interface = 0;
+        break;
+      }
+    }
+    
+    for ( ip = 0; ip < npha; ip++ ) { 
       
+      for ( is1 = 0; is1 < nsol; is1++ ) { 
+        
+        F3_Beq[ip*nsol+is1] = propf3->Beq[ip][is];
+        F3_dBbdT[ip*nsol+is1] = propf3->dBbdT[ip][is1]; 
+        
+        cg[(ip*npha+ip)*nsol+is1] = pfmdat->cguess[ip*npha+ip][is1];
+        
+        for ( is2 = 0; is2 < nsol; is2++ ) { 
+          F3_cmu[(ip*nsol+is1)*nsol+is2] = propf3->cmu[ip][is1][is2];
+        }
+        
+      }
       
-      //printf("%le,\t%le,\t%le,\t%le,\t%le,\t%le,\t%le,\t%le\n", Mphi, pfmvar->w, pfmvar->ee, pfmdat->a2, zeta, cliq1, csol1, ddgldc1ldc1l);
-		
+    } 
+    
+    Tequ = pfmdat->Teq;
+    
+    
+    if ( interface ) {
+      
+      for ( is = 0; is < nsol; is++ ) { 
+        mu[is] = gridinfoO[index].mu[is];
+      }
+      
+      for ( ip = 0; ip < npha; ip++ ) {
+        
+        function_F_03_c_mu_CL(mu, ci, Ti, ip, cg, F3_cmu, F3_Beq, F3_dBbdT, Tequ);
+        
+        for ( is = 0; is < nsol; is++ ) { 
+          cscl[index].comie[ip][is] = ci[is];
+        }
+        
+      }
+      
+    }
+    
+ 
+}
+
+__kernel void SolverCsClEq_F4(__global struct fields *gridinfoO, __global struct csle *cscl, __constant struct pfmval *pfmdat, __constant struct pfmpar *pfmvar, __global double *temp, __global int *tstep, __constant struct propmatf4 *propf4, __constant struct propmatf4spline *propf4spline) {
+
+    int x, y, z;
+    int nx, ny, nz;
+    int index;
+    int is, ip, is1, is2, js;
+
+    int interface, bulkphase;
+    double cg[nsol], ci[nsol];
+    double cmu[nsol*nsol], muc[nsol*nsol];
+    double Ti;
+    double tmp0;
+
+    y = get_global_id(0);
+    z = get_global_id(1);
+    x = get_global_id(2);
+
+    ny = get_global_size(0);
+    nz = get_global_size(1);
+    nx = get_global_size(2);
+
+    index = y + ny*(z + x*nz);
+
+    Ti = pfmdat->T0;
+
+    interface = 1;
+    bulkphase = 0;
+    for ( ip = 0; ip < npha; ip++ ) {
+      if ( gridinfoO[index].phi[ip] >= pfmdat->interfaceUplimit ) {
+        bulkphase = ip;
+        interface = 0;
+        break;
+      }
+    }
+    //printf("! %d, %d, %d, %d, %le, %le, %le, %le, %le, %le\n", tstep[0], i, j, ip, cscl[index].comie[ip][is], propf3->cmu[ip][is1][is], gridinfoO[4].mu[is], propf3->Beq[ip][is], Ti, pfmdat->Teq);
+    if ( interface ) {
+
+      for ( ip = 0; ip < npha; ip++ ) {
+
+        // if ( pfmdat->ISOTHERMAL ) {
+
+          for ( is1 = 0; is1 < nsol; is1++ ) {
+            tmp0 = 0.0;
+            for ( is2 = 0; is2 < nsol; is2++ ) {
+              tmp0 += propf4->cmu[ip][is1][is2] * ( gridinfoO[index].mu[is2] - propf4->B[ip][is2] );
+            }
+            ci[is1] = tmp0;
+          }
+
+        // }
+        // else {
+        //   for ( is = 0; is < nsol; is++ ) {
+        //     for ( js = 0; js < nsol; js++ ) {
+        //       if ( is == js ) {
+        //         muc[is*nsol+js] = 2.0 * propf4spline[j].A[ip][is][js];
+        //       }
+        //       else {
+        //         muc[is*nsol+js] = propf4spline[j].A[ip][is][js];
+        //       }
+        //     }
+        //   }
+        //
+        //   matinvnew_nsol(muc, cmu);
+        //
+        //   for ( is1 = 0; is1 < nsol; is1++ ) {
+        //     tmp0 = 0.0;
+        //     for ( is2 = 0; is2 < nsol; is2++ ) {
+        //       tmp0 += cmu[is1*nsol+is2] * ( gridinfoO[index].mu[is2] - propf4spline[j].B[ip][is2] );
+        //     }
+        //     ci[is1] = tmp0;
+        //   }
+        // }
+
+        for ( is = 0; is < nsol; is++ ) {
+          cscl[index].comie[ip][is] = ci[is];
+          //printf("I %d, %d, %d, %d, %le, %le, %le\n", tstep[0], i, j, ip, cscl[index].comie[ip][is], gridinfoO[4].mu[is], gridinfoO[4].com[is]);
+          //printf("I %d, %d, %d, %d, %le, %le, %le, %le, %le, %le\n", tstep[0], i, j, ip, cscl[index].comie[ip][is], propf3->cmu[ip][is1][is], gridinfoO[4].mu[is], propf3->Beq[ip][is], Ti, pfmdat->Teq);
+        }
+      }
 
     }
 }
 
-__kernel void SolverPhi_3(__global struct grid *gridOld, __global struct grid *gridNew, __global struct csle *cscl, __constant struct pfmval *pfmdat, __constant struct pfmpar *pfmvar, __global double *temp, __global int *tstep, __constant struct propmatf3 *propf3) {   
+__kernel void SolverPhi_F2_smooth(__global struct fields *gridinfoO, __global struct fields *gridinfo, __global struct csle *cscl, __constant struct pfmval *pfmdat, __constant struct pfmpar *pfmvar, __global double *temp, __global int *tstep) {
+
+  int x, y, z, ii, i1, j1, k1, i2;
+  int nx, ny, nz;
+  int index;
+
+  int is, js, ks, il, il1, jl, jl1, ipx;
+  int is1, is2;
+  int ig, jg, ip, ip1, ip2, ip3;
+  int interface,bulkphase;
+  int activephases;
+
+  double Ti;
+
+  double tmp0, tmp1;
+  double facecenter, edgecenter, corner;
+
+  double yc[nsol+1], retdmuphase[nsol*nsol], retGphase[1];
+  double ge[npha], fhi[npha], psi;
+  double dgedc[npha][nsol];
+  double ddgedcdc[npha][nsol*nsol], InvD[npha][nsol*nsol], deltac[nsol], Ddc[nsol], ddgDdc[nsol];
+  double cie[npha][nsol], min_tau, tau;
+  double lap[npha], dff[npha], phidot, Tau[npha][npha];
+  double zeta[npha][npha], TAU, df[npha], hphi[npha];
+  double sumdf;
+  double retG[npha], retmu[npha*nsol], retdmu[npha*nsol*nsol];
+  double gphi[npha], dgphidphi[npha], dhphidphi[npha], mu[nsol], dhphi[npha][npha];
+  double dwh[npha*npha], dwhabc[npha*npha*npha], laps[npha];
+  double sumlambdaphi, lambaphi[npha];
+  double dab[npha*npha], ee_ab[npha*npha];
+  //double facecenter, edgecenter, corner;
+
+  struct fields stgridO[27];
+
+  y = get_global_id(0);
+  z = get_global_id(1);
+  x = get_global_id(2);
+
+  ny = get_global_size(0);
+  nz = get_global_size(1);
+  nx = get_global_size(2);
+
+  //index = y + ny*(z + x*nz);
+
+  Ti = pfmdat->T0;
+
+  if ( x != 0 && x != nx-1 && y != 0 && y != ny-1 && z != 0 && z != nz-1 ) {
+
+    index = y + ny*(z + x*nz);
+
+    Ti =  gridinfoO[index].temperature;
+
+    stgridO[0]  = gridinfoO[ (y-1) + ny*( (x-1)*nz + (z-1) ) ];
+    stgridO[1]  = gridinfoO[ (y  ) + ny*( (x-1)*nz + (z-1) ) ];
+    stgridO[2]  = gridinfoO[ (y+1) + ny*( (x-1)*nz + (z-1) ) ];
+    stgridO[3]  = gridinfoO[ (y-1) + ny*( (x-1)*nz + (z  ) ) ];
+    stgridO[4]  = gridinfoO[ (y  ) + ny*( (x-1)*nz + (z  ) ) ];
+    stgridO[5]  = gridinfoO[ (y+1) + ny*( (x-1)*nz + (z  ) ) ];
+    stgridO[6]  = gridinfoO[ (y-1) + ny*( (x-1)*nz + (z+1) ) ];
+    stgridO[7]  = gridinfoO[ (y  ) + ny*( (x-1)*nz + (z+1) ) ];
+    stgridO[8]  = gridinfoO[ (y+1) + ny*( (x-1)*nz + (z+1) ) ];
+    stgridO[9]  = gridinfoO[ (y-1) + ny*( (x  )*nz + (z-1) ) ];
+    stgridO[10] = gridinfoO[ (y  ) + ny*( (x  )*nz + (z-1) ) ];
+    stgridO[11] = gridinfoO[ (y+1) + ny*( (x  )*nz + (z-1) ) ];
+    stgridO[12] = gridinfoO[ (y-1) + ny*( (x  )*nz + (z  ) ) ];
+    stgridO[13] = gridinfoO[ (y  ) + ny*( (x  )*nz + (z  ) ) ];
+    stgridO[14] = gridinfoO[ (y+1) + ny*( (x  )*nz + (z  ) ) ];
+    stgridO[15] = gridinfoO[ (y-1) + ny*( (x  )*nz + (z+1) ) ];
+    stgridO[16] = gridinfoO[ (y  ) + ny*( (x  )*nz + (z+1) ) ];
+    stgridO[17] = gridinfoO[ (y+1) + ny*( (x  )*nz + (z+1) ) ];
+    stgridO[18] = gridinfoO[ (y-1) + ny*( (x+1)*nz + (z-1) ) ];
+    stgridO[19] = gridinfoO[ (y  ) + ny*( (x+1)*nz + (z-1) ) ];
+    stgridO[20] = gridinfoO[ (y+1) + ny*( (x+1)*nz + (z-1) ) ];
+    stgridO[21] = gridinfoO[ (y-1) + ny*( (x+1)*nz + (z  ) ) ];
+    stgridO[22] = gridinfoO[ (y  ) + ny*( (x+1)*nz + (z  ) ) ];
+    stgridO[23] = gridinfoO[ (y+1) + ny*( (x+1)*nz + (z  ) ) ];
+    stgridO[24] = gridinfoO[ (y-1) + ny*( (x+1)*nz + (z+1) ) ];
+    stgridO[25] = gridinfoO[ (y  ) + ny*( (x+1)*nz + (z+1) ) ];
+    stgridO[26] = gridinfoO[ (y+1) + ny*( (x+1)*nz + (z+1) ) ];
+
+    for ( ip = 0; ip < npha; ip++ ) {
+      // fhi[ip] = stgridO[13].phi[ip];
+      fhi[ip] = gridinfoO[index].phi[ip];
+    }
+
+    // Calculate laplacian
+    for ( ip = 0; ip < npha; ip++ ) {
+
+      lap[ip]  = 0.0;
+
+      facecenter = stgridO[4].phi[ip] + stgridO[22].phi[ip] + stgridO[10].phi[ip] + stgridO[16].phi[ip] + stgridO[12].phi[ip] + stgridO[14].phi[ip];
+
+      edgecenter = stgridO[1].phi[ip] + stgridO[5].phi[ip] + stgridO[7].phi[ip] + stgridO[3].phi[ip] + stgridO[9].phi[ip] + stgridO[11].phi[ip] + stgridO[17].phi[ip] + stgridO[15].phi[ip] + stgridO[19].phi[ip] + stgridO[21].phi[ip] + stgridO[25].phi[ip] + stgridO[23].phi[ip];
+
+      corner = stgridO[0].phi[ip] + stgridO[2].phi[ip] + stgridO[8].phi[ip] + stgridO[6].phi[ip] + stgridO[18].phi[ip] + stgridO[20].phi[ip] + stgridO[26].phi[ip] + stgridO[24].phi[ip];
+
+      lap[ip] = 3.0*( facecenter + edgecenter/2.0 + corner/3.0 - 44.0*stgridO[13].phi[ip]/3.0 ) / (13.0 * (pfmvar->deltax) * (pfmvar->deltax));
+
+      //lap[ip]  = ( stgridO[14].phi[ip] - 2.0*stgridO[13].phi[ip] + stgridO[12].phi[ip] ) / (pfmvar->deltay*pfmvar->deltay);
+      //lap[ip] += ( stgridO[16].phi[ip] - 2.0*stgridO[13].phi[ip] + stgridO[10].phi[ip] ) / (pfmvar->deltaz*pfmvar->deltaz);
+      //lap[ip] += ( stgridO[22].phi[ip] - 2.0*stgridO[13].phi[ip] + stgridO[ 4].phi[ip] ) / (pfmvar->deltax*pfmvar->deltax);
+
+
+
+      //printf("%le\n", lap[ip]);
+    }
+
+    // Get phase compositions
+    for ( ip = 0; ip < npha; ip++ ) {
+      for ( is = 0; is < nsol; is++ ) {
+        cie[ip][is] = cscl[index].comie[ip][is];
+      }
+    }
+
+    for ( ip = 0; ip < npha; ip++ ) {
+
+      tmp0 = 0.0;
+      for ( is = 0; is < nsol; is++ ) {
+        yc[is] = cie[ip][is];
+        tmp0 += yc[is];
+      }
+      yc[nsol] = 1.0 - tmp0;
+
+      // Calculate free energy
+      Ge(Ti, yc, retGphase, pfmdat->thermophase[ip]);
+
+      ge[ip] = retGphase[0] / pfmdat->Vm;
+
+      // Calculate second derivative of free energy .i.e ddgedcdc and get diffusion coefficient to local variable
+      dMudc(Ti, yc, retdmuphase, pfmdat->thermophase[ip]);
+
+      for ( is1 = 0; is1 < nsol; is1++ ) {
+        for ( is2 = 0; is2 < nsol; is2++ ) {
+          ddgedcdc[ip][is1*nsol+is2] = retdmuphase[is1*nsol+is2] / pfmdat->Vm;
+          InvD[ip][is1*nsol+is2] = pfmdat->DInv[ip][is1*nsol+is2];
+          //printf("%d, %d, %d, %le, %le, %le, %le, %le\n", tstep[0], i, j, ddgedcdc[ip][is1*nsol+is2], retdmuphase[is1*nsol+is2], InvD[ip][is1*nsol+is2], pfmdat->DInv[ip][is1][is2], y[is2]);
+        }
+      }
+
+    }
+
+    for ( is = 0; is < nsol; is++ ) {
+      //mu[is] = stgridO[13].mu[is] / pfmdat->Vm;
+      mu[is] = gridinfoO[index].mu[is] / pfmdat->Vm;
+    }
+
+    // Calculate TAU
+    for ( ip1 = 0; ip1 < npha-1; ip1++ ) {
+      for ( is = 0; is < nsol; is++ ) {
+        deltac[is] = pfmdat->c_eq[(npha-1)*npha+(npha-1)][is] - pfmdat->c_eq[ip1*npha+ip1][is];
+      }
+      multiply_nsol(InvD[npha-1], deltac, Ddc);
+      multiply_nsol(ddgedcdc[npha-1], Ddc, ddgDdc);
+
+      tmp0 = 0.0;
+      for ( is = 0; is < nsol; is++ ) {
+        tmp0 += ddgDdc[is] * deltac[is];
+      }
+
+      zeta[ip1][npha-1] = tmp0;
+
+      Tau[ip1][npha-1] = ( 6.0 * pfmvar->ee[ip1*npha+(npha-1)] * pfmdat->a2 * zeta[ip1][npha-1] ) / pfmvar->w[ip1*npha+(npha-1)];
+      Tau[npha-1][ip1] = Tau[ip1][npha-1];
+
+      if ( ip1 == 0 ) {
+        min_tau = Tau[ip1][npha-1];
+      }
+      if ( Tau[ip1][npha-1] < min_tau ) {
+        min_tau = Tau[ip1][npha-1];
+      }
+    }
+    for ( ip1 = 0; ip1 < npha-1; ip1++ ) {
+      for ( ip2 = 0; ip2 < npha-1; ip2++ ) {
+        Tau[ip1][ip2] = min_tau;
+      }
+    }
+    tau = min_tau;
+
+    tmp0 = 0.0;
+    tmp1 = 0.0;
+    for ( ip1 = 0; ip1 < npha; ip1++ ) {
+      for ( ip2 = 0; ip2 < npha; ip2++ ) {
+        if ( ip1 < ip2 ) {
+          tmp0 += Tau[ip1][ip2]*fhi[ip1]*fhi[ip2];
+          tmp1 += fhi[ip1]*fhi[ip2];
+        }
+      }
+    }
+    if ( tmp1 ) {
+      TAU = tmp0 / tmp1;
+    } else {
+      TAU = tau;
+    }
+
+    // get w_ab w_abc ee dab ti local linear indexed variable
+    for ( ip1 = 0; ip1 < npha; ip1++ ) {
+      for ( ip2 = 0; ip2 < npha; ip2++ ) {
+        dwh[ip1*npha+ip2] = pfmvar->w[ip1*npha+ip2];
+        dab[ip1*npha+ip2] = pfmdat->epsc[ip1*npha+ip2];
+        ee_ab[ip1*npha+ip2] = pfmvar->ee[ip1*npha+ip2];
+        for ( ip3 = 0; ip3 < npha; ip3++ ) {
+          dwhabc[(ip1*npha+ip2)*npha+ip3] = pfmvar->w_abc[(ip1*npha+ip2)*npha+ip3];
+        }
+      }
+    }
+
+    // Calculate derivative of well potential
+    for ( ip = 0; ip < npha; ip++ ) {
+      dgphidphi[ip] = F_W_02_dwdphi(fhi, lap, dwh, dwhabc, ip);
+    }
+
+    // Get the laplacian for all betas
+    for ( ip1 = 0; ip1 < npha; ip1++ ) {
+      laps[ip1] = 0.0;
+      for ( ip2 = 0; ip2 < npha; ip2++ ) {
+        if ( ip1 != ip2 ) {
+          laps[ip1] += pfmvar->ee[ip1*npha+ip2] * lap[ip2];
+        }
+      }
+      // printf("    =%le\n", laps[ip]);
+    }
+
+    // Calculate -dF/dphi for all betas and check for active phases
+    sumlambdaphi = 0.0;
+    activephases = 0;
+    for ( ip1 = 0; ip1 < npha; ip1++ ) {
+      if ( fabs(lap[ip1]) > 0.0 ) {
+         lambaphi[ip1] = -laps[ip1] - dgphidphi[ip1];
+        sumlambdaphi += lambaphi[ip1];
+        activephases++;
+      }
+    }
+
+    // Divide the lambda with active phases
+    if ( activephases ) {
+      sumlambdaphi /= activephases;
+    }
+
+    // Update the phi by applying lagrangian multiplier
+    for ( ip1 = 0; ip1 < npha; ip1++ ) {
+      if ( fabs(lap[ip1]) > 0.0 ) {
+        phidot = (2.0/(TAU)) * ( lambaphi[ip1] - sumlambdaphi );
+        gridinfo[ index ].phi[ip1] = gridinfoO[index].phi[ip1] + (pfmvar->deltat)*phidot;
+
+        //printf("t=%d, i=%d, j=%d, lap=%le,%le, mphi=%le, vard=%le, phi[0]=%le, ip=%d, phiold=%le\n", tstep[0], i, j, lap[0],lap[1],  1.0/TAU, 2.0*( lambaphi[ip1] - sumlambdaphi ), gridinfo[ index ].phi[ip1], ip1, stgridO[4].phi[ip1]);
+      }
+    }
+
+  }
+
+}
+
+__kernel void SolverPhi_F2(__global struct fields *gridinfoO, __global struct fields *gridinfo, __global struct csle *cscl, __constant struct pfmval *pfmdat, __constant struct pfmpar *pfmvar, __global double *temp, __global int *tstep, __global struct iter_variables *it_gridinfoO, __global struct symmetric_tensor *eigen_strain_phase, __global struct Stiffness_cubic *stiffness_phase, __global struct Stiffness_cubic *stiffness_phase_n) {
+
+  int x, y, z, ii, i1, j1, k1, i2;
+  int nx, ny, nz;
+  int index;
+
+  int is, js, ks, il, il1, jl, jl1, ipx;
+  int is1, is2;
+  int ig, jg, ip, ip1, ip2, ip3;
+  int ilmax;
+  int interface,bulkphase;
+  int activephases;
+  int X, Y, Z;
+
+  double Ti;
+
+  double tmp0, tmp1;
+  double facecenter, edgecenter, corner;
+
+  double yc[nsol+1], retdmuphase[nsol*nsol], retGphase[1];
+  double ge[npha], fhi[npha], psi;
+  double dgedc[npha][nsol];
+  double ddgedcdc[npha][nsol*nsol], InvD[npha][nsol*nsol], deltac[nsol], Ddc[nsol], ddgDdc[nsol];
+  double cie[npha][nsol], min_tau, tau;
+  double lap[npha], dff[npha], phidot, Tau[npha][npha];
+  double zeta[npha][npha], TAU, df[npha], hphi[npha];
+  double sumdf;
+  double retG[npha], retmu[npha*nsol], retdmu[npha*nsol*nsol];
+  double gphi[npha], dgphidphi[npha], dhphidphi[npha], mu[nsol], dhphi[npha][npha];
+  double dwh[npha*npha], dwhabc[npha*npha*npha], laps[npha];
+  double sumlambdaphi, lambaphi[npha];
+  double stphi[npha*3*3*3], dab[npha*npha], ee_ab[npha*npha];
+  double Rot_mat[npha*npha*3*3], Inv_Rot_mat[npha*npha*3*3];
+
+  double delast;
+
+  struct fields stgridO[27], stgO[1];
+  struct symmetric_tensor eigen_strain[3];
+  struct symmetric_tensor strain[3];
+  struct Stiffness_cubic stiffness_c[3];
+  struct symmetric_tensor sigma_phase;
+  struct symmetric_tensor sigma;
+
+  struct iter_variables st_it_gO[7];
+
+  X = 0;
+  Y = 1;
+  Z = 2;
+
+  y = get_global_id(0);
+  z = get_global_id(1);
+  x = get_global_id(2);
+
+  ny = get_global_size(0);
+  nz = get_global_size(1);
+  nx = get_global_size(2);
+
+  //index = y + ny*(z + x*nz);
+
+  Ti = pfmdat->T0;
+
+  if ( x != 0 && x != nx-1 && y != 0 && y != ny-1 && z != 0 && z != nz-1 ) {
+
+    index = y + ny*(z + x*nz);
+
+    Ti =  gridinfoO[index].temperature;
+
+    stgridO[0]  = gridinfoO[ (y-1) + ny*( (x-1)*nz + (z-1) ) ];
+    stgridO[1]  = gridinfoO[ (y  ) + ny*( (x-1)*nz + (z-1) ) ];
+    stgridO[2]  = gridinfoO[ (y+1) + ny*( (x-1)*nz + (z-1) ) ];
+    stgridO[3]  = gridinfoO[ (y-1) + ny*( (x-1)*nz + (z  ) ) ];
+    stgridO[4]  = gridinfoO[ (y  ) + ny*( (x-1)*nz + (z  ) ) ];
+    stgridO[5]  = gridinfoO[ (y+1) + ny*( (x-1)*nz + (z  ) ) ];
+    stgridO[6]  = gridinfoO[ (y-1) + ny*( (x-1)*nz + (z+1) ) ];
+    stgridO[7]  = gridinfoO[ (y  ) + ny*( (x-1)*nz + (z+1) ) ];
+    stgridO[8]  = gridinfoO[ (y+1) + ny*( (x-1)*nz + (z+1) ) ];
+    stgridO[9]  = gridinfoO[ (y-1) + ny*( (x  )*nz + (z-1) ) ];
+    stgridO[10] = gridinfoO[ (y  ) + ny*( (x  )*nz + (z-1) ) ];
+    stgridO[11] = gridinfoO[ (y+1) + ny*( (x  )*nz + (z-1) ) ];
+    stgridO[12] = gridinfoO[ (y-1) + ny*( (x  )*nz + (z  ) ) ];
+    stgridO[13] = gridinfoO[ (y  ) + ny*( (x  )*nz + (z  ) ) ];
+    stgridO[14] = gridinfoO[ (y+1) + ny*( (x  )*nz + (z  ) ) ];
+    stgridO[15] = gridinfoO[ (y-1) + ny*( (x  )*nz + (z+1) ) ];
+    stgridO[16] = gridinfoO[ (y  ) + ny*( (x  )*nz + (z+1) ) ];
+    stgridO[17] = gridinfoO[ (y+1) + ny*( (x  )*nz + (z+1) ) ];
+    stgridO[18] = gridinfoO[ (y-1) + ny*( (x+1)*nz + (z-1) ) ];
+    stgridO[19] = gridinfoO[ (y  ) + ny*( (x+1)*nz + (z-1) ) ];
+    stgridO[20] = gridinfoO[ (y+1) + ny*( (x+1)*nz + (z-1) ) ];
+    stgridO[21] = gridinfoO[ (y-1) + ny*( (x+1)*nz + (z  ) ) ];
+    stgridO[22] = gridinfoO[ (y  ) + ny*( (x+1)*nz + (z  ) ) ];
+    stgridO[23] = gridinfoO[ (y+1) + ny*( (x+1)*nz + (z  ) ) ];
+    stgridO[24] = gridinfoO[ (y-1) + ny*( (x+1)*nz + (z+1) ) ];
+    stgridO[25] = gridinfoO[ (y  ) + ny*( (x+1)*nz + (z+1) ) ];
+    stgridO[26] = gridinfoO[ (y+1) + ny*( (x+1)*nz + (z+1) ) ];
+
+
+    if (pfmdat->ELASTICITY) {
+      stgO[0] = gridinfoO[ (y  ) + ny*( (x  )*nz + (z  ) ) ];
+
+      st_it_gO[0] = it_gridinfoO[ (y  ) + ny*( (x  )*nz + (z  ) ) ];
+      st_it_gO[1] = it_gridinfoO[ (y-1) + ny*( (x  )*nz + (z  ) ) ];
+      st_it_gO[2] = it_gridinfoO[ (y+1) + ny*( (x  )*nz + (z  ) ) ];
+      st_it_gO[3] = it_gridinfoO[ (y  ) + ny*( (x  )*nz + (z-1) ) ];
+      st_it_gO[4] = it_gridinfoO[ (y  ) + ny*( (x  )*nz + (z+1) ) ];
+      st_it_gO[5] = it_gridinfoO[ (y  ) + ny*( (x-1)*nz + (z  ) ) ];
+      st_it_gO[6] = it_gridinfoO[ (y  ) + ny*( (x+1)*nz + (z  ) ) ];
+
+      eigen_strain[0].xx = 0.0;
+      eigen_strain[0].yy = 0.0;
+      eigen_strain[0].zz = 0.0;
+      eigen_strain[0].yz = 0.0;
+      eigen_strain[0].xz = 0.0;
+      eigen_strain[0].xy = 0.0;
+      for (ip = 0; ip < npha; ip++) {
+        eigen_strain[X].xx += eigen_strain_phase[ip].xx*stgO[0].phi[ip];
+        eigen_strain[X].yy += eigen_strain_phase[ip].yy*stgO[0].phi[ip];
+        eigen_strain[X].zz += eigen_strain_phase[ip].zz*stgO[0].phi[ip];
+        eigen_strain[X].yz += eigen_strain_phase[ip].yz*stgO[0].phi[ip];
+        eigen_strain[X].xz += eigen_strain_phase[ip].xz*stgO[0].phi[ip];
+        eigen_strain[X].xy += eigen_strain_phase[ip].xy*stgO[0].phi[ip];
+      }
+      eigen_strain[Y] = eigen_strain[X];
+      eigen_strain[Z] = eigen_strain[X];
+
+      strain[X].xx = 0.5*(st_it_gO[6].disp[X][2] - st_it_gO[5].disp[X][2]) - eigen_strain[X].xx;
+      strain[X].yy = 0.5*(st_it_gO[2].disp[Y][2] - st_it_gO[1].disp[Y][2]) - eigen_strain[X].yy;
+      strain[X].zz = 0.5*(st_it_gO[4].disp[Z][2] - st_it_gO[3].disp[Z][2]) - eigen_strain[X].zz;
+
+      strain[Y].xx = strain[X].xx;
+      strain[Y].yy = strain[X].yy;
+      strain[Y].zz = strain[X].zz;
+      strain[Z].yy = strain[X].yy;
+      strain[Z].xx = strain[X].xx;
+      strain[Z].zz = strain[X].zz;
+
+      strain[X].xy = 0.25*((st_it_gO[2].disp[X][2] - st_it_gO[1].disp[X][2]) + (st_it_gO[6].disp[Y][2] - st_it_gO[5].disp[Y][2]));
+      strain[X].xz = 0.25*((st_it_gO[4].disp[X][2] - st_it_gO[3].disp[X][2]) + (st_it_gO[6].disp[Z][2] - st_it_gO[5].disp[Z][2]));
+      strain[X].yz = 0.25*((st_it_gO[2].disp[Z][2] - st_it_gO[1].disp[Z][2]) + (st_it_gO[4].disp[Y][2] - st_it_gO[3].disp[Y][2]));
+
+      strain[Y].xy = strain[X].xy;
+      strain[Y].xz = strain[X].xz;
+      strain[Y].yz = strain[X].yz;
+      strain[Z].xy = strain[X].xy;
+      strain[Z].xz = strain[X].xz;
+      strain[Z].yz = strain[X].yz;
+
+      stiffness_c[0].C11 = 0.0;
+      stiffness_c[0].C12 = 0.0;
+      stiffness_c[0].C44 = 0.0;
+      for (ip = 0; ip < npha; ip++) {
+        stiffness_c[X].C11 += (stiffness_phase[ip].C11)*stgO[0].phi[ip];
+        stiffness_c[X].C12 += (stiffness_phase[ip].C12)*stgO[0].phi[ip];
+        stiffness_c[X].C44 += (stiffness_phase[ip].C44)*stgO[0].phi[ip];
+      }
+      stiffness_c[Y] = stiffness_c[X];
+      stiffness_c[Z] = stiffness_c[X];
+
+
+      sigma.xx  = stiffness_c[X].C11*(strain[X].xx) + stiffness_c[X].C12*(strain[X].yy + strain[X].zz);
+
+      sigma.yy  = stiffness_c[X].C12*(strain[X].xx  + strain[X].zz) + stiffness_c[X].C11*(strain[X].yy);
+
+      sigma.zz  = stiffness_c[X].C12*(strain[X].xx  + strain[X].yy) + stiffness_c[X].C11*(strain[X].zz);
+
+      sigma.xy  = 2.0*stiffness_c[X].C44*(strain[X].xy);
+
+      sigma.xz  = 2.0*stiffness_c[X].C44*(strain[X].xz);
+
+      sigma.yz  = 2.0*stiffness_c[X].C44*(strain[X].yz);
+
+      //printf("%d, %d, %d, %d, %d, %d, %le, %le, %le\n", tstep[0], x, y, z, index, ip1, stiffness_c[X].C11, stiffness_c[X].C12, stiffness_c[X].C44);
+
+      //printf("%d, %d, %d, %d, %d, %d, %le, %le, %le\n", tstep[0], x, y, z, index, ip1, stiffness_phase[1].C11, stiffness_phase[1].C12, stiffness_phase[1].C44);
+
+    }
+
+    for (ip = 0; ip < npha; ip++) {
+      ii = 0;
+        for (i1 = 0; i1 < 3; i1++) {
+          for (j1 = 0; j1 < 3; j1++) {
+            for (k1 = 0; k1 < 3; k1++) {
+              //stphi[ (ip*3 + i1)*3 + j1 ] = stphi_1[ip][i1][j1];
+              stphi[ ( (ip*3 + i1)*3 + j1 )*3 + k1 ] = stgridO[ii].phi[ip];
+              ii++;
+            }
+          }
+        }
+    }
+
+
+    for ( ip = 0; ip < npha; ip++ ) {
+      // fhi[ip] = stgridO[13].phi[ip];
+      fhi[ip] = gridinfoO[index].phi[ip];
+    }
+
+    // Calculate laplacian
+    for ( ip = 0; ip < npha; ip++ ) {
+
+      lap[ip]  = 0.0;
+
+      facecenter = stgridO[4].phi[ip] + stgridO[22].phi[ip] + stgridO[10].phi[ip] + stgridO[16].phi[ip] + stgridO[12].phi[ip] + stgridO[14].phi[ip];
+
+      edgecenter = stgridO[1].phi[ip] + stgridO[5].phi[ip] + stgridO[7].phi[ip] + stgridO[3].phi[ip] + stgridO[9].phi[ip] + stgridO[11].phi[ip] + stgridO[17].phi[ip] + stgridO[15].phi[ip] + stgridO[19].phi[ip] + stgridO[21].phi[ip] + stgridO[25].phi[ip] + stgridO[23].phi[ip];
+
+      corner = stgridO[0].phi[ip] + stgridO[2].phi[ip] + stgridO[8].phi[ip] + stgridO[6].phi[ip] + stgridO[18].phi[ip] + stgridO[20].phi[ip] + stgridO[26].phi[ip] + stgridO[24].phi[ip];
+
+      lap[ip] = 3.0*( facecenter + edgecenter/2.0 + corner/3.0 - 44.0*stgridO[13].phi[ip]/3.0 ) / (13.0 * (pfmvar->deltax) * (pfmvar->deltax));
+
+      //lap[ip]  = ( stgridO[14].phi[ip] - 2.0*stgridO[13].phi[ip] + stgridO[12].phi[ip] ) / (pfmvar->deltay*pfmvar->deltay);
+      //lap[ip] += ( stgridO[16].phi[ip] - 2.0*stgridO[13].phi[ip] + stgridO[10].phi[ip] ) / (pfmvar->deltaz*pfmvar->deltaz);
+      //lap[ip] += ( stgridO[22].phi[ip] - 2.0*stgridO[13].phi[ip] + stgridO[ 4].phi[ip] ) / (pfmvar->deltax*pfmvar->deltax);
+
+
+
+      //printf("%le\n", lap[ip]);
+    }
+
+    // Get phase compositions
+    for ( ip = 0; ip < npha; ip++ ) {
+      for ( is = 0; is < nsol; is++ ) {
+        cie[ip][is] = cscl[index].comie[ip][is];
+      }
+    }
+
+    for ( ip = 0; ip < npha; ip++ ) {
+
+      tmp0 = 0.0;
+      for ( is = 0; is < nsol; is++ ) {
+        yc[is] = cie[ip][is];
+        tmp0 += yc[is];
+      }
+      yc[nsol] = 1.0 - tmp0;
+
+      // Calculate free energy
+      Ge(Ti, yc, retGphase, pfmdat->thermophase[ip]);
+
+      ge[ip] = retGphase[0] / pfmdat->Vm;
+
+      // Calculate second derivative of free energy .i.e ddgedcdc and get diffusion coefficient to local variable
+      dMudc(Ti, yc, retdmuphase, pfmdat->thermophase[ip]);
+
+      for ( is1 = 0; is1 < nsol; is1++ ) {
+        for ( is2 = 0; is2 < nsol; is2++ ) {
+          ddgedcdc[ip][is1*nsol+is2] = retdmuphase[is1*nsol+is2] / pfmdat->Vm;
+          InvD[ip][is1*nsol+is2] = pfmdat->DInv[ip][is1*nsol+is2];
+          //printf("%d, %d, %d, %le, %le, %le, %le, %le\n", tstep[0], i, j, ddgedcdc[ip][is1*nsol+is2], retdmuphase[is1*nsol+is2], InvD[ip][is1*nsol+is2], pfmdat->DInv[ip][is1][is2], y[is2]);
+        }
+      }
+
+    }
+
+    for ( is = 0; is < nsol; is++ ) {
+      //mu[is] = stgridO[13].mu[is] / pfmdat->Vm;
+      mu[is] = gridinfoO[index].mu[is] / pfmdat->Vm;
+    }
+
+    // Calculate TAU
+    for ( ip1 = 0; ip1 < npha-1; ip1++ ) {
+      for ( is = 0; is < nsol; is++ ) {
+        deltac[is] = pfmdat->c_eq[(npha-1)*npha+(npha-1)][is] - pfmdat->c_eq[ip1*npha+ip1][is];
+      }
+      multiply_nsol(InvD[npha-1], deltac, Ddc);
+      multiply_nsol(ddgedcdc[npha-1], Ddc, ddgDdc);
+
+      tmp0 = 0.0;
+      for ( is = 0; is < nsol; is++ ) {
+        tmp0 += ddgDdc[is] * deltac[is];
+      }
+
+      zeta[ip1][npha-1] = tmp0;
+
+      Tau[ip1][npha-1] = ( 6.0 * pfmvar->ee[ip1*npha+(npha-1)] * pfmdat->a2 * zeta[ip1][npha-1] ) / pfmvar->w[ip1*npha+(npha-1)];
+      Tau[npha-1][ip1] = Tau[ip1][npha-1];
+
+      if ( ip1 == 0 ) {
+        min_tau = Tau[ip1][npha-1];
+      }
+      if ( Tau[ip1][npha-1] < min_tau ) {
+        min_tau = Tau[ip1][npha-1];
+      }
+    }
+    for ( ip1 = 0; ip1 < npha-1; ip1++ ) {
+      for ( ip2 = 0; ip2 < npha-1; ip2++ ) {
+        Tau[ip1][ip2] = min_tau;
+      }
+    }
+    tau = min_tau;
+
+    tmp0 = 0.0;
+    tmp1 = 0.0;
+    for ( ip1 = 0; ip1 < npha; ip1++ ) {
+      for ( ip2 = 0; ip2 < npha; ip2++ ) {
+        if ( ip1 < ip2 ) {
+          tmp0 += Tau[ip1][ip2]*fhi[ip1]*fhi[ip2];
+          tmp1 += fhi[ip1]*fhi[ip2];
+        }
+      }
+    }
+    if ( tmp1 ) {
+      TAU = tmp0 / tmp1;
+    } else {
+      TAU = tau;
+    }
+
+
+    // Calculate df_TD/dphi
+    for ( ip1 = 0; ip1 < npha; ip1++ ) {
+      dff[ip1] = 0.0;
+      for ( ip2 = 0; ip2 < npha; ip2++ ) {
+
+          psi = 0.0;
+          psi += ge[ip2];
+          for ( is = 0; is < nsol; is++ ) {
+            psi -= mu[is]*cie[ip2][is];
+          }
+          psi *= dhfhi(fhi, ip2, ip1);
+
+          dff[ip1] +=  psi;
+      }
+    }
+
+    // get w_ab w_abc ee dab ti local linear indexed variable
+    for ( ip1 = 0; ip1 < npha; ip1++ ) {
+      for ( ip2 = 0; ip2 < npha; ip2++ ) {
+        dwh[ip1*npha+ip2] = pfmvar->w[ip1*npha+ip2];
+        dab[ip1*npha+ip2] = pfmdat->epsc[ip1*npha+ip2];
+        ee_ab[ip1*npha+ip2] = pfmvar->ee[ip1*npha+ip2];
+        for ( ip3 = 0; ip3 < npha; ip3++ ) {
+          dwhabc[(ip1*npha+ip2)*npha+ip3] = pfmvar->w_abc[(ip1*npha+ip2)*npha+ip3];
+        }
+      }
+    }
+
+    // Calculate derivative of well potential
+    for ( ip = 0; ip < npha; ip++ ) {
+      dgphidphi[ip] = F_W_02_dwdphi(fhi, lap, dwh, dwhabc, ip);
+    }
+
+    if (!pfmdat->Function_anisotropy) {
+
+    // Get the laplacian for all betas
+    for ( ip1 = 0; ip1 < npha; ip1++ ) {
+      laps[ip1] = 0.0;
+      for ( ip2 = 0; ip2 < npha; ip2++ ) {
+        if ( ip1 != ip2 ) {
+          laps[ip1] += pfmvar->ee[ip1*npha+ip2] * lap[ip2];
+        }
+      }
+      // printf("    =%le\n", laps[ip]);
+    }
+
+    }
+    else  {
+
+    for ( ip1 = 0; ip1 < npha; ip1++ ) {
+      for ( ip2 = 0; ip2 < npha; ip2++ ) {
+        for ( i1 = 0; i1 < 3; i1++ ) {
+          for ( i2 = 0; i2 < 3; i2++ ) {
+                Rot_mat[((ip1*npha+ip2)*3+i1)*3+i2] = pfmdat->Rotation_matrix[ip1][ip2][i1][i2];
+            Inv_Rot_mat[((ip1*npha+ip2)*3+i1)*3+i2] = pfmdat->Inv_Rotation_matrix[ip1][ip2][i1][i2];
+          }
+        }
+      }
+    }
+
+    for ( ip = 0; ip < npha; ip++ ) {
+      //printf("%le, %le\n", laps[ip], calcAnisotropy_01(stphi, dab, ee_ab, ip, pfmvar->deltax, pfmvar->deltay, dz));
+      laps[ip] = calcAnisotropy_01(stphi, dab, ee_ab, ip, pfmvar->deltax, pfmvar->deltay, pfmvar->deltaz, Rot_mat, Inv_Rot_mat, y, z, x);
+    }
+
+    }
+
+    // Calculate -dF/dphi for all betas and check for active phases
+    sumlambdaphi = 0.0;
+    activephases = 0;
+    for ( ip1 = 0; ip1 < npha; ip1++ ) {
+      if ( fabs(lap[ip1]) > 0.0 ) {
+         lambaphi[ip1] = -laps[ip1] - dgphidphi[ip1] - dff[ip1];
+
+
+        if (pfmdat->ELASTICITY) {
+          //lambda_phi[ip1] -= df_elast(grad, sigma, gridinfo_w[center].phi, a);
+
+          delast = -(sigma.xx*eigen_strain_phase[ip1].xx + sigma.yy*eigen_strain_phase[ip1].yy + sigma.zz*eigen_strain_phase[ip1].zz + 2.0*sigma.xy*eigen_strain_phase[ip1].xy + 2.0*sigma.xz*eigen_strain_phase[ip1].xz + 2.0*sigma.yz*eigen_strain_phase[ip1].yz);
+
+          //printf("%d, %d, %d, %d, %d, %d, %le\n", tstep[0], x, y, z, index, ip1, delast);
+          //printf("%d, %d, %d, %d, %d, %d, %le, %le, %le, %le, %le, %le\n", tstep[0], x, y, z, index, ip1, eigen_strain_phase[ip1].xx, eigen_strain_phase[ip1].yy, eigen_strain_phase[ip1].zz, eigen_strain_phase[ip1].xy, eigen_strain_phase[ip1].xz, eigen_strain_phase[ip1].yz);
+          //printf("%d, %d, %d, %d, %d, %d, %le, %le, %le, %le, %le, %le\n", tstep[0], x, y, z, index, ip1, sigma.xx, sigma.yy, sigma.zz, sigma.xy, sigma.xz, sigma.yz);
+
+          sigma_phase.xx = stiffness_phase[ip1].C11*strain[X].xx  + stiffness_phase[ip1].C12*(strain[X].yy + strain[X].zz);
+          sigma_phase.yy = stiffness_phase[ip1].C12*(strain[X].xx + strain[X].zz) + stiffness_phase[ip1].C11*strain[X].yy;
+          sigma_phase.zz = stiffness_phase[ip1].C12*(strain[X].xx + strain[X].yy) + stiffness_phase[ip1].C11*strain[X].zz;
+
+          sigma_phase.xy = 2.0*stiffness_phase[ip1].C44*strain[X].xy;
+          sigma_phase.xz = 2.0*stiffness_phase[ip1].C44*strain[X].xz;
+          sigma_phase.yz = 2.0*stiffness_phase[ip1].C44*strain[X].yz;
+
+          delast += 0.5*(sigma_phase.xx*strain[X].xx + sigma_phase.yy*strain[X].yy + sigma_phase.zz*strain[X].zz + 2.0*sigma_phase.xy*strain[X].xy + 2.0*sigma_phase.xz*strain[X].xz + 2.0*sigma_phase.yz*strain[X].yz);
+
+
+          lambaphi[ip1] -= delast;
+
+          //printf("%d, %d, %d, %d, %d, %d, %le\n", tstep[0], x, y, z, index, ip1, delast);
+
+          //printf("%d, %d, %d, %d, %d, %d, %le, %le, %le, %le, %le, %le\n", tstep[0], x, y, z, index, ip1, sigma_phase.xx, sigma_phase.yy, sigma_phase.zz, sigma_phase.xy, sigma_phase.xz, sigma_phase.yz);
+
+          //printf("%d, %d, %d, %d, %d, %d, %le, %le, %le, %le, %le, %le\n", tstep[0], x, y, z, index, ip1, strain[X].xx, strain[X].yy, strain[X].zz, strain[X].xy, strain[X].xz, strain[X].yz);
+
+        }
+
+        //printf("%d, %d, %d, %d, %d, %d, %le, %d, %d\n", tstep[0], x, y, z, index, ip1, delast, pfmdat->ELASTICITY, pfmdat->ISOTHERMAL);
+
+        sumlambdaphi += lambaphi[ip1];
+        activephases++;
+      }
+    }
+
+    // Divide the lambda with active phases
+    if ( activephases ) {
+      sumlambdaphi /= activephases;
+    }
+
+    // Update the phi by applying lagrangian multiplier
+    for ( ip1 = 0; ip1 < npha; ip1++ ) {
+      if ( fabs(lap[ip1]) > 0.0 ) {
+        phidot = (2.0/(TAU)) * ( lambaphi[ip1] - sumlambdaphi );
+        gridinfo[ index ].phi[ip1] = gridinfoO[index].phi[ip1] + (pfmvar->deltat)*phidot;
+
+        //printf("t=%d, i=%d, j=%d, lap=%le,%le, mphi=%le, vard=%le, phi[0]=%le, ip=%d, phiold=%le\n", tstep[0], i, j, lap[0],lap[1],  1.0/TAU, 2.0*( lambaphi[ip1] - sumlambdaphi ), gridinfo[ index ].phi[ip1], ip1, stgridO[4].phi[ip1]);
+      }
+    }
+
+  }
+
+}
+
+__kernel void SolverPhi_F3_smooth(__global struct fields *gridinfoO, __global struct fields *gridinfo, __global struct csle *cscl, __constant struct pfmval *pfmdat, __constant struct pfmpar *pfmvar, __global double *temp, __global int *tstep, __constant struct propmatf3 *propf3) {
+
+  int x, y, z, ii, i1, j1, k1, i2;
+  int nx, ny, nz;
+  int index;
+
+  int is, js, ks, il, il1, jl, jl1, ipx;
+  int is1, is2;
+  int ig, jg, ip, ip1, ip2, ip3;
+  int ilmax;
+  int interface,bulkphase;
+  int activephases;
+
+  double Ti;
+
+  double tmp0, tmp1, tmp2, tmp3, tmp4;
+
+  double ge[npha], fhi[npha], psi, F3_A[npha*nsol*nsol], F3_B[npha*nsol], F3_C[npha], dcdmu[npha][nsol*nsol], F3_cmu[npha*nsol*nsol];
+  double ddgedcdc[npha][nsol*nsol], InvD[npha][nsol*nsol], deltac[nsol], Ddc[nsol], ddgDdc[nsol];
+  double cie[npha][nsol], min_tau, tau;
+  double cdiff[npha][nsol], lap[npha], dff[npha], phidot, Tau[npha][npha];
+  double zeta[npha][npha], TAU, df[npha], hphi[npha];
+  double sumdf;
+  double retG[npha], retmu[npha*nsol], retdmu[npha*nsol*nsol];
+  double gphi[npha], dgphidphi[npha], dhphidphi[npha], mu[nsol], dhphi[npha][npha];
+  double dwh[npha*npha], dwhabc[npha*npha*npha], laps[npha];
+  double sumlambdaphi, lambaphi[npha];
+  double dab[npha*npha], ee_ab[npha*npha];
+  double facecenter, edgecenter, corner;
+
+  struct fields stgridO[27];
+
+  y = get_global_id(0);
+  z = get_global_id(1);
+  x = get_global_id(2);
+
+  ny = get_global_size(0);
+  nz = get_global_size(1);
+  nx = get_global_size(2);
+
+  //index = y + ny*(z + x*nz);
+
+  if ( x != 0 && x != nx-1 && y != 0 && y != ny-1 && z != 0 && z != nz-1 ) {
+
+    index = y + ny*(z + x*nz);
+
+    Ti = pfmdat->T0;
+
+    stgridO[0]  = gridinfoO[ (y-1) + ny*( (x-1)*nz + (z-1) ) ];
+    stgridO[1]  = gridinfoO[ (y  ) + ny*( (x-1)*nz + (z-1) ) ];
+    stgridO[2]  = gridinfoO[ (y+1) + ny*( (x-1)*nz + (z-1) ) ];
+    stgridO[3]  = gridinfoO[ (y-1) + ny*( (x-1)*nz + (z  ) ) ];
+    stgridO[4]  = gridinfoO[ (y  ) + ny*( (x-1)*nz + (z  ) ) ];
+    stgridO[5]  = gridinfoO[ (y+1) + ny*( (x-1)*nz + (z  ) ) ];
+    stgridO[6]  = gridinfoO[ (y-1) + ny*( (x-1)*nz + (z+1) ) ];
+    stgridO[7]  = gridinfoO[ (y  ) + ny*( (x-1)*nz + (z+1) ) ];
+    stgridO[8]  = gridinfoO[ (y+1) + ny*( (x-1)*nz + (z+1) ) ];
+    stgridO[9]  = gridinfoO[ (y-1) + ny*( (x  )*nz + (z-1) ) ];
+    stgridO[10] = gridinfoO[ (y  ) + ny*( (x  )*nz + (z-1) ) ];
+    stgridO[11] = gridinfoO[ (y+1) + ny*( (x  )*nz + (z-1) ) ];
+    stgridO[12] = gridinfoO[ (y-1) + ny*( (x  )*nz + (z  ) ) ];
+    stgridO[13] = gridinfoO[ (y  ) + ny*( (x  )*nz + (z  ) ) ];
+    stgridO[14] = gridinfoO[ (y+1) + ny*( (x  )*nz + (z  ) ) ];
+    stgridO[15] = gridinfoO[ (y-1) + ny*( (x  )*nz + (z+1) ) ];
+    stgridO[16] = gridinfoO[ (y  ) + ny*( (x  )*nz + (z+1) ) ];
+    stgridO[17] = gridinfoO[ (y+1) + ny*( (x  )*nz + (z+1) ) ];
+    stgridO[18] = gridinfoO[ (y-1) + ny*( (x+1)*nz + (z-1) ) ];
+    stgridO[19] = gridinfoO[ (y  ) + ny*( (x+1)*nz + (z-1) ) ];
+    stgridO[20] = gridinfoO[ (y+1) + ny*( (x+1)*nz + (z-1) ) ];
+    stgridO[21] = gridinfoO[ (y-1) + ny*( (x+1)*nz + (z  ) ) ];
+    stgridO[22] = gridinfoO[ (y  ) + ny*( (x+1)*nz + (z  ) ) ];
+    stgridO[23] = gridinfoO[ (y+1) + ny*( (x+1)*nz + (z  ) ) ];
+    stgridO[24] = gridinfoO[ (y-1) + ny*( (x+1)*nz + (z+1) ) ];
+    stgridO[25] = gridinfoO[ (y  ) + ny*( (x+1)*nz + (z+1) ) ];
+    stgridO[26] = gridinfoO[ (y+1) + ny*( (x+1)*nz + (z+1) ) ];
+
+    for ( ip = 0; ip < npha; ip++ ) {
+      // fhi[ip] = stgridO[13].phi[ip];
+      fhi[ip] = gridinfoO[index].phi[ip];
+    }
+
+    // Calculate laplacian
+    for ( ip = 0; ip < npha; ip++ ) {
+
+      lap[ip]  = 0.0;
+
+      facecenter = stgridO[4].phi[ip] + stgridO[22].phi[ip] + stgridO[10].phi[ip] + stgridO[16].phi[ip] + stgridO[12].phi[ip] + stgridO[14].phi[ip];
+
+      edgecenter = stgridO[1].phi[ip] + stgridO[5].phi[ip] + stgridO[7].phi[ip] + stgridO[3].phi[ip] + stgridO[9].phi[ip] + stgridO[11].phi[ip] + stgridO[17].phi[ip] + stgridO[15].phi[ip] + stgridO[19].phi[ip] + stgridO[21].phi[ip] + stgridO[25].phi[ip] + stgridO[23].phi[ip];
+
+      corner = stgridO[0].phi[ip] + stgridO[2].phi[ip] + stgridO[8].phi[ip] + stgridO[6].phi[ip] + stgridO[18].phi[ip] + stgridO[20].phi[ip] + stgridO[26].phi[ip] + stgridO[24].phi[ip];
+
+      lap[ip] = 3.0*( facecenter + edgecenter/2.0 + corner/3.0 - 44.0*stgridO[13].phi[ip]/3.0 ) / (13.0 * (pfmvar->deltax) * (pfmvar->deltax));
+
+      //lap[ip]  = ( stgridO[14].phi[ip] - 2.0*stgridO[13].phi[ip] + stgridO[12].phi[ip] ) / (pfmvar->deltay*pfmvar->deltay);
+      //lap[ip] += ( stgridO[16].phi[ip] - 2.0*stgridO[13].phi[ip] + stgridO[10].phi[ip] ) / (pfmvar->deltaz*pfmvar->deltaz);
+      //lap[ip] += ( stgridO[22].phi[ip] - 2.0*stgridO[13].phi[ip] + stgridO[ 4].phi[ip] ) / (pfmvar->deltax*pfmvar->deltax);
+
+
+
+      //printf("%le\n", lap[ip]);
+    }
+
+
+
+    // Get phase compositions
+    for ( ip = 0; ip < npha; ip++ ) {
+      for ( is = 0; is < nsol; is++ ) {
+        cie[ip][is] = cscl[index].comie[ip][is];
+      }
+    }
+
+    for ( ip = 0; ip < npha; ip++ ) {
+      F3_C[ip] = propf3->C[ip];
+      for ( is1 = 0; is1 < nsol; is1++ ) {
+        F3_B[ip*nsol+is1] = propf3->B[ip][is1];
+        for ( is2 = 0; is2 < nsol; is2++ ) {
+          F3_A[(ip*nsol+is1)*nsol+is2] = propf3->A[ip][is1][is2];
+          F3_cmu[(ip*nsol+is1)*nsol+is2] = propf3->cmu[ip][is1][is2];
+        }
+      }
+    }
+
+    // Get mu
+    for ( is = 0; is < nsol; is++ ) {
+      //mu[is] = stgridO[13].mu[is] / pfmdat->Vm;
+      mu[is] = gridinfoO[index].mu[is] / pfmdat->Vm;
+    }
+
+    for ( ip = 0; ip < npha; ip++ ) {
+      function_F_03_dc_dmu_CL(mu, cie[ip], Ti, ip, F3_cmu, dcdmu[ip]);
+    }
+
+    for ( ip = 0; ip < npha; ip++ ) {
+      matinvnew_nsol(dcdmu[ip], ddgedcdc[ip]);
+    }
+
+
+    // Calculate second derivative of free energy .i.e ddgedcdc and get diffusion coefficient to local variable
+    for ( ip = 0; ip < npha; ip++ ) {
+      for ( is1 = 0; is1 < nsol; is1++ ) {
+        for ( is2 = 0; is2 < nsol; is2++ ) {
+
+          ddgedcdc[ip][is1*nsol+is2] /= pfmdat->Vm;
+
+          InvD[ip][is1*nsol+is2] = pfmdat->DInv[ip][is1*nsol+is2];
+        }
+      }
+    }
+
+    // Calculate TAU
+    for ( ip1 = 0; ip1 < npha-1; ip1++ ) {
+      for ( is = 0; is < nsol; is++ ) {
+        deltac[is] = pfmdat->c_eq[(npha-1)*npha+(npha-1)][is] - pfmdat->c_eq[ip1*npha+ip1][is];
+      }
+      multiply_nsol(InvD[npha-1], deltac, Ddc);
+      multiply_nsol(ddgedcdc[npha-1], Ddc, ddgDdc);
+
+      tmp0 = 0.0;
+      for ( is = 0; is < nsol; is++ ) {
+        tmp0 += ddgDdc[is] * deltac[is];
+      }
+
+      zeta[ip1][npha-1] = tmp0;
+
+      Tau[ip1][npha-1] = ( 6.0 * pfmvar->ee[ip1*npha+(npha-1)] * pfmdat->a2 * zeta[ip1][npha-1] ) / pfmvar->w[ip1*npha+(npha-1)];
+      Tau[npha-1][ip1] = Tau[ip1][npha-1];
+
+      if ( ip1 == 0 ) {
+        min_tau = Tau[ip1][npha-1];
+      }
+      if ( Tau[ip1][npha-1] < min_tau ) {
+        min_tau = Tau[ip1][npha-1];
+      }
+    }
+    for ( ip1 = 0; ip1 < npha-1; ip1++ ) {
+      for ( ip2 = 0; ip2 < npha-1; ip2++ ) {
+        Tau[ip1][ip2] = min_tau;
+      }
+    }
+    tau = min_tau;
+
+    tmp0 = 0.0;
+    tmp1 = 0.0;
+    for ( ip1 = 0; ip1 < npha; ip1++ ) {
+      for ( ip2 = 0; ip2 < npha; ip2++ ) {
+        if ( ip1 < ip2 ) {
+          tmp0 += Tau[ip1][ip2]*fhi[ip1]*fhi[ip2];
+          tmp1 += fhi[ip1]*fhi[ip2];
+        }
+      }
+    }
+    if ( tmp1 ) {
+      TAU = tmp0 / tmp1;
+    } else {
+      TAU = tau;
+    }
+
+    // get w_ab w_abc ee dab ti local linear indexed variable
+    for ( ip1 = 0; ip1 < npha; ip1++ ) {
+      for ( ip2 = 0; ip2 < npha; ip2++ ) {
+        dwh[ip1*npha+ip2] = pfmvar->w[ip1*npha+ip2];
+        dab[ip1*npha+ip2] = pfmdat->epsc[ip1*npha+ip2];
+        ee_ab[ip1*npha+ip2] = pfmvar->ee[ip1*npha+ip2];
+        for ( ip3 = 0; ip3 < npha; ip3++ ) {
+          dwhabc[(ip1*npha+ip2)*npha+ip3] = pfmvar->w_abc[(ip1*npha+ip2)*npha+ip3];
+        }
+      }
+    }
+
+    // Calculate derivative of well potential
+    for ( ip = 0; ip < npha; ip++ ) {
+      dgphidphi[ip] = F_W_02_dwdphi(fhi, lap, dwh, dwhabc, ip);
+    }
+
+    // Get the laplacian for all betas
+    for ( ip1 = 0; ip1 < npha; ip1++ ) {
+      laps[ip1] = 0.0;
+      for ( ip2 = 0; ip2 < npha; ip2++ ) {
+        if ( ip1 != ip2 ) {
+          laps[ip1] += pfmvar->ee[ip1*npha+ip2] * lap[ip2];
+        }
+      }
+      // printf("    =%le\n", laps[ip]);
+    }
+
+    // Calculate -dF/dphi for all betas and check for active phases
+    sumlambdaphi = 0.0;
+    activephases = 0;
+    for ( ip1 = 0; ip1 < npha; ip1++ ) {
+      if ( fabs(lap[ip1]) > 0.0 ) {
+         lambaphi[ip1] = -laps[ip1] - dgphidphi[ip1];
+        sumlambdaphi += lambaphi[ip1];
+        activephases++;
+      }
+    }
+
+    // Divide the lambda with active phases
+    if ( activephases ) {
+      sumlambdaphi /= activephases;
+    }
+
+    // Update the phi by applying lagrangian multiplier
+    for ( ip1 = 0; ip1 < npha; ip1++ ) {
+      if ( fabs(lap[ip1]) > 0.0 ) {
+        phidot = (2.0/(TAU)) * ( lambaphi[ip1] - sumlambdaphi );
+        gridinfo[ index ].phi[ip1] = gridinfoO[index].phi[ip1] + (pfmvar->deltat)*phidot;
+
+        //printf("t=%d, i=%d, j=%d, lap=%le,%le, mphi=%le, vard=%le, phi[0]=%le, ip=%d, phiold=%le\n", tstep[0], i, j, lap[0],lap[1],  1.0/TAU, 2.0*( lambaphi[ip1] - sumlambdaphi ), gridinfo[ index ].phi[ip1], ip1, stgridO[4].phi[ip1]);
+      }
+    }
+
+  }
+
+}
+
+__kernel void SolverPhi_F3(__global struct fields *gridinfoO, __global struct fields *gridinfo, __global struct csle *cscl, __constant struct pfmval *pfmdat, __constant struct pfmpar *pfmvar, __global double *temp, __global int *tstep, __constant struct propmatf3 *propf3, __global struct iter_variables *it_gridinfoO, __global struct symmetric_tensor *eigen_strain_phase, __global struct Stiffness_cubic *stiffness_phase, __global struct Stiffness_cubic *stiffness_phase_n) {
   
-    int i;
-    int j;
-    int k;
-    int ii, i1, ii1, jj1;  
-    int nx;
-    int ny;
-    int nz;
-    int index;
+  int x, y, z, ii, i1, j1, k1, i2;
+  int nx, ny, nz;
+  int index;
+  int X, Y, Z;
 
-    double gphi;
-    double dgphidphi;
-    double dhphidphi; 
-    double DetDL;
-    double D11invL;
-    double gl;
-    double gs;
-    double dgldc1l;
-    double ddgldc1ldc1l;
-    double zeta;
-    double gradx_phi[3];
-    double grady_phi[3];
-    double phix[5];
-    double phiy[5];
-    double div_phi;
-    double angleig;
-    double Nnx;
-    double Nny;
-    double neta[5];
-    double etam[5];
-    double B[5];
-    double neta_x;
-    double neta_y;
-    double alp1;
-    double eep_x;
-    double eep_y;
-    double alp2;
-    double alp3;
-    double alp;
-    double Mphi;
-    double Mphi_aniso;
-    double Mphi_FiniteMobility;
-    double Mphi_FiniteMobilityAniso;
-    double phidot_aniso;
+  int is, js, ks, il, il1, jl, jl1, ipx;
+  int is1, is2;
+  int ig, jg, ip, ip1, ip2, ip3;
+  int ilmax;
+  int interface,bulkphase;
+  int activephases;
+
+  double Ti;
+
+  double tmp0, tmp1;
+  
+  double ge[npha], fhi[npha], psi, F3_A[npha*nsol*nsol], F3_B[npha*nsol], F3_C[npha], dcdmu[npha][nsol*nsol], F3_cmu[npha*nsol*nsol];
+  double ddgedcdc[npha][nsol*nsol], InvD[npha][nsol*nsol], deltac[nsol], Ddc[nsol], ddgDdc[nsol];
+  double cie[npha][nsol], min_tau, tau;
+  double cdiff[npha][nsol], lap[npha], dff[npha], phidot, Tau[npha][npha];
+  double zeta[npha][npha], TAU, df[npha], hphi[npha];
+  double sumdf;
+  double retG[npha], retmu[npha*nsol], retdmu[npha*nsol*nsol];
+  double gphi[npha], dgphidphi[npha], dhphidphi[npha], mu[nsol], dhphi[npha][npha];
+  double dwh[npha*npha], dwhabc[npha*npha*npha], laps[npha]; 
+  double sumlambdaphi, lambaphi[npha];
+  double stphi[npha*3*3*3], dab[npha*npha], ee_ab[npha*npha];
+  double Rot_mat[npha*npha*3*3], Inv_Rot_mat[npha*npha*3*3];
+  double facecenter, edgecenter, corner;
+
+  double delast;
+
+  struct fields stgridO[27], stgO[1];
+  struct symmetric_tensor eigen_strain[3];
+  struct symmetric_tensor strain[3];
+  struct Stiffness_cubic stiffness_c[3];
+  struct symmetric_tensor sigma_phase;
+  struct symmetric_tensor sigma;
+
+  struct iter_variables st_it_gO[7];
+
+  X = 0;
+  Y = 1;
+  Z = 2;
+  
+  y = get_global_id(0);
+  z = get_global_id(1);
+  x = get_global_id(2);
+  
+  ny = get_global_size(0);
+  nz = get_global_size(1);
+  nx = get_global_size(2);
+  
+  //index = y + ny*(z + x*nz);
+  
+  if ( x != 0 && x != nx-1 && y != 0 && y != ny-1 && z != 0 && z != nz-1 ) {
     
-    double cliq1;
-    double csol1;
-    double cliq2;
-    double csol2;
-
-    double Bf3[npha][nsol], Cf3[npha];
+    index = y + ny*(z + x*nz);
     
-     double y[2], retGphase[1], retdmuphase[1], c_sol[1], c_liq[1];
-
-    double Ti;
-
-    double tmp1;
-
-    double phiz[5], phia[5][3], tmp0, phir[5][3], phixr[5], phiyr[5], phizr[5], Bx[5], By[5], Bz[5], modgradphi1, modgradphi4, Bxir[5], Byir[5], Bzir[5], Ba[5][3], Bir[5][3];
+    Ti = pfmdat->T0;
     
-    struct grid stgridO[9];
+    stgridO[0]  = gridinfoO[ (y-1) + ny*( (x-1)*nz + (z-1) ) ];
+    stgridO[1]  = gridinfoO[ (y  ) + ny*( (x-1)*nz + (z-1) ) ];
+    stgridO[2]  = gridinfoO[ (y+1) + ny*( (x-1)*nz + (z-1) ) ];
+    stgridO[3]  = gridinfoO[ (y-1) + ny*( (x-1)*nz + (z  ) ) ];
+    stgridO[4]  = gridinfoO[ (y  ) + ny*( (x-1)*nz + (z  ) ) ];
+    stgridO[5]  = gridinfoO[ (y+1) + ny*( (x-1)*nz + (z  ) ) ];
+    stgridO[6]  = gridinfoO[ (y-1) + ny*( (x-1)*nz + (z+1) ) ];
+    stgridO[7]  = gridinfoO[ (y  ) + ny*( (x-1)*nz + (z+1) ) ];
+    stgridO[8]  = gridinfoO[ (y+1) + ny*( (x-1)*nz + (z+1) ) ];
+    stgridO[9]  = gridinfoO[ (y-1) + ny*( (x  )*nz + (z-1) ) ];
+    stgridO[10] = gridinfoO[ (y  ) + ny*( (x  )*nz + (z-1) ) ];
+    stgridO[11] = gridinfoO[ (y+1) + ny*( (x  )*nz + (z-1) ) ];
+    stgridO[12] = gridinfoO[ (y-1) + ny*( (x  )*nz + (z  ) ) ];
+    stgridO[13] = gridinfoO[ (y  ) + ny*( (x  )*nz + (z  ) ) ];
+    stgridO[14] = gridinfoO[ (y+1) + ny*( (x  )*nz + (z  ) ) ];
+    stgridO[15] = gridinfoO[ (y-1) + ny*( (x  )*nz + (z+1) ) ];
+    stgridO[16] = gridinfoO[ (y  ) + ny*( (x  )*nz + (z+1) ) ];
+    stgridO[17] = gridinfoO[ (y+1) + ny*( (x  )*nz + (z+1) ) ];
+    stgridO[18] = gridinfoO[ (y-1) + ny*( (x+1)*nz + (z-1) ) ];
+    stgridO[19] = gridinfoO[ (y  ) + ny*( (x+1)*nz + (z-1) ) ];
+    stgridO[20] = gridinfoO[ (y+1) + ny*( (x+1)*nz + (z-1) ) ];
+    stgridO[21] = gridinfoO[ (y-1) + ny*( (x+1)*nz + (z  ) ) ];
+    stgridO[22] = gridinfoO[ (y  ) + ny*( (x+1)*nz + (z  ) ) ];
+    stgridO[23] = gridinfoO[ (y+1) + ny*( (x+1)*nz + (z  ) ) ];
+    stgridO[24] = gridinfoO[ (y-1) + ny*( (x+1)*nz + (z+1) ) ];
+    stgridO[25] = gridinfoO[ (y  ) + ny*( (x+1)*nz + (z+1) ) ];
+    stgridO[26] = gridinfoO[ (y+1) + ny*( (x+1)*nz + (z+1) ) ];
 
-    j = get_global_id(0);
-    i = get_global_id(1);
+
+    if (pfmdat->ELASTICITY) {
+      stgO[0] = gridinfoO[ (y  ) + ny*( (x  )*nz + (z  ) ) ];
+
+      st_it_gO[0] = it_gridinfoO[ (y  ) + ny*( (x  )*nz + (z  ) ) ];
+      st_it_gO[1] = it_gridinfoO[ (y-1) + ny*( (x  )*nz + (z  ) ) ];
+      st_it_gO[2] = it_gridinfoO[ (y+1) + ny*( (x  )*nz + (z  ) ) ];
+      st_it_gO[3] = it_gridinfoO[ (y  ) + ny*( (x  )*nz + (z-1) ) ];
+      st_it_gO[4] = it_gridinfoO[ (y  ) + ny*( (x  )*nz + (z+1) ) ];
+      st_it_gO[5] = it_gridinfoO[ (y  ) + ny*( (x-1)*nz + (z  ) ) ];
+      st_it_gO[6] = it_gridinfoO[ (y  ) + ny*( (x+1)*nz + (z  ) ) ];
+
+      eigen_strain[0].xx = 0.0;
+      eigen_strain[0].yy = 0.0;
+      eigen_strain[0].zz = 0.0;
+      eigen_strain[0].yz = 0.0;
+      eigen_strain[0].xz = 0.0;
+      eigen_strain[0].xy = 0.0;
+      for (ip = 0; ip < npha; ip++) {
+        eigen_strain[X].xx += eigen_strain_phase[ip].xx*stgO[0].phi[ip];
+        eigen_strain[X].yy += eigen_strain_phase[ip].yy*stgO[0].phi[ip];
+        eigen_strain[X].zz += eigen_strain_phase[ip].zz*stgO[0].phi[ip];
+        eigen_strain[X].yz += eigen_strain_phase[ip].yz*stgO[0].phi[ip];
+        eigen_strain[X].xz += eigen_strain_phase[ip].xz*stgO[0].phi[ip];
+        eigen_strain[X].xy += eigen_strain_phase[ip].xy*stgO[0].phi[ip];
+      }
+      eigen_strain[Y] = eigen_strain[X];
+      eigen_strain[Z] = eigen_strain[X];
+
+      strain[X].xx = 0.5*(st_it_gO[6].disp[X][2] - st_it_gO[5].disp[X][2]) - eigen_strain[X].xx;
+      strain[X].yy = 0.5*(st_it_gO[2].disp[Y][2] - st_it_gO[1].disp[Y][2]) - eigen_strain[X].yy;
+      strain[X].zz = 0.5*(st_it_gO[4].disp[Z][2] - st_it_gO[3].disp[Z][2]) - eigen_strain[X].zz;
+
+      strain[Y].xx = strain[X].xx;
+      strain[Y].yy = strain[X].yy;
+      strain[Y].zz = strain[X].zz;
+      strain[Z].yy = strain[X].yy;
+      strain[Z].xx = strain[X].xx;
+      strain[Z].zz = strain[X].zz;
+
+      strain[X].xy = 0.25*((st_it_gO[2].disp[X][2] - st_it_gO[1].disp[X][2]) + (st_it_gO[6].disp[Y][2] - st_it_gO[5].disp[Y][2]));
+      strain[X].xz = 0.25*((st_it_gO[4].disp[X][2] - st_it_gO[3].disp[X][2]) + (st_it_gO[6].disp[Z][2] - st_it_gO[5].disp[Z][2]));
+      strain[X].yz = 0.25*((st_it_gO[2].disp[Z][2] - st_it_gO[1].disp[Z][2]) + (st_it_gO[4].disp[Y][2] - st_it_gO[3].disp[Y][2]));
+
+      strain[Y].xy = strain[X].xy;
+      strain[Y].xz = strain[X].xz;
+      strain[Y].yz = strain[X].yz;
+      strain[Z].xy = strain[X].xy;
+      strain[Z].xz = strain[X].xz;
+      strain[Z].yz = strain[X].yz;
+
+      stiffness_c[0].C11 = 0.0;
+      stiffness_c[0].C12 = 0.0;
+      stiffness_c[0].C44 = 0.0;
+      for (ip = 0; ip < npha; ip++) {
+        stiffness_c[X].C11 += (stiffness_phase[ip].C11)*stgO[0].phi[ip];
+        stiffness_c[X].C12 += (stiffness_phase[ip].C12)*stgO[0].phi[ip];
+        stiffness_c[X].C44 += (stiffness_phase[ip].C44)*stgO[0].phi[ip];
+      }
+      stiffness_c[Y] = stiffness_c[X];
+      stiffness_c[Z] = stiffness_c[X];
+
+
+      sigma.xx  = stiffness_c[X].C11*(strain[X].xx) + stiffness_c[X].C12*(strain[X].yy + strain[X].zz);
+
+      sigma.yy  = stiffness_c[X].C12*(strain[X].xx  + strain[X].zz) + stiffness_c[X].C11*(strain[X].yy);
+
+      sigma.zz  = stiffness_c[X].C12*(strain[X].xx  + strain[X].yy) + stiffness_c[X].C11*(strain[X].zz);
+
+      sigma.xy  = 2.0*stiffness_c[X].C44*(strain[X].xy);
+
+      sigma.xz  = 2.0*stiffness_c[X].C44*(strain[X].xz);
+
+      sigma.yz  = 2.0*stiffness_c[X].C44*(strain[X].yz);
+
+      //printf("%d, %d, %d, %d, %d, %d, %le, %le, %le\n", tstep[0], x, y, z, index, ip1, stiffness_c[X].C11, stiffness_c[X].C12, stiffness_c[X].C44);
+
+      //printf("%d, %d, %d, %d, %d, %d, %le, %le, %le\n", tstep[0], x, y, z, index, ip1, stiffness_phase[1].C11, stiffness_phase[1].C12, stiffness_phase[1].C44);
+
+    }
+
+    for (ip = 0; ip < npha; ip++) {
+      ii = 0; 
+        for (i1 = 0; i1 < 3; i1++) { 
+          for (j1 = 0; j1 < 3; j1++) { 
+            for (k1 = 0; k1 < 3; k1++) {
+              //stphi[ (ip*3 + i1)*3 + j1 ] = stphi_1[ip][i1][j1];
+              stphi[ ( (ip*3 + i1)*3 + j1 )*3 + k1 ] = stgridO[ii].phi[ip];
+              //if (stphi[ ( (ip*3 + i1)*3 + j1 )*3 + k1 ] > 0.5) {
+              //      printf("%d, %d, %d, %d, %d, %d, %d, %d, %lf, %lf\n", y, z, x, ip, i1, j1, k1, ( (ip*3 + i1)*3 + j1 )*3 + k1, stphi[ ( (ip*3 + i1)*3 + j1 )*3 + k1 ], stgridO[ii].phi[ip]);
+              //}
+              ii++;
+            }
+          }
+        }
+    }
     
-    nx = pfmdat->jNx;
-    ny = pfmdat->iNy;
     
-    if ( i != 0 && i != ny-1 && j != 0 && j != nx-1 ) {
+    for ( ip = 0; ip < npha; ip++ ) { 
+      // fhi[ip] = stgridO[13].phi[ip];
+      fhi[ip] = gridinfoO[index].phi[ip];
+    }
+    
+    // Calculate laplacian 
+    for ( ip = 0; ip < npha; ip++ ) { 
 
-        Ti = temp[j];
+      lap[ip]  = 0.0;
 
-        index = (i)*nx + (j);
+      facecenter = stgridO[4].phi[ip] + stgridO[22].phi[ip] + stgridO[10].phi[ip] + stgridO[16].phi[ip] + stgridO[12].phi[ip] + stgridO[14].phi[ip];
 
-        stgridO[0] = gridOld[(i-1)*nx + (j-1)];
-        stgridO[1] = gridOld[(i-1)*nx + ( j )];
-        stgridO[2] = gridOld[(i-1)*nx + (j+1)];
-        stgridO[3] = gridOld[( i )*nx + (j-1)];
-        stgridO[4] = gridOld[( i )*nx + ( j )];
-        stgridO[5] = gridOld[( i )*nx + (j+1)];
-        stgridO[6] = gridOld[(i+1)*nx + (j-1)];
-        stgridO[7] = gridOld[(i+1)*nx + ( j )];
-        stgridO[8] = gridOld[(i+1)*nx + (j+1)];
+      edgecenter = stgridO[1].phi[ip] + stgridO[5].phi[ip] + stgridO[7].phi[ip] + stgridO[3].phi[ip] + stgridO[9].phi[ip] + stgridO[11].phi[ip] + stgridO[17].phi[ip] + stgridO[15].phi[ip] + stgridO[19].phi[ip] + stgridO[21].phi[ip] + stgridO[25].phi[ip] + stgridO[23].phi[ip];
 
-        cliq1 = cscl[( i )*nx + ( j )].c1l;
-        csol1 = cscl[( i )*nx + ( j )].c1s;
+      corner = stgridO[0].phi[ip] + stgridO[2].phi[ip] + stgridO[8].phi[ip] + stgridO[6].phi[ip] + stgridO[18].phi[ip] + stgridO[20].phi[ip] + stgridO[26].phi[ip] + stgridO[24].phi[ip];
 
+      lap[ip] = 3.0*( facecenter + edgecenter/2.0 + corner/3.0 - 44.0*stgridO[13].phi[ip]/3.0 ) / (13.0 * (pfmvar->deltax) * (pfmvar->deltax));
+      
+      //lap[ip]  = ( stgridO[14].phi[ip] - 2.0*stgridO[13].phi[ip] + stgridO[12].phi[ip] ) / (pfmvar->deltay*pfmvar->deltay);
+      //lap[ip] += ( stgridO[16].phi[ip] - 2.0*stgridO[13].phi[ip] + stgridO[10].phi[ip] ) / (pfmvar->deltaz*pfmvar->deltaz);
+      //lap[ip] += ( stgridO[22].phi[ip] - 2.0*stgridO[13].phi[ip] + stgridO[ 4].phi[ip] ) / (pfmvar->deltax*pfmvar->deltax);
+
+
+      
+      //printf("%le\n", lap[ip]);
+    }
+    
+    
+    
+    // Get phase compositions
+    for ( ip = 0; ip < npha; ip++ ) { 
+      for ( is = 0; is < nsol; is++ ) { 
+        cie[ip][is] = cscl[index].comie[ip][is];
+      }
+    }
+    
+    for ( ip = 0; ip < npha; ip++ ) { 
+      F3_C[ip] = propf3->C[ip];
+      for ( is1 = 0; is1 < nsol; is1++ ) { 
+        F3_B[ip*nsol+is1] = propf3->B[ip][is1];
+        for ( is2 = 0; is2 < nsol; is2++ ) { 
+          F3_A[(ip*nsol+is1)*nsol+is2] = propf3->A[ip][is1][is2]; 
+          F3_cmu[(ip*nsol+is1)*nsol+is2] = propf3->cmu[ip][is1][is2]; 
+        }
+      }
+    }
+    
+    // Calculate free energy 
+    for ( ip = 0; ip < npha; ip ++ ) { 
+      ge[ip] = function_F_03_free_energy_CL(cie[ip], Ti, ip, F3_A, F3_B, F3_C) / pfmdat->Vm;
+    }
+    
+    // Get mu 
+    for ( is = 0; is < nsol; is++ ) { 
+      //mu[is] = stgridO[13].mu[is] / pfmdat->Vm;
+      mu[is] = gridinfoO[index].mu[is] / pfmdat->Vm;
+    }
+    
+    for ( ip = 0; ip < npha; ip++ ) { 
+      function_F_03_dc_dmu_CL(mu, cie[ip], Ti, ip, F3_cmu, dcdmu[ip]);
+    }
+    
+    for ( ip = 0; ip < npha; ip++ ) { 
+      matinvnew_nsol(dcdmu[ip], ddgedcdc[ip]); 
+    }
+    
+    
+    // Calculate second derivative of free energy .i.e ddgedcdc and get diffusion coefficient to local variable 
+    for ( ip = 0; ip < npha; ip++ ) { 
+      for ( is1 = 0; is1 < nsol; is1++ ) { 
+        for ( is2 = 0; is2 < nsol; is2++ ) { 
+            
+          ddgedcdc[ip][is1*nsol+is2] /= pfmdat->Vm;
+          
+          InvD[ip][is1*nsol+is2] = pfmdat->DInv[ip][is1*nsol+is2];
+        }
+      }
+    }
+    
+    // Calculate TAU
+    for ( ip1 = 0; ip1 < npha-1; ip1++ ) { 
+      for ( is = 0; is < nsol; is++ ) { 
+        deltac[is] = pfmdat->c_eq[(npha-1)*npha+(npha-1)][is] - pfmdat->c_eq[ip1*npha+ip1][is];
+      }
+      multiply_nsol(InvD[npha-1], deltac, Ddc);
+      multiply_nsol(ddgedcdc[npha-1], Ddc, ddgDdc);
+      
+      tmp0 = 0.0; 
+      for ( is = 0; is < nsol; is++ ) { 
+        tmp0 += ddgDdc[is] * deltac[is];
+      }
+
+      zeta[ip1][npha-1] = tmp0;
+
+      Tau[ip1][npha-1] = ( 6.0 * pfmvar->ee[ip1*npha+(npha-1)] * pfmdat->a2 * zeta[ip1][npha-1] ) / pfmvar->w[ip1*npha+(npha-1)];
+      Tau[npha-1][ip1] = Tau[ip1][npha-1];
+
+      if ( ip1 == 0 ) { 
+        min_tau = Tau[ip1][npha-1];
+      }
+      if ( Tau[ip1][npha-1] < min_tau ) { 
+        min_tau = Tau[ip1][npha-1];
+      }
+    }
+    for ( ip1 = 0; ip1 < npha-1; ip1++ ) { 
+      for ( ip2 = 0; ip2 < npha-1; ip2++ ) { 
+        Tau[ip1][ip2] = min_tau;
+      }
+    }
+    tau = min_tau;
+    
+    tmp0 = 0.0;
+    tmp1 = 0.0;
+    for ( ip1 = 0; ip1 < npha; ip1++ ) { 
+      for ( ip2 = 0; ip2 < npha; ip2++ ) { 
+        if ( ip1 < ip2 ) {
+          tmp0 += Tau[ip1][ip2]*fhi[ip1]*fhi[ip2];
+          tmp1 += fhi[ip1]*fhi[ip2];
+        }
+      }
+    }
+    if ( tmp1 ) {
+      TAU = tmp0 / tmp1;
+    } else {
+      TAU = tau;
+    }
+    
+    
+    // Calculate df_TD/dphi
+    for ( ip1 = 0; ip1 < npha; ip1++ ) { 
+      dff[ip1] = 0.0;
+      for ( ip2 = 0; ip2 < npha; ip2++ ) { 
+          
+          psi = 0.0; 
+          psi += ge[ip2]; 
+          for ( is = 0; is < nsol; is++ ) { 
+            psi -= mu[is]*cie[ip2][is];
+          }
+          psi *= dhfhi(fhi, ip2, ip1); 
+          
+          dff[ip1] +=  psi; 
+      }
+    }
+    
+    // get w_ab w_abc ee dab ti local linear indexed variable
+    for ( ip1 = 0; ip1 < npha; ip1++ ) { 
+      for ( ip2 = 0; ip2 < npha; ip2++ ) { 
+        dwh[ip1*npha+ip2] = pfmvar->w[ip1*npha+ip2];
+        dab[ip1*npha+ip2] = pfmdat->epsc[ip1*npha+ip2];
+        ee_ab[ip1*npha+ip2] = pfmvar->ee[ip1*npha+ip2];
+        for ( ip3 = 0; ip3 < npha; ip3++ ) { 
+          dwhabc[(ip1*npha+ip2)*npha+ip3] = pfmvar->w_abc[(ip1*npha+ip2)*npha+ip3];
+        }
+      }
+    }
+    
+    // Calculate derivative of well potential 
+    for ( ip = 0; ip < npha; ip++ ) { 
+      dgphidphi[ip] = F_W_02_dwdphi(fhi, lap, dwh, dwhabc, ip);
+    }
+
+    if (!pfmdat->Function_anisotropy) {
+    
+    // Get the laplacian for all betas
+    for ( ip1 = 0; ip1 < npha; ip1++ ) { 
+      laps[ip1] = 0.0;
+      for ( ip2 = 0; ip2 < npha; ip2++ ) { 
+        if ( ip1 != ip2 ) { 
+          laps[ip1] += pfmvar->ee[ip1*npha+ip2] * lap[ip2];
+        }
+      }
+      // printf("    =%le\n", laps[ip]);
+    }
+
+    }
+    else {
+
+    for ( ip1 = 0; ip1 < npha; ip1++ ) {
+      for ( ip2 = 0; ip2 < npha; ip2++ ) {
+        for ( i1 = 0; i1 < 3; i1++ ) {
+          for ( i2 = 0; i2 < 3; i2++ ) {
+                Rot_mat[((ip1*npha+ip2)*3+i1)*3+i2] = pfmdat->Rotation_matrix[ip1][ip2][i1][i2];
+            Inv_Rot_mat[((ip1*npha+ip2)*3+i1)*3+i2] = pfmdat->Inv_Rotation_matrix[ip1][ip2][i1][i2];
+          }
+        }
+      }
+    }
+
+    for ( ip = 0; ip < npha; ip++ ) {
+      //printf("%le, %le\n", laps[ip], calcAnisotropy_01(stphi, dab, ee_ab, ip, pfmvar->deltax, pfmvar->deltay, dz));
+      //printf("%d, %d, %d, %d, %le, %le, %le\n", y, z, x, ip, pfmvar->deltax, pfmvar->deltay, pfmvar->deltaz);
+      laps[ip] = calcAnisotropy_01(stphi, dab, ee_ab, ip, pfmvar->deltax, pfmvar->deltay, pfmvar->deltaz, Rot_mat, Inv_Rot_mat, y, z, x);
+    }
+    //printf("%d, %d, %d, %d, %le, %le, %le, %le, %le\n", y, z, x, ip, pfmvar->deltax, pfmvar->deltay, pfmvar->deltaz, laps[0], laps[1]);
+    }
+
+
+    
+    // Calculate -dF/dphi for all betas and check for active phases 
+    sumlambdaphi = 0.0;
+    activephases = 0;
+    for ( ip1 = 0; ip1 < npha; ip1++ ) { 
+      if ( fabs(lap[ip1]) > 0.0 ) {
+        lambaphi[ip1] = -laps[ip1] - dgphidphi[ip1] - dff[ip1];
+
+
+        if (pfmdat->ELASTICITY) {
+          //lambda_phi[ip1] -= df_elast(grad, sigma, gridinfo_w[center].phi, a);
+
+          delast = -(sigma.xx*eigen_strain_phase[ip1].xx + sigma.yy*eigen_strain_phase[ip1].yy + sigma.zz*eigen_strain_phase[ip1].zz + 2.0*sigma.xy*eigen_strain_phase[ip1].xy + 2.0*sigma.xz*eigen_strain_phase[ip1].xz + 2.0*sigma.yz*eigen_strain_phase[ip1].yz);
+
+          //printf("%d, %d, %d, %d, %d, %d, %le\n", tstep[0], x, y, z, index, ip1, delast);
+          //printf("%d, %d, %d, %d, %d, %d, %le, %le, %le, %le, %le, %le\n", tstep[0], x, y, z, index, ip1, eigen_strain_phase[ip1].xx, eigen_strain_phase[ip1].yy, eigen_strain_phase[ip1].zz, eigen_strain_phase[ip1].xy, eigen_strain_phase[ip1].xz, eigen_strain_phase[ip1].yz);
+          //printf("%d, %d, %d, %d, %d, %d, %le, %le, %le, %le, %le, %le\n", tstep[0], x, y, z, index, ip1, sigma.xx, sigma.yy, sigma.zz, sigma.xy, sigma.xz, sigma.yz);
+
+          sigma_phase.xx = stiffness_phase[ip1].C11*strain[X].xx  + stiffness_phase[ip1].C12*(strain[X].yy + strain[X].zz);
+          sigma_phase.yy = stiffness_phase[ip1].C12*(strain[X].xx + strain[X].zz) + stiffness_phase[ip1].C11*strain[X].yy;
+          sigma_phase.zz = stiffness_phase[ip1].C12*(strain[X].xx + strain[X].yy) + stiffness_phase[ip1].C11*strain[X].zz;
+
+          sigma_phase.xy = 2.0*stiffness_phase[ip1].C44*strain[X].xy;
+          sigma_phase.xz = 2.0*stiffness_phase[ip1].C44*strain[X].xz;
+          sigma_phase.yz = 2.0*stiffness_phase[ip1].C44*strain[X].yz;
+
+          delast += 0.5*(sigma_phase.xx*strain[X].xx + sigma_phase.yy*strain[X].yy + sigma_phase.zz*strain[X].zz + 2.0*sigma_phase.xy*strain[X].xy + 2.0*sigma_phase.xz*strain[X].xz + 2.0*sigma_phase.yz*strain[X].yz);
+
+
+          lambaphi[ip1] -= delast;
+
+          //printf("%d, %d, %d, %d, %d, %d, %le\n", tstep[0], x, y, z, index, ip1, delast);
+
+          //printf("%d, %d, %d, %d, %d, %d, %le, %le, %le, %le, %le, %le\n", tstep[0], x, y, z, index, ip1, sigma_phase.xx, sigma_phase.yy, sigma_phase.zz, sigma_phase.xy, sigma_phase.xz, sigma_phase.yz);
+
+          //printf("%d, %d, %d, %d, %d, %d, %le, %le, %le, %le, %le, %le\n", tstep[0], x, y, z, index, ip1, strain[X].xx, strain[X].yy, strain[X].zz, strain[X].xy, strain[X].xz, strain[X].yz);
+
+        }
+
+        //printf("%d, %d, %d, %d, %d, %d, %le, %d, %d\n", tstep[0], x, y, z, index, ip1, delast, pfmdat->ELASTICITY, pfmdat->ISOTHERMAL);
+
+
+        sumlambdaphi += lambaphi[ip1];
+        activephases++;
+      }
+    }
+    
+    // Divide the lambda with active phases
+    if ( activephases ) { 
+      sumlambdaphi /= activephases; 
+    }
+    
+    // Update the phi by applying lagrangian multiplier
+    for ( ip1 = 0; ip1 < npha; ip1++ ) { 
+      if ( fabs(lap[ip1]) > 0.0 ) { 
+        phidot = (2.0/(TAU)) * ( lambaphi[ip1] - sumlambdaphi );
+        gridinfo[ index ].phi[ip1] = gridinfoO[index].phi[ip1] + (pfmvar->deltat)*phidot;
         
-        div_phi = ( 4.0*(stgridO[1].phi+stgridO[3].phi+stgridO[7].phi+stgridO[5].phi ) + stgridO[0].phi+stgridO[6].phi+stgridO[8].phi+stgridO[2].phi - 20.0*stgridO[4].phi ) / ( 6.0*(pfmvar->deltax)*(pfmvar->deltax) );
+        //printf("t=%d, i=%d, j=%d, lap=%le,%le, mphi=%le, vard=%le, phi[0]=%le, ip=%d, phiold=%le\n", tstep[0], i, j, lap[0],lap[1],  1.0/TAU, 2.0*( lambaphi[ip1] - sumlambdaphi ), gridinfo[ index ].phi[ip1], ip1, stgridO[4].phi[ip1]);
+      }
+    }
 
-        gradx_phi[0] = ( stgridO[5].phi - stgridO[3].phi ) / ( 2.0*(pfmvar->deltax) );
-        gradx_phi[1] = ( stgridO[8].phi - stgridO[6].phi ) / ( 2.0*(pfmvar->deltax) );
-        gradx_phi[2] = ( stgridO[2].phi - stgridO[0].phi ) / ( 2.0*(pfmvar->deltax) );
+  }
 
-        grady_phi[0] = ( stgridO[7].phi - stgridO[1].phi ) / ( 2.0*(pfmvar->deltay) );
-        grady_phi[1] = ( stgridO[8].phi - stgridO[2].phi ) / ( 2.0*(pfmvar->deltay) );
-        grady_phi[2] = ( stgridO[6].phi - stgridO[0].phi ) / ( 2.0*(pfmvar->deltay) );
+}
 
-        phix[0] = gradx_phi[0];
-        phix[1] = ( stgridO[5].phi - stgridO[4].phi ) / ( (pfmvar->deltax) );
-        phix[2] = ( stgridO[4].phi - stgridO[3].phi ) / ( (pfmvar->deltax) );
-        phix[3] = ( gradx_phi[0] + gradx_phi[1] ) / ( 2.0 );
-        phix[4] = ( gradx_phi[0] + gradx_phi[2] ) / ( 2.0 );
+__kernel void SolverPhi_F4_smooth(__global struct fields *gridinfoO, __global struct fields *gridinfo, __global struct csle *cscl, __constant struct pfmval *pfmdat, __constant struct pfmpar *pfmvar, __global double *temp, __global int *tstep, __constant struct propmatf4 *propf4, __constant struct propmatf4spline *propf4spline) {
 
-        phiy[0] = grady_phi[0];
-        phiy[1] = ( grady_phi[0] + grady_phi[1] ) / ( 2.0 );
-        phiy[2] = ( grady_phi[0] + grady_phi[2] ) / ( 2.0 );
-        phiy[3] = ( stgridO[7].phi - stgridO[4].phi ) / ( (pfmvar->deltay) );
-        phiy[4] = ( stgridO[4].phi - stgridO[1].phi ) / ( (pfmvar->deltay) );
 
-        
+  int x, y, z, ii, i1, j1, k1, i2;
+  int nx, ny, nz;
+  int index;
 
-        D11invL = 1.0/pfmdat->D11l;
-        
-        if ( !pfmdat->ISOTHERMAL ) { 
-          Bf3[0][0] = propf3->Beq[0][0] + propf3->dBbdT[0][0]*(Ti-pfmdat->Teq);
-          Bf3[1][0] = propf3->Beq[1][0] + propf3->dBbdT[1][0]*(Ti-pfmdat->Teq);
+  int is, js, ks, il, il1, jl, jl1, ipx;
+  int is1, is2;
+  int ig, jg, ip, ip1, ip2, ip3;
+  int ilmax;
+  int interface,bulkphase;
+  int activephases;
+
+  double Ti;
+
+  double tmp0, tmp1;
+  double facecenter, edgecenter, corner;
+
+  double ge[npha], fhi[npha], psi;
+  double dgedc[npha][nsol];
+  double ddgedcdc[npha][nsol*nsol], InvD[npha][nsol*nsol], deltac[nsol], Ddc[nsol], ddgDdc[nsol];
+  double cie[npha][nsol], min_tau, tau;
+  double lap[npha], dff[npha], phidot, Tau[npha][npha];
+  double zeta[npha][npha], TAU, df[npha], hphi[npha];
+  double sumdf;
+  double retG[npha], retmu[npha*nsol], retdmu[npha*nsol*nsol];
+  double gphi[npha], dgphidphi[npha], dhphidphi[npha], mu[nsol], dhphi[npha][npha];
+  double dwh[npha*npha], dwhabc[npha*npha*npha], laps[npha];
+  double sumlambdaphi, lambaphi[npha];
+  double dab[npha*npha], ee_ab[npha*npha];
+
+  struct fields stgridO[27];
+
+  y = get_global_id(0);
+  z = get_global_id(1);
+  x = get_global_id(2);
+
+  ny = get_global_size(0);
+  nz = get_global_size(1);
+  nx = get_global_size(2);
+
+  //index = y + ny*(z + x*nz);
+
+  Ti = pfmdat->T0;
+
+  if ( x != 0 && x != nx-1 && y != 0 && y != ny-1 && z != 0 && z != nz-1 ) {
+
+    index = y + ny*(z + x*nz);
+
+    stgridO[0]  = gridinfoO[ (y-1) + ny*( (x-1)*nz + (z-1) ) ];
+    stgridO[1]  = gridinfoO[ (y  ) + ny*( (x-1)*nz + (z-1) ) ];
+    stgridO[2]  = gridinfoO[ (y+1) + ny*( (x-1)*nz + (z-1) ) ];
+    stgridO[3]  = gridinfoO[ (y-1) + ny*( (x-1)*nz + (z  ) ) ];
+    stgridO[4]  = gridinfoO[ (y  ) + ny*( (x-1)*nz + (z  ) ) ];
+    stgridO[5]  = gridinfoO[ (y+1) + ny*( (x-1)*nz + (z  ) ) ];
+    stgridO[6]  = gridinfoO[ (y-1) + ny*( (x-1)*nz + (z+1) ) ];
+    stgridO[7]  = gridinfoO[ (y  ) + ny*( (x-1)*nz + (z+1) ) ];
+    stgridO[8]  = gridinfoO[ (y+1) + ny*( (x-1)*nz + (z+1) ) ];
+    stgridO[9]  = gridinfoO[ (y-1) + ny*( (x  )*nz + (z-1) ) ];
+    stgridO[10] = gridinfoO[ (y  ) + ny*( (x  )*nz + (z-1) ) ];
+    stgridO[11] = gridinfoO[ (y+1) + ny*( (x  )*nz + (z-1) ) ];
+    stgridO[12] = gridinfoO[ (y-1) + ny*( (x  )*nz + (z  ) ) ];
+    stgridO[13] = gridinfoO[ (y  ) + ny*( (x  )*nz + (z  ) ) ];
+    stgridO[14] = gridinfoO[ (y+1) + ny*( (x  )*nz + (z  ) ) ];
+    stgridO[15] = gridinfoO[ (y-1) + ny*( (x  )*nz + (z+1) ) ];
+    stgridO[16] = gridinfoO[ (y  ) + ny*( (x  )*nz + (z+1) ) ];
+    stgridO[17] = gridinfoO[ (y+1) + ny*( (x  )*nz + (z+1) ) ];
+    stgridO[18] = gridinfoO[ (y-1) + ny*( (x+1)*nz + (z-1) ) ];
+    stgridO[19] = gridinfoO[ (y  ) + ny*( (x+1)*nz + (z-1) ) ];
+    stgridO[20] = gridinfoO[ (y+1) + ny*( (x+1)*nz + (z-1) ) ];
+    stgridO[21] = gridinfoO[ (y-1) + ny*( (x+1)*nz + (z  ) ) ];
+    stgridO[22] = gridinfoO[ (y  ) + ny*( (x+1)*nz + (z  ) ) ];
+    stgridO[23] = gridinfoO[ (y+1) + ny*( (x+1)*nz + (z  ) ) ];
+    stgridO[24] = gridinfoO[ (y-1) + ny*( (x+1)*nz + (z+1) ) ];
+    stgridO[25] = gridinfoO[ (y  ) + ny*( (x+1)*nz + (z+1) ) ];
+    stgridO[26] = gridinfoO[ (y+1) + ny*( (x+1)*nz + (z+1) ) ];
+
+    for ( ip = 0; ip < npha; ip++ ) {
+      // fhi[ip] = stgridO[13].phi[ip];
+      fhi[ip] = gridinfoO[index].phi[ip];
+    }
+
+    // Calculate laplacian
+    for ( ip = 0; ip < npha; ip++ ) {
+
+      lap[ip]  = 0.0;
+
+      facecenter = stgridO[4].phi[ip] + stgridO[22].phi[ip] + stgridO[10].phi[ip] + stgridO[16].phi[ip] + stgridO[12].phi[ip] + stgridO[14].phi[ip];
+
+      edgecenter = stgridO[1].phi[ip] + stgridO[5].phi[ip] + stgridO[7].phi[ip] + stgridO[3].phi[ip] + stgridO[9].phi[ip] + stgridO[11].phi[ip] + stgridO[17].phi[ip] + stgridO[15].phi[ip] + stgridO[19].phi[ip] + stgridO[21].phi[ip] + stgridO[25].phi[ip] + stgridO[23].phi[ip];
+
+      corner = stgridO[0].phi[ip] + stgridO[2].phi[ip] + stgridO[8].phi[ip] + stgridO[6].phi[ip] + stgridO[18].phi[ip] + stgridO[20].phi[ip] + stgridO[26].phi[ip] + stgridO[24].phi[ip];
+
+      lap[ip] = 3.0*( facecenter + edgecenter/2.0 + corner/3.0 - 44.0*stgridO[13].phi[ip]/3.0 ) / (13.0 * (pfmvar->deltax) * (pfmvar->deltax));
+
+//       lap[ip]  = ( stgridO[14].phi[ip] - 2.0*stgridO[13].phi[ip] + stgridO[12].phi[ip] ) / (pfmvar->deltay*pfmvar->deltay);
+//       lap[ip] += ( stgridO[16].phi[ip] - 2.0*stgridO[13].phi[ip] + stgridO[10].phi[ip] ) / (pfmvar->deltaz*pfmvar->deltaz);
+//       lap[ip] += ( stgridO[22].phi[ip] - 2.0*stgridO[13].phi[ip] + stgridO[ 4].phi[ip] ) / (pfmvar->deltax*pfmvar->deltax);
+
+
+
+      //printf("%le\n", lap[ip]);
+    }
+
+
+    for ( ip = 0; ip < npha; ip++ ) {
+      for ( is = 0; is < nsol; is++ ) {
+        cie[ip][is] = cscl[index].comie[ip][is];
+      }
+    }
+
+    // if ( pfmdat->ISOTHERMAL ) {
+      for ( ip = 0; ip < npha; ip ++ ) {
+        tmp0 = 0.0;
+        tmp1 = 0.0;
+        for ( is1 = 0; is1 < nsol; is1++ ) {
+          for ( is2 = 0; is2 < nsol; is2++ ) {
+            if ( is1 <= is2 ) {
+              tmp0 += propf4->A[ip][is1][is2]*cie[ip][is1]*cie[ip][is2];
+            }
+          }
+          tmp0 += propf4->B[ip][is1]*cie[ip][is1];
+        }
+        ge[ip] = ( tmp0 + tmp1 + propf4->C[ip] ) / pfmdat->Vm;
+      }
+    // }
+    // else {
+    //   for ( ip = 0; ip < npha; ip ++ ) {
+    //     tmp0 = 0.0;
+    //     tmp1 = 0.0;
+    //     for ( is1 = 0; is1 < nsol; is1++ ) {
+    //       for ( is2 = 0; is2 < nsol; is2++ ) {
+    //         if ( is1 <= is2 ) {
+    //           tmp0 += propf4spline[i].A[ip][is1][is2]*cie[ip][is1]*cie[ip][is2];
+    //         }
+    //       }
+    //       tmp1 += propf4spline[i].B[ip][is1]*cie[ip][is1];
+    //     }
+    //     ge[ip] = ( tmp0 + tmp1 + propf4spline[i].C[ip] ) / pfmdat->Vm;
+    //   }
+    // }
+
+
+    for ( is = 0; is < nsol; is++ ) {
+      //mu[is] = stgridO[13].mu[is] / pfmdat->Vm;
+      mu[is] = gridinfoO[index].mu[is] / pfmdat->Vm;
+    }
+
+    // if ( pfmdat->ISOTHERMAL ) {
+      for ( ip = 0; ip < npha; ip++ ) {
+        for ( is1 = 0; is1 < nsol; is1++ ) {
+          for ( is2 = 0; is2 < nsol; is2++ ) {
+            if ( is1 == is2 ) {
+              ddgedcdc[ip][is1*nsol+is2] = 2.0*propf4->A[ip][is1][is2] / pfmdat->Vm;
+            }
+            else {
+              ddgedcdc[ip][is1*nsol+is2] = propf4->A[ip][is1][is2] / pfmdat->Vm;
+            }
+            InvD[ip][is1*nsol+is2] = pfmdat->DInv[ip][is1*nsol+is2];
+          }
+        }
+      }
+    // }
+    // else {
+    //   for ( ip = 0; ip < npha; ip++ ) {
+    //     for ( is1 = 0; is1 < nsol; is1++ ) {
+    //       for ( is2 = 0; is2 < nsol; is2++ ) {
+    //         if ( is1 == is2 ) {
+    //           ddgedcdc[ip][is1*nsol+is2] = 2.0*propf4spline[j].A[ip][is1][is2] / pfmdat->Vm;
+    //         }
+    //         else {
+    //           ddgedcdc[ip][is1*nsol+is2] = propf4spline[j].A[ip][is1][is2] / pfmdat->Vm;
+    //         }
+    //         InvD[ip][is1*nsol+is2] = pfmdat->DInv[ip][is1*nsol+is2];
+    //       }
+    //     }
+    //   }
+    // }
+
+    // Calculate TAU
+    for ( ip1 = 0; ip1 < npha-1; ip1++ ) {
+      for ( is = 0; is < nsol; is++ ) {
+        deltac[is] = pfmdat->c_eq[(npha-1)*npha+(npha-1)][is] - pfmdat->c_eq[ip1*npha+ip1][is];
+      }
+      multiply_nsol(InvD[npha-1], deltac, Ddc);
+      multiply_nsol(ddgedcdc[npha-1], Ddc, ddgDdc);
+
+      tmp0 = 0.0;
+      for ( is = 0; is < nsol; is++ ) {
+        tmp0 += ddgDdc[is] * deltac[is];
+      }
+
+      zeta[ip1][npha-1] = tmp0;
+
+      Tau[ip1][npha-1] = ( 6.0 * pfmvar->ee[ip1*npha+(npha-1)] * pfmdat->a2 * zeta[ip1][npha-1] ) / pfmvar->w[ip1*npha+(npha-1)];
+      Tau[npha-1][ip1] = Tau[ip1][npha-1];
+
+      if ( ip1 == 0 ) {
+        min_tau = Tau[ip1][npha-1];
+      }
+      if ( Tau[ip1][npha-1] < min_tau ) {
+        min_tau = Tau[ip1][npha-1];
+      }
+    }
+    for ( ip1 = 0; ip1 < npha-1; ip1++ ) {
+      for ( ip2 = 0; ip2 < npha-1; ip2++ ) {
+        Tau[ip1][ip2] = min_tau;
+      }
+    }
+    tau = min_tau;
+
+    tmp0 = 0.0;
+    tmp1 = 0.0;
+    for ( ip1 = 0; ip1 < npha; ip1++ ) {
+      for ( ip2 = 0; ip2 < npha; ip2++ ) {
+        if ( ip1 < ip2 ) {
+          tmp0 += Tau[ip1][ip2]*fhi[ip1]*fhi[ip2];
+          tmp1 += fhi[ip1]*fhi[ip2];
+        }
+      }
+    }
+    if ( tmp1 ) {
+      TAU = tmp0 / tmp1;
+    } else {
+      TAU = tau;
+    }
+
+    // get w_ab w_abc ee dab ti local linear indexed variable
+    for ( ip1 = 0; ip1 < npha; ip1++ ) {
+      for ( ip2 = 0; ip2 < npha; ip2++ ) {
+        dwh[ip1*npha+ip2] = pfmvar->w[ip1*npha+ip2];
+        dab[ip1*npha+ip2] = pfmdat->epsc[ip1*npha+ip2];
+        ee_ab[ip1*npha+ip2] = pfmvar->ee[ip1*npha+ip2];
+        for ( ip3 = 0; ip3 < npha; ip3++ ) {
+          dwhabc[(ip1*npha+ip2)*npha+ip3] = pfmvar->w_abc[(ip1*npha+ip2)*npha+ip3];
+        }
+      }
+    }
+
+    // Calculate derivative of well potential
+    for ( ip = 0; ip < npha; ip++ ) {
+      dgphidphi[ip] = F_W_02_dwdphi(fhi, lap, dwh, dwhabc, ip);
+    }
+
+    // Get the laplacian for all betas
+    for ( ip1 = 0; ip1 < npha; ip1++ ) {
+      laps[ip1] = 0.0;
+      for ( ip2 = 0; ip2 < npha; ip2++ ) {
+        if ( ip1 != ip2 ) {
+          laps[ip1] += pfmvar->ee[ip1*npha+ip2] * lap[ip2];
+        }
+      }
+      // printf("    =%le\n", laps[ip]);
+    }
+
+    // Calculate -dF/dphi for all betas and check for active phases
+    sumlambdaphi = 0.0;
+    activephases = 0;
+    for ( ip1 = 0; ip1 < npha; ip1++ ) {
+      if ( fabs(lap[ip1]) > 0.0 ) {
+         lambaphi[ip1] = -laps[ip1] - dgphidphi[ip1];
+        sumlambdaphi += lambaphi[ip1];
+        activephases++;
+      }
+    }
+
+    // Divide the lambda with active phases
+    if ( activephases ) {
+      sumlambdaphi /= activephases;
+    }
+
+    // Update the phi by applying lagrangian multiplier
+    for ( ip1 = 0; ip1 < npha; ip1++ ) {
+      if ( fabs(lap[ip1]) > 0.0 ) {
+        phidot = (2.0/(TAU)) * ( lambaphi[ip1] - sumlambdaphi );
+        gridinfo[ index ].phi[ip1] = gridinfoO[index].phi[ip1] + (pfmvar->deltat)*phidot;
+
+        //printf("t=%d, i=%d, j=%d, lap=%le,%le, mphi=%le, vard=%le, phi[0]=%le, ip=%d, phiold=%le\n", tstep[0], i, j, lap[0],lap[1],  1.0/TAU, 2.0*( lambaphi[ip1] - sumlambdaphi ), gridinfo[ index ].phi[ip1], ip1, stgridO[4].phi[ip1]);
+      }
+    }
+
+  }
+}
+
+__kernel void SolverPhi_F4(__global struct fields *gridinfoO, __global struct fields *gridinfo, __global struct csle *cscl, __constant struct pfmval *pfmdat, __constant struct pfmpar *pfmvar, __global double *temp, __global int *tstep, __constant struct propmatf4 *propf4, __constant struct propmatf4spline *propf4spline, __global struct iter_variables *it_gridinfoO, __global struct symmetric_tensor *eigen_strain_phase, __global struct Stiffness_cubic *stiffness_phase, __global struct Stiffness_cubic *stiffness_phase_n) {
+
+  int x, y, z, ii, i1, j1, k1, i2;
+  int nx, ny, nz;
+  int index;
+  int X, Y, Z;
+
+  int is, js, ks, il, il1, jl, jl1, ipx;
+  int is1, is2;
+  int ig, jg, ip, ip1, ip2, ip3;
+  int ilmax;
+  int interface,bulkphase;
+  int activephases;
+
+  double Ti;
+
+  double tmp0, tmp1;
+  double facecenter, edgecenter, corner;
+
+  double ge[npha], fhi[npha], psi;
+  double dgedc[npha][nsol];
+  double ddgedcdc[npha][nsol*nsol], InvD[npha][nsol*nsol], deltac[nsol], Ddc[nsol], ddgDdc[nsol];
+  double cie[npha][nsol], min_tau, tau;
+  double lap[npha], dff[npha], phidot, Tau[npha][npha];
+  double zeta[npha][npha], TAU, df[npha], hphi[npha];
+  double sumdf;
+  double retG[npha], retmu[npha*nsol], retdmu[npha*nsol*nsol];
+  double gphi[npha], dgphidphi[npha], dhphidphi[npha], mu[nsol], dhphi[npha][npha];
+  double dwh[npha*npha], dwhabc[npha*npha*npha], laps[npha];
+  double sumlambdaphi, lambaphi[npha];
+  double stphi[npha*3*3*3], dab[npha*npha], ee_ab[npha*npha];
+  double Rot_mat[npha*npha*3*3], Inv_Rot_mat[npha*npha*3*3];
+
+  double delast;
+
+  struct fields stgridO[27], stgO[1];
+  struct symmetric_tensor eigen_strain[3];
+  struct symmetric_tensor strain[3];
+  struct Stiffness_cubic stiffness_c[3];
+  struct symmetric_tensor sigma_phase;
+  struct symmetric_tensor sigma;
+
+  struct iter_variables st_it_gO[7];
+
+  X = 0;
+  Y = 1;
+  Z = 2;
+
+  y = get_global_id(0);
+  z = get_global_id(1);
+  x = get_global_id(2);
+
+  ny = get_global_size(0);
+  nz = get_global_size(1);
+  nx = get_global_size(2);
+
+  //index = y + ny*(z + x*nz);
+
+  Ti = pfmdat->T0;
+
+  if ( x != 0 && x != nx-1 && y != 0 && y != ny-1 && z != 0 && z != nz-1 ) {
+
+    index = y + ny*(z + x*nz);
+
+    stgridO[0]  = gridinfoO[ (y-1) + ny*( (x-1)*nz + (z-1) ) ];
+    stgridO[1]  = gridinfoO[ (y  ) + ny*( (x-1)*nz + (z-1) ) ];
+    stgridO[2]  = gridinfoO[ (y+1) + ny*( (x-1)*nz + (z-1) ) ];
+    stgridO[3]  = gridinfoO[ (y-1) + ny*( (x-1)*nz + (z  ) ) ];
+    stgridO[4]  = gridinfoO[ (y  ) + ny*( (x-1)*nz + (z  ) ) ];
+    stgridO[5]  = gridinfoO[ (y+1) + ny*( (x-1)*nz + (z  ) ) ];
+    stgridO[6]  = gridinfoO[ (y-1) + ny*( (x-1)*nz + (z+1) ) ];
+    stgridO[7]  = gridinfoO[ (y  ) + ny*( (x-1)*nz + (z+1) ) ];
+    stgridO[8]  = gridinfoO[ (y+1) + ny*( (x-1)*nz + (z+1) ) ];
+    stgridO[9]  = gridinfoO[ (y-1) + ny*( (x  )*nz + (z-1) ) ];
+    stgridO[10] = gridinfoO[ (y  ) + ny*( (x  )*nz + (z-1) ) ];
+    stgridO[11] = gridinfoO[ (y+1) + ny*( (x  )*nz + (z-1) ) ];
+    stgridO[12] = gridinfoO[ (y-1) + ny*( (x  )*nz + (z  ) ) ];
+    stgridO[13] = gridinfoO[ (y  ) + ny*( (x  )*nz + (z  ) ) ];
+    stgridO[14] = gridinfoO[ (y+1) + ny*( (x  )*nz + (z  ) ) ];
+    stgridO[15] = gridinfoO[ (y-1) + ny*( (x  )*nz + (z+1) ) ];
+    stgridO[16] = gridinfoO[ (y  ) + ny*( (x  )*nz + (z+1) ) ];
+    stgridO[17] = gridinfoO[ (y+1) + ny*( (x  )*nz + (z+1) ) ];
+    stgridO[18] = gridinfoO[ (y-1) + ny*( (x+1)*nz + (z-1) ) ];
+    stgridO[19] = gridinfoO[ (y  ) + ny*( (x+1)*nz + (z-1) ) ];
+    stgridO[20] = gridinfoO[ (y+1) + ny*( (x+1)*nz + (z-1) ) ];
+    stgridO[21] = gridinfoO[ (y-1) + ny*( (x+1)*nz + (z  ) ) ];
+    stgridO[22] = gridinfoO[ (y  ) + ny*( (x+1)*nz + (z  ) ) ];
+    stgridO[23] = gridinfoO[ (y+1) + ny*( (x+1)*nz + (z  ) ) ];
+    stgridO[24] = gridinfoO[ (y-1) + ny*( (x+1)*nz + (z+1) ) ];
+    stgridO[25] = gridinfoO[ (y  ) + ny*( (x+1)*nz + (z+1) ) ];
+    stgridO[26] = gridinfoO[ (y+1) + ny*( (x+1)*nz + (z+1) ) ];
+
+
+    if (pfmdat->ELASTICITY) {
+      stgO[0] = gridinfoO[ (y  ) + ny*( (x  )*nz + (z  ) ) ];
+
+      st_it_gO[0] = it_gridinfoO[ (y  ) + ny*( (x  )*nz + (z  ) ) ];
+      st_it_gO[1] = it_gridinfoO[ (y-1) + ny*( (x  )*nz + (z  ) ) ];
+      st_it_gO[2] = it_gridinfoO[ (y+1) + ny*( (x  )*nz + (z  ) ) ];
+      st_it_gO[3] = it_gridinfoO[ (y  ) + ny*( (x  )*nz + (z-1) ) ];
+      st_it_gO[4] = it_gridinfoO[ (y  ) + ny*( (x  )*nz + (z+1) ) ];
+      st_it_gO[5] = it_gridinfoO[ (y  ) + ny*( (x-1)*nz + (z  ) ) ];
+      st_it_gO[6] = it_gridinfoO[ (y  ) + ny*( (x+1)*nz + (z  ) ) ];
+
+      eigen_strain[0].xx = 0.0;
+      eigen_strain[0].yy = 0.0;
+      eigen_strain[0].zz = 0.0;
+      eigen_strain[0].yz = 0.0;
+      eigen_strain[0].xz = 0.0;
+      eigen_strain[0].xy = 0.0;
+      for (ip = 0; ip < npha; ip++) {
+        eigen_strain[X].xx += eigen_strain_phase[ip].xx*stgO[0].phi[ip];
+        eigen_strain[X].yy += eigen_strain_phase[ip].yy*stgO[0].phi[ip];
+        eigen_strain[X].zz += eigen_strain_phase[ip].zz*stgO[0].phi[ip];
+        eigen_strain[X].yz += eigen_strain_phase[ip].yz*stgO[0].phi[ip];
+        eigen_strain[X].xz += eigen_strain_phase[ip].xz*stgO[0].phi[ip];
+        eigen_strain[X].xy += eigen_strain_phase[ip].xy*stgO[0].phi[ip];
+      }
+      eigen_strain[Y] = eigen_strain[X];
+      eigen_strain[Z] = eigen_strain[X];
+
+      strain[X].xx = 0.5*(st_it_gO[6].disp[X][2] - st_it_gO[5].disp[X][2]) - eigen_strain[X].xx;
+      strain[X].yy = 0.5*(st_it_gO[2].disp[Y][2] - st_it_gO[1].disp[Y][2]) - eigen_strain[X].yy;
+      strain[X].zz = 0.5*(st_it_gO[4].disp[Z][2] - st_it_gO[3].disp[Z][2]) - eigen_strain[X].zz;
+
+      strain[Y].xx = strain[X].xx;
+      strain[Y].yy = strain[X].yy;
+      strain[Y].zz = strain[X].zz;
+      strain[Z].yy = strain[X].yy;
+      strain[Z].xx = strain[X].xx;
+      strain[Z].zz = strain[X].zz;
+
+      strain[X].xy = 0.25*((st_it_gO[2].disp[X][2] - st_it_gO[1].disp[X][2]) + (st_it_gO[6].disp[Y][2] - st_it_gO[5].disp[Y][2]));
+      strain[X].xz = 0.25*((st_it_gO[4].disp[X][2] - st_it_gO[3].disp[X][2]) + (st_it_gO[6].disp[Z][2] - st_it_gO[5].disp[Z][2]));
+      strain[X].yz = 0.25*((st_it_gO[2].disp[Z][2] - st_it_gO[1].disp[Z][2]) + (st_it_gO[4].disp[Y][2] - st_it_gO[3].disp[Y][2]));
+
+      strain[Y].xy = strain[X].xy;
+      strain[Y].xz = strain[X].xz;
+      strain[Y].yz = strain[X].yz;
+      strain[Z].xy = strain[X].xy;
+      strain[Z].xz = strain[X].xz;
+      strain[Z].yz = strain[X].yz;
+
+      stiffness_c[0].C11 = 0.0;
+      stiffness_c[0].C12 = 0.0;
+      stiffness_c[0].C44 = 0.0;
+      for (ip = 0; ip < npha; ip++) {
+        stiffness_c[X].C11 += (stiffness_phase[ip].C11)*stgO[0].phi[ip];
+        stiffness_c[X].C12 += (stiffness_phase[ip].C12)*stgO[0].phi[ip];
+        stiffness_c[X].C44 += (stiffness_phase[ip].C44)*stgO[0].phi[ip];
+      }
+      stiffness_c[Y] = stiffness_c[X];
+      stiffness_c[Z] = stiffness_c[X];
+
+
+      sigma.xx  = stiffness_c[X].C11*(strain[X].xx) + stiffness_c[X].C12*(strain[X].yy + strain[X].zz);
+
+      sigma.yy  = stiffness_c[X].C12*(strain[X].xx  + strain[X].zz) + stiffness_c[X].C11*(strain[X].yy);
+
+      sigma.zz  = stiffness_c[X].C12*(strain[X].xx  + strain[X].yy) + stiffness_c[X].C11*(strain[X].zz);
+
+      sigma.xy  = 2.0*stiffness_c[X].C44*(strain[X].xy);
+
+      sigma.xz  = 2.0*stiffness_c[X].C44*(strain[X].xz);
+
+      sigma.yz  = 2.0*stiffness_c[X].C44*(strain[X].yz);
+
+      //printf("%d, %d, %d, %d, %d, %d, %le, %le, %le\n", tstep[0], x, y, z, index, ip1, stiffness_c[X].C11, stiffness_c[X].C12, stiffness_c[X].C44);
+
+      //printf("%d, %d, %d, %d, %d, %d, %le, %le, %le\n", tstep[0], x, y, z, index, ip1, stiffness_phase[1].C11, stiffness_phase[1].C12, stiffness_phase[1].C44);
+
+    }
+
+    for (ip = 0; ip < npha; ip++) {
+      ii = 0;
+        for (i1 = 0; i1 < 3; i1++) {
+          for (j1 = 0; j1 < 3; j1++) {
+            for (k1 = 0; k1 < 3; k1++) {
+              //stphi[ (ip*3 + i1)*3 + j1 ] = stphi_1[ip][i1][j1];
+              stphi[ ( (ip*3 + i1)*3 + j1 )*3 + k1 ] = stgridO[ii].phi[ip];
+              ii++;
+            }
+          }
+        }
+    }
+
+    for ( ip = 0; ip < npha; ip++ ) {
+      // fhi[ip] = stgridO[13].phi[ip];
+      fhi[ip] = gridinfoO[index].phi[ip];
+    }
+
+    // Calculate laplacian
+    for ( ip = 0; ip < npha; ip++ ) {
+
+      lap[ip]  = 0.0;
+
+      facecenter = stgridO[4].phi[ip] + stgridO[22].phi[ip] + stgridO[10].phi[ip] + stgridO[16].phi[ip] + stgridO[12].phi[ip] + stgridO[14].phi[ip];
+
+      edgecenter = stgridO[1].phi[ip] + stgridO[5].phi[ip] + stgridO[7].phi[ip] + stgridO[3].phi[ip] + stgridO[9].phi[ip] + stgridO[11].phi[ip] + stgridO[17].phi[ip] + stgridO[15].phi[ip] + stgridO[19].phi[ip] + stgridO[21].phi[ip] + stgridO[25].phi[ip] + stgridO[23].phi[ip];
+
+      corner = stgridO[0].phi[ip] + stgridO[2].phi[ip] + stgridO[8].phi[ip] + stgridO[6].phi[ip] + stgridO[18].phi[ip] + stgridO[20].phi[ip] + stgridO[26].phi[ip] + stgridO[24].phi[ip];
+
+      lap[ip] = 3.0*( facecenter + edgecenter/2.0 + corner/3.0 - 44.0*stgridO[13].phi[ip]/3.0 ) / (13.0 * (pfmvar->deltax) * (pfmvar->deltax));
+
+//       lap[ip]  = ( stgridO[14].phi[ip] - 2.0*stgridO[13].phi[ip] + stgridO[12].phi[ip] ) / (pfmvar->deltay*pfmvar->deltay);
+//       lap[ip] += ( stgridO[16].phi[ip] - 2.0*stgridO[13].phi[ip] + stgridO[10].phi[ip] ) / (pfmvar->deltaz*pfmvar->deltaz);
+//       lap[ip] += ( stgridO[22].phi[ip] - 2.0*stgridO[13].phi[ip] + stgridO[ 4].phi[ip] ) / (pfmvar->deltax*pfmvar->deltax);
+
+
+
+      //printf("%le\n", lap[ip]);
+    }
+
+
+    for ( ip = 0; ip < npha; ip++ ) {
+      for ( is = 0; is < nsol; is++ ) {
+        cie[ip][is] = cscl[index].comie[ip][is];
+      }
+    }
+
+    // if ( pfmdat->ISOTHERMAL ) {
+      for ( ip = 0; ip < npha; ip ++ ) {
+        tmp0 = 0.0;
+        tmp1 = 0.0;
+        for ( is1 = 0; is1 < nsol; is1++ ) {
+          for ( is2 = 0; is2 < nsol; is2++ ) {
+            if ( is1 <= is2 ) {
+              tmp0 += propf4->A[ip][is1][is2]*cie[ip][is1]*cie[ip][is2];
+            }
+          }
+          tmp1 += propf4->B[ip][is1]*cie[ip][is1];
+        }
+        ge[ip] = ( tmp0 + tmp1 + propf4->C[ip] ) / pfmdat->Vm;
+      }
+    // }
+    // else {
+    //   for ( ip = 0; ip < npha; ip ++ ) {
+    //     tmp0 = 0.0;
+    //     tmp1 = 0.0;
+    //     for ( is1 = 0; is1 < nsol; is1++ ) {
+    //       for ( is2 = 0; is2 < nsol; is2++ ) {
+    //         if ( is1 <= is2 ) {
+    //           tmp0 += propf4spline[i].A[ip][is1][is2]*cie[ip][is1]*cie[ip][is2];
+    //         }
+    //       }
+    //       tmp1 += propf4spline[i].B[ip][is1]*cie[ip][is1];
+    //     }
+    //     ge[ip] = ( tmp0 + tmp1 + propf4spline[i].C[ip] ) / pfmdat->Vm;
+    //   }
+    // }
+
+
+    for ( is = 0; is < nsol; is++ ) {
+      //mu[is] = stgridO[13].mu[is] / pfmdat->Vm;
+      mu[is] = gridinfoO[index].mu[is] / pfmdat->Vm;
+    }
+
+    // if ( pfmdat->ISOTHERMAL ) {
+      for ( ip = 0; ip < npha; ip++ ) {
+        for ( is1 = 0; is1 < nsol; is1++ ) {
+          for ( is2 = 0; is2 < nsol; is2++ ) {
+            if ( is1 == is2 ) {
+              ddgedcdc[ip][is1*nsol+is2] = 2.0*propf4->A[ip][is1][is2] / pfmdat->Vm;
+            }
+            else {
+              ddgedcdc[ip][is1*nsol+is2] = propf4->A[ip][is1][is2] / pfmdat->Vm;
+            }
+            InvD[ip][is1*nsol+is2] = pfmdat->DInv[ip][is1*nsol+is2];
+          }
+        }
+      }
+    // }
+    // else {
+    //   for ( ip = 0; ip < npha; ip++ ) {
+    //     for ( is1 = 0; is1 < nsol; is1++ ) {
+    //       for ( is2 = 0; is2 < nsol; is2++ ) {
+    //         if ( is1 == is2 ) {
+    //           ddgedcdc[ip][is1*nsol+is2] = 2.0*propf4spline[j].A[ip][is1][is2] / pfmdat->Vm;
+    //         }
+    //         else {
+    //           ddgedcdc[ip][is1*nsol+is2] = propf4spline[j].A[ip][is1][is2] / pfmdat->Vm;
+    //         }
+    //         InvD[ip][is1*nsol+is2] = pfmdat->DInv[ip][is1*nsol+is2];
+    //       }
+    //     }
+    //   }
+    // }
+
+    // Calculate TAU
+    for ( ip1 = 0; ip1 < npha-1; ip1++ ) {
+      for ( is = 0; is < nsol; is++ ) {
+        deltac[is] = pfmdat->c_eq[(npha-1)*npha+(npha-1)][is] - pfmdat->c_eq[ip1*npha+ip1][is];
+      }
+      multiply_nsol(InvD[npha-1], deltac, Ddc);
+      multiply_nsol(ddgedcdc[npha-1], Ddc, ddgDdc);
+
+      tmp0 = 0.0;
+      for ( is = 0; is < nsol; is++ ) {
+        tmp0 += ddgDdc[is] * deltac[is];
+      }
+
+      zeta[ip1][npha-1] = tmp0;
+
+      Tau[ip1][npha-1] = ( 6.0 * pfmvar->ee[ip1*npha+(npha-1)] * pfmdat->a2 * zeta[ip1][npha-1] ) / pfmvar->w[ip1*npha+(npha-1)];
+      Tau[npha-1][ip1] = Tau[ip1][npha-1];
+
+      if ( ip1 == 0 ) {
+        min_tau = Tau[ip1][npha-1];
+      }
+      if ( Tau[ip1][npha-1] < min_tau ) {
+        min_tau = Tau[ip1][npha-1];
+      }
+    }
+    for ( ip1 = 0; ip1 < npha-1; ip1++ ) {
+      for ( ip2 = 0; ip2 < npha-1; ip2++ ) {
+        Tau[ip1][ip2] = min_tau;
+      }
+    }
+    tau = min_tau;
+
+    tmp0 = 0.0;
+    tmp1 = 0.0;
+    for ( ip1 = 0; ip1 < npha; ip1++ ) {
+      for ( ip2 = 0; ip2 < npha; ip2++ ) {
+        if ( ip1 < ip2 ) {
+          tmp0 += Tau[ip1][ip2]*fhi[ip1]*fhi[ip2];
+          tmp1 += fhi[ip1]*fhi[ip2];
+        }
+      }
+    }
+    if ( tmp1 ) {
+      TAU = tmp0 / tmp1;
+    } else {
+      TAU = tau;
+    }
+
+
+    // Calculate df_TD/dphi
+    for ( ip1 = 0; ip1 < npha; ip1++ ) {
+      dff[ip1] = 0.0;
+      for ( ip2 = 0; ip2 < npha; ip2++ ) {
+
+          psi = 0.0;
+          psi += ge[ip2];
+          for ( is = 0; is < nsol; is++ ) {
+            psi -= mu[is]*cie[ip2][is];
+          }
+          psi *= dhfhi(fhi, ip2, ip1);
+
+          dff[ip1] +=  psi;
+      }
+    }
+      //printf("%d, %d, %d, %d, %d, %le, %le\n", tstep[0], x, y, z, index, dff[0], dff[1]);
+
+    // get w_ab w_abc ee dab ti local linear indexed variable
+    for ( ip1 = 0; ip1 < npha; ip1++ ) {
+      for ( ip2 = 0; ip2 < npha; ip2++ ) {
+        dwh[ip1*npha+ip2] = pfmvar->w[ip1*npha+ip2];
+        dab[ip1*npha+ip2] = pfmdat->epsc[ip1*npha+ip2];
+        ee_ab[ip1*npha+ip2] = pfmvar->ee[ip1*npha+ip2];
+        for ( ip3 = 0; ip3 < npha; ip3++ ) {
+          dwhabc[(ip1*npha+ip2)*npha+ip3] = pfmvar->w_abc[(ip1*npha+ip2)*npha+ip3];
+        }
+      }
+    }
+
+    // Calculate derivative of well potential
+    for ( ip = 0; ip < npha; ip++ ) {
+      dgphidphi[ip] = F_W_02_dwdphi(fhi, lap, dwh, dwhabc, ip);
+      //printf("%d, %d, %d, %d, %d, %d, %le\n", tstep[0], x, y, z, index, ip, dgphidphi[ip]);
+    }
+
+    if (!pfmdat->Function_anisotropy) {
+
+    // Get the laplacian for all betas
+    for ( ip1 = 0; ip1 < npha; ip1++ ) {
+      laps[ip1] = 0.0;
+      for ( ip2 = 0; ip2 < npha; ip2++ ) {
+        if ( ip1 != ip2 ) {
+          laps[ip1] += pfmvar->ee[ip1*npha+ip2] * lap[ip2];
+        }
+      }
+      // printf("    =%le\n", laps[ip]);
+    }
+
+    }
+    else {
+
+    for ( ip1 = 0; ip1 < npha; ip1++ ) {
+      for ( ip2 = 0; ip2 < npha; ip2++ ) {
+        for ( i1 = 0; i1 < 3; i1++ ) {
+          for ( i2 = 0; i2 < 3; i2++ ) {
+                Rot_mat[((ip1*npha+ip2)*3+i1)*3+i2] = pfmdat->Rotation_matrix[ip1][ip2][i1][i2];
+            Inv_Rot_mat[((ip1*npha+ip2)*3+i1)*3+i2] = pfmdat->Inv_Rotation_matrix[ip1][ip2][i1][i2];
+          }
+        }
+      }
+    }
+
+    }
+
+
+//     for ( ip = 0; ip < npha; ip++ ) {
+//       //printf("%le, %le\n", laps[ip], calcAnisotropy_01(stphi, dab, ee_ab, ip, pfmvar->deltax, pfmvar->deltay, pfmvar->deltaz, Rot_mat, Inv_Rot_mat, y, z, x));
+//       laps[ip] = calcAnisotropy_01(stphi, dab, ee_ab, ip, pfmvar->deltax, pfmvar->deltay, pfmvar->deltaz, Rot_mat, Inv_Rot_mat, y, z, x);
+//     }
+    //printf("%d, %d, %d, %d, %d, %le, %le, %le, %le, %le, %le, %le\n", tstep[0], y, z, x, index, pfmvar->deltax, pfmvar->deltay, pfmvar->deltaz, Rot_mat[1], Inv_Rot_mat[1], laps[0], laps[1]);
+
+    // Calculate -dF/dphi for all betas and check for active phases
+    sumlambdaphi = 0.0;
+    activephases = 0;
+    for ( ip1 = 0; ip1 < npha; ip1++ ) {
+      if ( fabs(lap[ip1]) > 0.0 ) {
+         lambaphi[ip1] = -laps[ip1] - dgphidphi[ip1] - dff[ip1];
+
+
+        if (pfmdat->ELASTICITY) {
+          //lambda_phi[ip1] -= df_elast(grad, sigma, gridinfo_w[center].phi, a);
+
+          delast = -(sigma.xx*eigen_strain_phase[ip1].xx + sigma.yy*eigen_strain_phase[ip1].yy + sigma.zz*eigen_strain_phase[ip1].zz + 2.0*sigma.xy*eigen_strain_phase[ip1].xy + 2.0*sigma.xz*eigen_strain_phase[ip1].xz + 2.0*sigma.yz*eigen_strain_phase[ip1].yz);
+
+          //printf("%d, %d, %d, %d, %d, %d, %le\n", tstep[0], x, y, z, index, ip1, delast);
+          //printf("%d, %d, %d, %d, %d, %d, %le, %le, %le, %le, %le, %le\n", tstep[0], x, y, z, index, ip1, eigen_strain_phase[ip1].xx, eigen_strain_phase[ip1].yy, eigen_strain_phase[ip1].zz, eigen_strain_phase[ip1].xy, eigen_strain_phase[ip1].xz, eigen_strain_phase[ip1].yz);
+          //printf("%d, %d, %d, %d, %d, %d, %le, %le, %le, %le, %le, %le\n", tstep[0], x, y, z, index, ip1, sigma.xx, sigma.yy, sigma.zz, sigma.xy, sigma.xz, sigma.yz);
+
+          sigma_phase.xx = stiffness_phase[ip1].C11*strain[X].xx  + stiffness_phase[ip1].C12*(strain[X].yy + strain[X].zz);
+          sigma_phase.yy = stiffness_phase[ip1].C12*(strain[X].xx + strain[X].zz) + stiffness_phase[ip1].C11*strain[X].yy;
+          sigma_phase.zz = stiffness_phase[ip1].C12*(strain[X].xx + strain[X].yy) + stiffness_phase[ip1].C11*strain[X].zz;
+
+          sigma_phase.xy = 2.0*stiffness_phase[ip1].C44*strain[X].xy;
+          sigma_phase.xz = 2.0*stiffness_phase[ip1].C44*strain[X].xz;
+          sigma_phase.yz = 2.0*stiffness_phase[ip1].C44*strain[X].yz;
+
+          delast += 0.5*(sigma_phase.xx*strain[X].xx + sigma_phase.yy*strain[X].yy + sigma_phase.zz*strain[X].zz + 2.0*sigma_phase.xy*strain[X].xy + 2.0*sigma_phase.xz*strain[X].xz + 2.0*sigma_phase.yz*strain[X].yz);
+
+
+          lambaphi[ip1] -= delast;
+
+          //printf("%d, %d, %d, %d, %d, %d, %le\n", tstep[0], x, y, z, index, ip1, delast);
+
+          //printf("%d, %d, %d, %d, %d, %d, %le, %le, %le, %le, %le, %le\n", tstep[0], x, y, z, index, ip1, sigma_phase.xx, sigma_phase.yy, sigma_phase.zz, sigma_phase.xy, sigma_phase.xz, sigma_phase.yz);
+
+          //printf("%d, %d, %d, %d, %d, %d, %le, %le, %le, %le, %le, %le\n", tstep[0], x, y, z, index, ip1, strain[X].xx, strain[X].yy, strain[X].zz, strain[X].xy, strain[X].xz, strain[X].yz);
+
+        }
+
+        //printf("%d, %d, %d, %d, %d, %d, %le, %d, %d\n", tstep[0], x, y, z, index, ip1, delast, pfmdat->ELASTICITY, pfmdat->ISOTHERMAL);
+
+
+        sumlambdaphi += lambaphi[ip1];
+        activephases++;
+        //printf("%d, %d, %d, %d, %d, %d, %le, %le\n", tstep[0], x, y, z, index, ip1, dff[ip1], -laps[ip1]);
+        //printf("t=%d, y=%d, z=%d, x=%d, lap=%le, %le, mphi=%le, vard=%le, phi[0]=%le, ip=%d, phiold=%le\n", tstep[0], y, z, x, laps[0], laps[1], 1.0/TAU,  lambaphi[ip1], gridinfo[ index ].phi[ip1], ip1, stgridO[13].phi[ip1]);
+      }
+    }
+
+    // Divide the lambda with active phases
+    if ( activephases ) {
+      sumlambdaphi /= activephases;
+    }
+
+    // Update the phi by applying lagrangian multiplier
+    for ( ip1 = 0; ip1 < npha; ip1++ ) {
+      if ( fabs(lap[ip1]) > 0.0 ) {
+        phidot = (2.0/(TAU)) * ( lambaphi[ip1] - sumlambdaphi );
+        gridinfo[ index ].phi[ip1] = gridinfoO[index].phi[ip1] + (pfmvar->deltat)*phidot;
+
+        // printf("t=%d, y=%d, z=%d, x=%d, lap=%le, %le, mphi=%le, vard=%le, phi[0]=%le, ip=%d, phiold=%le\n", tstep[0], y, z, x, lap[0], lap[1],  1.0/TAU, 2.0*( lambaphi[ip1] - sumlambdaphi ), gridinfo[ index ].phi[ip1], ip1, stgridO[13].phi[ip1]);
+      }
+    }
+
+  }
+}
+
+__kernel void SolverCatr_F2_smooth(__global struct fields *gridinfoO, __global struct fields *gridinfo, __global struct csle *cscl, __constant struct pfmval *pfmdat, __constant struct pfmpar *pfmvar, __global double *temp, __global int *tstep) {
+
+  int x, y, z, jj, ii;
+  int nx, ny, nz;
+  int index;
+
+  int ig, is, js, ip, i1, j1, is1, is2, ip1, ip2, ks;
+  int interface, bulkphase;
+
+  double A1[npha-1];
+  double dphidt[npha-1][7], gradx_phi[npha][5], grady_phi[npha][5], gradz_phi[npha][5], phix[npha][7], phiy[npha][7], phiz[npha][7], modgradphi[npha][7], scalprodct[npha][7];
+  double cjatx, cjaty, cjatz;
+  double jatc[npha-1][nsol], jatr[nsol];
+
+  //double hphid[5][npha], hphi[npha], dhphi[npha][npha], hphicii[5][npha];
+  double tmp0, tmp1;
+  double DELTAT, sum_dhphi, Ti;
+  double sum[nsol], sum_dcbdT[nsol], dcdmu[nsol*nsol], dc_dmu[7][npha][nsol*nsol], Da[7][nsol][nsol];
+  double Damidx[2][nsol][nsol], Damidy[2][nsol][nsol], Damidz[2][nsol][nsol], gradmux[2][nsol], gradmuy[2][nsol], gradmuz[2][nsol];
+  double divflux[nsol], mu[nsol], deltamu[nsol], c_tdt[nsol], dcbdT_phase[npha][nsol];
+  double deltac[nsol], inv_dcdmu[nsol*nsol], cg[nsol], cphas[nsol], cie[npha][nsol];
+  double cas[npha*(nsol+1)], retdmu[npha*nsol*nsol], ddgedcdc[5][npha][nsol*nsol], retmu[npha*nsol], dgedc[npha][nsol];
+  double yc[nsol+1], retdmuphase[nsol*nsol];
+  double alpha[npha-1][nsol][7], alphidot[npha-1][nsol][6], jat[npha-1][nsol][6];
+
+  struct fields stgridO[27];
+  struct fields stgN[7];
+  struct csle stcscl[7];
+  struct fields stgO[7];
+
+  y = get_global_id(0);
+  z = get_global_id(1);
+  x = get_global_id(2);
+
+  ny = get_global_size(0);
+  nz = get_global_size(1);
+  nx = get_global_size(2);
+
+  //index = y + ny*(z + x*nz);
+
+  Ti = pfmdat->T0;
+
+  if ( x != 0 && x != nx-1 && y != 0 && y != ny-1 && z != 0 && z != nz-1 ) {
+
+    index = y + ny*(z + x*nz);
+
+    Ti = gridinfoO[ index ].temperature;
+
+    stgridO[0]  = gridinfoO[ (y-1) + ny*( (x-1)*nz + (z-1) ) ];
+    stgridO[1]  = gridinfoO[ (y  ) + ny*( (x-1)*nz + (z-1) ) ];
+    stgridO[2]  = gridinfoO[ (y+1) + ny*( (x-1)*nz + (z-1) ) ];
+    stgridO[3]  = gridinfoO[ (y-1) + ny*( (x-1)*nz + (z  ) ) ];
+    stgridO[4]  = gridinfoO[ (y  ) + ny*( (x-1)*nz + (z  ) ) ];
+    stgridO[5]  = gridinfoO[ (y+1) + ny*( (x-1)*nz + (z  ) ) ];
+    stgridO[6]  = gridinfoO[ (y-1) + ny*( (x-1)*nz + (z+1) ) ];
+    stgridO[7]  = gridinfoO[ (y  ) + ny*( (x-1)*nz + (z+1) ) ];
+    stgridO[8]  = gridinfoO[ (y+1) + ny*( (x-1)*nz + (z+1) ) ];
+    stgridO[9]  = gridinfoO[ (y-1) + ny*( (x  )*nz + (z-1) ) ];
+    stgridO[10] = gridinfoO[ (y  ) + ny*( (x  )*nz + (z-1) ) ];
+    stgridO[11] = gridinfoO[ (y+1) + ny*( (x  )*nz + (z-1) ) ];
+    stgridO[12] = gridinfoO[ (y-1) + ny*( (x  )*nz + (z  ) ) ];
+    stgridO[13] = gridinfoO[ (y  ) + ny*( (x  )*nz + (z  ) ) ];
+    stgridO[14] = gridinfoO[ (y+1) + ny*( (x  )*nz + (z  ) ) ];
+    stgridO[15] = gridinfoO[ (y-1) + ny*( (x  )*nz + (z+1) ) ];
+    stgridO[16] = gridinfoO[ (y  ) + ny*( (x  )*nz + (z+1) ) ];
+    stgridO[17] = gridinfoO[ (y+1) + ny*( (x  )*nz + (z+1) ) ];
+    stgridO[18] = gridinfoO[ (y-1) + ny*( (x+1)*nz + (z-1) ) ];
+    stgridO[19] = gridinfoO[ (y  ) + ny*( (x+1)*nz + (z-1) ) ];
+    stgridO[20] = gridinfoO[ (y+1) + ny*( (x+1)*nz + (z-1) ) ];
+    stgridO[21] = gridinfoO[ (y-1) + ny*( (x+1)*nz + (z  ) ) ];
+    stgridO[22] = gridinfoO[ (y  ) + ny*( (x+1)*nz + (z  ) ) ];
+    stgridO[23] = gridinfoO[ (y+1) + ny*( (x+1)*nz + (z  ) ) ];
+    stgridO[24] = gridinfoO[ (y-1) + ny*( (x+1)*nz + (z+1) ) ];
+    stgridO[25] = gridinfoO[ (y  ) + ny*( (x+1)*nz + (z+1) ) ];
+    stgridO[26] = gridinfoO[ (y+1) + ny*( (x+1)*nz + (z+1) ) ];
+
+    stcscl[0] = cscl[ (y  ) + ny*( (x  )*nz + (z  ) ) ];
+    stcscl[1] = cscl[ (y-1) + ny*( (x  )*nz + (z  ) ) ];
+    stcscl[2] = cscl[ (y+1) + ny*( (x  )*nz + (z  ) ) ];
+    stcscl[3] = cscl[ (y  ) + ny*( (x  )*nz + (z-1) ) ];
+    stcscl[4] = cscl[ (y  ) + ny*( (x  )*nz + (z+1) ) ];
+    stcscl[5] = cscl[ (y  ) + ny*( (x-1)*nz + (z  ) ) ];
+    stcscl[6] = cscl[ (y  ) + ny*( (x+1)*nz + (z  ) ) ];
+
+    stgO[0] = gridinfoO[ (y  ) + ny*( (x  )*nz + (z  ) ) ];
+    stgO[1] = gridinfoO[ (y-1) + ny*( (x  )*nz + (z  ) ) ];
+    stgO[2] = gridinfoO[ (y+1) + ny*( (x  )*nz + (z  ) ) ];
+    stgO[3] = gridinfoO[ (y  ) + ny*( (x  )*nz + (z-1) ) ];
+    stgO[4] = gridinfoO[ (y  ) + ny*( (x  )*nz + (z+1) ) ];
+    stgO[5] = gridinfoO[ (y  ) + ny*( (x-1)*nz + (z  ) ) ];
+    stgO[6] = gridinfoO[ (y  ) + ny*( (x+1)*nz + (z  ) ) ];
+
+
+      for ( is1 = 0; is1 < nsol; is1++ ) {
+        sum[is1] = 0.0;
+        sum_dcbdT[is1] = 0.0;
+        for ( is2 = 0; is2 < nsol; is2++ ) {
+          dcdmu[is1*nsol+is2] = 0.0;
+        }
+      }
+
+      for ( ip = 0; ip < npha; ip++ ) {
+        for ( is = 0; is < nsol; is++ ) {
+          dcbdT_phase[ip][is] = 0.0;
+        }
+      }
+
+      // Calculations are carried out at stencil points of 5 point stencil
+      for ( ii = 0; ii < 7; ii++ ) {
+
+        interface = 1;
+        bulkphase = 0;
+        for ( ip = 0; ip < npha; ip++ ) {
+          if ( stgO[ii].phi[ip] >= pfmdat->interfaceUplimit ) {
+            bulkphase = ip;
+            interface = 0;
+            break;
+          }
+        }
+
+        if ( interface ) {
+
+           for ( ip = 0; ip < npha; ip++ ) {
+
+            // Get dc_dmu
+            tmp0 = 0.0;
+            for ( is = 0; is < nsol; is++ ) {
+              yc[is] = stcscl[ii].comie[ip][is];
+              tmp0 +=  yc[is];
+            }
+            yc[nsol] = 1.0 - tmp0;
+
+            //printf("t = %d, i = %d, j = %d, ii = %d, ip = %d, tdbip = %d", tstep[0], i, j, ii, ip, pfmdat->thermophase[ip]);
+            dMudc(stgO[ii].temperature, yc, retdmuphase, pfmdat->thermophase[ip]);
+
+            matinvnew_nsol(retdmuphase, dc_dmu[ii][ip]);
+
+          }
+
+          // Calculate mobility at stencil points
+          for ( is = 0; is < nsol; is++ ) {
+            for ( js =0; js < nsol; js++ ) {
+              Da[ii][is][js] = 0.0;
+              for ( ip = 0; ip < npha; ip++ ) {
+                for ( ks = 0; ks < nsol; ks++ ) {
+                  Da[ii][is][js] += pfmdat->D[ip][is*nsol+ks] * dc_dmu[ii][ip][ks*nsol+js] * stgO[ii].phi[ip];
+                }
+              }
+            }
+          }
+
         }
         else {
-          Bf3[0][0] = propf3->B[0][0];
-          Bf3[1][0] = propf3->B[1][0];
-        }
-        
-        if ( !pfmdat->ISOTHERMAL ) { 
-          c_liq[0] = propf3->ceq[0][1][0] - propf3->DELTA_C[0][0]*(pfmdat->Teq-Ti) / propf3->DELTA_T[0][1];
-          
-          c_sol[0] = propf3->ceq[0][0][0] - propf3->DELTA_C[0][0]*(pfmdat->Teq-Ti) / propf3->DELTA_T[0][0]; 
-          
-          Cf3[0] = propf3->A[0][0][0] * c_sol[0] * c_sol[0] - propf3->A[1][0][0] * c_liq[0] * c_liq[0]; 
-          
-          Cf3[1] = propf3->C[1];
-        }
-        else { 
-          Cf3[0] = propf3->C[0]; 
-          Cf3[1] = propf3->C[1];
-        }
-        
-        gs = ( propf3->A[0][0][0]*csol1*csol1 + Bf3[0][0]*csol1 + Cf3[0] ) / pfmdat->Vm; 
-        gl = ( propf3->A[1][0][0]*cliq1*cliq1 + Bf3[1][0]*cliq1 + Cf3[1] ) / pfmdat->Vm; 
-        
-         dgldc1l = stgridO[4].mu[0] / (pfmdat->Vm);
-         
-        ddgldc1ldc1l = ( 2.0*propf3->A[1][0][0] )/(pfmdat->Vm);
-        
-        zeta = ((cliq1-csol1)*(cliq1-csol1)*ddgldc1ldc1l*D11invL);
 
-        gphi = stgridO[4].phi*stgridO[4].phi*(1.0-stgridO[4].phi)*(1.0-stgridO[4].phi);
-        dgphidphi = 2.0*stgridO[4].phi*(1.0-stgridO[4].phi)*(1.0-2.0*stgridO[4].phi);
-        dhphidphi = 30.0*gphi;
-
-
-        phiz[0] = 0.0; 
-        phiz[1] = 0.0; 
-        phiz[2] = 0.0; 
-        phiz[3] = 0.0; 
-        phiz[4] = 0.0; 
-        
-        for ( i1 = 0; i1 < 5; i1++ ) { 
-          phia[i1][0] = phix[i1];
-          phia[i1][1] = phiy[i1];
-          phia[i1][2] = phiz[i1];
-        }
-        
-        // Rotation Matrix multiplication with gradients vector
-        for ( i1 = 0; i1 < 5; i1++ ) { 
-          for ( ii1 = 0; ii1 < 3; ii1++ ) { 
-            tmp0 = 0.0;
-            for ( jj1 = 0; jj1 < 3; jj1++ ) { 
-              tmp0 += pfmdat->Rotation_matrix[0][1][ii1][jj1]*phia[i1][jj1];
-              // if ( i == 1 && j == 1 && i1 ==0 && ip1 == 0 && ip2 == 1 ) { 
-              //   printf("%le\t", pfmdat->Rotation_matrix[ii1][jj1]);
-              // }
-            }
-            // if ( i == 1 && j == 1 && i1 ==0 && ip1 == 0 && ip2 == 1 ) { 
-            //   printf("\n");
-            // }
-            phir[i1][ii1] = tmp0;
+          // Get dc_dmu for bulk phase
+          tmp0 = 0.0;
+          for ( is = 0; is < nsol; is++ ) {
+            yc[is] = stgO[ii].com[is];
+            tmp0 +=  yc[is];
           }
-        }
-        
-        for ( i1 = 0; i1 < 5; i1++ ) { 
-          phixr[i1] = phir[i1][0];
-          phiyr[i1] = phir[i1][1];
-          phizr[i1] = phir[i1][2];
-        }
-        
-        for (ii = 0; ii < 5; ii++) { 
-          neta[ii] = 0.0;
-          Bx[ii] = 0.0; 
-          By[ii] = 0.0; 
-          Bz[ii] = 0.0; 
-          B[ii] = 0.0; 
-        }
-        
-        for (ii = 0; ii <5; ii++) { 
-          
-          modgradphi1 = sqrt( phixr[ii]*phixr[ii] + phiyr[ii]*phiyr[ii] );
-          modgradphi4 = modgradphi1*modgradphi1*modgradphi1*modgradphi1;
-          
-          if ( modgradphi4 != 0.0 ) { 
-            
-            Nnx = phixr[ii] / modgradphi1;
-            Nny = phiyr[ii] / modgradphi1;
-            
-            tmp1 = ( Nnx*Nnx*Nnx*Nnx + Nny*Nny*Nny*Nny );
-            
-            //tmp2 = ( phixr[ii]*phixr[ii] + phiyr[ii]*phiyr[ii] ); 
-            
-            neta[ii] = ( 1.0 - 3.0*(pfmdat->epsc) ) * ( 1.0 + ( (4.0*(pfmdat->epsc))/(1.0-3.0*(pfmdat->epsc)) )*tmp1 );
-            
-            //Bx[ii] = neta[ii] *  16.0 * pfmdat->epsc * ( Nnx*Nnx - tmp1 ) * tmp2;
-            //By[ii] = neta[ii] *  16.0 * pfmdat->epsc * ( Nny*Nny - tmp1 ) * tmp2;
-            
-            Bx[ii] = 16.0 * pfmdat->epsc * ( Nnx*Nnx - tmp1 ) * phixr[ii];
-            By[ii] = 16.0 * pfmdat->epsc * ( Nny*Nny - tmp1 ) * phiyr[ii];
-            
-            //etam[ii] = ( 1.0 - 3.0*(pfmdat->epsm) ) * ( 1.0 + ( (4.0*(pfmdat->epsm))/(1.0-3.0*(pfmdat->epsm)) )*tmp1 );
-             
-          }
-          else {
-            
-            neta[ii] = ( 1.0 - 3.0*(pfmdat->epsc) );
-            
-            Bx[ii] = 0.0;
-            By[ii] = 0.0;
-            
-            //etam[ii] = ( 1.0 - 3.0*(pfmdat->epsm) );
-
-          }
-        }
-        
-        for ( i1 = 0; i1 < 5; i1++ ) { 
-          Ba[i1][0] = Bx[i1];
-          Ba[i1][1] = By[i1];
-          Ba[i1][2] = Bz[i1];
-        }
-        
-        // Inverse Rotation Matrix multiplication with depsilon/dphix, depsilon/dphiy
-        for ( i1 = 0; i1 < 5; i1++ ) { 
-          for ( ii1 = 0; ii1 < 3; ii1++ ) { 
-            tmp0 = 0.0;
-            for ( jj1 = 0; jj1 < 3; jj1++ ) { 
-              tmp0 += pfmdat->Inv_Rotation_matrix[0][1][ii1][jj1]*Ba[i1][jj1];
-            }
-            Bir[i1][ii1] = tmp0;
-          }
-        }
-        
-        for ( i1 = 0; i1 < 5; i1++ ) { 
-          Bxir[i1] = Bir[i1][0];
-          Byir[i1] = Bir[i1][1];
-          Bzir[i1] = Bir[i1][2];
-        }
-        
-        neta_x = ( neta[1] - neta[2] ) / ( (pfmvar->deltax) ); 
-        neta_y = ( neta[3] - neta[4] ) / ( (pfmvar->deltay) );
-
-        alp1 = neta[0]*neta[0]*div_phi + 2.0*neta[0] * ( neta_x * phix[0] + neta_y * phiy[0] );
-        
-        alp2 = ( neta[1] * Bxir[1] - neta[2] * Bxir[2] ) / ( (pfmvar->deltax) );
-        alp3 = ( neta[3] * Byir[3] - neta[4] * Byir[4] ) / ( (pfmvar->deltay) );
-
-        alp = alp1 + alp2 + alp3;
-        
-        Mphi = (pfmvar->w)/(3.0*(pfmvar->ee)*(pfmdat->a2)*zeta);
-        
-        if ( fabs(div_phi) > 0.0 )  { 
-
-        phidot_aniso =  Mphi*((pfmvar->ee)*alp - (pfmvar->w)*dgphidphi - dhphidphi*(gs-gl-(csol1-cliq1)*dgldc1l));
-
-        gridNew[ ( ( i )*nx + ( j ) ) ].phi = stgridO[4].phi + (pfmvar->deltat)*phidot_aniso;
-        }
-		//printf("%le,\t%le,\t%le,\t%le,\t%le,\t%le,\t%le,\t%le\n", Mphi, pfmvar->w, pfmvar->ee, pfmdat->a2, zeta, cliq1, csol1, ddgldc1ldc1l);
-		
-
-    }
-}
-
-__kernel void SolverPhi_4(__global struct grid *gridOld, __global struct grid *gridNew, __global struct csle *cscl, __constant struct pfmval *pfmdat, __constant struct pfmpar *pfmvar, __global double *temp, __global int *tstep, __constant struct propmatf4 *propf4, __constant struct propmatf4spline *propf4spline) {   
-  
-    int i;
-    int j;
-    int k;
-    int ii, i1, ii1, jj1;  
-    int nx;
-    int ny;
-    int nz;
-    int index;
-
-    double gphi;
-    double dgphidphi;
-    double dhphidphi; 
-    double DetDL;
-    double D11invL;
-    double gl;
-    double gs;
-    double dgldc1l;
-    double ddgldc1ldc1l;
-    double zeta;
-    double gradx_phi[3];
-    double grady_phi[3];
-    double phix[5];
-    double phiy[5];
-    double div_phi;
-    double angleig;
-    double Nnx;
-    double Nny;
-    double neta[5];
-    double etam[5];
-    double B[5];
-    double neta_x;
-    double neta_y;
-    double alp1;
-    double eep_x;
-    double eep_y;
-    double alp2;
-    double alp3;
-    double alp;
-    double Mphi;
-    double Mphi_aniso;
-    double Mphi_FiniteMobility;
-    double Mphi_FiniteMobilityAniso;
-    double phidot_aniso;
-    
-    double cliq1;
-    double csol1;
-    double cliq2;
-    double csol2;
-
-    double Bf3[npha][nsol], Cf3[npha];
-    
-     double y[2], retGphase[1], retdmuphase[1], c_sol[1], c_liq[1];
-
-    double Ti;
-
-    double tmp1;
-
-    double phiz[5], phia[5][3], tmp0, phir[5][3], phixr[5], phiyr[5], phizr[5], Bx[5], By[5], Bz[5], modgradphi1, modgradphi4, Bxir[5], Byir[5], Bzir[5], Ba[5][3], Bir[5][3];
-    
-    struct grid stgridO[9];
-
-    j = get_global_id(0);
-    i = get_global_id(1);
-    
-    nx = pfmdat->jNx;
-    ny = pfmdat->iNy;
-    
-    if ( i != 0 && i != ny-1 && j != 0 && j != nx-1 ) {
-
-        Ti = temp[j];
-
-        index = (i)*nx + (j);
-
-        stgridO[0] = gridOld[(i-1)*nx + (j-1)];
-        stgridO[1] = gridOld[(i-1)*nx + ( j )];
-        stgridO[2] = gridOld[(i-1)*nx + (j+1)];
-        stgridO[3] = gridOld[( i )*nx + (j-1)];
-        stgridO[4] = gridOld[( i )*nx + ( j )];
-        stgridO[5] = gridOld[( i )*nx + (j+1)];
-        stgridO[6] = gridOld[(i+1)*nx + (j-1)];
-        stgridO[7] = gridOld[(i+1)*nx + ( j )];
-        stgridO[8] = gridOld[(i+1)*nx + (j+1)];
-
-        cliq1 = cscl[( i )*nx + ( j )].c1l;
-        csol1 = cscl[( i )*nx + ( j )].c1s;
-
-        
-        div_phi = ( 4.0*(stgridO[1].phi+stgridO[3].phi+stgridO[7].phi+stgridO[5].phi ) + stgridO[0].phi+stgridO[6].phi+stgridO[8].phi+stgridO[2].phi - 20.0*stgridO[4].phi ) / ( 6.0*(pfmvar->deltax)*(pfmvar->deltax) );
-
-        gradx_phi[0] = ( stgridO[5].phi - stgridO[3].phi ) / ( 2.0*(pfmvar->deltax) );
-        gradx_phi[1] = ( stgridO[8].phi - stgridO[6].phi ) / ( 2.0*(pfmvar->deltax) );
-        gradx_phi[2] = ( stgridO[2].phi - stgridO[0].phi ) / ( 2.0*(pfmvar->deltax) );
-
-        grady_phi[0] = ( stgridO[7].phi - stgridO[1].phi ) / ( 2.0*(pfmvar->deltay) );
-        grady_phi[1] = ( stgridO[8].phi - stgridO[2].phi ) / ( 2.0*(pfmvar->deltay) );
-        grady_phi[2] = ( stgridO[6].phi - stgridO[0].phi ) / ( 2.0*(pfmvar->deltay) );
-
-        phix[0] = gradx_phi[0];
-        phix[1] = ( stgridO[5].phi - stgridO[4].phi ) / ( (pfmvar->deltax) );
-        phix[2] = ( stgridO[4].phi - stgridO[3].phi ) / ( (pfmvar->deltax) );
-        phix[3] = ( gradx_phi[0] + gradx_phi[1] ) / ( 2.0 );
-        phix[4] = ( gradx_phi[0] + gradx_phi[2] ) / ( 2.0 );
-
-        phiy[0] = grady_phi[0];
-        phiy[1] = ( grady_phi[0] + grady_phi[1] ) / ( 2.0 );
-        phiy[2] = ( grady_phi[0] + grady_phi[2] ) / ( 2.0 );
-        phiy[3] = ( stgridO[7].phi - stgridO[4].phi ) / ( (pfmvar->deltay) );
-        phiy[4] = ( stgridO[4].phi - stgridO[1].phi ) / ( (pfmvar->deltay) );
-
-        
-
-        D11invL = 1.0/pfmdat->D11l;
-        
-        if ( pfmdat->ISOTHERMAL ) { 
-          
-          gs = ( propf4->A[0][0][0]*csol1*csol1 + propf4->B[0][0]*csol1 + propf4->C[0] ) / pfmdat->Vm;
-          
-          gl = ( propf4->A[1][0][0]*cliq1*cliq1 + propf4->B[1][0]*cliq1 + propf4->C[1] ) / pfmdat->Vm;
-          
-        }
-        else { 
-          tmp0 = propf4spline[j].A[0][0][0]*csol1*csol1;
-          
-          tmp1 = propf4spline[j].B[0][0]*csol1; 
-        
-          gs = ( tmp0 + tmp1 + propf4spline[j].C[0] ) / pfmdat->Vm;
-        
-          tmp0 = propf4spline[j].A[1][0][0]*cliq1*cliq1;
-          
-          tmp1 = propf4spline[j].B[1][0]*cliq1; 
-        
-          gl = ( tmp0 + tmp1 + propf4spline[j].C[1] ) / pfmdat->Vm;
-        }
-        
-        
-        if ( pfmdat->ISOTHERMAL ) { 
-          ddgldc1ldc1l = 2.0*propf4->A[1][0][0] / pfmdat->Vm;
-        }
-        else { 
-          ddgldc1ldc1l = 2.0*propf4spline[j].A[1][0][0] / pfmdat->Vm;
-        }
-        
-         dgldc1l = stgridO[4].mu[0] / (pfmdat->Vm);
-        
-        zeta = ((cliq1-csol1)*(cliq1-csol1)*ddgldc1ldc1l*D11invL);
-
-        gphi = stgridO[4].phi*stgridO[4].phi*(1.0-stgridO[4].phi)*(1.0-stgridO[4].phi);
-        dgphidphi = 2.0*stgridO[4].phi*(1.0-stgridO[4].phi)*(1.0-2.0*stgridO[4].phi);
-        dhphidphi = 30.0*gphi;
-
-
-        phiz[0] = 0.0; 
-        phiz[1] = 0.0; 
-        phiz[2] = 0.0; 
-        phiz[3] = 0.0; 
-        phiz[4] = 0.0; 
-        
-        for ( i1 = 0; i1 < 5; i1++ ) { 
-          phia[i1][0] = phix[i1];
-          phia[i1][1] = phiy[i1];
-          phia[i1][2] = phiz[i1];
-        }
-        
-        // Rotation Matrix multiplication with gradients vector
-        for ( i1 = 0; i1 < 5; i1++ ) { 
-          for ( ii1 = 0; ii1 < 3; ii1++ ) { 
-            tmp0 = 0.0;
-            for ( jj1 = 0; jj1 < 3; jj1++ ) { 
-              tmp0 += pfmdat->Rotation_matrix[0][1][ii1][jj1]*phia[i1][jj1];
-              // if ( i == 1 && j == 1 && i1 ==0 && ip1 == 0 && ip2 == 1 ) { 
-              //   printf("%le\t", pfmdat->Rotation_matrix[ii1][jj1]);
-              // }
-            }
-            // if ( i == 1 && j == 1 && i1 ==0 && ip1 == 0 && ip2 == 1 ) { 
-            //   printf("\n");
-            // }
-            phir[i1][ii1] = tmp0;
-          }
-        }
-        
-        for ( i1 = 0; i1 < 5; i1++ ) { 
-          phixr[i1] = phir[i1][0];
-          phiyr[i1] = phir[i1][1];
-          phizr[i1] = phir[i1][2];
-        }
-        
-        for (ii = 0; ii < 5; ii++) { 
-          neta[ii] = 0.0;
-          Bx[ii] = 0.0; 
-          By[ii] = 0.0; 
-          Bz[ii] = 0.0; 
-          B[ii] = 0.0; 
-        }
-        
-        for (ii = 0; ii <5; ii++) { 
-          
-          modgradphi1 = sqrt( phixr[ii]*phixr[ii] + phiyr[ii]*phiyr[ii] );
-          modgradphi4 = modgradphi1*modgradphi1*modgradphi1*modgradphi1;
-          
-          if ( modgradphi4 != 0.0 ) { 
-            
-            Nnx = phixr[ii] / modgradphi1;
-            Nny = phiyr[ii] / modgradphi1;
-            
-            tmp1 = ( Nnx*Nnx*Nnx*Nnx + Nny*Nny*Nny*Nny );
-            
-            //tmp2 = ( phixr[ii]*phixr[ii] + phiyr[ii]*phiyr[ii] ); 
-            
-            neta[ii] = ( 1.0 - 3.0*(pfmdat->epsc) ) * ( 1.0 + ( (4.0*(pfmdat->epsc))/(1.0-3.0*(pfmdat->epsc)) )*tmp1 );
-            
-            //Bx[ii] = neta[ii] *  16.0 * pfmdat->epsc * ( Nnx*Nnx - tmp1 ) * tmp2;
-            //By[ii] = neta[ii] *  16.0 * pfmdat->epsc * ( Nny*Nny - tmp1 ) * tmp2;
-            
-            Bx[ii] = 16.0 * pfmdat->epsc * ( Nnx*Nnx - tmp1 ) * phixr[ii];
-            By[ii] = 16.0 * pfmdat->epsc * ( Nny*Nny - tmp1 ) * phiyr[ii];
-            
-            //etam[ii] = ( 1.0 - 3.0*(pfmdat->epsm) ) * ( 1.0 + ( (4.0*(pfmdat->epsm))/(1.0-3.0*(pfmdat->epsm)) )*tmp1 );
-             
-          }
-          else {
-            
-            neta[ii] = ( 1.0 - 3.0*(pfmdat->epsc) );
-            
-            Bx[ii] = 0.0;
-            By[ii] = 0.0;
-            
-            //etam[ii] = ( 1.0 - 3.0*(pfmdat->epsm) );
-
-          }
-        }
-        
-        for ( i1 = 0; i1 < 5; i1++ ) { 
-          Ba[i1][0] = Bx[i1];
-          Ba[i1][1] = By[i1];
-          Ba[i1][2] = Bz[i1];
-        }
-        
-        // Inverse Rotation Matrix multiplication with depsilon/dphix, depsilon/dphiy
-        for ( i1 = 0; i1 < 5; i1++ ) { 
-          for ( ii1 = 0; ii1 < 3; ii1++ ) { 
-            tmp0 = 0.0;
-            for ( jj1 = 0; jj1 < 3; jj1++ ) { 
-              tmp0 += pfmdat->Inv_Rotation_matrix[0][1][ii1][jj1]*Ba[i1][jj1];
-            }
-            Bir[i1][ii1] = tmp0;
-          }
-        }
-        
-        for ( i1 = 0; i1 < 5; i1++ ) { 
-          Bxir[i1] = Bir[i1][0];
-          Byir[i1] = Bir[i1][1];
-          Bzir[i1] = Bir[i1][2];
-        }
-        
-        neta_x = ( neta[1] - neta[2] ) / ( (pfmvar->deltax) ); 
-        neta_y = ( neta[3] - neta[4] ) / ( (pfmvar->deltay) );
-
-        alp1 = neta[0]*neta[0]*div_phi + 2.0*neta[0] * ( neta_x * phix[0] + neta_y * phiy[0] );
-        
-        alp2 = ( neta[1] * Bxir[1] - neta[2] * Bxir[2] ) / ( (pfmvar->deltax) );
-        alp3 = ( neta[3] * Byir[3] - neta[4] * Byir[4] ) / ( (pfmvar->deltay) );
-
-        alp = alp1 + alp2 + alp3;
-        
-        Mphi = (pfmvar->w)/(3.0*(pfmvar->ee)*(pfmdat->a2)*zeta);
-        
-        if ( fabs(div_phi) > 0.0 )  { 
-
-        phidot_aniso =  Mphi*((pfmvar->ee)*alp - (pfmvar->w)*dgphidphi - dhphidphi*(gs-gl-(csol1-cliq1)*dgldc1l));
-
-        gridNew[ ( ( i )*nx + ( j ) ) ].phi = stgridO[4].phi + (pfmvar->deltat)*phidot_aniso;
-        }
-		//printf("%le,\t%le,\t%le,\t%le,\t%le,\t%le,\t%le,\t%le\n", Mphi, pfmvar->w, pfmvar->ee, pfmdat->a2, zeta, cliq1, csol1, ddgldc1ldc1l);
-		
-
-    }
-}
-
-
-__kernel void SolverCatr_2(__global struct grid *gridOld, __global struct grid *gridNew, __global struct csle *cscl, __constant struct pfmval *pfmdat, __constant struct pfmpar *pfmvar, __global double *temp, __global int *tstep, __constant struct propmatf3 *propf3) { 
-
-    int i;
-    int j;
-    int k;
-    int jj, ii, i1, i2, j1, j2;
-    int nx;
-    int ny;
-    int nz;
-    int index;
-
-    double hphi[5];
-    double A1;
-    double alpha1[5];
-    double dphidt[5];
-    double gradx_phi[3];
-    double grady_phi[3];
-    double phix[5];
-    double phiy[5];
-    double modgradphi[5];
-    double alphidot1[4];
-    double jat1[4];
-    double c1jatx;
-    double c1jaty;
-    double c1jat;
-    double term1lx;
-    double term1ly;
-    double term1l;
-    double c1dot;
-    
-    double fhi[5], hphid[5];
-    double gradmux1[1], gradmux2[1], gradmuy1[1], gradmuy2[1], mu[1], Tij[5]; 
-    double Ti, ddgldx1ldx1l, ddgsdx1sdx1s, dcdmu[2][1][1], dc_dmu[5][2][1][1];
-    double Da[5], Damidx1, Damidx2, Damidy1, Damidy2, divflux, deltamu; 
-    double suma, deltac, dcdmudenom, y[2], retmu[1]; 
-    int interface, phaseliquid, phasesolid, bulkphase;
-    double retdmuphase[1], DELTAT, cg[2], dcbdT_phase[2][1], c_tdt[1], sum_dcbdT; 
-    
-    struct grid stgridO[9];
-    struct grid stgridN[5];
-    struct csle stcscl[5];
-
-    j = get_global_id(0);
-    i = get_global_id(1);
-    
-    nx = pfmdat->jNx;
-    ny = pfmdat->iNy;
-
-    if ( i != 0 && i != ny-1 && j != 0 && j != nx-1 ) {
-
-      Ti = temp[j];
-
-        index = (i*nx + j);
-
-        stgridO[0] = gridOld[(i-1)*nx + (j-1)];
-        stgridO[1] = gridOld[(i-1)*nx + ( j )];
-        stgridO[2] = gridOld[(i-1)*nx + (j+1)];
-        stgridO[3] = gridOld[( i )*nx + (j-1)];
-        stgridO[4] = gridOld[( i )*nx + ( j )];
-        stgridO[5] = gridOld[( i )*nx + (j+1)];
-        stgridO[6] = gridOld[(i+1)*nx + (j-1)];
-        stgridO[7] = gridOld[(i+1)*nx + ( j )];
-        stgridO[8] = gridOld[(i+1)*nx + (j+1)];
-
-        fhi[0] = stgridO[1].phi;
-        fhi[1] = stgridO[3].phi;
-        fhi[4] = stgridO[4].phi;
-        fhi[2] = stgridO[5].phi;
-        fhi[3] = stgridO[7].phi;
-
-        hphi[0] = stgridO[1].phi;
-        hphi[1] = stgridO[3].phi;
-        hphi[4] = stgridO[4].phi;
-        hphi[2] = stgridO[5].phi;
-        hphi[3] = stgridO[7].phi;
-
-        hphid[0] = fhi[0]; //stgridO[1].phi;
-        hphid[1] = fhi[1]; //stgridO[3].phi;
-        hphid[4] = fhi[4]; //stgridO[4].phi;
-        hphid[2] = fhi[2]; //stgridO[5].phi;
-        hphid[3] = fhi[3]; //stgridO[7].phi;
-
-        stcscl[0] = cscl[(i-1)*nx + ( j )];
-        stcscl[1] = cscl[( i )*nx + (j-1)];
-        stcscl[4] = cscl[( i )*nx + ( j )];
-        stcscl[2] = cscl[( i )*nx + (j+1)];
-        stcscl[3] = cscl[(i+1)*nx + ( j )];
-
-        Tij[0] = temp[(i-1)];
-        Tij[1] = temp[( i )];
-        Tij[4] = temp[( i )];
-        Tij[2] = temp[( i )];
-        Tij[3] = temp[(i+1)];
-
-        stgridN[0].phi = gridNew[(i-1)*nx + ( j )].phi;
-	    stgridN[1].phi = gridNew[( i )*nx + (j-1)].phi;
-	    stgridN[4].phi = gridNew[( i )*nx + ( j )].phi;
-	    stgridN[2].phi = gridNew[( i )*nx + (j+1)].phi;
-	    stgridN[3].phi = gridNew[(i+1)*nx + ( j )].phi;
-
-        dphidt[0] = ( stgridN[4].phi - stgridO[4].phi ) / ( (pfmvar->deltat) );
-	    dphidt[1] = ( stgridN[2].phi - stgridO[5].phi ) / ( (pfmvar->deltat) );
-	    dphidt[2] = ( stgridN[1].phi - stgridO[3].phi ) / ( (pfmvar->deltat) );
-	    dphidt[3] = ( stgridN[3].phi - stgridO[7].phi ) / ( (pfmvar->deltat) );
-	    dphidt[4] = ( stgridN[0].phi - stgridO[1].phi ) / ( (pfmvar->deltat) );
-
-        A1 = (sqrt((pfmvar->ee)))/(sqrt(2.0*(pfmvar->w)));
-
-        alpha1[0] = (A1)*( stcscl[4].c1l - stcscl[4].c1s );
-        alpha1[1] = (A1)*( stcscl[2].c1l - stcscl[2].c1s );
-        alpha1[2] = (A1)*( stcscl[1].c1l - stcscl[1].c1s );
-        alpha1[3] = (A1)*( stcscl[3].c1l - stcscl[3].c1s );
-        alpha1[4] = (A1)*( stcscl[0].c1l - stcscl[0].c1s );
-
-        gradx_phi[0] = ( stgridO[5].phi - stgridO[3].phi ) / ( 2.0*(pfmvar->deltax) );
-        gradx_phi[1] = ( stgridO[8].phi - stgridO[6].phi ) / ( 2.0*(pfmvar->deltax) );
-        gradx_phi[2] = ( stgridO[2].phi - stgridO[0].phi ) / ( 2.0*(pfmvar->deltax) );
-
-        grady_phi[0] = ( stgridO[7].phi - stgridO[1].phi ) / ( 2.0*(pfmvar->deltay) );
-        grady_phi[1] = ( stgridO[8].phi - stgridO[2].phi ) / ( 2.0*(pfmvar->deltay) );
-        grady_phi[2] = ( stgridO[6].phi - stgridO[0].phi ) / ( 2.0*(pfmvar->deltay) );
-
-        phix[0] = gradx_phi[0];
-        phix[1] = ( stgridO[5].phi - stgridO[4].phi ) / ( (pfmvar->deltax) );
-        phix[2] = ( stgridO[4].phi - stgridO[3].phi ) / ( (pfmvar->deltax) );
-        phix[3] = ( gradx_phi[0] + gradx_phi[1] ) / ( 2.0 );
-        phix[4] = ( gradx_phi[0] + gradx_phi[2] ) / ( 2.0 );
-
-        phiy[0] = grady_phi[0];
-        phiy[1] = ( grady_phi[0] + grady_phi[1] ) / ( 2.0 );
-        phiy[2] = ( grady_phi[0] + grady_phi[2] ) / ( 2.0 );
-        phiy[3] = ( stgridO[7].phi - stgridO[4].phi ) / ( (pfmvar->deltay) );
-        phiy[4] = ( stgridO[4].phi - stgridO[1].phi ) / ( (pfmvar->deltay) );
-
-        alphidot1[0] = ( ( alpha1[0] * dphidt[0] ) + ( alpha1[1] * dphidt[1] ) ) / ( 2.0 );
-        alphidot1[1] = ( ( alpha1[0] * dphidt[0] ) + ( alpha1[2] * dphidt[2] ) ) / ( 2.0 );
-        alphidot1[2] = ( ( alpha1[0] * dphidt[0] ) + ( alpha1[3] * dphidt[3] ) ) / ( 2.0 );
-        alphidot1[3] = ( ( alpha1[0] * dphidt[0] ) + ( alpha1[4] * dphidt[4] ) ) / ( 2.0 );
-
-        for (jj=0; jj<5; jj++) {
-            modgradphi[jj] = sqrt( phix[jj]*phix[jj] + phiy[jj]*phiy[jj] );
-        }
-
-        jat1[0] = ( alphidot1[0] * phix[1] ) / ( modgradphi[1] );
-        jat1[1] = ( alphidot1[1] * phix[2] ) / ( modgradphi[2] );
-        jat1[2] = ( alphidot1[2] * phiy[3] ) / ( modgradphi[3] );
-        jat1[3] = ( alphidot1[3] * phiy[4] ) / ( modgradphi[4] );
-
-        for (jj=0; jj<4; jj++) {
-            if ( modgradphi[jj+1] == 0.0 ) {
-                jat1[jj] = 0.0;
-            }
-        }
-
-        c1jatx = ( jat1[0] - jat1[1] ) / ( (pfmvar->deltax) );
-        c1jaty = ( jat1[2] - jat1[3] ) / ( (pfmvar->deltay) );
-
-        c1jat = c1jatx + c1jaty;
-        
-        for ( ii = 0; ii < 5; ii++ ) { 
-
-          //printf("%d, %d, %d, %d, %le\n", tstep[0], i, j, ii, fhi[ii]);
-
-          interface = 1;
-          phaseliquid = 1; 
-          phasesolid = 0;
-          
-          if (fhi[ii] >= pfmdat->interfaceUplimit) { 
-            bulkphase = 0;
-            interface = 0;
-          }
-          else if (fhi[ii] <= pfmdat->interfaceDownlimit) { 
-            bulkphase = 1;
-            interface = 0;
-          }
-
-          if ( interface ) { 
-            
-            y[0] = stcscl[ii].c1s; 
-            y[1] = 1.0-y[0];
-            
-            dMudc(Tij[ii], y, retdmuphase, pfmdat->thermophase[phasesolid]);
-            dc_dmu[ii][0][0][0] = 1.0 / retdmuphase[0];
-            
-            y[0] = stcscl[ii].c1l; 
-            y[1] = 1.0-y[0];
-            
-            dMudc(Tij[ii], y, retdmuphase, pfmdat->thermophase[phaseliquid]);
-            dc_dmu[ii][1][0][0] = 1.0 / retdmuphase[0];
-
-            Da[ii] = pfmdat->D11l * (1.0-hphid[ii]) * dc_dmu[ii][1][0][0] + pfmdat->D11s * (hphid[ii]) * dc_dmu[ii][0][0][0];
-
-          }
-          else { 
-              
-              y[0] = stgridO[ii].c1;
-              y[1] = 1.0 -y[0];
-              
-            if ( bulkphase == 0 ) { 
-              
-              dMudc(Tij[ii], y, retdmuphase, pfmdat->thermophase[0]);
-              
-              Da[ii] = pfmdat->D11s * ( 1.0 / retdmuphase[0] );
-              
-            }
-            else if ( bulkphase == 1 ) { 
-              
-              dMudc(Tij[ii], y, retdmuphase, pfmdat->thermophase[1]);
-              
-              Da[ii] = pfmdat->D11l * ( 1.0 / retdmuphase[0] );
-              
+          yc[nsol] = 1.0 - tmp0;
+
+          dMudc(stgO[ii].temperature, yc, retdmuphase, pfmdat->thermophase[bulkphase]);
+
+          matinvnew_nsol(retdmuphase, dc_dmu[ii][bulkphase]);
+
+          //printf("dBC %d, %d, %d, %d, %le\n", tstep[0], i, j, ii, dc_dmu[ii][ip][0]);
+          for ( is = 0; is < nsol; is++ ) {
+            for ( js =0; js < nsol; js++ ) {
+              Da[ii][is][js] = 0.0;
+              //for ( ip = 0; ip < npha; ip++ ) {
+                for ( ks = 0; ks < nsol; ks++ ) {
+                  Da[ii][is][js] += pfmdat->D[bulkphase][is*nsol+ks] * dc_dmu[ii][bulkphase][ks*nsol+js];
+                }
+              //}
             }
           }
+
         }
 
-        Damidx1 = ( Da[2] + Da[4] ) / 2.0;
-        Damidx2 = ( Da[4] + Da[1] ) / 2.0;
-        Damidy1 = ( Da[3] + Da[4] ) / 2.0;
-        Damidy2 = ( Da[4] + Da[0] ) / 2.0;
-        
-        gradmux1[0] = ( stgridO[5].mu[0] - stgridO[4].mu[0] ) / pfmvar->deltax;
-        gradmux2[0] = ( stgridO[4].mu[0] - stgridO[3].mu[0] ) / pfmvar->deltax;
-        gradmuy1[0] = ( stgridO[7].mu[0] - stgridO[4].mu[0] ) / pfmvar->deltay;
-        gradmuy2[0] = ( stgridO[4].mu[0] - stgridO[1].mu[0] ) / pfmvar->deltay;
+      }
 
-        divflux = ( Damidx1*gradmux1[0] - Damidx2*gradmux2[0] ) / pfmvar->deltax + ( Damidy1*gradmuy1[0] - Damidy2*gradmuy2[0] ) / pfmvar->deltay;
-        
-        interface = 1;
-        phaseliquid = 1; 
-        phasesolid = 0; 
-        
-        if (stgridO[4].phi >= pfmdat->interfaceUplimit) {
-          bulkphase=0;
+      // Calculating mobility at half grid positions
+      for ( is = 0; is < nsol; is++ ) {
+        for ( js =0; js < nsol; js++ ) {
+
+          Damidy[0][is][js] = ( Da[0][is][js] + Da[1][is][js] ) / 2.0;
+          Damidy[1][is][js] = ( Da[2][is][js] + Da[0][is][js] ) / 2.0;
+
+          Damidz[0][is][js] = ( Da[0][is][js] + Da[3][is][js] ) / 2.0;
+          Damidz[1][is][js] = ( Da[4][is][js] + Da[0][is][js] ) / 2.0;
+
+          Damidx[0][is][js] = ( Da[0][is][js] + Da[5][is][js] ) / 2.0;
+          Damidx[1][is][js] = ( Da[6][is][js] + Da[0][is][js] ) / 2.0;
+        }
+      }
+
+      // Calculating grad of mu
+      for ( is = 0; is < nsol; is++ ) {
+        gradmuy[0][is] = ( stgO[0].mu[is] - stgO[1].mu[is] ) / pfmvar->deltay;
+        gradmuy[1][is] = ( stgO[2].mu[is] - stgO[0].mu[is] ) / pfmvar->deltay;
+
+        gradmuz[0][is] = ( stgO[0].mu[is] - stgO[3].mu[is] ) / pfmvar->deltaz;
+        gradmuz[1][is] = ( stgO[4].mu[is] - stgO[0].mu[is] ) / pfmvar->deltaz;
+
+        gradmux[0][is] = ( stgO[0].mu[is] - stgO[5].mu[is] ) / pfmvar->deltax;
+        gradmux[1][is] = ( stgO[6].mu[is] - stgO[0].mu[is] ) / pfmvar->deltax;
+      }
+
+      // Calculating divergence of flux
+      for ( is = 0; is < nsol; is++ ) {
+        divflux[is] = 0.0;
+        for ( js =0; js < nsol; js++ ) {
+
+          divflux[is] +=  ( Damidy[1][is][js] * gradmuy[1][js] - Damidy[0][is][js] * gradmuy[0][js] ) / pfmvar->deltay;
+
+          divflux[is] += ( Damidz[1][is][js] * gradmuz[1][js] - Damidz[0][is][js] * gradmuz[0][js] ) / pfmvar->deltaz;
+
+          divflux[is] += ( Damidx[1][is][js] * gradmux[1][js] - Damidx[0][is][js] * gradmux[0][js] ) / pfmvar->deltax;
+
+        }
+      }
+
+
+      // Claculation are done at i,j for updating composition and mu
+
+      // Check for interface
+      interface = 1;
+      bulkphase = 0;
+      for ( ip = 0; ip < npha; ip++ ) {
+        if ( stgO[0].phi[ip] >= pfmdat->interfaceUplimit ) {
+          bulkphase = ip;
           interface = 0;
+          break;
         }
-        else if (stgridO[4].phi <= pfmdat->interfaceDownlimit) {
-          bulkphase = 1;
-          interface = 0; 
+      }
+
+      if ( !interface ) {
+
+        for ( is = 0; is < nsol; is++ ) {
+          gridinfo[index].com[is] = gridinfoO[index].com[is] + pfmvar->deltat * ( divflux[is] );
         }
 
-        if ( interface == 0) { 
-
-          gridNew[index].c1 = stgridO[4].c1 + pfmvar->deltat * (divflux + c1jat);
-          //printf("%d, %d, %d, %d, %le %le, %le\n", tstep[0], i, j, interface, stgridO[4].c1, gridNew[index].c1, divflux);
-          
-          y[0] = gridNew[index].c1; 
-          y[1] = 1.0 - y[0];
-          
-          Mu(Ti, y, retmu, pfmdat->thermophase[bulkphase]);
-          
-          // if ( phasesolid ) { 
-          //   //Mu_0(Ti, y, retmu);
-          //   Mu(Ti, y, retmu, pfmdat->thermophase[0]);
-          // }
-          // else if ( phaseliquid ) { 
-          //   //Mu_1(Ti, y, retmu);
-          //   Mu(Ti, y, retmu, pfmdat->thermophase[1]);
-          // }
-          
-          deltamu = retmu[0] - stgridO[4].mu[0];
-          gridNew[index].mu[0] = retmu[0];
-          //printf("0# %d, %d, %d, %d, %le, %le, %le, %le\n", tstep[0], i, j, interface, stgridO[4].phi, stgridO[4].mu[0], gridNew[index].mu[0], deltamu);
-
+        tmp0 = 0.0;
+        for ( is = 0; is < nsol; is++ ) {
+          yc[is] = gridinfo[index].com[is];
+          tmp0 +=  yc[is];
         }
-        else if ( interface ) { 
-        
+        yc[nsol] = 1.0 - tmp0;
+
+        Mu(Ti, yc, mu, pfmdat->thermophase[bulkphase]);
+
+
+        for ( is = 0; is < nsol; is++ ) {
+          //deltamu[is] = mu[is] - gridinfoO[index].mu[is];
+          gridinfo[index].mu[is] = mu[is];
+        }
+
+      }
+      else {
+
+        // Calculation are carried out in iterface region
+
+
         if ( !pfmdat->ISOTHERMAL ) {
-          DELTAT = pfmvar->deltat * ( -pfmdat->TGRADIENT * pfmdat->velocity ); 
-          
-          cg[0] = pfmdat->c1s_1stguess; 
-          
-          mu[0] = gridOld[index].mu[0];
-          
-          c_mu(mu, c_tdt, Ti+DELTAT, phasesolid, cg, tstep[0], i, j, pfmdat->thermophase[phasesolid]);
-          
-          dcbdT_phase[0][0] = c_tdt[0] - stcscl[4].c1l;
-          
-          cg[0] = pfmdat->c1l_1stguess; 
-          
-          c_mu(mu, c_tdt, Ti+DELTAT, phaseliquid, cg, tstep[0], i, j, pfmdat->thermophase[phaseliquid]);
-          
-          dcbdT_phase[1][0] = c_tdt[0] - stcscl[4].c1s;
-          
-        } 
-          
-          suma = ( stcscl[4].c1s - stcscl[4].c1l ) * (1.0) * ( gridNew[index].phi - stgridO[4].phi );
-          
-          sum_dcbdT = fhi[4] * dcbdT_phase[0][0] + (1.0-fhi[4]) * dcbdT_phase[1][0];
+          DELTAT = pfmvar->deltat * ( -pfmdat->TGRADIENT * pfmdat->velocity );
+          for ( ip = 0; ip < npha; ip++ ) {
 
-          deltac = pfmvar->deltat * (divflux + c1jat); 
+            for ( is = 0; is < nsol; is++ ) {
+              cg[is] = pfmdat->cguess[ip*npha+ip][is];
+              mu[is] = stgO[4].mu[is];
+            }
 
-          gridNew[index].c1 = stgridO[4].c1 + deltac;
-          //printf("%d, %d, %d, %d, %le %le, %le\n", tstep[0], i, j, interface, stgridO[4].c1, gridNew[index].c1, divflux);
-          
-          if ( pfmdat->ISOTHERMAL ) { 
-            deltac = deltac - suma;
+            c_mu(mu, c_tdt, Ti+DELTAT, ip, cg, tstep[0], y, z, x, pfmdat->thermophase[ip]);
+
+            for ( is = 0; is < nsol; is++ ) {
+              dcbdT_phase[ip][is] = c_tdt[is] - stcscl[0].comie[ip][is];
+            }
           }
-          else { 
-            deltac = deltac - suma  - sum_dcbdT;
-          }
-
-          //hphi[4] = 3.0*fhi[4]*fhi[4] - 2.0*fhi[4]*fhi[4]*fhi[4];
-          hphi[4] = fhi[4];
-          dcdmudenom = dc_dmu[4][0][0][0]*hphi[4] + dc_dmu[4][1][0][0]*(1.0-hphi[4]);
-          
-          gridNew[index].mu[0] = stgridO[4].mu[0] + deltac / dcdmudenom;
-          //printf("1# %d, %d, %d, %d, %le, %le, %le, %le, %le, %le, %le, %le\n", tstep[0], i, j, interface, stgridO[4].phi, stgridO[4].mu[0], dcdmu[0][0][0], hphi[4], dcdmu[1][0][0], (1.0-hphi[4]), gridNew[index].mu[0], dcdmudenom);
-          //printf("1# %d, %d, %d, %d, %le, %le, %le, %le, %le, %le, %le\n", tstep[0], i, j, interface, stgridO[4].phi, stgridO[4].mu[0],  gridNew[index].mu[0], deltac / dcdmudenom, suma, ( gridNew[index].phi - stgridO[4].phi ), (6.0*fhi[4]*(1.0-fhi[4])) );
-
         }
-    }
+
+
+
+        for ( is1 = 0; is1 < nsol; is1++ ) {
+
+          // Calculate deltac
+          deltac[is1] = pfmvar->deltat * ( divflux[is1] );
+
+          // // Update composition using deltac
+          // gridinfo[index].com[is1] = gridinfoO[index].com[is1] + deltac[is1];
+
+          // // // Update deltac with c_alpha * dh_alpha/dt
+          // // if ( pfmdat->ISOTHERMAL ) {
+          //   deltac[is1] += -sum[is1];
+          // // }
+          // // else {,
+          // //  deltac[is1] += -sum[is] - sum_dcbdT[is1];
+          // // }
+          for ( is2 = 0; is2 < nsol; is2++ ) {
+            for ( ip = 0; ip < npha; ip++ ) {
+              dcdmu[is1*nsol+is2] += dc_dmu[0][ip][is1*nsol+is2] * hfhi(stgO[0].phi, ip);
+            }
+          }
+        }
+
+        matinvnew_nsol(dcdmu, inv_dcdmu);
+
+        multiply_nsol(inv_dcdmu, deltac, deltamu);
+        // for ( is1 = 0; is1 < nsol; is1++ ) {
+        //   tmp0 = 0.0;
+        //   for ( is2 = 0; is2 < nsol; is2++ ) {
+        //     tmp0 += inv_dcdmu[is1*nsol+is2] * deltac[is2];
+        //   }
+        //   deltamu[is1] = tmp0;
+        // }
+
+        //vectorsum(deltamu, stgO[index].mu, gridinfo[index].mu, nsol);
+        for ( is = 0; is < nsol; is++ ) {
+          gridinfo[index].mu[is] = gridinfoO[index].mu[is] + deltamu[is];
+        }
+        //printf("IC %d, %d, %d, %le, %le\n", tstep[0], i, j, gridinfo[index].mu[0], gridinfo[index].com[0]);
+        //printf("IC %d, %d, %d, %le, %le, %le, %le\n", tstep[0], i, j, gridinfoO[index].mu[0], gridinfo[index].mu[0], gridinfoO[index].com[0], gridinfo[index].com[0]);
+      }
+
+  }
 }
 
-__kernel void SolverCatr_3(__global struct grid *gridOld, __global struct grid *gridNew, __global struct csle *cscl, __constant struct pfmval *pfmdat, __constant struct pfmpar *pfmvar, __global double *temp, __global int *tstep, __constant struct propmatf3 *propf3) { 
+__kernel void SolverCatr_F2(__global struct fields *gridinfoO, __global struct fields *gridinfo, __global struct csle *cscl, __constant struct pfmval *pfmdat, __constant struct pfmpar *pfmvar, __global double *temp, __global int *tstep) {
 
-    int i;
-    int j;
-    int k;
-    int jj, ii, i1, i2, j1, j2;
-    int nx;
-    int ny;
-    int nz;
-    int index;
+  int x, y, z, jj, ii;
+  int nx, ny, nz;
+  int index;
 
-    double hphi[5];
-    double A1;
-    double alpha1[5];
-    double dphidt[5];
-    double gradx_phi[3];
-    double grady_phi[3];
-    double phix[5];
-    double phiy[5];
-    double modgradphi[5];
-    double alphidot1[4];
-    double jat1[4];
-    double c1jatx;
-    double c1jaty;
-    double c1jat;
-    double term1lx;
-    double term1ly;
-    double term1l;
-    double c1dot;
-    
-    double fhi[5], hphid[5];
-    double gradmux1[1], gradmux2[1], gradmuy1[1], gradmuy2[1], mu[1]; 
-    double Ti, ddgldx1ldx1l, ddgsdx1sdx1s, dcdmu[2][1][1], dc_dmu[5][2][1][1];
-    double Da[5], Damidx1, Damidx2, Damidy1, Damidy2, divflux, deltamu; 
-    double suma, deltac, dcdmudenom, call[2], retmu[1], Tij[5]; 
-    int interface, phaseliquid, phasesolid, bulkphase;
-    double retdmuphase[1], DELTAT, cg[2], dcbdT_phase[2][1], c_tdt[1], sum_dcbdT; 
-    
-    struct grid stgridO[9];
-    struct grid stgridN[5];
-    struct csle stcscl[5];
+  int ig, is, js, ip, i1, j1, is1, is2, ip1, ip2, ks;
+  int interface, bulkphase;
 
-    j = get_global_id(0);
-    i = get_global_id(1);
-    
-    nx = pfmdat->jNx;
-    ny = pfmdat->iNy;
+  double A1[npha-1];
+  double dphidt[npha-1][7], gradx_phi[npha][5], grady_phi[npha][5], gradz_phi[npha][5], phix[npha][7], phiy[npha][7], phiz[npha][7], modgradphi[npha][7], scalprodct[npha][7];
+  double cjatx, cjaty, cjatz;
+  double jatc[npha-1][nsol], jatr[nsol];
 
-    if ( i != 0 && i != ny-1 && j != 0 && j != nx-1 ) {
+  //double hphid[5][npha], hphi[npha], dhphi[npha][npha], hphicii[5][npha];
+  double tmp0, tmp1;
+  double DELTAT, sum_dhphi, Ti;
+  double sum[nsol], sum_dcbdT[nsol], dcdmu[nsol*nsol], dc_dmu[7][npha][nsol*nsol], Da[7][nsol][nsol];
+  double Damidx[2][nsol][nsol], Damidy[2][nsol][nsol], Damidz[2][nsol][nsol], gradmux[2][nsol], gradmuy[2][nsol], gradmuz[2][nsol];
+  double divflux[nsol], mu[nsol], deltamu[nsol], c_tdt[nsol], dcbdT_phase[npha][nsol];
+  double deltac[nsol], inv_dcdmu[nsol*nsol], cg[nsol], cphas[nsol], cie[npha][nsol];
+  double cas[npha*(nsol+1)], retdmu[npha*nsol*nsol], ddgedcdc[5][npha][nsol*nsol], retmu[npha*nsol], dgedc[npha][nsol];
+  double yc[nsol+1], retdmuphase[nsol*nsol];
+  double alpha[npha-1][nsol][7], alphidot[npha-1][nsol][6], jat[npha-1][nsol][6];
 
-      Ti = temp[j];
+  struct fields stgridO[27];
+  struct fields stgN[7];
+  struct csle stcscl[7];
+  struct fields stgO[7];
 
-        index = (i*nx + j);
+  y = get_global_id(0);
+  z = get_global_id(1);
+  x = get_global_id(2);
 
-        stgridO[0] = gridOld[(i-1)*nx + (j-1)];
-        stgridO[1] = gridOld[(i-1)*nx + ( j )];
-        stgridO[2] = gridOld[(i-1)*nx + (j+1)];
-        stgridO[3] = gridOld[( i )*nx + (j-1)];
-        stgridO[4] = gridOld[( i )*nx + ( j )];
-        stgridO[5] = gridOld[( i )*nx + (j+1)];
-        stgridO[6] = gridOld[(i+1)*nx + (j-1)];
-        stgridO[7] = gridOld[(i+1)*nx + ( j )];
-        stgridO[8] = gridOld[(i+1)*nx + (j+1)];
+  ny = get_global_size(0);
+  nz = get_global_size(1);
+  nx = get_global_size(2);
 
-        fhi[0] = stgridO[1].phi;
-        fhi[1] = stgridO[3].phi;
-        fhi[4] = stgridO[4].phi;
-        fhi[2] = stgridO[5].phi;
-        fhi[3] = stgridO[7].phi;
+  //index = y + ny*(z + x*nz);
 
-        hphi[0] = stgridO[1].phi;
-        hphi[1] = stgridO[3].phi;
-        hphi[4] = stgridO[4].phi;
-        hphi[2] = stgridO[5].phi;
-        hphi[3] = stgridO[7].phi;
+  Ti = pfmdat->T0;
 
-        hphid[0] = fhi[0]; //stgridO[1].phi;
-        hphid[1] = fhi[1]; //stgridO[3].phi;
-        hphid[4] = fhi[4]; //stgridO[4].phi;
-        hphid[2] = fhi[2]; //stgridO[5].phi;
-        hphid[3] = fhi[3]; //stgridO[7].phi;
+  if ( x != 0 && x != nx-1 && y != 0 && y != ny-1 && z != 0 && z != nz-1 ) {
 
-        stcscl[0] = cscl[(i-1)*nx + ( j )];
-        stcscl[1] = cscl[( i )*nx + (j-1)];
-        stcscl[4] = cscl[( i )*nx + ( j )];
-        stcscl[2] = cscl[( i )*nx + (j+1)];
-        stcscl[3] = cscl[(i+1)*nx + ( j )];
+    index = y + ny*(z + x*nz);
 
-        Tij[0] = temp[(i-1)];
-        Tij[1] = temp[( i )];
-        Tij[4] = temp[( i )];
-        Tij[2] = temp[( i )];
-        Tij[3] = temp[(i+1)];
+    Ti = gridinfoO[ index ].temperature;
 
-        stgridN[0].phi = gridNew[(i-1)*nx + ( j )].phi;
-	    stgridN[1].phi = gridNew[( i )*nx + (j-1)].phi;
-	    stgridN[4].phi = gridNew[( i )*nx + ( j )].phi;
-	    stgridN[2].phi = gridNew[( i )*nx + (j+1)].phi;
-	    stgridN[3].phi = gridNew[(i+1)*nx + ( j )].phi;
+    stgridO[0]  = gridinfoO[ (y-1) + ny*( (x-1)*nz + (z-1) ) ];
+    stgridO[1]  = gridinfoO[ (y  ) + ny*( (x-1)*nz + (z-1) ) ];
+    stgridO[2]  = gridinfoO[ (y+1) + ny*( (x-1)*nz + (z-1) ) ];
+    stgridO[3]  = gridinfoO[ (y-1) + ny*( (x-1)*nz + (z  ) ) ];
+    stgridO[4]  = gridinfoO[ (y  ) + ny*( (x-1)*nz + (z  ) ) ];
+    stgridO[5]  = gridinfoO[ (y+1) + ny*( (x-1)*nz + (z  ) ) ];
+    stgridO[6]  = gridinfoO[ (y-1) + ny*( (x-1)*nz + (z+1) ) ];
+    stgridO[7]  = gridinfoO[ (y  ) + ny*( (x-1)*nz + (z+1) ) ];
+    stgridO[8]  = gridinfoO[ (y+1) + ny*( (x-1)*nz + (z+1) ) ];
+    stgridO[9]  = gridinfoO[ (y-1) + ny*( (x  )*nz + (z-1) ) ];
+    stgridO[10] = gridinfoO[ (y  ) + ny*( (x  )*nz + (z-1) ) ];
+    stgridO[11] = gridinfoO[ (y+1) + ny*( (x  )*nz + (z-1) ) ];
+    stgridO[12] = gridinfoO[ (y-1) + ny*( (x  )*nz + (z  ) ) ];
+    stgridO[13] = gridinfoO[ (y  ) + ny*( (x  )*nz + (z  ) ) ];
+    stgridO[14] = gridinfoO[ (y+1) + ny*( (x  )*nz + (z  ) ) ];
+    stgridO[15] = gridinfoO[ (y-1) + ny*( (x  )*nz + (z+1) ) ];
+    stgridO[16] = gridinfoO[ (y  ) + ny*( (x  )*nz + (z+1) ) ];
+    stgridO[17] = gridinfoO[ (y+1) + ny*( (x  )*nz + (z+1) ) ];
+    stgridO[18] = gridinfoO[ (y-1) + ny*( (x+1)*nz + (z-1) ) ];
+    stgridO[19] = gridinfoO[ (y  ) + ny*( (x+1)*nz + (z-1) ) ];
+    stgridO[20] = gridinfoO[ (y+1) + ny*( (x+1)*nz + (z-1) ) ];
+    stgridO[21] = gridinfoO[ (y-1) + ny*( (x+1)*nz + (z  ) ) ];
+    stgridO[22] = gridinfoO[ (y  ) + ny*( (x+1)*nz + (z  ) ) ];
+    stgridO[23] = gridinfoO[ (y+1) + ny*( (x+1)*nz + (z  ) ) ];
+    stgridO[24] = gridinfoO[ (y-1) + ny*( (x+1)*nz + (z+1) ) ];
+    stgridO[25] = gridinfoO[ (y  ) + ny*( (x+1)*nz + (z+1) ) ];
+    stgridO[26] = gridinfoO[ (y+1) + ny*( (x+1)*nz + (z+1) ) ];
 
-        dphidt[0] = ( stgridN[4].phi - stgridO[4].phi ) / ( (pfmvar->deltat) );
-	    dphidt[1] = ( stgridN[2].phi - stgridO[5].phi ) / ( (pfmvar->deltat) );
-	    dphidt[2] = ( stgridN[1].phi - stgridO[3].phi ) / ( (pfmvar->deltat) );
-	    dphidt[3] = ( stgridN[3].phi - stgridO[7].phi ) / ( (pfmvar->deltat) );
-	    dphidt[4] = ( stgridN[0].phi - stgridO[1].phi ) / ( (pfmvar->deltat) );
+    stcscl[0] = cscl[ (y  ) + ny*( (x  )*nz + (z  ) ) ];
+    stcscl[1] = cscl[ (y-1) + ny*( (x  )*nz + (z  ) ) ];
+    stcscl[2] = cscl[ (y+1) + ny*( (x  )*nz + (z  ) ) ];
+    stcscl[3] = cscl[ (y  ) + ny*( (x  )*nz + (z-1) ) ];
+    stcscl[4] = cscl[ (y  ) + ny*( (x  )*nz + (z+1) ) ];
+    stcscl[5] = cscl[ (y  ) + ny*( (x-1)*nz + (z  ) ) ];
+    stcscl[6] = cscl[ (y  ) + ny*( (x+1)*nz + (z  ) ) ];
 
-        A1 = (sqrt((pfmvar->ee)))/(sqrt(2.0*(pfmvar->w)));
+    stgO[0] = gridinfoO[ (y  ) + ny*( (x  )*nz + (z  ) ) ];
+    stgO[1] = gridinfoO[ (y-1) + ny*( (x  )*nz + (z  ) ) ];
+    stgO[2] = gridinfoO[ (y+1) + ny*( (x  )*nz + (z  ) ) ];
+    stgO[3] = gridinfoO[ (y  ) + ny*( (x  )*nz + (z-1) ) ];
+    stgO[4] = gridinfoO[ (y  ) + ny*( (x  )*nz + (z+1) ) ];
+    stgO[5] = gridinfoO[ (y  ) + ny*( (x-1)*nz + (z  ) ) ];
+    stgO[6] = gridinfoO[ (y  ) + ny*( (x+1)*nz + (z  ) ) ];
 
-        alpha1[0] = (A1)*( stcscl[4].c1l - stcscl[4].c1s );
-        alpha1[1] = (A1)*( stcscl[2].c1l - stcscl[2].c1s );
-        alpha1[2] = (A1)*( stcscl[1].c1l - stcscl[1].c1s );
-        alpha1[3] = (A1)*( stcscl[3].c1l - stcscl[3].c1s );
-        alpha1[4] = (A1)*( stcscl[0].c1l - stcscl[0].c1s );
+    for ( ip = 0; ip < npha-1; ip++ ) {
+        stgN[0].phi[ip] = gridinfo[ (y  ) + ny*( (x  )*nz + (z  ) ) ].phi[ip];
+        stgN[1].phi[ip] = gridinfo[ (y-1) + ny*( (x  )*nz + (z  ) ) ].phi[ip];
+        stgN[2].phi[ip] = gridinfo[ (y+1) + ny*( (x  )*nz + (z  ) ) ].phi[ip];
+        stgN[3].phi[ip] = gridinfo[ (y  ) + ny*( (x  )*nz + (z-1) ) ].phi[ip];
+        stgN[4].phi[ip] = gridinfo[ (y  ) + ny*( (x  )*nz + (z+1) ) ].phi[ip];
+        stgN[5].phi[ip] = gridinfo[ (y  ) + ny*( (x-1)*nz + (z  ) ) ].phi[ip];
+        stgN[6].phi[ip] = gridinfo[ (y  ) + ny*( (x+1)*nz + (z  ) ) ].phi[ip];
+    }
 
-        gradx_phi[0] = ( stgridO[5].phi - stgridO[3].phi ) / ( 2.0*(pfmvar->deltax) );
-        gradx_phi[1] = ( stgridO[8].phi - stgridO[6].phi ) / ( 2.0*(pfmvar->deltax) );
-        gradx_phi[2] = ( stgridO[2].phi - stgridO[0].phi ) / ( 2.0*(pfmvar->deltax) );
+    for ( ip = 0; ip < npha-1; ip++ ) {
+        dphidt[ip][0] = ( stgN[0].phi[ip] - stgO[0].phi[ip] ) / ( pfmvar->deltat );
+        dphidt[ip][1] = ( stgN[1].phi[ip] - stgO[1].phi[ip] ) / ( pfmvar->deltat );
+        dphidt[ip][2] = ( stgN[2].phi[ip] - stgO[2].phi[ip] ) / ( pfmvar->deltat );
+        dphidt[ip][3] = ( stgN[3].phi[ip] - stgO[3].phi[ip] ) / ( pfmvar->deltat );
+        dphidt[ip][4] = ( stgN[4].phi[ip] - stgO[4].phi[ip] ) / ( pfmvar->deltat );
+        dphidt[ip][5] = ( stgN[5].phi[ip] - stgO[5].phi[ip] ) / ( pfmvar->deltat );
+        dphidt[ip][6] = ( stgN[6].phi[ip] - stgO[6].phi[ip] ) / ( pfmvar->deltat );
 
-        grady_phi[0] = ( stgridO[7].phi - stgridO[1].phi ) / ( 2.0*(pfmvar->deltay) );
-        grady_phi[1] = ( stgridO[8].phi - stgridO[2].phi ) / ( 2.0*(pfmvar->deltay) );
-        grady_phi[2] = ( stgridO[6].phi - stgridO[0].phi ) / ( 2.0*(pfmvar->deltay) );
+      A1[ip] = sqrt ( pfmvar->ee[ip*npha+(npha-1)] ) / sqrt( pfmvar->w[ip*npha+(npha-1)] );
 
-        phix[0] = gradx_phi[0];
-        phix[1] = ( stgridO[5].phi - stgridO[4].phi ) / ( (pfmvar->deltax) );
-        phix[2] = ( stgridO[4].phi - stgridO[3].phi ) / ( (pfmvar->deltax) );
-        phix[3] = ( gradx_phi[0] + gradx_phi[1] ) / ( 2.0 );
-        phix[4] = ( gradx_phi[0] + gradx_phi[2] ) / ( 2.0 );
+    }
 
-        phiy[0] = grady_phi[0];
-        phiy[1] = ( grady_phi[0] + grady_phi[1] ) / ( 2.0 );
-        phiy[2] = ( grady_phi[0] + grady_phi[2] ) / ( 2.0 );
-        phiy[3] = ( stgridO[7].phi - stgridO[4].phi ) / ( (pfmvar->deltay) );
-        phiy[4] = ( stgridO[4].phi - stgridO[1].phi ) / ( (pfmvar->deltay) );
 
-        alphidot1[0] = ( ( alpha1[0] * dphidt[0] ) + ( alpha1[1] * dphidt[1] ) ) / ( 2.0 );
-        alphidot1[1] = ( ( alpha1[0] * dphidt[0] ) + ( alpha1[2] * dphidt[2] ) ) / ( 2.0 );
-        alphidot1[2] = ( ( alpha1[0] * dphidt[0] ) + ( alpha1[3] * dphidt[3] ) ) / ( 2.0 );
-        alphidot1[3] = ( ( alpha1[0] * dphidt[0] ) + ( alpha1[4] * dphidt[4] ) ) / ( 2.0 );
+    for ( ip = 0; ip < npha-1; ip++ ) {
+        for ( is = 0; is < nsol; is++ ) {
+          alpha[ip][is][0] = (A1[ip])*( stcscl[0].comie[npha-1][is] - stcscl[0].comie[ip][is] );
+          alpha[ip][is][1] = (A1[ip])*( stcscl[1].comie[npha-1][is] - stcscl[1].comie[ip][is] );
+          alpha[ip][is][2] = (A1[ip])*( stcscl[2].comie[npha-1][is] - stcscl[2].comie[ip][is] );
+          alpha[ip][is][3] = (A1[ip])*( stcscl[3].comie[npha-1][is] - stcscl[3].comie[ip][is] );
+          alpha[ip][is][4] = (A1[ip])*( stcscl[4].comie[npha-1][is] - stcscl[4].comie[ip][is] );
+          alpha[ip][is][5] = (A1[ip])*( stcscl[5].comie[npha-1][is] - stcscl[5].comie[ip][is] );
+          alpha[ip][is][6] = (A1[ip])*( stcscl[6].comie[npha-1][is] - stcscl[6].comie[ip][is] );
+      }
+    }
 
-        for (jj=0; jj<5; jj++) {
-            modgradphi[jj] = sqrt( phix[jj]*phix[jj] + phiy[jj]*phiy[jj] );
+    for ( ip = 0; ip < npha; ip++ ) {
+        grady_phi[ip][0] = ( stgridO[14].phi[ip] - stgridO[12].phi[ip] ) / ( 2.0*pfmvar->deltay );
+        grady_phi[ip][1] = ( stgridO[11].phi[ip] - stgridO[9 ].phi[ip] ) / ( 2.0*pfmvar->deltay );
+        grady_phi[ip][2] = ( stgridO[17].phi[ip] - stgridO[15].phi[ip] ) / ( 2.0*pfmvar->deltay );
+        grady_phi[ip][3] = ( stgridO[5 ].phi[ip] - stgridO[3 ].phi[ip] ) / ( 2.0*pfmvar->deltay );
+        grady_phi[ip][4] = ( stgridO[23].phi[ip] - stgridO[21].phi[ip] ) / ( 2.0*pfmvar->deltay );
+
+        gradz_phi[ip][0] = ( stgridO[16].phi[ip] - stgridO[10].phi[ip] ) / ( 2.0*pfmvar->deltaz );
+        gradz_phi[ip][1] = ( stgridO[15].phi[ip] - stgridO[9 ].phi[ip] ) / ( 2.0*pfmvar->deltaz );
+        gradz_phi[ip][2] = ( stgridO[17].phi[ip] - stgridO[11].phi[ip] ) / ( 2.0*pfmvar->deltaz );
+        gradz_phi[ip][3] = ( stgridO[7 ].phi[ip] - stgridO[1 ].phi[ip] ) / ( 2.0*pfmvar->deltaz );
+        gradz_phi[ip][4] = ( stgridO[25].phi[ip] - stgridO[19].phi[ip] ) / ( 2.0*pfmvar->deltaz );
+
+        gradx_phi[ip][0] = ( stgridO[22].phi[ip] - stgridO[4 ].phi[ip] ) / ( 2.0*pfmvar->deltax );
+        gradx_phi[ip][1] = ( stgridO[21].phi[ip] - stgridO[3 ].phi[ip] ) / ( 2.0*pfmvar->deltax );
+        gradx_phi[ip][2] = ( stgridO[23].phi[ip] - stgridO[5 ].phi[ip] ) / ( 2.0*pfmvar->deltax );
+        gradx_phi[ip][3] = ( stgridO[19].phi[ip] - stgridO[1 ].phi[ip] ) / ( 2.0*pfmvar->deltax );
+        gradx_phi[ip][4] = ( stgridO[25].phi[ip] - stgridO[7 ].phi[ip] ) / ( 2.0*pfmvar->deltax );
+    }
+
+    for ( ip = 0; ip < npha; ip++ ) {
+
+        phiy[ip][0] = grady_phi[ip][0];
+        phiy[ip][1] = ( stgridO[13].phi[ip] - stgridO[12].phi[ip] ) / ( pfmvar->deltay );
+        phiy[ip][2] = ( stgridO[14].phi[ip] - stgridO[13].phi[ip] ) / ( pfmvar->deltay );
+        phiy[ip][3] = ( grady_phi[ip][0] + grady_phi[ip][1] ) / ( 2.0 );
+        phiy[ip][4] = ( grady_phi[ip][0] + grady_phi[ip][2] ) / ( 2.0 );
+        phiy[ip][5] = ( grady_phi[ip][0] + grady_phi[ip][3] ) / ( 2.0 );
+        phiy[ip][6] = ( grady_phi[ip][0] + grady_phi[ip][4] ) / ( 2.0 );
+
+        phiz[ip][0] = gradz_phi[ip][0];
+        phiz[ip][1] = ( gradz_phi[ip][0] + gradz_phi[ip][1] ) / ( 2.0 );
+        phiz[ip][2] = ( gradz_phi[ip][0] + gradz_phi[ip][2] ) / ( 2.0 );
+        phiz[ip][3] = ( stgridO[13].phi[ip] - stgridO[10].phi[ip] ) / ( pfmvar->deltaz );
+        phiz[ip][4] = ( stgridO[16].phi[ip] - stgridO[13].phi[ip] ) / ( pfmvar->deltaz );
+        phiz[ip][5] = ( gradz_phi[ip][0] + gradz_phi[ip][3] ) / ( 2.0 );
+        phiz[ip][6] = ( gradz_phi[ip][0] + gradz_phi[ip][4] ) / ( 2.0 );
+
+        phix[ip][0] = gradx_phi[ip][0];
+        phix[ip][1] = ( gradx_phi[ip][0] + gradx_phi[ip][1] ) / ( 2.0 );
+        phix[ip][2] = ( gradx_phi[ip][0] + gradx_phi[ip][2] ) / ( 2.0 );
+        phix[ip][3] = ( gradx_phi[ip][0] + gradx_phi[ip][3] ) / ( 2.0 );
+        phix[ip][4] = ( gradx_phi[ip][0] + gradx_phi[ip][4] ) / ( 2.0 );
+        phix[ip][5] = ( stgridO[13].phi[ip] - stgridO[4 ].phi[ip] ) / ( pfmvar->deltax );
+        phix[ip][6] = ( stgridO[22].phi[ip] - stgridO[13].phi[ip] ) / ( pfmvar->deltax );
+    }
+
+    for ( ip = 0; ip < npha-1; ip++ ) {
+	      for ( is = 0; is < nsol; is++ ) {
+          alphidot[ip][is][0] = ( ( alpha[ip][is][0] * dphidt[ip][0] ) + ( alpha[ip][is][1] * dphidt[ip][1] ) ) / ( 2.0 );
+          alphidot[ip][is][1] = ( ( alpha[ip][is][0] * dphidt[ip][0] ) + ( alpha[ip][is][2] * dphidt[ip][2] ) ) / ( 2.0 );
+          alphidot[ip][is][2] = ( ( alpha[ip][is][0] * dphidt[ip][0] ) + ( alpha[ip][is][3] * dphidt[ip][3] ) ) / ( 2.0 );
+          alphidot[ip][is][3] = ( ( alpha[ip][is][0] * dphidt[ip][0] ) + ( alpha[ip][is][4] * dphidt[ip][4] ) ) / ( 2.0 );
+          alphidot[ip][is][4] = ( ( alpha[ip][is][0] * dphidt[ip][0] ) + ( alpha[ip][is][5] * dphidt[ip][5] ) ) / ( 2.0 );
+          alphidot[ip][is][5] = ( ( alpha[ip][is][0] * dphidt[ip][0] ) + ( alpha[ip][is][6] * dphidt[ip][6] ) ) / ( 2.0 );
+	      }
+    }
+
+    for ( ip = 0; ip < npha; ip++ ) {
+      for ( jj = 0; jj < 7; jj++ ) {
+          modgradphi[ip][jj] = sqrt( phiy[ip][jj]*phiy[ip][jj] + phiz[ip][jj]*phiz[ip][jj] + phix[ip][jj]*phix[ip][jj]);
+      }
+    }
+
+    for ( ip = 0; ip < npha-1; ip++ ) {
+      for ( jj = 0; jj < 7; jj++ ) {
+          scalprodct[ip][jj] = -1.0*( phiy[ip][jj]*phiy[npha-1][jj] + phiz[ip][jj]*phiz[npha-1][jj] + phix[ip][jj]*phix[npha-1][jj] );
+          if ( modgradphi[npha-1][jj] > 0.0 ) {
+            scalprodct[ip][jj] /= ( modgradphi[ip][jj] * modgradphi[npha-1][jj] );
         }
+      }
+    }
 
-        jat1[0] = ( alphidot1[0] * phix[1] ) / ( modgradphi[1] );
-        jat1[1] = ( alphidot1[1] * phix[2] ) / ( modgradphi[2] );
-        jat1[2] = ( alphidot1[2] * phiy[3] ) / ( modgradphi[3] );
-        jat1[3] = ( alphidot1[3] * phiy[4] ) / ( modgradphi[4] );
 
-        for (jj=0; jj<4; jj++) {
-            if ( modgradphi[jj+1] == 0.0 ) {
-                jat1[jj] = 0.0;
-            }
-        }
 
-        c1jatx = ( jat1[0] - jat1[1] ) / ( (pfmvar->deltax) );
-        c1jaty = ( jat1[2] - jat1[3] ) / ( (pfmvar->deltay) );
+    for ( ip = 0; ip < npha-1; ip++ ) {
+	    for ( is = 0; is < nsol; is++ ) {
+          jat[ip][is][0] = ( ( alphidot[ip][is][0] * phiy[ip][1] ) / ( modgradphi[ip][1] ) )   * ( ( 1.0 - pfmdat->D[ip][is*nsol+is] /   pfmdat->D[npha-1][is*nsol+is] ) * fabs(scalprodct[ip][1]) );
+          jat[ip][is][1] = ( ( alphidot[ip][is][1] * phiy[ip][2] ) / ( modgradphi[ip][2] ) )   * ( ( 1.0 - pfmdat->D[ip][is*nsol+is] /   pfmdat->D[npha-1][is*nsol+is] ) * fabs(scalprodct[ip][2]) );
+          jat[ip][is][2] = ( ( alphidot[ip][is][2] * phiz[ip][3] ) / ( modgradphi[ip][3] ) )   * ( ( 1.0 - pfmdat->D[ip][is*nsol+is] /   pfmdat->D[npha-1][is*nsol+is] ) * fabs(scalprodct[ip][3]) );
+          jat[ip][is][3] = ( ( alphidot[ip][is][3] * phiz[ip][4] ) / ( modgradphi[ip][4] ) )   * ( ( 1.0 - pfmdat->D[ip][is*nsol+is] /   pfmdat->D[npha-1][is*nsol+is] ) * fabs(scalprodct[ip][4]) );
+          jat[ip][is][4] = ( ( alphidot[ip][is][4] * phix[ip][5] ) / ( modgradphi[ip][5] ) )   * ( ( 1.0 - pfmdat->D[ip][is*nsol+is] /   pfmdat->D[npha-1][is*nsol+is] ) * fabs(scalprodct[ip][5]) );
+          jat[ip][is][5] = ( ( alphidot[ip][is][5] * phix[ip][6] ) / ( modgradphi[ip][6] ) )   * ( ( 1.0 - pfmdat->D[ip][is*nsol+is] /   pfmdat->D[npha-1][is*nsol+is] ) * fabs(scalprodct[ip][6]) );
+      }
+    }
 
-        c1jat = c1jatx + c1jaty;
-        
-
-        for ( ii = 0; ii < 5; ii++ ) { 
-
-          //printf("%d, %d, %d, %d, %le\n", tstep[0], i, j, ii, fhi[ii]);
-
-          interface = 1;
-          phaseliquid = 1; 
-          phasesolid = 0; 
-          
-          if (fhi[ii] >= pfmdat->interfaceUplimit) { 
-            bulkphase = 0;
-            interface = 0;
-          }
-          else if (fhi[ii] <= pfmdat->interfaceDownlimit) { 
-            bulkphase = 1;
-            interface = 0;
-          }
-
-          if ( interface ) { 
-
-            dc_dmu[ii][0][0][0] = propf3->cmu[0][0][0];
-            dc_dmu[ii][1][0][0] = propf3->cmu[1][0][0];
-            
-            //dc_dmu[ii][0][0][0] = 1.0 / (2.0*propf3->A[0][0][0]);
-            //dc_dmu[ii][1][0][0] = 1.0 / (2.0*propf3->A[1][0][0]);
-
-            Da[ii] = pfmdat->D11l * (1.0-hphid[ii]) * dc_dmu[ii][1][0][0] + pfmdat->D11s * (hphid[ii]) * dc_dmu[ii][0][0][0];
-            
-          }
-          else { 
-            if ( bulkphase == 0 ) { 
-              
-              Da[ii] = pfmdat->D11s * propf3->cmu[0][0][0];
-              
-              //Da[ii] = pfmdat->D11s * ( 1.0 / (2.0*propf3->A[0][0][0]) );
-              
-            }
-            else if ( bulkphase == 1 ) { 
-              
-              Da[ii] = pfmdat->D11l * propf3->cmu[1][0][0];
-              
-              //Da[ii] = pfmdat->D11l * ( 1.0 / (2.0*propf3->A[1][0][0]) );
-              
-            }
+    for ( ip = 0; ip < npha-1; ip++ ) {
+      for ( is = 0; is < nsol; is++ ) {
+          for (jj=0; jj< 6; jj++) {
+            if ( modgradphi[ip][jj+1] == 0.0 ) {
+              jat[ip][is][jj] = 0.0;
           }
         }
+      }
+    }
 
-        Damidx1 = ( Da[2] + Da[4] ) / 2.0;
-        Damidx2 = ( Da[4] + Da[1] ) / 2.0;
-        Damidy1 = ( Da[3] + Da[4] ) / 2.0;
-        Damidy2 = ( Da[4] + Da[0] ) / 2.0;
-        
-        gradmux1[0] = ( stgridO[5].mu[0] - stgridO[4].mu[0] ) / pfmvar->deltax;
-        gradmux2[0] = ( stgridO[4].mu[0] - stgridO[3].mu[0] ) / pfmvar->deltax;
-        gradmuy1[0] = ( stgridO[7].mu[0] - stgridO[4].mu[0] ) / pfmvar->deltay;
-        gradmuy2[0] = ( stgridO[4].mu[0] - stgridO[1].mu[0] ) / pfmvar->deltay;
+    for ( ip = 0; ip < npha-1; ip++ ) {
+      for ( is = 0; is < nsol; is++ ) {
+          cjaty = ( jat[ip][is][1] - jat[ip][is][0] ) / ( pfmvar->deltay );
+          cjatz = ( jat[ip][is][3] - jat[ip][is][2] ) / ( pfmvar->deltaz );
+          cjatx = ( jat[ip][is][5] - jat[ip][is][4] ) / ( pfmvar->deltax );
+          jatc[ip][is] = cjatx + cjaty + cjatz;
+	    }
+    }
 
-        divflux = ( Damidx1*gradmux1[0] - Damidx2*gradmux2[0] ) / pfmvar->deltax + ( Damidy1*gradmuy1[0] - Damidy2*gradmuy2[0] ) / pfmvar->deltay;
-        
+    for ( is = 0; is < nsol; is++ ) {
+      jatr[is] = 0.0;
+        for ( ip = 0; ip < npha-1; ip++ ) {
+          jatr[is] += jatc[ip][is];
+      }
+    }
+
+
+
+      for ( is1 = 0; is1 < nsol; is1++ ) {
+        sum[is1] = 0.0;
+        sum_dcbdT[is1] = 0.0;
+        for ( is2 = 0; is2 < nsol; is2++ ) {
+          dcdmu[is1*nsol+is2] = 0.0;
+        }
+      }
+
+      for ( ip = 0; ip < npha; ip++ ) {
+        for ( is = 0; is < nsol; is++ ) {
+          dcbdT_phase[ip][is] = 0.0;
+        }
+      }
+
+      // Calculations are carried out at stencil points of 5 point stencil
+      for ( ii = 0; ii < 7; ii++ ) {
+
         interface = 1;
-        phaseliquid = 1; 
-        phasesolid = 0; 
+        bulkphase = 0;
+        for ( ip = 0; ip < npha; ip++ ) {
+          if ( stgO[ii].phi[ip] >= pfmdat->interfaceUplimit ) {
+            bulkphase = ip;
+            interface = 0;
+            break;
+          }
+        }
 
-        if (stgridO[4].phi >= pfmdat->interfaceUplimit) {
-          bulkphase=0;
+        if ( interface ) {
+
+           for ( ip = 0; ip < npha; ip++ ) {
+
+            // Get dc_dmu
+            tmp0 = 0.0;
+            for ( is = 0; is < nsol; is++ ) {
+              yc[is] = stcscl[ii].comie[ip][is];
+              tmp0 +=  yc[is];
+            }
+            yc[nsol] = 1.0 - tmp0;
+
+            //printf("t = %d, i = %d, j = %d, ii = %d, ip = %d, tdbip = %d", tstep[0], i, j, ii, ip, pfmdat->thermophase[ip]);
+            dMudc(stgO[ii].temperature, yc, retdmuphase, pfmdat->thermophase[ip]);
+
+            matinvnew_nsol(retdmuphase, dc_dmu[ii][ip]);
+
+          }
+
+          // Calculate mobility at stencil points
+          for ( is = 0; is < nsol; is++ ) {
+            for ( js =0; js < nsol; js++ ) {
+              Da[ii][is][js] = 0.0;
+              for ( ip = 0; ip < npha; ip++ ) {
+                for ( ks = 0; ks < nsol; ks++ ) {
+                  Da[ii][is][js] += pfmdat->D[ip][is*nsol+ks] * dc_dmu[ii][ip][ks*nsol+js] * stgO[ii].phi[ip];
+                }
+              }
+            }
+          }
+
+        }
+        else {
+
+          // Get dc_dmu for bulk phase
+          tmp0 = 0.0;
+          for ( is = 0; is < nsol; is++ ) {
+            yc[is] = stgO[ii].com[is];
+            tmp0 +=  yc[is];
+          }
+          yc[nsol] = 1.0 - tmp0;
+
+          dMudc(stgO[ii].temperature, yc, retdmuphase, pfmdat->thermophase[bulkphase]);
+
+          matinvnew_nsol(retdmuphase, dc_dmu[ii][bulkphase]);
+
+          //printf("dBC %d, %d, %d, %d, %le\n", tstep[0], i, j, ii, dc_dmu[ii][ip][0]);
+          for ( is = 0; is < nsol; is++ ) {
+            for ( js =0; js < nsol; js++ ) {
+              Da[ii][is][js] = 0.0;
+              //for ( ip = 0; ip < npha; ip++ ) {
+                for ( ks = 0; ks < nsol; ks++ ) {
+                  Da[ii][is][js] += pfmdat->D[bulkphase][is*nsol+ks] * dc_dmu[ii][bulkphase][ks*nsol+js];
+                }
+              //}
+            }
+          }
+
+        }
+
+      }
+
+      // Calculating mobility at half grid positions
+      for ( is = 0; is < nsol; is++ ) {
+        for ( js =0; js < nsol; js++ ) {
+
+          Damidy[0][is][js] = ( Da[0][is][js] + Da[1][is][js] ) / 2.0;
+          Damidy[1][is][js] = ( Da[2][is][js] + Da[0][is][js] ) / 2.0;
+
+          Damidz[0][is][js] = ( Da[0][is][js] + Da[3][is][js] ) / 2.0;
+          Damidz[1][is][js] = ( Da[4][is][js] + Da[0][is][js] ) / 2.0;
+
+          Damidx[0][is][js] = ( Da[0][is][js] + Da[5][is][js] ) / 2.0;
+          Damidx[1][is][js] = ( Da[6][is][js] + Da[0][is][js] ) / 2.0;
+        }
+      }
+
+      // Calculating grad of mu
+      for ( is = 0; is < nsol; is++ ) {
+        gradmuy[0][is] = ( stgO[0].mu[is] - stgO[1].mu[is] ) / pfmvar->deltay;
+        gradmuy[1][is] = ( stgO[2].mu[is] - stgO[0].mu[is] ) / pfmvar->deltay;
+
+        gradmuz[0][is] = ( stgO[0].mu[is] - stgO[3].mu[is] ) / pfmvar->deltaz;
+        gradmuz[1][is] = ( stgO[4].mu[is] - stgO[0].mu[is] ) / pfmvar->deltaz;
+
+        gradmux[0][is] = ( stgO[0].mu[is] - stgO[5].mu[is] ) / pfmvar->deltax;
+        gradmux[1][is] = ( stgO[6].mu[is] - stgO[0].mu[is] ) / pfmvar->deltax;
+      }
+
+      // Calculating divergence of flux
+      for ( is = 0; is < nsol; is++ ) {
+        divflux[is] = 0.0;
+        for ( js =0; js < nsol; js++ ) {
+
+          divflux[is] +=  ( Damidy[1][is][js] * gradmuy[1][js] - Damidy[0][is][js] * gradmuy[0][js] ) / pfmvar->deltay;
+
+          divflux[is] += ( Damidz[1][is][js] * gradmuz[1][js] - Damidz[0][is][js] * gradmuz[0][js] ) / pfmvar->deltaz;
+
+          divflux[is] += ( Damidx[1][is][js] * gradmux[1][js] - Damidx[0][is][js] * gradmux[0][js] ) / pfmvar->deltax;
+
+        }
+      }
+
+
+      // Claculation are done at i,j for updating composition and mu
+
+      // Check for interface
+      interface = 1;
+      bulkphase = 0;
+      for ( ip = 0; ip < npha; ip++ ) {
+        if ( stgO[0].phi[ip] >= pfmdat->interfaceUplimit ) {
+          bulkphase = ip;
           interface = 0;
+          break;
         }
-        else if (stgridO[4].phi <= pfmdat->interfaceDownlimit) {
-          bulkphase = 1;
-          interface = 0; 
+      }
+
+      if ( !interface ) {
+
+        for ( is = 0; is < nsol; is++ ) {
+          gridinfo[index].com[is] = gridinfoO[index].com[is] + pfmvar->deltat * ( divflux[is] + jatr[is] );
         }
 
-        if ( interface == 0) { 
-
-          gridNew[index].c1 = stgridO[4].c1 + pfmvar->deltat * (divflux + c1jat);
-          //printf("%d, %d, %d, %d, %le %le, %le\n", tstep[0], i, j, interface, stgridO[4].c1, gridNew[index].c1, divflux);
-
-          if ( bulkphase == 0 ) { 
-            retmu[0] = 2.0*propf3->A[0][0][0]*gridNew[index].c1 + (propf3->Beq[0][0] + propf3->dBbdT[0][0]*(Ti-pfmdat->Teq));
-          }
-          else if ( bulkphase == 1 ) { 
-            retmu[0] = 2.0*propf3->A[1][0][0]*gridNew[index].c1 + (propf3->Beq[1][0] + propf3->dBbdT[1][0]*(Ti-pfmdat->Teq));
-          }
-
-          deltamu = retmu[0] - stgridO[4].mu[0];
-          gridNew[index].mu[0] = retmu[0];
-          //printf("0# %d, %d, %d, %d, %le, %le, %le, %le\n", tstep[0], i, j, interface, stgridO[4].phi, stgridO[4].mu[0], gridNew[index].mu[0], deltamu);
-
+        tmp0 = 0.0;
+        for ( is = 0; is < nsol; is++ ) {
+          yc[is] = gridinfo[index].com[is];
+          tmp0 +=  yc[is];
         }
-        else if ( interface ) {  
-          
-          if ( !pfmdat->ISOTHERMAL ) {
-            
-            DELTAT = pfmvar->deltat * ( -pfmdat->TGRADIENT * pfmdat->velocity ); 
-            
-            c_tdt[0] = propf3->cmu[0][0][0] * ( stgridO[4].mu[0] - ( propf3->Beq[0][0] + propf3->dBbdT[0][0] * (Ti+DELTAT-pfmdat->Teq) ) );
-            
-            dcbdT_phase[0][0] = c_tdt[0] - stcscl[4].c1s;
-            
-            c_tdt[0] = propf3->cmu[1][0][0] * ( stgridO[4].mu[0] - ( propf3->Beq[1][0] + propf3->dBbdT[1][0] * (Ti+DELTAT-pfmdat->Teq) ) );
-            
-            dcbdT_phase[1][0] = c_tdt[0] - stcscl[4].c1l;
-          
-          }
-          
-          suma = ( stcscl[4].c1s - stcscl[4].c1l ) * (1.0) * ( gridNew[index].phi - stgridO[4].phi );
-          
-          sum_dcbdT = fhi[4] * dcbdT_phase[0][0] + (1.0-fhi[4]) * dcbdT_phase[1][0];
+        yc[nsol] = 1.0 - tmp0;
 
-          deltac = pfmvar->deltat * (divflux + c1jat); 
+        Mu(Ti, yc, mu, pfmdat->thermophase[bulkphase]);
 
-          gridNew[index].c1 = stgridO[4].c1 + deltac;
-          //printf("%d, %d, %d, %d, %le %le, %le\n", tstep[0], i, j, interface, stgridO[4].c1, gridNew[index].c1, divflux);
-          
-          if ( pfmdat->ISOTHERMAL ) { 
-            deltac = deltac - suma;
-          }
-          else { 
-            deltac = deltac - suma  - sum_dcbdT;
-          }
-          
-          //hphi[4] = 3.0*fhi[4]*fhi[4] - 2.0*fhi[4]*fhi[4]*fhi[4];
-          hphi[4] = fhi[4];
-          dcdmudenom = dc_dmu[4][0][0][0]*hphi[4] + dc_dmu[4][1][0][0]*(1.0-hphi[4]);
-          
-          gridNew[index].mu[0] = stgridO[4].mu[0] + deltac / dcdmudenom;
-          //printf("1# %d, %d, %d, %d, %le, %le, %le, %le, %le, %le, %le, %le\n", tstep[0], i, j, interface, stgridO[4].phi, stgridO[4].mu[0], dcdmu[0][0][0], hphi[4], dcdmu[1][0][0], (1.0-hphi[4]), gridNew[index].mu[0], dcdmudenom);
-          //printf("1# %d, %d, %d, %d, %le, %le, %le, %le, %le, %le, %le\n", tstep[0], i, j, interface, stgridO[4].phi, stgridO[4].mu[0],  gridNew[index].mu[0], deltac / dcdmudenom, suma, ( gridNew[index].phi - stgridO[4].phi ), (6.0*fhi[4]*(1.0-fhi[4])) );
+
+        for ( is = 0; is < nsol; is++ ) {
+          //deltamu[is] = mu[is] - gridinfoO[index].mu[is];
+          gridinfo[index].mu[is] = mu[is];
         }
-        
-    }
+
+      }
+      else {
+
+        // Calculation are carried out in iterface region
+
+
+        if ( !pfmdat->ISOTHERMAL ) {
+          DELTAT = pfmvar->deltat * ( -pfmdat->TGRADIENT * pfmdat->velocity );
+          for ( ip = 0; ip < npha; ip++ ) {
+
+            for ( is = 0; is < nsol; is++ ) {
+              cg[is] = pfmdat->cguess[ip*npha+ip][is];
+              mu[is] = stgO[4].mu[is];
+            }
+
+            c_mu(mu, c_tdt, Ti+DELTAT, ip, cg, tstep[0], y, z, x, pfmdat->thermophase[ip]);
+
+            for ( is = 0; is < nsol; is++ ) {
+              dcbdT_phase[ip][is] = c_tdt[is] - stcscl[0].comie[ip][is];
+            }
+          }
+        }
+
+
+        // Calculate Sum ( c_alpha * dh_alpha/ dt )
+        for ( ip1 = 0; ip1 < npha; ip1++ ) {
+          sum_dhphi = 0.0;
+          for ( ip2 = 0; ip2 < npha; ip2++ ) {
+            sum_dhphi += dhfhi(stgO[0].phi, ip1, ip2) * ( gridinfo[index].phi[ip2] - gridinfoO[index].phi[ip2] );
+          }
+
+          for ( is = 0; is < nsol; is++ ) {
+            sum[is]       += stcscl[0].comie[ip1][is] * sum_dhphi;
+            sum_dcbdT[is] += dcbdT_phase[ip1][is] * hfhi(stgO[0].phi, ip1);
+          }
+        }
+
+
+        for ( is1 = 0; is1 < nsol; is1++ ) {
+
+          // Calculate deltac
+          deltac[is1] = pfmvar->deltat * ( divflux[is1] + jatr[is1] );
+
+          // Update composition using deltac
+          gridinfo[index].com[is1] = gridinfoO[index].com[is1] + deltac[is1];
+
+          // // Update deltac with c_alpha * dh_alpha/dt
+          if ( pfmdat->ISOTHERMAL ) {
+            deltac[is1] += -sum[is1];
+          }
+          else {
+           deltac[is1] += -sum[is] - sum_dcbdT[is1];
+          }
+          for ( is2 = 0; is2 < nsol; is2++ ) {
+            for ( ip = 0; ip < npha; ip++ ) {
+              dcdmu[is1*nsol+is2] += dc_dmu[0][ip][is1*nsol+is2] * hfhi(stgO[0].phi, ip);
+            }
+          }
+        }
+
+        matinvnew_nsol(dcdmu, inv_dcdmu);
+
+        multiply_nsol(inv_dcdmu, deltac, deltamu);
+        // for ( is1 = 0; is1 < nsol; is1++ ) {
+        //   tmp0 = 0.0;
+        //   for ( is2 = 0; is2 < nsol; is2++ ) {
+        //     tmp0 += inv_dcdmu[is1*nsol+is2] * deltac[is2];
+        //   }
+        //   deltamu[is1] = tmp0;
+        // }
+
+        //vectorsum(deltamu, stgO[index].mu, gridinfo[index].mu, nsol);
+        for ( is = 0; is < nsol; is++ ) {
+          gridinfo[index].mu[is] = gridinfoO[index].mu[is] + deltamu[is];
+        }
+        //printf("IC %d, %d, %d, %le, %le\n", tstep[0], i, j, gridinfo[index].mu[0], gridinfo[index].com[0]);
+        //printf("IC %d, %d, %d, %le, %le, %le, %le\n", tstep[0], i, j, gridinfoO[index].mu[0], gridinfo[index].mu[0], gridinfoO[index].com[0], gridinfo[index].com[0]);
+      }
+
+  }
 }
 
-__kernel void SolverCatr_4(__global struct grid *gridOld, __global struct grid *gridNew, __global struct csle *cscl, __constant struct pfmval *pfmdat, __constant struct pfmpar *pfmvar, __global double *temp, __global int *tstep, __constant struct propmatf4 *propf4, __constant struct propmatf4spline *propf4spline, __constant struct propmatf4spline *propf4spline1) { 
+__kernel void SolverCatr_F3_smooth(__global struct fields *gridinfoO, __global struct fields *gridinfo, __global struct csle *cscl, __constant struct pfmval *pfmdat, __constant struct pfmpar *pfmvar, __global double *temp, __global int *tstep, __constant struct propmatf3 *propf3) {
 
-    int i;
-    int j;
-    int k;
-    int jj, ii, i1, i2, j1, j2;
-    int nx;
-    int ny;
-    int nz;
-    int index;
-    int indij[5];
+  int x, y, z, ii, jj;
+  int nx, ny, nz;
+  int index;
 
-    double hphi[5];
-    double A1;
-    double alpha1[5];
-    double dphidt[5];
-    double gradx_phi[3];
-    double grady_phi[3];
-    double phix[5];
-    double phiy[5];
-    double modgradphi[5];
-    double alphidot1[4];
-    double jat1[4];
-    double c1jatx;
-    double c1jaty;
-    double c1jat;
-    double term1lx;
-    double term1ly;
-    double term1l;
-    double c1dot;
-    
-    double fhi[5], hphid[5];
-    double gradmux1[1], gradmux2[1], gradmuy1[1], gradmuy2[1], mu[1]; 
-    double Ti, ddgldx1ldx1l, ddgsdx1sdx1s, dcdmu[2][1][1], dc_dmu[5][2][1][1];
-    double Da[5], Damidx1, Damidx2, Damidy1, Damidy2, divflux, deltamu; 
-    double suma, deltac, dcdmudenom, call[2], retmu[1], Tij[5]; 
-    int interface, phaseliquid, phasesolid, bulkphase;
-    double retdmuphase[1], DELTAT, cg[2], dcbdT_phase[2][1], c_tdt[1], sum_dcbdT, muc1[1], cmu1[1]; 
-    
-    struct grid stgridO[9];
-    struct grid stgridN[5];
-    struct csle stcscl[5];
+  int is, js, ks, ip, ip1, ip2, is1, is2;
+  int interface, bulkphase;
+  double tmp0, tmp1;
+  double DELTAT, sum_dhphi, Ti;
+  double sum[nsol], sum_dcbdT[nsol], dcdmu[nsol*nsol], dc_dmu[7][npha][nsol][nsol], Da[7][nsol][nsol];
+  double Damidx[2][nsol][nsol], Damidy[2][nsol][nsol], Damidz[2][nsol][nsol], gradmux[2][nsol], gradmuy[2][nsol], gradmuz[2][nsol];
+  double divflux[nsol], mu[nsol], deltamu[nsol], c_tdt[nsol], dcbdT_phase[npha][nsol];
+  double deltac[nsol], inv_dcdmu[nsol*nsol], cg[nsol];
+  double yc[nsol+1], retdmuphase[nsol*nsol];
+  double F3_A[npha*nsol*nsol], F3_Beq[npha*nsol], F3_dBbdT[npha*nsol], Tequ, comp[nsol];
 
-    j = get_global_id(0);
-    i = get_global_id(1);
-    
-    nx = pfmdat->jNx;
-    ny = pfmdat->iNy;
+  double alpha[npha-1][nsol][7], alphidot[npha-1][nsol][6], jat[npha-1][nsol][6];
+  double A1[npha-1];
+  double dphidt[npha-1][7], gradx_phi[npha][5], grady_phi[npha][5], gradz_phi[npha][5], phix[npha][7], phiy[npha][7], phiz[npha][7], modgradphi[npha][7], scalprodct[npha][7];
+  double cjatx, cjaty, cjatz;
+  double jatc[npha-1][nsol], jatr[nsol];
 
-    if ( i != 0 && i != ny-1 && j != 0 && j != nx-1 ) {
+  struct fields stgridO[27];
+  struct fields stgN[7];
+  struct csle stcscl[7];
+  struct fields stgO[7];
 
-      Ti = temp[j];
+  y = get_global_id(0);
+  z = get_global_id(1);
+  x = get_global_id(2);
 
-        index = (i*nx + j);
+  ny = get_global_size(0);
+  nz = get_global_size(1);
+  nx = get_global_size(2);
 
-        stgridO[0] = gridOld[(i-1)*nx + (j-1)];
-        stgridO[1] = gridOld[(i-1)*nx + ( j )];
-        stgridO[2] = gridOld[(i-1)*nx + (j+1)];
-        stgridO[3] = gridOld[( i )*nx + (j-1)];
-        stgridO[4] = gridOld[( i )*nx + ( j )];
-        stgridO[5] = gridOld[( i )*nx + (j+1)];
-        stgridO[6] = gridOld[(i+1)*nx + (j-1)];
-        stgridO[7] = gridOld[(i+1)*nx + ( j )];
-        stgridO[8] = gridOld[(i+1)*nx + (j+1)];
+  //index = y + ny*(z + x*nz);
 
-        fhi[0] = stgridO[1].phi;
-        fhi[1] = stgridO[3].phi;
-        fhi[4] = stgridO[4].phi;
-        fhi[2] = stgridO[5].phi;
-        fhi[3] = stgridO[7].phi;
+  if ( x != 0 && x != nx-1 && y != 0 && y != ny-1 && z != 0 && z != nz-1 ) {
 
-        hphi[0] = stgridO[1].phi;
-        hphi[1] = stgridO[3].phi;
-        hphi[4] = stgridO[4].phi;
-        hphi[2] = stgridO[5].phi;
-        hphi[3] = stgridO[7].phi;
+    index = y + ny*(z + x*nz);
 
-        hphid[0] = fhi[0]; //stgridO[1].phi;
-        hphid[1] = fhi[1]; //stgridO[3].phi;
-        hphid[4] = fhi[4]; //stgridO[4].phi;
-        hphid[2] = fhi[2]; //stgridO[5].phi;
-        hphid[3] = fhi[3]; //stgridO[7].phi;
+    Ti = pfmdat->T0;
 
-        stcscl[0] = cscl[(i-1)*nx + ( j )];
-        stcscl[1] = cscl[( i )*nx + (j-1)];
-        stcscl[4] = cscl[( i )*nx + ( j )];
-        stcscl[2] = cscl[( i )*nx + (j+1)];
-        stcscl[3] = cscl[(i+1)*nx + ( j )];
+    stgridO[0]  = gridinfoO[ (y-1) + ny*( (x-1)*nz + (z-1) ) ];
+    stgridO[1]  = gridinfoO[ (y  ) + ny*( (x-1)*nz + (z-1) ) ];
+    stgridO[2]  = gridinfoO[ (y+1) + ny*( (x-1)*nz + (z-1) ) ];
+    stgridO[3]  = gridinfoO[ (y-1) + ny*( (x-1)*nz + (z  ) ) ];
+    stgridO[4]  = gridinfoO[ (y  ) + ny*( (x-1)*nz + (z  ) ) ];
+    stgridO[5]  = gridinfoO[ (y+1) + ny*( (x-1)*nz + (z  ) ) ];
+    stgridO[6]  = gridinfoO[ (y-1) + ny*( (x-1)*nz + (z+1) ) ];
+    stgridO[7]  = gridinfoO[ (y  ) + ny*( (x-1)*nz + (z+1) ) ];
+    stgridO[8]  = gridinfoO[ (y+1) + ny*( (x-1)*nz + (z+1) ) ];
+    stgridO[9]  = gridinfoO[ (y-1) + ny*( (x  )*nz + (z-1) ) ];
+    stgridO[10] = gridinfoO[ (y  ) + ny*( (x  )*nz + (z-1) ) ];
+    stgridO[11] = gridinfoO[ (y+1) + ny*( (x  )*nz + (z-1) ) ];
+    stgridO[12] = gridinfoO[ (y-1) + ny*( (x  )*nz + (z  ) ) ];
+    stgridO[13] = gridinfoO[ (y  ) + ny*( (x  )*nz + (z  ) ) ];
+    stgridO[14] = gridinfoO[ (y+1) + ny*( (x  )*nz + (z  ) ) ];
+    stgridO[15] = gridinfoO[ (y-1) + ny*( (x  )*nz + (z+1) ) ];
+    stgridO[16] = gridinfoO[ (y  ) + ny*( (x  )*nz + (z+1) ) ];
+    stgridO[17] = gridinfoO[ (y+1) + ny*( (x  )*nz + (z+1) ) ];
+    stgridO[18] = gridinfoO[ (y-1) + ny*( (x+1)*nz + (z-1) ) ];
+    stgridO[19] = gridinfoO[ (y  ) + ny*( (x+1)*nz + (z-1) ) ];
+    stgridO[20] = gridinfoO[ (y+1) + ny*( (x+1)*nz + (z-1) ) ];
+    stgridO[21] = gridinfoO[ (y-1) + ny*( (x+1)*nz + (z  ) ) ];
+    stgridO[22] = gridinfoO[ (y  ) + ny*( (x+1)*nz + (z  ) ) ];
+    stgridO[23] = gridinfoO[ (y+1) + ny*( (x+1)*nz + (z  ) ) ];
+    stgridO[24] = gridinfoO[ (y-1) + ny*( (x+1)*nz + (z+1) ) ];
+    stgridO[25] = gridinfoO[ (y  ) + ny*( (x+1)*nz + (z+1) ) ];
+    stgridO[26] = gridinfoO[ (y+1) + ny*( (x+1)*nz + (z+1) ) ];
 
-        Tij[0] = temp[(i-1)];
-        Tij[1] = temp[( i )];
-        Tij[4] = temp[( i )];
-        Tij[2] = temp[( i )];
-        Tij[3] = temp[(i+1)];
-        
-        indij[0] = ( j );
-        indij[1] = (j-1);
-        indij[4] = ( j );
-        indij[2] = (j+1);
-        indij[3] = ( j );
+    stcscl[0] = cscl[ (y  ) + ny*( (x  )*nz + (z  ) ) ];
+    stcscl[1] = cscl[ (y-1) + ny*( (x  )*nz + (z  ) ) ];
+    stcscl[2] = cscl[ (y+1) + ny*( (x  )*nz + (z  ) ) ];
+    stcscl[3] = cscl[ (y  ) + ny*( (x  )*nz + (z-1) ) ];
+    stcscl[4] = cscl[ (y  ) + ny*( (x  )*nz + (z+1) ) ];
+    stcscl[5] = cscl[ (y  ) + ny*( (x-1)*nz + (z  ) ) ];
+    stcscl[6] = cscl[ (y  ) + ny*( (x+1)*nz + (z  ) ) ];
 
-        stgridN[0].phi = gridNew[(i-1)*nx + ( j )].phi;
-	    stgridN[1].phi = gridNew[( i )*nx + (j-1)].phi;
-	    stgridN[4].phi = gridNew[( i )*nx + ( j )].phi;
-	    stgridN[2].phi = gridNew[( i )*nx + (j+1)].phi;
-	    stgridN[3].phi = gridNew[(i+1)*nx + ( j )].phi;
+    stgO[0] = gridinfoO[ (y  ) + ny*( (x  )*nz + (z  ) ) ];
+    stgO[1] = gridinfoO[ (y-1) + ny*( (x  )*nz + (z  ) ) ];
+    stgO[2] = gridinfoO[ (y+1) + ny*( (x  )*nz + (z  ) ) ];
+    stgO[3] = gridinfoO[ (y  ) + ny*( (x  )*nz + (z-1) ) ];
+    stgO[4] = gridinfoO[ (y  ) + ny*( (x  )*nz + (z+1) ) ];
+    stgO[5] = gridinfoO[ (y  ) + ny*( (x-1)*nz + (z  ) ) ];
+    stgO[6] = gridinfoO[ (y  ) + ny*( (x+1)*nz + (z  ) ) ];
 
-        dphidt[0] = ( stgridN[4].phi - stgridO[4].phi ) / ( (pfmvar->deltat) );
-	    dphidt[1] = ( stgridN[2].phi - stgridO[5].phi ) / ( (pfmvar->deltat) );
-	    dphidt[2] = ( stgridN[1].phi - stgridO[3].phi ) / ( (pfmvar->deltat) );
-	    dphidt[3] = ( stgridN[3].phi - stgridO[7].phi ) / ( (pfmvar->deltat) );
-	    dphidt[4] = ( stgridN[0].phi - stgridO[1].phi ) / ( (pfmvar->deltat) );
 
-        A1 = (sqrt((pfmvar->ee)))/(sqrt(2.0*(pfmvar->w)));
-
-        alpha1[0] = (A1)*( stcscl[4].c1l - stcscl[4].c1s );
-        alpha1[1] = (A1)*( stcscl[2].c1l - stcscl[2].c1s );
-        alpha1[2] = (A1)*( stcscl[1].c1l - stcscl[1].c1s );
-        alpha1[3] = (A1)*( stcscl[3].c1l - stcscl[3].c1s );
-        alpha1[4] = (A1)*( stcscl[0].c1l - stcscl[0].c1s );
-
-        gradx_phi[0] = ( stgridO[5].phi - stgridO[3].phi ) / ( 2.0*(pfmvar->deltax) );
-        gradx_phi[1] = ( stgridO[8].phi - stgridO[6].phi ) / ( 2.0*(pfmvar->deltax) );
-        gradx_phi[2] = ( stgridO[2].phi - stgridO[0].phi ) / ( 2.0*(pfmvar->deltax) );
-
-        grady_phi[0] = ( stgridO[7].phi - stgridO[1].phi ) / ( 2.0*(pfmvar->deltay) );
-        grady_phi[1] = ( stgridO[8].phi - stgridO[2].phi ) / ( 2.0*(pfmvar->deltay) );
-        grady_phi[2] = ( stgridO[6].phi - stgridO[0].phi ) / ( 2.0*(pfmvar->deltay) );
-
-        phix[0] = gradx_phi[0];
-        phix[1] = ( stgridO[5].phi - stgridO[4].phi ) / ( (pfmvar->deltax) );
-        phix[2] = ( stgridO[4].phi - stgridO[3].phi ) / ( (pfmvar->deltax) );
-        phix[3] = ( gradx_phi[0] + gradx_phi[1] ) / ( 2.0 );
-        phix[4] = ( gradx_phi[0] + gradx_phi[2] ) / ( 2.0 );
-
-        phiy[0] = grady_phi[0];
-        phiy[1] = ( grady_phi[0] + grady_phi[1] ) / ( 2.0 );
-        phiy[2] = ( grady_phi[0] + grady_phi[2] ) / ( 2.0 );
-        phiy[3] = ( stgridO[7].phi - stgridO[4].phi ) / ( (pfmvar->deltay) );
-        phiy[4] = ( stgridO[4].phi - stgridO[1].phi ) / ( (pfmvar->deltay) );
-
-        alphidot1[0] = ( ( alpha1[0] * dphidt[0] ) + ( alpha1[1] * dphidt[1] ) ) / ( 2.0 );
-        alphidot1[1] = ( ( alpha1[0] * dphidt[0] ) + ( alpha1[2] * dphidt[2] ) ) / ( 2.0 );
-        alphidot1[2] = ( ( alpha1[0] * dphidt[0] ) + ( alpha1[3] * dphidt[3] ) ) / ( 2.0 );
-        alphidot1[3] = ( ( alpha1[0] * dphidt[0] ) + ( alpha1[4] * dphidt[4] ) ) / ( 2.0 );
-
-        for (jj=0; jj<5; jj++) {
-            modgradphi[jj] = sqrt( phix[jj]*phix[jj] + phiy[jj]*phiy[jj] );
+      for ( is1 = 0; is1 < nsol; is1++ ) {
+        sum[is1] = 0.0;
+        sum_dcbdT[is1] = 0.0;
+        for ( is2 = 0; is2 < nsol; is2++ ) {
+          dcdmu[is1*nsol+is2] = 0.0;
         }
+      }
 
-        jat1[0] = ( alphidot1[0] * phix[1] ) / ( modgradphi[1] );
-        jat1[1] = ( alphidot1[1] * phix[2] ) / ( modgradphi[2] );
-        jat1[2] = ( alphidot1[2] * phiy[3] ) / ( modgradphi[3] );
-        jat1[3] = ( alphidot1[3] * phiy[4] ) / ( modgradphi[4] );
-
-        for (jj=0; jj<4; jj++) {
-            if ( modgradphi[jj+1] == 0.0 ) {
-                jat1[jj] = 0.0;
-            }
+      for ( ip = 0; ip < npha; ip++ ) {
+        for ( is = 0; is < nsol; is++ ) {
+          dcbdT_phase[ip][is] = 0;
         }
+      }
 
-        c1jatx = ( jat1[0] - jat1[1] ) / ( (pfmvar->deltax) );
-        c1jaty = ( jat1[2] - jat1[3] ) / ( (pfmvar->deltay) );
+      // Calculations are carried out at stencil points of 7 point stencil
+      for ( ii = 0; ii < 7; ii++ ) {
 
-        c1jat = c1jatx + c1jaty;
-        
-
-        for ( ii = 0; ii < 5; ii++ ) { 
-
-          //printf("%d, %d, %d, %d, %le\n", tstep[0], i, j, ii, fhi[ii]);
-
-          interface = 1;
-          phaseliquid = 1; 
-          phasesolid = 0; 
-          
-          if (fhi[ii] >= pfmdat->interfaceUplimit) { 
-            bulkphase = 0;
-            interface = 0;
-          }
-          else if (fhi[ii] <= pfmdat->interfaceDownlimit) { 
-            bulkphase = 1;
-            interface = 0;
-          }
-
-          if ( interface ) { 
-
-            if ( pfmdat->ISOTHERMAL ) { 
-               dc_dmu[ii][0][0][0] = propf4->cmu[0][0][0];
-               dc_dmu[ii][1][0][0] = propf4->cmu[1][0][0];
-             }
-             else { 
-               dc_dmu[ii][0][0][0] = 1 / (2.0 * propf4spline[indij[ii]].A[0][0][0]);
-               dc_dmu[ii][1][0][0] = 1 / (2.0 * propf4spline[indij[ii]].A[1][0][0]);
-             }
-
-            Da[ii] = pfmdat->D11l * (1.0-hphid[ii]) * dc_dmu[ii][1][0][0] + pfmdat->D11s * (hphid[ii]) * dc_dmu[ii][0][0][0];
-            
-          }
-          else { 
-           if ( pfmdat->ISOTHERMAL ) { 
-            if ( bulkphase == 0 ) { 
-              
-              dc_dmu[ii][0][0][0] = propf4->cmu[bulkphase][0][0];
-              
-              
-              Da[ii] = pfmdat->D11s * dc_dmu[ii][0][0][0];
-              
-            }
-            else if ( bulkphase == 1 ) { 
-              
-              dc_dmu[ii][1][0][0] = propf4->cmu[bulkphase][0][0];
-              
-              Da[ii] = pfmdat->D11l * dc_dmu[ii][1][0][0];
-              
-            }
-           }
-           else {
-              
-            if ( bulkphase == 0 ) { 
-              
-              dc_dmu[ii][0][0][0] = 1.0 / (2.0 * propf4spline[indij[ii]].A[bulkphase][0][0]);
-              
-              
-              Da[ii] = pfmdat->D11s * dc_dmu[ii][0][0][0];
-              
-            }
-            else if ( bulkphase == 1 ) { 
-              
-              dc_dmu[ii][1][0][0] = 1.0 / (2.0 * propf4spline[indij[ii]].A[bulkphase][0][0]);
-              
-              Da[ii] = pfmdat->D11l * dc_dmu[ii][1][0][0];
-              
-            }
-           }
-           
-          }
-        }
-
-        Damidx1 = ( Da[2] + Da[4] ) / 2.0;
-        Damidx2 = ( Da[4] + Da[1] ) / 2.0;
-        Damidy1 = ( Da[3] + Da[4] ) / 2.0;
-        Damidy2 = ( Da[4] + Da[0] ) / 2.0;
-        
-        gradmux1[0] = ( stgridO[5].mu[0] - stgridO[4].mu[0] ) / pfmvar->deltax;
-        gradmux2[0] = ( stgridO[4].mu[0] - stgridO[3].mu[0] ) / pfmvar->deltax;
-        gradmuy1[0] = ( stgridO[7].mu[0] - stgridO[4].mu[0] ) / pfmvar->deltay;
-        gradmuy2[0] = ( stgridO[4].mu[0] - stgridO[1].mu[0] ) / pfmvar->deltay;
-
-        divflux = ( Damidx1*gradmux1[0] - Damidx2*gradmux2[0] ) / pfmvar->deltax + ( Damidy1*gradmuy1[0] - Damidy2*gradmuy2[0] ) / pfmvar->deltay;
-        
         interface = 1;
-        phaseliquid = 1; 
-        phasesolid = 0; 
+        bulkphase = 0;
+        for ( ip = 0; ip < npha; ip++ ) {
+          if ( stgO[ii].phi[ip] >= pfmdat->interfaceUplimit ) {
+            bulkphase = ip;
+            interface = 0;
+            break;
+          }
+        }
 
-        if (stgridO[4].phi >= pfmdat->interfaceUplimit) {
-          bulkphase=0;
+        if ( interface ) {
+
+          // Get dc_dmu
+          for ( ip = 0; ip < npha; ip++ ) {
+            for ( is1 = 0; is1 < nsol; is1++ ) {
+              for ( is2 =0; is2 < nsol; is2++ ) {
+                dc_dmu[ii][ip][is1][is2] = propf3->cmu[ip][is1][is2];
+              }
+            }
+          }
+
+          // Calculate mobility at stencil points
+          for ( is = 0; is < nsol; is++ ) {
+            for ( js =0; js < nsol; js++ ) {
+              Da[ii][is][js] = 0.0;
+              for ( ip = 0; ip < npha; ip++ ) {
+                for ( ks = 0; ks < nsol; ks++ ) {
+                  //Da[ii][is][js] += pfmdat->D[ip][is*nsol+ks] * dc_dmu[ii][ip][ks][js] * hfhi(stgO[ii].phi, ip);
+                  Da[ii][is][js] += pfmdat->D[ip][is*nsol+ks] * dc_dmu[ii][ip][ks][js] * stgO[ii].phi[ip];
+                }
+              }
+            }
+          }
+
+        }
+        else {
+
+          // Get dc_dmu for bulk phase
+          for ( is1 = 0; is1 < nsol; is1++ ) {
+            for ( is2 = 0; is2 < nsol; is2++ ) {
+              dc_dmu[ii][bulkphase][is1][is2] = propf3->cmu[bulkphase][is1][is2];
+            }
+          }
+
+          // Calculate mobility for bulk phase at stencil points
+          for ( is = 0; is < nsol; is++ ) {
+            for ( js =0; js < nsol; js++ ) {
+              Da[ii][is][js] = 0.0;
+
+                for ( ks = 0; ks < nsol; ks++ ) {
+                  Da[ii][is][js] += pfmdat->D[bulkphase][is*nsol+ks] * dc_dmu[ii][bulkphase][ks][js];
+                }
+
+            }
+          }
+
+        }
+
+      }
+
+      // Calculating mobility at half grid positions
+      for ( is = 0; is < nsol; is++ ) {
+        for ( js =0; js < nsol; js++ ) {
+
+          Damidy[0][is][js] = ( Da[0][is][js] + Da[1][is][js] ) / 2.0;
+          Damidy[1][is][js] = ( Da[2][is][js] + Da[0][is][js] ) / 2.0;
+
+          Damidz[0][is][js] = ( Da[0][is][js] + Da[3][is][js] ) / 2.0;
+          Damidz[1][is][js] = ( Da[4][is][js] + Da[0][is][js] ) / 2.0;
+
+          Damidx[0][is][js] = ( Da[0][is][js] + Da[5][is][js] ) / 2.0;
+          Damidx[1][is][js] = ( Da[6][is][js] + Da[0][is][js] ) / 2.0;
+
+          //Damidx[0][is][js] = ( Da[2][is][js] + Da[4][is][js] ) / 2.0;
+          //Damidx[1][is][js] = ( Da[4][is][js] + Da[1][is][js] ) / 2.0;
+
+          //Damidy[0][is][js] = ( Da[3][is][js] + Da[4][is][js] ) / 2.0;
+          //Damidy[1][is][js] = ( Da[4][is][js] + Da[0][is][js] ) / 2.0;
+        }
+      }
+
+      // Calculating grad of mu
+      for ( is = 0; is < nsol; is++ ) {
+        gradmuy[0][is] = ( stgO[0].mu[is] - stgO[1].mu[is] ) / pfmvar->deltay;
+        gradmuy[1][is] = ( stgO[2].mu[is] - stgO[0].mu[is] ) / pfmvar->deltay;
+
+        gradmuz[0][is] = ( stgO[0].mu[is] - stgO[3].mu[is] ) / pfmvar->deltaz;
+        gradmuz[1][is] = ( stgO[4].mu[is] - stgO[0].mu[is] ) / pfmvar->deltaz;
+
+        gradmux[0][is] = ( stgO[0].mu[is] - stgO[5].mu[is] ) / pfmvar->deltax;
+        gradmux[1][is] = ( stgO[6].mu[is] - stgO[0].mu[is] ) / pfmvar->deltax;
+
+        //gradmux[0][is] = ( stgO[2].mu[is] - stgO[4].mu[is] ) / pfmvar->deltax;
+        //gradmux[1][is] = ( stgO[4].mu[is] - stgO[1].mu[is] ) / pfmvar->deltax;
+        //gradmuy[0][is] = ( stgO[3].mu[is] - stgO[4].mu[is] ) / pfmvar->deltay;
+        //gradmuy[1][is] = ( stgO[4].mu[is] - stgO[0].mu[is] ) / pfmvar->deltay;
+      }
+
+      // Calculating divergence of flux
+      for ( is = 0; is < nsol; is++ ) {
+        divflux[is] = 0.0;
+        for ( js =0; js < nsol; js++ ) {
+
+          divflux[is] +=  ( Damidy[1][is][js] * gradmuy[1][js] - Damidy[0][is][js] * gradmuy[0][js] ) / pfmvar->deltay;
+
+          divflux[is] += ( Damidz[1][is][js] * gradmuz[1][js] - Damidz[0][is][js] * gradmuz[0][js] ) / pfmvar->deltaz;
+
+          divflux[is] += ( Damidx[1][is][js] * gradmux[1][js] - Damidx[0][is][js] * gradmux[0][js] ) / pfmvar->deltax;
+
+          //divflux[is] += ( Damidx[0][is][js] * gradmux[0][js] - Damidx[1][is][js] * gradmux[1][js] ) / pfmvar->deltax;
+
+          //divflux[is] += ( Damidy[0][is][js] * gradmuy[0][js] - Damidy[1][is][js] * gradmuy[1][js] ) / pfmvar->deltay;
+
+        }
+      }
+
+
+      // Claculation are done at x,y,z for updating composition and mu
+
+      // Check for interface
+      interface = 1;
+      bulkphase = 0;
+      for ( ip = 0; ip < npha; ip++ ) {
+        if ( stgO[0].phi[ip] >= pfmdat->interfaceUplimit ) {
+          bulkphase = ip;
           interface = 0;
+          break;
         }
-        else if (stgridO[4].phi <= pfmdat->interfaceDownlimit) {
-          bulkphase = 1;
-          interface = 0; 
+      }
+
+
+
+          for ( ip = 0; ip < npha; ip++ ) {
+
+            for ( is1 = 0; is1 < nsol; is1++ ) {
+
+              F3_Beq[ip*nsol+is1] = propf3->Beq[ip][is1];
+
+              F3_dBbdT[ip*nsol+is1] = propf3->dBbdT[ip][is1];
+
+              for ( is2 = 0; is2 < nsol; is2++ ) {
+                F3_A[(ip*nsol+is1)*nsol+is2] = propf3->A[ip][is1][is2];
+              }
+
+            }
+          }
+          Tequ = pfmdat->Teq;
+
+      // Update composition and mu in bulk phase
+      if ( !interface ) {
+
+        // update composition
+        for ( is = 0; is < nsol; is++ ) {
+          // gridinfo[index].com[is] = gridinfoO[index].com[is] + pfmvar->deltat * ( divflux[is] + jatr[is] );
+          gridinfo[index].com[is] = gridinfoO[index].com[is] + pfmvar->deltat * ( divflux[is] );
+          comp[is] = gridinfo[index].com[is];
         }
 
-        if ( interface == 0) { 
 
-          gridNew[index].c1 = stgridO[4].c1 + pfmvar->deltat * (divflux + c1jat);
-          //printf("%d, %d, %d, %d, %le %le, %le\n", tstep[0], i, j, interface, stgridO[4].c1, gridNew[index].c1, divflux);
+          function_F_03_Mu_CL(comp, Ti, bulkphase, mu, F3_A, F3_Beq, F3_dBbdT, Tequ);
 
-          if ( pfmdat->ISOTHERMAL ) { 
-          
-          if ( bulkphase == 0 ) { 
-            retmu[0] = 2.0*propf4->A[bulkphase][0][0]*gridNew[index].c1 + propf4->B[bulkphase][0];
-          }
-          else if ( bulkphase == 1 ) { 
-            retmu[0] = 2.0*propf4->A[bulkphase][0][0]*gridNew[index].c1 + propf4->B[bulkphase][0];
-          }
-          
-         }
-         else { 
-           
-           if ( bulkphase == 0 ) { 
-            retmu[0] = 2.0*propf4spline[j].A[bulkphase][0][0]*gridNew[index].c1 + propf4spline[j].B[bulkphase][0];
-          }
-          else if ( bulkphase == 1 ) { 
-            retmu[0] = 2.0*propf4spline[j].A[bulkphase][0][0]*gridNew[index].c1 + propf4spline[j].B[bulkphase][0];
-          }
-           
-         }
-          
+        // Updating mu
+        for ( is = 0; is < nsol; is++ ) {
+          gridinfo[index].mu[is] = mu[is];
+        }
 
-          deltamu = retmu[0] - stgridO[4].mu[0];
-          gridNew[index].mu[0] = retmu[0];
-          //printf("0# %d, %d, %d, %d, %le, %le, %le, %le\n", tstep[0], i, j, interface, stgridO[4].phi, stgridO[4].mu[0], gridNew[index].mu[0], deltamu);
+      }
+      else {
+
+        // Calculation are carried out in iterface region
+
+        for ( is1 = 0; is1 < nsol; is1++ ) {
+
+          // Calculate deltac
+          deltac[is1] = pfmvar->deltat * ( divflux[is1] );
+
+          //// Update composition using deltac
+          //gridinfo[index].com[is1] = stgO[0].com[is1] + deltac[is1];
+
+          //// Update deltac with c_alpha * dh_alpha/dt
+          //deltac[is1] += -sum[is1];
+
+
+          // Calculating h_alpha * dc_dmu
+          for ( is2 = 0; is2 < nsol; is2++ ) {
+            for ( ip = 0; ip < npha; ip++ ) {
+              dcdmu[is1*nsol+is2] += dc_dmu[0][ip][is1][is2] * hfhi(stgO[0].phi, ip);
+            }
+          }
 
         }
-        else if ( interface ) {  
-          
-          if ( pfmdat->ISOTHERMAL ) { 
-               dcbdT_phase[0][0] = 0.0;
-               dcbdT_phase[1][0] = 0.0;
-          }
-          else { 
-            
-            DELTAT = ( pfmvar->deltat ) * ( -pfmdat->TGRADIENT * pfmdat->velocity ); 
-            
-            muc1[0] = 2.0 * propf4spline1[j].A[0][0][0]; 
-            
-            cmu1[0] = 1.0 / muc1[0];
-            
-            c_tdt[0] = cmu1[0] * ( gridOld[index].mu[0] - propf4spline1[j].B[0][0] );
-            
-            dcbdT_phase[0][0] = c_tdt[0] - stcscl[4].c1s;
-            
-            muc1[0] = 2.0 * propf4spline1[j].A[1][0][0]; 
-            
-            cmu1[0] = 1.0 / muc1[0];
-            
-            c_tdt[0] = cmu1[0] * ( gridOld[index].mu[0] - propf4spline1[j].B[1][0] );
-            
-            dcbdT_phase[1][0] = c_tdt[0] - stcscl[4].c1l;
-            
-          }
-          
-          suma = ( stcscl[4].c1s - stcscl[4].c1l ) * (1.0) * ( gridNew[index].phi - stgridO[4].phi );
-          
-          sum_dcbdT = fhi[4] * dcbdT_phase[0][0] + (1.0-fhi[4]) * dcbdT_phase[1][0];
 
-          deltac = pfmvar->deltat * (divflux + c1jat); 
+        // printf("t=%d, %d=i, %d=j, sum=%le\n", tstep[0], i, j, sum[0]);
 
-          gridNew[index].c1 = stgridO[4].c1 + deltac;
-          //printf("%d, %d, %d, %d, %le %le, %le\n", tstep[0], i, j, interface, stgridO[4].c1, gridNew[index].c1, divflux);
-          
-          if ( pfmdat->ISOTHERMAL ) { 
-            deltac = deltac - suma;
-          }
-          else { 
-            deltac = deltac - suma  - sum_dcbdT;
-          }
-          
-          //hphi[4] = 3.0*fhi[4]*fhi[4] - 2.0*fhi[4]*fhi[4]*fhi[4];
-          hphi[4] = fhi[4];
-          dcdmudenom = dc_dmu[4][0][0][0]*hphi[4] + dc_dmu[4][1][0][0]*(1.0-hphi[4]);
-          
-          gridNew[index].mu[0] = stgridO[4].mu[0] + deltac / dcdmudenom;
-          //printf("1# %d, %d, %d, %d, %le, %le, %le, %le, %le, %le, %le, %le\n", tstep[0], i, j, interface, stgridO[4].phi, stgridO[4].mu[0], dcdmu[0][0][0], hphi[4], dcdmu[1][0][0], (1.0-hphi[4]), gridNew[index].mu[0], dcdmudenom);
-          //printf("1# %d, %d, %d, %d, %le, %le, %le, %le, %le, %le, %le\n", tstep[0], i, j, interface, stgridO[4].phi, stgridO[4].mu[0],  gridNew[index].mu[0], deltac / dcdmudenom, suma, ( gridNew[index].phi - stgridO[4].phi ), (6.0*fhi[4]*(1.0-fhi[4])) );
+        //printf("t=%d, %d=i, %d=j, phi0=%le, phi1=%le, h0=%le, h1=%le, dh00=%le, dh01=%le, dh10=%le, dh11=%le\n", tstep[0], i, j, stgO[4].phi[0], stgO[4].phi[1], hfhi(stgO[4].phi, 0), hfhi(stgO[4].phi, 1), dhfhi(stgO[4].phi, 0, 0), dhfhi(stgO[4].phi, 0, 1), dhfhi(stgO[4].phi, 1, 0), dhfhi(stgO[4].phi, 1, 1));
+
+        // Inverse of dcdmu
+        matinvnew_nsol(dcdmu, inv_dcdmu);
+
+        multiply_nsol(inv_dcdmu, deltac, deltamu);
+
+        //vectorsum(deltamu, stgO[index].mu, gridinfo[index].mu, nsol);
+        for ( is = 0; is < nsol; is++ ) {
+          gridinfo[index].mu[is] = gridinfoO[index].mu[is] + deltamu[is];
         }
+        //printf("IC %d, %d, %d, %le, %le, %le, %le\n", tstep[0], i, j, gridinfoO[index].mu[0], gridinfo[index].mu[0], gridinfoO[index].com[0], gridinfo[index].com[0]);
+      }
+
+    }
+}
+
+__kernel void SolverCatr_F3(__global struct fields *gridinfoO, __global struct fields *gridinfo, __global struct csle *cscl, __constant struct pfmval *pfmdat, __constant struct pfmpar *pfmvar, __global double *temp, __global int *tstep, __constant struct propmatf3 *propf3) { 
+  
+  int x, y, z, ii, jj;
+  int nx, ny, nz;
+  int index;
+
+  int is, js, ks, ip, ip1, ip2, is1, is2;
+  int interface, bulkphase;
+  double tmp0, tmp1;
+  double DELTAT, sum_dhphi, Ti;
+  double sum[nsol], sum_dcbdT[nsol], dcdmu[nsol*nsol], dc_dmu[7][npha][nsol][nsol], Da[7][nsol][nsol];
+  double Damidx[2][nsol][nsol], Damidy[2][nsol][nsol], Damidz[2][nsol][nsol], gradmux[2][nsol], gradmuy[2][nsol], gradmuz[2][nsol];
+  double divflux[nsol], mu[nsol], deltamu[nsol], c_tdt[nsol], dcbdT_phase[npha][nsol];
+  double deltac[nsol], inv_dcdmu[nsol*nsol], cg[nsol];
+  double yc[nsol+1], retdmuphase[nsol*nsol];
+  double F3_A[npha*nsol*nsol], F3_Beq[npha*nsol], F3_dBbdT[npha*nsol], Tequ, comp[nsol];
+
+  double alpha[npha-1][nsol][7], alphidot[npha-1][nsol][6], jat[npha-1][nsol][6];
+  double A1[npha-1];
+  double dphidt[npha-1][7], gradx_phi[npha][5], grady_phi[npha][5], gradz_phi[npha][5], phix[npha][7], phiy[npha][7], phiz[npha][7], modgradphi[npha][7], scalprodct[npha][7];
+  double cjatx, cjaty, cjatz;
+  double jatc[npha-1][nsol], jatr[nsol];
+
+  struct fields stgridO[27];
+  struct fields stgN[7];
+  struct csle stcscl[7];
+  struct fields stgO[7];
+  
+  y = get_global_id(0);
+  z = get_global_id(1);
+  x = get_global_id(2);
+  
+  ny = get_global_size(0);
+  nz = get_global_size(1);
+  nx = get_global_size(2);
+  
+  //index = y + ny*(z + x*nz);
+
+  if ( x != 0 && x != nx-1 && y != 0 && y != ny-1 && z != 0 && z != nz-1 ) {
+
+    index = y + ny*(z + x*nz);
+
+    Ti = pfmdat->T0;
+    
+    stgridO[0]  = gridinfoO[ (y-1) + ny*( (x-1)*nz + (z-1) ) ];
+    stgridO[1]  = gridinfoO[ (y  ) + ny*( (x-1)*nz + (z-1) ) ];
+    stgridO[2]  = gridinfoO[ (y+1) + ny*( (x-1)*nz + (z-1) ) ];
+    stgridO[3]  = gridinfoO[ (y-1) + ny*( (x-1)*nz + (z  ) ) ];
+    stgridO[4]  = gridinfoO[ (y  ) + ny*( (x-1)*nz + (z  ) ) ];
+    stgridO[5]  = gridinfoO[ (y+1) + ny*( (x-1)*nz + (z  ) ) ];
+    stgridO[6]  = gridinfoO[ (y-1) + ny*( (x-1)*nz + (z+1) ) ];
+    stgridO[7]  = gridinfoO[ (y  ) + ny*( (x-1)*nz + (z+1) ) ];
+    stgridO[8]  = gridinfoO[ (y+1) + ny*( (x-1)*nz + (z+1) ) ];
+    stgridO[9]  = gridinfoO[ (y-1) + ny*( (x  )*nz + (z-1) ) ];
+    stgridO[10] = gridinfoO[ (y  ) + ny*( (x  )*nz + (z-1) ) ];
+    stgridO[11] = gridinfoO[ (y+1) + ny*( (x  )*nz + (z-1) ) ];
+    stgridO[12] = gridinfoO[ (y-1) + ny*( (x  )*nz + (z  ) ) ];
+    stgridO[13] = gridinfoO[ (y  ) + ny*( (x  )*nz + (z  ) ) ];
+    stgridO[14] = gridinfoO[ (y+1) + ny*( (x  )*nz + (z  ) ) ];
+    stgridO[15] = gridinfoO[ (y-1) + ny*( (x  )*nz + (z+1) ) ];
+    stgridO[16] = gridinfoO[ (y  ) + ny*( (x  )*nz + (z+1) ) ];
+    stgridO[17] = gridinfoO[ (y+1) + ny*( (x  )*nz + (z+1) ) ];
+    stgridO[18] = gridinfoO[ (y-1) + ny*( (x+1)*nz + (z-1) ) ];
+    stgridO[19] = gridinfoO[ (y  ) + ny*( (x+1)*nz + (z-1) ) ];
+    stgridO[20] = gridinfoO[ (y+1) + ny*( (x+1)*nz + (z-1) ) ];
+    stgridO[21] = gridinfoO[ (y-1) + ny*( (x+1)*nz + (z  ) ) ];
+    stgridO[22] = gridinfoO[ (y  ) + ny*( (x+1)*nz + (z  ) ) ];
+    stgridO[23] = gridinfoO[ (y+1) + ny*( (x+1)*nz + (z  ) ) ];
+    stgridO[24] = gridinfoO[ (y-1) + ny*( (x+1)*nz + (z+1) ) ];
+    stgridO[25] = gridinfoO[ (y  ) + ny*( (x+1)*nz + (z+1) ) ];
+    stgridO[26] = gridinfoO[ (y+1) + ny*( (x+1)*nz + (z+1) ) ];
+    
+    // stgridO[0] = gridinfoO[(i-1)*ny + (j-1)];
+    // stgridO[1] = gridinfoO[(i-1)*ny + ( j )];
+    // stgridO[2] = gridinfoO[(i-1)*ny + (j+1)];
+    // stgridO[3] = gridinfoO[( i )*ny + (j-1)];
+    // stgridO[4] = gridinfoO[( i )*ny + ( j )];
+    // stgridO[5] = gridinfoO[( i )*ny + (j+1)];
+    // stgridO[6] = gridinfoO[(i+1)*ny + (j-1)];
+    // stgridO[7] = gridinfoO[(i+1)*ny + ( j )];
+    // stgridO[8] = gridinfoO[(i+1)*ny + (j+1)];
+    
+    stcscl[0] = cscl[ (y  ) + ny*( (x  )*nz + (z  ) ) ];
+    stcscl[1] = cscl[ (y-1) + ny*( (x  )*nz + (z  ) ) ];
+    stcscl[2] = cscl[ (y+1) + ny*( (x  )*nz + (z  ) ) ];
+    stcscl[3] = cscl[ (y  ) + ny*( (x  )*nz + (z-1) ) ];
+    stcscl[4] = cscl[ (y  ) + ny*( (x  )*nz + (z+1) ) ];
+    stcscl[5] = cscl[ (y  ) + ny*( (x-1)*nz + (z  ) ) ];
+    stcscl[6] = cscl[ (y  ) + ny*( (x+1)*nz + (z  ) ) ];
+    
+    // stcscl[0] = cscl[(i-1)*ny + ( j )];
+    // stcscl[1] = cscl[( i )*ny + (j-1)];
+    // stcscl[4] = cscl[( i )*ny + ( j )];
+    // stcscl[2] = cscl[( i )*ny + (j+1)];
+    // stcscl[3] = cscl[(i+1)*ny + ( j )];
+
+    stgO[0] = gridinfoO[ (y  ) + ny*( (x  )*nz + (z  ) ) ];
+    stgO[1] = gridinfoO[ (y-1) + ny*( (x  )*nz + (z  ) ) ];
+    stgO[2] = gridinfoO[ (y+1) + ny*( (x  )*nz + (z  ) ) ];
+    stgO[3] = gridinfoO[ (y  ) + ny*( (x  )*nz + (z-1) ) ];
+    stgO[4] = gridinfoO[ (y  ) + ny*( (x  )*nz + (z+1) ) ];
+    stgO[5] = gridinfoO[ (y  ) + ny*( (x-1)*nz + (z  ) ) ];
+    stgO[6] = gridinfoO[ (y  ) + ny*( (x+1)*nz + (z  ) ) ];
+
+    // stgO[0] = gridinfoO[(i-1)*ny + ( j )];
+    // stgO[1] = gridinfoO[( i )*ny + (j-1)];
+    // stgO[4] = gridinfoO[( i )*ny + ( j )];
+    // stgO[2] = gridinfoO[( i )*ny + (j+1)];
+    // stgO[3] = gridinfoO[(i+1)*ny + ( j )];
+
+    //if (pfmdat->atr) {
+      
+      for ( ip = 0; ip < npha-1; ip++ ) {
+        stgN[0].phi[ip] = gridinfo[ (y  ) + ny*( (x  )*nz + (z  ) ) ].phi[ip];
+        stgN[1].phi[ip] = gridinfo[ (y-1) + ny*( (x  )*nz + (z  ) ) ].phi[ip];
+        stgN[2].phi[ip] = gridinfo[ (y+1) + ny*( (x  )*nz + (z  ) ) ].phi[ip];
+        stgN[3].phi[ip] = gridinfo[ (y  ) + ny*( (x  )*nz + (z-1) ) ].phi[ip];
+        stgN[4].phi[ip] = gridinfo[ (y  ) + ny*( (x  )*nz + (z+1) ) ].phi[ip];
+        stgN[5].phi[ip] = gridinfo[ (y  ) + ny*( (x-1)*nz + (z  ) ) ].phi[ip];
+        stgN[6].phi[ip] = gridinfo[ (y  ) + ny*( (x+1)*nz + (z  ) ) ].phi[ip];
+        //stgridN[0].phi[ip] = gridinfo[(i-1)*ny + ( j )].phi[ip];
+        //stgridN[1].phi[ip] = gridinfo[( i )*ny + (j-1)].phi[ip];
+        //stgridN[4].phi[ip] = gridinfo[( i )*ny + ( j )].phi[ip];
+        //stgridN[2].phi[ip] = gridinfo[( i )*ny + (j+1)].phi[ip];
+        //stgridN[3].phi[ip] = gridinfo[(i+1)*ny + ( j )].phi[ip];
+      }
+      
+      for ( ip = 0; ip < npha-1; ip++ ) {
+        dphidt[ip][0] = ( stgN[0].phi[ip] - stgO[0].phi[ip] ) / ( pfmvar->deltat );
+        dphidt[ip][1] = ( stgN[1].phi[ip] - stgO[1].phi[ip] ) / ( pfmvar->deltat );
+        dphidt[ip][2] = ( stgN[2].phi[ip] - stgO[2].phi[ip] ) / ( pfmvar->deltat );
+        dphidt[ip][3] = ( stgN[3].phi[ip] - stgO[3].phi[ip] ) / ( pfmvar->deltat );
+        dphidt[ip][4] = ( stgN[4].phi[ip] - stgO[4].phi[ip] ) / ( pfmvar->deltat );
+        dphidt[ip][5] = ( stgN[5].phi[ip] - stgO[5].phi[ip] ) / ( pfmvar->deltat );
+        dphidt[ip][6] = ( stgN[6].phi[ip] - stgO[6].phi[ip] ) / ( pfmvar->deltat );
         
+        // dphidt[ip][0] = ( stgridN[4].phi[ip] - stgridO[4].phi[ip] ) / ( pfmvar->deltat );
+        // dphidt[ip][1] = ( stgridN[2].phi[ip] - stgridO[5].phi[ip] ) / ( pfmvar->deltat );
+        // dphidt[ip][2] = ( stgridN[1].phi[ip] - stgridO[3].phi[ip] ) / ( pfmvar->deltat );
+        // dphidt[ip][3] = ( stgridN[3].phi[ip] - stgridO[7].phi[ip] ) / ( pfmvar->deltat );
+        // dphidt[ip][4] = ( stgridN[0].phi[ip] - stgridO[1].phi[ip] ) / ( pfmvar->deltat );
+  
+        A1[ip] = sqrt ( pfmvar->ee[ip*npha+(npha-1)] ) / sqrt( pfmvar->w[ip*npha+(npha-1)] );
+      }
+    
+
+
+    
+      for ( ip = 0; ip < npha-1; ip++ ) {
+        for ( is = 0; is < nsol; is++ ) {
+          alpha[ip][is][0] = (A1[ip])*( stcscl[0].comie[npha-1][is] - stcscl[0].comie[ip][is] );
+          alpha[ip][is][1] = (A1[ip])*( stcscl[1].comie[npha-1][is] - stcscl[1].comie[ip][is] );
+          alpha[ip][is][2] = (A1[ip])*( stcscl[2].comie[npha-1][is] - stcscl[2].comie[ip][is] );
+          alpha[ip][is][3] = (A1[ip])*( stcscl[3].comie[npha-1][is] - stcscl[3].comie[ip][is] );
+          alpha[ip][is][4] = (A1[ip])*( stcscl[4].comie[npha-1][is] - stcscl[4].comie[ip][is] );
+          alpha[ip][is][5] = (A1[ip])*( stcscl[5].comie[npha-1][is] - stcscl[5].comie[ip][is] );
+          alpha[ip][is][6] = (A1[ip])*( stcscl[6].comie[npha-1][is] - stcscl[6].comie[ip][is] );
+          
+          //alpha[ip][is][0] = (A1[ip])*( stcscl[4].comie[npha-1][is] - stcscl[4].comie[ip][is] );
+          //alpha[ip][is][1] = (A1[ip])*( stcscl[2].comie[npha-1][is] - stcscl[2].comie[ip][is] );
+          //alpha[ip][is][2] = (A1[ip])*( stcscl[1].comie[npha-1][is] - stcscl[1].comie[ip][is] );
+          //alpha[ip][is][3] = (A1[ip])*( stcscl[3].comie[npha-1][is] - stcscl[3].comie[ip][is] );
+          //alpha[ip][is][4] = (A1[ip])*( stcscl[0].comie[npha-1][is] - stcscl[0].comie[ip][is] );
+        }
+      }
+  
+      for ( ip = 0; ip < npha; ip++ ) {
+        grady_phi[ip][0] = ( stgridO[14].phi[ip] - stgridO[12].phi[ip] ) / ( 2.0*pfmvar->deltay );
+        grady_phi[ip][1] = ( stgridO[11].phi[ip] - stgridO[9 ].phi[ip] ) / ( 2.0*pfmvar->deltay );
+        grady_phi[ip][2] = ( stgridO[17].phi[ip] - stgridO[15].phi[ip] ) / ( 2.0*pfmvar->deltay );
+        grady_phi[ip][3] = ( stgridO[5 ].phi[ip] - stgridO[3 ].phi[ip] ) / ( 2.0*pfmvar->deltay );
+        grady_phi[ip][4] = ( stgridO[23].phi[ip] - stgridO[21].phi[ip] ) / ( 2.0*pfmvar->deltay );
+        
+        gradz_phi[ip][0] = ( stgridO[16].phi[ip] - stgridO[10].phi[ip] ) / ( 2.0*pfmvar->deltaz );
+        gradz_phi[ip][1] = ( stgridO[15].phi[ip] - stgridO[9 ].phi[ip] ) / ( 2.0*pfmvar->deltaz );
+        gradz_phi[ip][2] = ( stgridO[17].phi[ip] - stgridO[11].phi[ip] ) / ( 2.0*pfmvar->deltaz );
+        gradz_phi[ip][3] = ( stgridO[7 ].phi[ip] - stgridO[1 ].phi[ip] ) / ( 2.0*pfmvar->deltaz );
+        gradz_phi[ip][4] = ( stgridO[25].phi[ip] - stgridO[19].phi[ip] ) / ( 2.0*pfmvar->deltaz );
+        
+        gradx_phi[ip][0] = ( stgridO[22].phi[ip] - stgridO[4 ].phi[ip] ) / ( 2.0*pfmvar->deltax );
+        gradx_phi[ip][1] = ( stgridO[21].phi[ip] - stgridO[3 ].phi[ip] ) / ( 2.0*pfmvar->deltax );
+        gradx_phi[ip][2] = ( stgridO[23].phi[ip] - stgridO[5 ].phi[ip] ) / ( 2.0*pfmvar->deltax );
+        gradx_phi[ip][3] = ( stgridO[19].phi[ip] - stgridO[1 ].phi[ip] ) / ( 2.0*pfmvar->deltax );
+        gradx_phi[ip][4] = ( stgridO[25].phi[ip] - stgridO[7 ].phi[ip] ) / ( 2.0*pfmvar->deltax );
+      }
+  
+      for ( ip = 0; ip < npha; ip++ ) {
+  
+        phiy[ip][0] = grady_phi[ip][0];
+        phiy[ip][1] = ( stgridO[13].phi[ip] - stgridO[12].phi[ip] ) / ( pfmvar->deltay );
+        phiy[ip][2] = ( stgridO[14].phi[ip] - stgridO[13].phi[ip] ) / ( pfmvar->deltay );
+        phiy[ip][3] = ( grady_phi[ip][0] + grady_phi[ip][1] ) / ( 2.0 );
+        phiy[ip][4] = ( grady_phi[ip][0] + grady_phi[ip][2] ) / ( 2.0 );
+        phiy[ip][5] = ( grady_phi[ip][0] + grady_phi[ip][3] ) / ( 2.0 );
+        phiy[ip][6] = ( grady_phi[ip][0] + grady_phi[ip][4] ) / ( 2.0 );
+        
+        phiz[ip][0] = gradz_phi[ip][0];
+        phiz[ip][1] = ( gradz_phi[ip][0] + gradz_phi[ip][1] ) / ( 2.0 );
+        phiz[ip][2] = ( gradz_phi[ip][0] + gradz_phi[ip][2] ) / ( 2.0 );
+        phiz[ip][3] = ( stgridO[13].phi[ip] - stgridO[10].phi[ip] ) / ( pfmvar->deltaz );
+        phiz[ip][4] = ( stgridO[16].phi[ip] - stgridO[13].phi[ip] ) / ( pfmvar->deltaz );
+        phiz[ip][5] = ( gradz_phi[ip][0] + gradz_phi[ip][3] ) / ( 2.0 );
+        phiz[ip][6] = ( gradz_phi[ip][0] + gradz_phi[ip][4] ) / ( 2.0 );
+        
+        phix[ip][0] = gradx_phi[ip][0];
+        phix[ip][1] = ( gradx_phi[ip][0] + gradx_phi[ip][1] ) / ( 2.0 );
+        phix[ip][2] = ( gradx_phi[ip][0] + gradx_phi[ip][2] ) / ( 2.0 );
+        phix[ip][3] = ( gradx_phi[ip][0] + gradx_phi[ip][3] ) / ( 2.0 );
+        phix[ip][4] = ( gradx_phi[ip][0] + gradx_phi[ip][4] ) / ( 2.0 );
+        phix[ip][5] = ( stgridO[13].phi[ip] - stgridO[4 ].phi[ip] ) / ( pfmvar->deltax );
+        phix[ip][6] = ( stgridO[22].phi[ip] - stgridO[13].phi[ip] ) / ( pfmvar->deltax );
+        
+        
+        // phix[ip][0] = gradx_phi[ip][0];
+        // phix[ip][1] = ( stgridO[5].phi[ip] - stgridO[4].phi[ip] ) / ( pfmvar->deltax );
+        // phix[ip][2] = ( stgridO[4].phi[ip] - stgridO[3].phi[ip] ) / ( pfmvar->deltax );
+        // phix[ip][3] = ( gradx_phi[ip][0] + gradx_phi[ip][1] ) / ( 2.0 );
+        // phix[ip][4] = ( gradx_phi[ip][0] + gradx_phi[ip][2] ) / ( 2.0 );
+        // 
+        // phiy[ip][0] = grady_phi[ip][0];
+        // phiy[ip][1] = ( grady_phi[ip][0] + grady_phi[ip][1] ) / ( 2.0 );
+        // phiy[ip][2] = ( grady_phi[ip][0] + grady_phi[ip][2] ) / ( 2.0 );
+        // phiy[ip][3] = ( stgridO[7].phi[ip] - stgridO[4].phi[ip] ) / ( pfmvar->deltay );
+        // phiy[ip][4] = ( stgridO[4].phi[ip] - stgridO[1].phi[ip] ) / ( pfmvar->deltay );
+      }
+  
+      for ( ip = 0; ip < npha-1; ip++ ) {
+	      for ( is = 0; is < nsol; is++ ) {
+          alphidot[ip][is][0] = ( ( alpha[ip][is][0] * dphidt[ip][0] ) + ( alpha[ip][is][1] * dphidt[ip][1] ) ) / ( 2.0 );
+          alphidot[ip][is][1] = ( ( alpha[ip][is][0] * dphidt[ip][0] ) + ( alpha[ip][is][2] * dphidt[ip][2] ) ) / ( 2.0 );
+          alphidot[ip][is][2] = ( ( alpha[ip][is][0] * dphidt[ip][0] ) + ( alpha[ip][is][3] * dphidt[ip][3] ) ) / ( 2.0 );
+          alphidot[ip][is][3] = ( ( alpha[ip][is][0] * dphidt[ip][0] ) + ( alpha[ip][is][4] * dphidt[ip][4] ) ) / ( 2.0 );
+          alphidot[ip][is][4] = ( ( alpha[ip][is][0] * dphidt[ip][0] ) + ( alpha[ip][is][5] * dphidt[ip][5] ) ) / ( 2.0 );
+          alphidot[ip][is][5] = ( ( alpha[ip][is][0] * dphidt[ip][0] ) + ( alpha[ip][is][6] * dphidt[ip][6] ) ) / ( 2.0 );
+	      }
+      }
+  
+      for ( ip = 0; ip < npha; ip++ ) {
+        for ( jj = 0; jj < 7; jj++ ) {
+          modgradphi[ip][jj] = sqrt( phiy[ip][jj]*phiy[ip][jj] + phiz[ip][jj]*phiz[ip][jj] + phix[ip][jj]*phix[ip][jj]);
+        }
+      }
+  
+      for ( ip = 0; ip < npha-1; ip++ ) {
+        for ( jj = 0; jj < 7; jj++ ) {
+          scalprodct[ip][jj] = -1.0*( phiy[ip][jj]*phiy[npha-1][jj] + phiz[ip][jj]*phiz[npha-1][jj] + phix[ip][jj]*phix[npha-1][jj] );
+          if ( modgradphi[npha-1][jj] > 0.0 ) {
+            scalprodct[ip][jj] /= ( modgradphi[ip][jj] * modgradphi[npha-1][jj] );
+          }
+        }
+      }
+  
+  
+  
+      for ( ip = 0; ip < npha-1; ip++ ) {
+	      for ( is = 0; is < nsol; is++ ) {
+          jat[ip][is][0] = ( ( alphidot[ip][is][0] * phiy[ip][1] ) / ( modgradphi[ip][1] ) )   * ( ( 1.0 - pfmdat->D[ip][is*nsol+is] /   pfmdat->D[npha-1][is*nsol+is] ) * fabs(scalprodct[ip][1]) );
+          jat[ip][is][1] = ( ( alphidot[ip][is][1] * phiy[ip][2] ) / ( modgradphi[ip][2] ) )   * ( ( 1.0 - pfmdat->D[ip][is*nsol+is] /   pfmdat->D[npha-1][is*nsol+is] ) * fabs(scalprodct[ip][2]) );
+          jat[ip][is][2] = ( ( alphidot[ip][is][2] * phiz[ip][3] ) / ( modgradphi[ip][3] ) )   * ( ( 1.0 - pfmdat->D[ip][is*nsol+is] /   pfmdat->D[npha-1][is*nsol+is] ) * fabs(scalprodct[ip][3]) );
+          jat[ip][is][3] = ( ( alphidot[ip][is][3] * phiz[ip][4] ) / ( modgradphi[ip][4] ) )   * ( ( 1.0 - pfmdat->D[ip][is*nsol+is] /   pfmdat->D[npha-1][is*nsol+is] ) * fabs(scalprodct[ip][4]) );
+          jat[ip][is][4] = ( ( alphidot[ip][is][4] * phix[ip][5] ) / ( modgradphi[ip][5] ) )   * ( ( 1.0 - pfmdat->D[ip][is*nsol+is] /   pfmdat->D[npha-1][is*nsol+is] ) * fabs(scalprodct[ip][5]) );
+          jat[ip][is][5] = ( ( alphidot[ip][is][5] * phix[ip][6] ) / ( modgradphi[ip][6] ) )   * ( ( 1.0 - pfmdat->D[ip][is*nsol+is] /   pfmdat->D[npha-1][is*nsol+is] ) * fabs(scalprodct[ip][6]) );
+        
+          //jat[ip][is][0] = ( ( alphidot[ip][is][0] * phix[ip][1] ) / ( modgradphi[ip][1] ) )   * ( ( 1.0 - pfmdat->D[ip][is*nsol+is] /   pfmdat->D[npha-1][is*nsol+is] ) * fabs(scalprodct[ip][1]) );
+          //jat[ip][is][1] = ( ( alphidot[ip][is][1] * phix[ip][2] ) / ( modgradphi[ip][2] ) )   * ( ( 1.0 - pfmdat->D[ip][is*nsol+is] /   pfmdat->D[npha-1][is*nsol+is] ) * fabs(scalprodct[ip][2]) );
+          //jat[ip][is][2] = ( ( alphidot[ip][is][2] * phiy[ip][3] ) / ( modgradphi[ip][3] ) )   * ( ( 1.0 - pfmdat->D[ip][is*nsol+is] /   pfmdat->D[npha-1][is*nsol+is] ) * fabs(scalprodct[ip][3]) );
+          //jat[ip][is][3] = ( ( alphidot[ip][is][3] * phiy[ip][4] ) / ( modgradphi[ip][4] ) )   * ( ( 1.0 - pfmdat->D[ip][is*nsol+is] /   pfmdat->D[npha-1][is*nsol+is] ) * fabs(scalprodct[ip][4]) );
+        }
+      }
+  
+      for ( ip = 0; ip < npha-1; ip++ ) {
+        for ( is = 0; is < nsol; is++ ) {
+          for (jj=0; jj< 6; jj++) {
+            if ( modgradphi[ip][jj+1] == 0.0 ) {
+              jat[ip][is][jj] = 0.0;
+            }
+          }
+        }
+      }
+  
+      for ( ip = 0; ip < npha-1; ip++ ) {
+        for ( is = 0; is < nsol; is++ ) {
+          cjaty = ( jat[ip][is][1] - jat[ip][is][0] ) / ( pfmvar->deltay );
+          cjatz = ( jat[ip][is][3] - jat[ip][is][2] ) / ( pfmvar->deltaz );
+          cjatx = ( jat[ip][is][5] - jat[ip][is][4] ) / ( pfmvar->deltax );
+          jatc[ip][is] = cjatx + cjaty + cjatz;
+          
+          //cjatx = ( jat[ip][is][0] - jat[ip][is][1] ) / ( pfmvar->deltax );
+          //cjaty = ( jat[ip][is][2] - jat[ip][is][3] ) / ( pfmvar->deltay );
+          //jatc[ip][is] = cjatx + cjaty;
+          
+        }
+      }
+  
+      for ( is = 0; is < nsol; is++ ) {
+        jatr[is] = 0.0;
+        for ( ip = 0; ip < npha-1; ip++ ) {
+          jatr[is] += jatc[ip][is];
+        }
+      }
+    //}
+  
+
+      for ( is1 = 0; is1 < nsol; is1++ ) {
+        sum[is1] = 0.0;
+        sum_dcbdT[is1] = 0.0;
+        for ( is2 = 0; is2 < nsol; is2++ ) {
+          dcdmu[is1*nsol+is2] = 0.0;
+        }
+      }
+
+      for ( ip = 0; ip < npha; ip++ ) {
+        for ( is = 0; is < nsol; is++ ) {
+          dcbdT_phase[ip][is] = 0;
+        }
+      }
+
+      // Calculations are carried out at stencil points of 7 point stencil
+      for ( ii = 0; ii < 7; ii++ ) {
+
+        interface = 1;
+        bulkphase = 0;
+        for ( ip = 0; ip < npha; ip++ ) {
+          if ( stgO[ii].phi[ip] >= pfmdat->interfaceUplimit ) {
+            bulkphase = ip;
+            interface = 0;
+            break;
+          }
+        }
+
+        if ( interface ) {
+
+          // Get dc_dmu
+          for ( ip = 0; ip < npha; ip++ ) {
+            for ( is1 = 0; is1 < nsol; is1++ ) {
+              for ( is2 =0; is2 < nsol; is2++ ) {
+                dc_dmu[ii][ip][is1][is2] = propf3->cmu[ip][is1][is2];
+              }
+            }
+          }
+
+          // Calculate mobility at stencil points
+          for ( is = 0; is < nsol; is++ ) {
+            for ( js =0; js < nsol; js++ ) {
+              Da[ii][is][js] = 0.0;
+              for ( ip = 0; ip < npha; ip++ ) {
+                for ( ks = 0; ks < nsol; ks++ ) {
+                  //Da[ii][is][js] += pfmdat->D[ip][is*nsol+ks] * dc_dmu[ii][ip][ks][js] * hfhi(stgO[ii].phi, ip);
+                  Da[ii][is][js] += pfmdat->D[ip][is*nsol+ks] * dc_dmu[ii][ip][ks][js] * stgO[ii].phi[ip];
+                }
+              }
+            }
+          }
+
+        }
+        else {
+
+          // Get dc_dmu for bulk phase
+          for ( is1 = 0; is1 < nsol; is1++ ) {
+            for ( is2 = 0; is2 < nsol; is2++ ) {
+              dc_dmu[ii][bulkphase][is1][is2] = propf3->cmu[bulkphase][is1][is2];
+            }
+          }
+
+          // Calculate mobility for bulk phase at stencil points
+          for ( is = 0; is < nsol; is++ ) {
+            for ( js =0; js < nsol; js++ ) {
+              Da[ii][is][js] = 0.0;
+
+                for ( ks = 0; ks < nsol; ks++ ) {
+                  //Da[ii][is][js] += pfmdat->D[bulkphase][is*nsol+ks] * dc_dmu[ii][bulkphase][ks][js];
+                  Da[ii][is][js] += pfmdat->D[bulkphase][is*nsol+ks] * dc_dmu[ii][bulkphase][ks][js];
+                }
+
+            }
+          }
+
+        }
+
+      }
+
+      // Calculating mobility at half grid positions
+      for ( is = 0; is < nsol; is++ ) {
+        for ( js =0; js < nsol; js++ ) {
+
+          Damidy[0][is][js] = ( Da[0][is][js] + Da[1][is][js] ) / 2.0;
+          Damidy[1][is][js] = ( Da[2][is][js] + Da[0][is][js] ) / 2.0;
+          
+          Damidz[0][is][js] = ( Da[0][is][js] + Da[3][is][js] ) / 2.0;
+          Damidz[1][is][js] = ( Da[4][is][js] + Da[0][is][js] ) / 2.0;
+          
+          Damidx[0][is][js] = ( Da[0][is][js] + Da[5][is][js] ) / 2.0;
+          Damidx[1][is][js] = ( Da[6][is][js] + Da[0][is][js] ) / 2.0;
+          
+          //Damidx[0][is][js] = ( Da[2][is][js] + Da[4][is][js] ) / 2.0;
+          //Damidx[1][is][js] = ( Da[4][is][js] + Da[1][is][js] ) / 2.0;
+
+          //Damidy[0][is][js] = ( Da[3][is][js] + Da[4][is][js] ) / 2.0;
+          //Damidy[1][is][js] = ( Da[4][is][js] + Da[0][is][js] ) / 2.0;
+        }
+      }
+
+      // Calculating grad of mu
+      for ( is = 0; is < nsol; is++ ) {
+        gradmuy[0][is] = ( stgO[0].mu[is] - stgO[1].mu[is] ) / pfmvar->deltay;
+        gradmuy[1][is] = ( stgO[2].mu[is] - stgO[0].mu[is] ) / pfmvar->deltay;
+
+        gradmuz[0][is] = ( stgO[0].mu[is] - stgO[3].mu[is] ) / pfmvar->deltaz;
+        gradmuz[1][is] = ( stgO[4].mu[is] - stgO[0].mu[is] ) / pfmvar->deltaz;
+
+        gradmux[0][is] = ( stgO[0].mu[is] - stgO[5].mu[is] ) / pfmvar->deltax;
+        gradmux[1][is] = ( stgO[6].mu[is] - stgO[0].mu[is] ) / pfmvar->deltax;
+        
+        //gradmux[0][is] = ( stgO[2].mu[is] - stgO[4].mu[is] ) / pfmvar->deltax;
+        //gradmux[1][is] = ( stgO[4].mu[is] - stgO[1].mu[is] ) / pfmvar->deltax;
+        //gradmuy[0][is] = ( stgO[3].mu[is] - stgO[4].mu[is] ) / pfmvar->deltay;
+        //gradmuy[1][is] = ( stgO[4].mu[is] - stgO[0].mu[is] ) / pfmvar->deltay;
+      }
+
+      // Calculating divergence of flux
+      for ( is = 0; is < nsol; is++ ) {
+        divflux[is] = 0.0;
+        for ( js =0; js < nsol; js++ ) {
+
+          divflux[is] +=  ( Damidy[1][is][js] * gradmuy[1][js] - Damidy[0][is][js] * gradmuy[0][js] ) / pfmvar->deltay;
+
+          divflux[is] += ( Damidz[1][is][js] * gradmuz[1][js] - Damidz[0][is][js] * gradmuz[0][js] ) / pfmvar->deltaz;
+
+          divflux[is] += ( Damidx[1][is][js] * gradmux[1][js] - Damidx[0][is][js] * gradmux[0][js] ) / pfmvar->deltax;
+
+          //divflux[is] += ( Damidx[0][is][js] * gradmux[0][js] - Damidx[1][is][js] * gradmux[1][js] ) / pfmvar->deltax;
+
+          //divflux[is] += ( Damidy[0][is][js] * gradmuy[0][js] - Damidy[1][is][js] * gradmuy[1][js] ) / pfmvar->deltay;
+
+        }
+      }
+
+
+      // Claculation are done at x,y,z for updating composition and mu
+
+      // Check for interface
+      interface = 1;
+      bulkphase = 0;
+      for ( ip = 0; ip < npha; ip++ ) {
+        if ( stgO[0].phi[ip] >= pfmdat->interfaceUplimit ) {
+          bulkphase = ip;
+          interface = 0;
+          break;
+        }
+      }
+
+
+
+          for ( ip = 0; ip < npha; ip++ ) {
+
+            for ( is1 = 0; is1 < nsol; is1++ ) {
+
+              F3_Beq[ip*nsol+is1] = propf3->Beq[ip][is1];
+
+              F3_dBbdT[ip*nsol+is1] = propf3->dBbdT[ip][is1];
+
+              for ( is2 = 0; is2 < nsol; is2++ ) {
+                F3_A[(ip*nsol+is1)*nsol+is2] = propf3->A[ip][is1][is2];
+              }
+
+            }
+          }
+          Tequ = pfmdat->Teq;
+
+      // Update composition and mu in bulk phase
+      if ( !interface ) {
+
+        // update composition
+        for ( is = 0; is < nsol; is++ ) {
+          gridinfo[index].com[is] = gridinfoO[index].com[is] + pfmvar->deltat * ( divflux[is] + jatr[is] );
+          comp[is] = gridinfo[index].com[is];
+        }
+
+
+          function_F_03_Mu_CL(comp, Ti, bulkphase, mu, F3_A, F3_Beq, F3_dBbdT, Tequ);
+
+        // Updating mu
+        for ( is = 0; is < nsol; is++ ) {
+          gridinfo[index].mu[is] = mu[is];
+        }
+
+      }
+      else {
+
+        // Calculation are carried out in iterface region
+
+        // Calculate Sum ( c_alpha * dh_alpha/ dt )
+        for ( ip1 = 0; ip1 < npha; ip1++ ) {
+          sum_dhphi = 0.0;
+          for ( ip2 = 0; ip2 < npha; ip2++ ) {
+            sum_dhphi += dhfhi(stgO[0].phi, ip1, ip2) * ( gridinfo[index].phi[ip2] - gridinfoO[index].phi[ip2] );
+          }
+
+          for ( is = 0; is < nsol; is++ ) {
+            sum[is]       += stcscl[0].comie[ip1][is] * sum_dhphi;
+          }
+        }
+
+        for ( is1 = 0; is1 < nsol; is1++ ) {
+
+          // Calculate deltac
+          deltac[is1] = pfmvar->deltat * ( divflux[is1] + jatr[is1] );
+
+          //if (tstep[0] > 10) {
+          // Update composition using deltac
+          gridinfo[index].com[is1] = stgO[0].com[is1] + deltac[is1];
+
+          // Update deltac with c_alpha * dh_alpha/dt
+          deltac[is1] += -sum[is1];
+          //}
+
+
+          // Calculating h_alpha * dc_dmu
+          for ( is2 = 0; is2 < nsol; is2++ ) {
+            for ( ip = 0; ip < npha; ip++ ) {
+              dcdmu[is1*nsol+is2] += dc_dmu[0][ip][is1][is2] * hfhi(stgO[0].phi, ip);
+            }
+          }
+
+        }
+
+        // printf("t=%d, %d=i, %d=j, sum=%le\n", tstep[0], i, j, sum[0]);
+
+        //printf("t=%d, %d=i, %d=j, phi0=%le, phi1=%le, h0=%le, h1=%le, dh00=%le, dh01=%le, dh10=%le, dh11=%le\n", tstep[0], i, j, stgO[4].phi[0], stgO[4].phi[1], hfhi(stgO[4].phi, 0), hfhi(stgO[4].phi, 1), dhfhi(stgO[4].phi, 0, 0), dhfhi(stgO[4].phi, 0, 1), dhfhi(stgO[4].phi, 1, 0), dhfhi(stgO[4].phi, 1, 1));
+
+        // Inverse of dcdmu
+        matinvnew_nsol(dcdmu, inv_dcdmu);
+
+        multiply_nsol(inv_dcdmu, deltac, deltamu);
+        // for ( is1 = 0; is1 < nsol; is1++ ) {
+        //   tmp0 = 0.0;
+        //   for ( is2 = 0; is2 < nsol; is2++ ) {
+        //     tmp0 += inv_dcdmu[is1*nsol+is2] * deltac[is2];
+        //   }
+        //   deltamu[is1] = tmp0;
+        // }
+
+        //vectorsum(deltamu, stgO[index].mu, gridinfo[index].mu, nsol);
+        for ( is = 0; is < nsol; is++ ) {
+          gridinfo[index].mu[is] = gridinfoO[index].mu[is] + deltamu[is];
+        }
+        //printf("IC %d, %d, %d, %le, %le, %le, %le\n", tstep[0], i, j, gridinfoO[index].mu[0], gridinfo[index].mu[0], gridinfoO[index].com[0], gridinfo[index].com[0]);
+      }
+
     }
 }
 
-__kernel void apply_BC(__global struct grid *gridNew, __constant struct pfmval *pfmdat) {
+__kernel void SolverCatr_F4_smooth(__global struct fields *gridinfoO, __global struct fields *gridinfo, __global struct csle *cscl, __constant struct pfmval *pfmdat, __constant struct pfmpar *pfmvar, __global double *temp, __global int *tstep, __constant struct propmatf4 *propf4, __constant struct propmatf4spline *propf4spline, __constant struct propmatf4spline *propf4spline1) {
+
+  int x, y, z;
+  int jj, ii;
+  int nx, ny, nz;
+  int index;
+
+  int ig, is, js, ip, i1, j1, is1, is2, ip1, ip2, ks;
+  int interface, bulkphase, indij[5];
+
+  double A1[npha-1];
+  double dphidt[npha-1][7], gradx_phi[npha][5], grady_phi[npha][5], gradz_phi[npha][5], phix[npha][7], phiy[npha][7], phiz[npha][7], modgradphi[npha][7], scalprodct[npha][7];
+  double cjatx, cjaty, cjatz;
+  double jatc[npha-1][nsol], jatr[nsol];
+
+  //double hphid[5][npha], hphi[npha], dhphi[npha][npha], hphicii[5][npha];
+  double tmp0, tmp1;
+  double DELTAT, sum_dhphi, Ti;
+  double sum[nsol], sum_dcbdT[nsol], dcdmu[nsol*nsol], dc_dmu[7][npha][nsol*nsol], Da[7][nsol][nsol];
+  double Damidx[2][nsol][nsol], Damidy[2][nsol][nsol], Damidz[2][nsol][nsol], gradmux[2][nsol], gradmuy[2][nsol], gradmuz[2][nsol];
+  double divflux[nsol], mu[nsol], deltamu[nsol], c_tdt[nsol], dcbdT_phase[npha][nsol];
+  double deltac[nsol], inv_dcdmu[nsol*nsol], cg[nsol];
+
+  double alpha[npha-1][nsol][7], alphidot[npha-1][nsol][6], jat[npha-1][nsol][6], muc[npha][nsol*nsol], muc1[nsol*nsol], cmu1[nsol*nsol];
+
+  struct fields stgridO[27];
+  struct fields stgN[7];
+  struct csle stcscl[7];
+  struct fields stgO[7];
+
+  y = get_global_id(0);
+  z = get_global_id(1);
+  x = get_global_id(2);
+
+  ny = get_global_size(0);
+  nz = get_global_size(1);
+  nx = get_global_size(2);
+
+  //index = y + ny*(z + x*nz);
+
+  if ( x != 0 && x != nx-1 && y != 0 && y != ny-1 && z != 0 && z != nz-1 ) {
+
+    index = y + ny*(z + x*nz);
+
+    Ti = pfmdat->T0;
+
+    stgridO[0]  = gridinfoO[ (y-1) + ny*( (x-1)*nz + (z-1) ) ];
+    stgridO[1]  = gridinfoO[ (y  ) + ny*( (x-1)*nz + (z-1) ) ];
+    stgridO[2]  = gridinfoO[ (y+1) + ny*( (x-1)*nz + (z-1) ) ];
+    stgridO[3]  = gridinfoO[ (y-1) + ny*( (x-1)*nz + (z  ) ) ];
+    stgridO[4]  = gridinfoO[ (y  ) + ny*( (x-1)*nz + (z  ) ) ];
+    stgridO[5]  = gridinfoO[ (y+1) + ny*( (x-1)*nz + (z  ) ) ];
+    stgridO[6]  = gridinfoO[ (y-1) + ny*( (x-1)*nz + (z+1) ) ];
+    stgridO[7]  = gridinfoO[ (y  ) + ny*( (x-1)*nz + (z+1) ) ];
+    stgridO[8]  = gridinfoO[ (y+1) + ny*( (x-1)*nz + (z+1) ) ];
+    stgridO[9]  = gridinfoO[ (y-1) + ny*( (x  )*nz + (z-1) ) ];
+    stgridO[10] = gridinfoO[ (y  ) + ny*( (x  )*nz + (z-1) ) ];
+    stgridO[11] = gridinfoO[ (y+1) + ny*( (x  )*nz + (z-1) ) ];
+    stgridO[12] = gridinfoO[ (y-1) + ny*( (x  )*nz + (z  ) ) ];
+    stgridO[13] = gridinfoO[ (y  ) + ny*( (x  )*nz + (z  ) ) ];
+    stgridO[14] = gridinfoO[ (y+1) + ny*( (x  )*nz + (z  ) ) ];
+    stgridO[15] = gridinfoO[ (y-1) + ny*( (x  )*nz + (z+1) ) ];
+    stgridO[16] = gridinfoO[ (y  ) + ny*( (x  )*nz + (z+1) ) ];
+    stgridO[17] = gridinfoO[ (y+1) + ny*( (x  )*nz + (z+1) ) ];
+    stgridO[18] = gridinfoO[ (y-1) + ny*( (x+1)*nz + (z-1) ) ];
+    stgridO[19] = gridinfoO[ (y  ) + ny*( (x+1)*nz + (z-1) ) ];
+    stgridO[20] = gridinfoO[ (y+1) + ny*( (x+1)*nz + (z-1) ) ];
+    stgridO[21] = gridinfoO[ (y-1) + ny*( (x+1)*nz + (z  ) ) ];
+    stgridO[22] = gridinfoO[ (y  ) + ny*( (x+1)*nz + (z  ) ) ];
+    stgridO[23] = gridinfoO[ (y+1) + ny*( (x+1)*nz + (z  ) ) ];
+    stgridO[24] = gridinfoO[ (y-1) + ny*( (x+1)*nz + (z+1) ) ];
+    stgridO[25] = gridinfoO[ (y  ) + ny*( (x+1)*nz + (z+1) ) ];
+    stgridO[26] = gridinfoO[ (y+1) + ny*( (x+1)*nz + (z+1) ) ];
+
+    stcscl[0] = cscl[ (y  ) + ny*( (x  )*nz + (z  ) ) ];
+    stcscl[1] = cscl[ (y-1) + ny*( (x  )*nz + (z  ) ) ];
+    stcscl[2] = cscl[ (y+1) + ny*( (x  )*nz + (z  ) ) ];
+    stcscl[3] = cscl[ (y  ) + ny*( (x  )*nz + (z-1) ) ];
+    stcscl[4] = cscl[ (y  ) + ny*( (x  )*nz + (z+1) ) ];
+    stcscl[5] = cscl[ (y  ) + ny*( (x-1)*nz + (z  ) ) ];
+    stcscl[6] = cscl[ (y  ) + ny*( (x+1)*nz + (z  ) ) ];
+
+    stgO[0] = gridinfoO[ (y  ) + ny*( (x  )*nz + (z  ) ) ];
+    stgO[1] = gridinfoO[ (y-1) + ny*( (x  )*nz + (z  ) ) ];
+    stgO[2] = gridinfoO[ (y+1) + ny*( (x  )*nz + (z  ) ) ];
+    stgO[3] = gridinfoO[ (y  ) + ny*( (x  )*nz + (z-1) ) ];
+    stgO[4] = gridinfoO[ (y  ) + ny*( (x  )*nz + (z+1) ) ];
+    stgO[5] = gridinfoO[ (y  ) + ny*( (x-1)*nz + (z  ) ) ];
+    stgO[6] = gridinfoO[ (y  ) + ny*( (x+1)*nz + (z  ) ) ];
+
+    for ( is1 = 0; is1 < nsol; is1++ ) {
+        sum[is1] = 0.0;
+        sum_dcbdT[is1] = 0.0;
+        for ( is2 = 0; is2 < nsol; is2++ ) {
+          dcdmu[is1*nsol+is2] = 0.0;
+        }
+      }
+
+      for ( ip = 0; ip < npha; ip++ ) {
+        for ( is = 0; is < nsol; is++ ) {
+          dcbdT_phase[ip][is] = 0;
+        }
+      }
+
+      for ( ii = 0; ii < 7; ii++ ) {
+
+        interface = 1;
+        bulkphase = 0;
+        for ( ip = 0; ip < npha; ip++ ) {
+          if ( stgO[ii].phi[ip] >= pfmdat->interfaceUplimit ) {
+            bulkphase = ip;
+            interface = 0;
+            break;
+          }
+        }
+
+        if ( interface ) {
+
+          //stcscl[2].comie[ip][is]
+
+          //if ( pfmdat->ISOTHERMAL ) {
+            for ( ip = 0; ip < npha; ip++ ) {
+              for ( is1 = 0; is1 < nsol; is1++ ) {
+                for ( is2 =0; is2 < nsol; is2++ ) {
+                  dc_dmu[ii][ip][is1*nsol+is2] = propf4->cmu[ip][is1][is2];
+                }
+              }
+            }
+          //}
+          /*else {
+            for ( ip = 0; ip < npha; ip++ ) {
+              for ( is1 = 0; is1 < nsol; is1++ ) {
+                for ( is2 =0; is2 < nsol; is2++ ) {
+                  if ( is1 == is2 ) {
+                    muc[ip][is1*nsol+is2] = 2.0 * propf4spline[indij[ii]].A[ip][is1][is2];
+                  }
+                  else {
+                    muc[ip][is1*nsol+is2] = propf4spline[indij[ii]].A[ip][is1][is2];
+                  }
+                }
+              }
+              matinvnew_nsol(muc[ip], dc_dmu[ii][ip]);
+            }
+          }*/
+
+          //printf("%d, %d, %d\n", tstep[0], i, j);
+          for ( is = 0; is < nsol; is++ ) {
+            for ( js =0; js < nsol; js++ ) {
+              Da[ii][is][js] = 0.0;
+              for ( ip = 0; ip < npha; ip++ ) {
+                for ( ks = 0; ks < nsol; ks++ ) {
+                  Da[ii][is][js] += pfmdat->D[ip][is*nsol+ks] * dc_dmu[ii][ip][ks*nsol+js] * stgO[ii].phi[ip];
+                  //Da[ii][is][js] += pfmdat->D[ip][is*nsol+ks] * dc_dmu[ii][ip][ks+nsol*js] * stgO[ii].phi[ip];
+                }
+              }
+            }
+          }
+
+        }
+        else {
+
+          // bulk compositon
+
+          //if ( pfmdat->ISOTHERMAL ) {
+            for ( is1 = 0; is1 < nsol; is1++ ) {
+              for ( is2 = 0; is2 < nsol; is2++ ) {
+                dc_dmu[ii][bulkphase][is1*nsol+is2] = propf4->cmu[bulkphase][is1][is2];
+              }
+            }
+          //}
+          /*else {
+            for ( is1 = 0; is1 < nsol; is1++ ) {
+              for ( is2 =0; is2 < nsol; is2++ ) {
+                if ( is1 == is2 ) {
+                  muc[bulkphase][is1*nsol+is2] = 2.0 * propf4spline[indij[ii]].A[bulkphase][is1][is2];
+                }
+                else {
+                  muc[bulkphase][is1*nsol+is2] = propf4spline[indij[ii]].A[bulkphase][is1][is2];
+                }
+              }
+              matinvnew_nsol(muc[bulkphase], dc_dmu[ii][bulkphase]);
+            }
+          }*/
+
+
+          for ( is = 0; is < nsol; is++ ) {
+            for ( js =0; js < nsol; js++ ) {
+              Da[ii][is][js] = 0.0;
+              //for ( ip = 0; ip < npha; ip++ ) {
+                for ( ks = 0; ks < nsol; ks++ ) {
+                  Da[ii][is][js] += pfmdat->D[bulkphase][is*nsol+ks] * dc_dmu[ii][bulkphase][ks*nsol+js];
+                  //Da[ii][is][js] += pfmdat->D[bulkphase][is*nsol+ks] * dc_dmu[ii][bulkphase][ks+nsol*js];
+                }
+              //}
+            }
+          }
+
+        }
+
+      }
+
+      for ( is = 0; is < nsol; is++ ) {
+        for ( js =0; js < nsol; js++ ) {
+
+          Damidy[0][is][js] = ( Da[0][is][js] + Da[1][is][js] ) / 2.0;
+          Damidy[1][is][js] = ( Da[2][is][js] + Da[0][is][js] ) / 2.0;
+
+          Damidz[0][is][js] = ( Da[0][is][js] + Da[3][is][js] ) / 2.0;
+          Damidz[1][is][js] = ( Da[4][is][js] + Da[0][is][js] ) / 2.0;
+
+          Damidx[0][is][js] = ( Da[0][is][js] + Da[5][is][js] ) / 2.0;
+          Damidx[1][is][js] = ( Da[6][is][js] + Da[0][is][js] ) / 2.0;
+
+        }
+      }
+
+      for ( is = 0; is < nsol; is++ ) {
+        gradmuy[0][is] = ( stgO[0].mu[is] - stgO[1].mu[is] ) / pfmvar->deltay;
+        gradmuy[1][is] = ( stgO[2].mu[is] - stgO[0].mu[is] ) / pfmvar->deltay;
+
+        gradmuz[0][is] = ( stgO[0].mu[is] - stgO[3].mu[is] ) / pfmvar->deltaz;
+        gradmuz[1][is] = ( stgO[4].mu[is] - stgO[0].mu[is] ) / pfmvar->deltaz;
+
+        gradmux[0][is] = ( stgO[0].mu[is] - stgO[5].mu[is] ) / pfmvar->deltax;
+        gradmux[1][is] = ( stgO[6].mu[is] - stgO[0].mu[is] ) / pfmvar->deltax;
+      }
+
+      for ( is = 0; is < nsol; is++ ) {
+        divflux[is] = 0.0;
+        for ( js =0; js < nsol; js++ ) {
+
+          divflux[is] +=  ( Damidy[1][is][js] * gradmuy[1][js] - Damidy[0][is][js] * gradmuy[0][js] ) / pfmvar->deltay;
+
+          divflux[is] += ( Damidz[1][is][js] * gradmuz[1][js] - Damidz[0][is][js] * gradmuz[0][js] ) / pfmvar->deltaz;
+
+          divflux[is] += ( Damidx[1][is][js] * gradmux[1][js] - Damidx[0][is][js] * gradmux[0][js] ) / pfmvar->deltax;
+
+        }
+      }
+
+      interface = 1;
+      bulkphase = 0;
+      for ( ip = 0; ip < npha; ip++ ) {
+        if ( stgO[0].phi[ip] >= pfmdat->interfaceUplimit ) {
+          bulkphase = ip;
+          interface = 0;
+          break;
+        }
+      }
+
+      if ( !interface ) {
+
+        for ( is = 0; is < nsol; is++ ) {
+          gridinfo[index].com[is] = gridinfoO[index].com[is] + pfmvar->deltat * ( divflux[is] );
+        }
+
+        ip = bulkphase;
+        //if ( pfmdat->ISOTHERMAL ) {
+          tmp0 = 0.0;
+          for ( is1 = 0; is1 < nsol; is1++ ) {
+            tmp0  = 2.0*propf4->A[bulkphase][is1][is1]*gridinfo[index].com[is1] + propf4->B[bulkphase][is1];
+            for ( is2 = 0; is2 < nsol; is2++ ) {
+              if ( is1 != is2 ) {
+                tmp0 += propf4->A[bulkphase][is1][is2]*gridinfo[index].com[is2];
+              }
+            }
+            mu[is1] = tmp0;
+          }
+        //}
+        /*else {
+          tmp0 = 0.0;
+          for ( is1 = 0; is1 < nsol; is1++ ) {
+            tmp0  = 2.0*propf4spline[j].A[bulkphase][is1][is1]*gridinfo[index].com[is1] + propf4spline[j].B[bulkphase][is1];
+            for ( is2 = 0; is2 < nsol; is2++ ) {
+              if ( is1 != is2 ) {
+                tmp0 += propf4spline[j].A[bulkphase][is1][is2]*gridinfo[index].com[is2];
+              }
+            }
+            mu[is1] = tmp0;
+          }
+        }*/
+
+        for ( is = 0; is < nsol; is++ ) {
+          //deltamu[is] = mu[is] - stgO[0].mu[is];
+          gridinfo[index].mu[is] = mu[is];
+        }
+        //printf("BC %d, %d, %d, %le, %le, %le, %le\n", tstep[0], i, j, gridOld[index].mu[0], gridinfo[index].mu[0], gridOld[index].com[0], gridinfo[index].com[0]);
+      }
+      else {
+
+        /*if ( pfmdat->ISOTHERMAL ) {
+          for ( ip = 0; ip < npha; ip++ ) {
+            for ( is = 0; is < nsol; is++ ) {
+              dcbdT_phase[ip][is] = 0.0;
+            }
+          }
+        }*/
+        /*else {
+
+          DELTAT = ( pfmvar->deltat ) * ( -pfmdat->TGRADIENT * pfmdat->velocity );
+
+          for ( ip = 0; ip < npha; ip++ ) {
+            for ( is1 = 0; is1 < nsol; is1++ ) {
+              for ( is2 = 0; is2 < nsol; is2++ ) {
+                if ( is1 == is2 ) {
+                  muc1[is1*nsol+is2] = 2.0 * propf4spline1[j].A[ip][is1][is2];
+                }
+                else {
+                  muc1[is1*nsol+is2] = propf4spline1[j].A[ip][is1][is2];
+                }
+              }
+            }
+            matinvnew_nsol(muc1, cmu1);
+
+            for ( is1 = 0; is1 < nsol; is1++ ) {
+              tmp0 = 0.0;
+              for ( is2 = 0; is2 < nsol; is2++ ) {
+                tmp0 += cmu1[is1*nsol+is2] * ( gridOld[index].mu[is2] - propf4spline1[j].B[ip][is2] );
+              }
+              c_tdt[is1] = tmp0;
+            }
+
+            for ( is = 0; is < nsol; is++ ) {
+              dcbdT_phase[ip][is] = c_tdt[is] - stcscl[4].comie[ip][is];
+            }
+
+          }
+        }*/
+
+
+        for ( is1 = 0; is1 < nsol; is1++ ) {
+
+          deltac[is1] = pfmvar->deltat * ( divflux[is1] + jatr[is1] );
+
+          // gridinfo[index].com[is1] = stgO[0].com[is1] + deltac[is1];
+          //
+          // //if ( pfmdat->ISOTHERMAL ) {
+          //   deltac[is1] += -sum[is1];
+          // //}
+          // //else {
+          // //  deltac[is1] += -sum[is1] - sum_dcbdT[is1];
+          // //}
+          for ( is2 = 0; is2 < nsol; is2++ ) {
+            for ( ip = 0; ip < npha; ip++ ) {
+              dcdmu[is1*nsol+is2] += dc_dmu[0][ip][is1*nsol+is2] * hfhi(stgO[0].phi, ip);
+            }
+          }
+        }
+
+        matinvnew_nsol(dcdmu, inv_dcdmu);
+
+        multiply_nsol(inv_dcdmu, deltac, deltamu);
+        // for ( is1 = 0; is1 < nsol; is1++ ) {
+        //   tmp0 = 0.0;
+        //   for ( is2 = 0; is2 < nsol; is2++ ) {
+        //     tmp0 += inv_dcdmu[is1*nsol+is2] * deltac[is2];
+        //   }
+        //   deltamu[is1] = tmp0;
+        // }
+
+        //vectorsum(deltamu, stgO[index].mu, gridinfo[index].mu, nsol);
+        for ( is = 0; is < nsol; is++ ) {
+          gridinfo[index].mu[is] = gridinfoO[index].mu[is] + deltamu[is];
+        }
+        //printf("IC %d, %d, %d, %le, %le\n", tstep[0], i, j, gridinfo[index].mu[0], gridinfo[index].com[0]);
+        //printf("IC %d, %d, %d, %le, %le, %le, %le\n", tstep[0], i, j, gridOld[index].mu[0], gridinfo[index].mu[0], gridOld[index].com[0], gridinfo[index].com[0]);
+      }
+      //printf("%d, %d, %d, %le, %le\n", tstep[0], i, j, gridinfo[index].mu[0], gridinfo[index].com[0]);
+
+    }
+
+
+}
+
+__kernel void SolverCatr_F4(__global struct fields *gridinfoO, __global struct fields *gridinfo, __global struct csle *cscl, __constant struct pfmval *pfmdat, __constant struct pfmpar *pfmvar, __global double *temp, __global int *tstep, __constant struct propmatf4 *propf4, __constant struct propmatf4spline *propf4spline, __constant struct propmatf4spline *propf4spline1) { 
+
+  int x, y, z;
+  int jj, ii;
+  int nx, ny, nz;
+  int index;
+
+  int ig, is, js, ip, i1, j1, is1, is2, ip1, ip2, ks;
+  int interface, bulkphase, indij[5];
+
+  double A1[npha-1];
+  double dphidt[npha-1][7], gradx_phi[npha][5], grady_phi[npha][5], gradz_phi[npha][5], phix[npha][7], phiy[npha][7], phiz[npha][7], modgradphi[npha][7], scalprodct[npha][7];
+  double cjatx, cjaty, cjatz;
+  double jatc[npha-1][nsol], jatr[nsol];
+
+  //double hphid[5][npha], hphi[npha], dhphi[npha][npha], hphicii[5][npha];
+  double tmp0, tmp1;
+  double DELTAT, sum_dhphi, Ti;
+  double sum[nsol], sum_dcbdT[nsol], dcdmu[nsol*nsol], dc_dmu[7][npha][nsol*nsol], Da[7][nsol][nsol];
+  double Damidx[2][nsol][nsol], Damidy[2][nsol][nsol], Damidz[2][nsol][nsol], gradmux[2][nsol], gradmuy[2][nsol], gradmuz[2][nsol];
+  double divflux[nsol], mu[nsol], deltamu[nsol], c_tdt[nsol], dcbdT_phase[npha][nsol];
+  double deltac[nsol], inv_dcdmu[nsol*nsol], cg[nsol];
+
+  double alpha[npha-1][nsol][7], alphidot[npha-1][nsol][6], jat[npha-1][nsol][6], muc[npha][nsol*nsol], muc1[nsol*nsol], cmu1[nsol*nsol];
+
+  struct fields stgridO[27];
+  struct fields stgN[7];
+  struct csle stcscl[7];
+  struct fields stgO[7];
+
+  y = get_global_id(0);
+  z = get_global_id(1);
+  x = get_global_id(2);
+
+  ny = get_global_size(0);
+  nz = get_global_size(1);
+  nx = get_global_size(2);
+
+  //index = y + ny*(z + x*nz);
+
+  if ( x != 0 && x != nx-1 && y != 0 && y != ny-1 && z != 0 && z != nz-1 ) {
+
+    index = y + ny*(z + x*nz);
+
+    Ti = pfmdat->T0;
+
+    stgridO[0]  = gridinfoO[ (y-1) + ny*( (x-1)*nz + (z-1) ) ];
+    stgridO[1]  = gridinfoO[ (y  ) + ny*( (x-1)*nz + (z-1) ) ];
+    stgridO[2]  = gridinfoO[ (y+1) + ny*( (x-1)*nz + (z-1) ) ];
+    stgridO[3]  = gridinfoO[ (y-1) + ny*( (x-1)*nz + (z  ) ) ];
+    stgridO[4]  = gridinfoO[ (y  ) + ny*( (x-1)*nz + (z  ) ) ];
+    stgridO[5]  = gridinfoO[ (y+1) + ny*( (x-1)*nz + (z  ) ) ];
+    stgridO[6]  = gridinfoO[ (y-1) + ny*( (x-1)*nz + (z+1) ) ];
+    stgridO[7]  = gridinfoO[ (y  ) + ny*( (x-1)*nz + (z+1) ) ];
+    stgridO[8]  = gridinfoO[ (y+1) + ny*( (x-1)*nz + (z+1) ) ];
+    stgridO[9]  = gridinfoO[ (y-1) + ny*( (x  )*nz + (z-1) ) ];
+    stgridO[10] = gridinfoO[ (y  ) + ny*( (x  )*nz + (z-1) ) ];
+    stgridO[11] = gridinfoO[ (y+1) + ny*( (x  )*nz + (z-1) ) ];
+    stgridO[12] = gridinfoO[ (y-1) + ny*( (x  )*nz + (z  ) ) ];
+    stgridO[13] = gridinfoO[ (y  ) + ny*( (x  )*nz + (z  ) ) ];
+    stgridO[14] = gridinfoO[ (y+1) + ny*( (x  )*nz + (z  ) ) ];
+    stgridO[15] = gridinfoO[ (y-1) + ny*( (x  )*nz + (z+1) ) ];
+    stgridO[16] = gridinfoO[ (y  ) + ny*( (x  )*nz + (z+1) ) ];
+    stgridO[17] = gridinfoO[ (y+1) + ny*( (x  )*nz + (z+1) ) ];
+    stgridO[18] = gridinfoO[ (y-1) + ny*( (x+1)*nz + (z-1) ) ];
+    stgridO[19] = gridinfoO[ (y  ) + ny*( (x+1)*nz + (z-1) ) ];
+    stgridO[20] = gridinfoO[ (y+1) + ny*( (x+1)*nz + (z-1) ) ];
+    stgridO[21] = gridinfoO[ (y-1) + ny*( (x+1)*nz + (z  ) ) ];
+    stgridO[22] = gridinfoO[ (y  ) + ny*( (x+1)*nz + (z  ) ) ];
+    stgridO[23] = gridinfoO[ (y+1) + ny*( (x+1)*nz + (z  ) ) ];
+    stgridO[24] = gridinfoO[ (y-1) + ny*( (x+1)*nz + (z+1) ) ];
+    stgridO[25] = gridinfoO[ (y  ) + ny*( (x+1)*nz + (z+1) ) ];
+    stgridO[26] = gridinfoO[ (y+1) + ny*( (x+1)*nz + (z+1) ) ];
+
+    stcscl[0] = cscl[ (y  ) + ny*( (x  )*nz + (z  ) ) ];
+    stcscl[1] = cscl[ (y-1) + ny*( (x  )*nz + (z  ) ) ];
+    stcscl[2] = cscl[ (y+1) + ny*( (x  )*nz + (z  ) ) ];
+    stcscl[3] = cscl[ (y  ) + ny*( (x  )*nz + (z-1) ) ];
+    stcscl[4] = cscl[ (y  ) + ny*( (x  )*nz + (z+1) ) ];
+    stcscl[5] = cscl[ (y  ) + ny*( (x-1)*nz + (z  ) ) ];
+    stcscl[6] = cscl[ (y  ) + ny*( (x+1)*nz + (z  ) ) ];
+
+    stgO[0] = gridinfoO[ (y  ) + ny*( (x  )*nz + (z  ) ) ];
+    stgO[1] = gridinfoO[ (y-1) + ny*( (x  )*nz + (z  ) ) ];
+    stgO[2] = gridinfoO[ (y+1) + ny*( (x  )*nz + (z  ) ) ];
+    stgO[3] = gridinfoO[ (y  ) + ny*( (x  )*nz + (z-1) ) ];
+    stgO[4] = gridinfoO[ (y  ) + ny*( (x  )*nz + (z+1) ) ];
+    stgO[5] = gridinfoO[ (y  ) + ny*( (x-1)*nz + (z  ) ) ];
+    stgO[6] = gridinfoO[ (y  ) + ny*( (x+1)*nz + (z  ) ) ];
+
+    for ( ip = 0; ip < npha-1; ip++ ) {
+        stgN[0].phi[ip] = gridinfo[ (y  ) + ny*( (x  )*nz + (z  ) ) ].phi[ip];
+        stgN[1].phi[ip] = gridinfo[ (y-1) + ny*( (x  )*nz + (z  ) ) ].phi[ip];
+        stgN[2].phi[ip] = gridinfo[ (y+1) + ny*( (x  )*nz + (z  ) ) ].phi[ip];
+        stgN[3].phi[ip] = gridinfo[ (y  ) + ny*( (x  )*nz + (z-1) ) ].phi[ip];
+        stgN[4].phi[ip] = gridinfo[ (y  ) + ny*( (x  )*nz + (z+1) ) ].phi[ip];
+        stgN[5].phi[ip] = gridinfo[ (y  ) + ny*( (x-1)*nz + (z  ) ) ].phi[ip];
+        stgN[6].phi[ip] = gridinfo[ (y  ) + ny*( (x+1)*nz + (z  ) ) ].phi[ip];
+    }
+
+    for ( ip = 0; ip < npha-1; ip++ ) {
+        dphidt[ip][0] = ( stgN[0].phi[ip] - stgO[0].phi[ip] ) / ( pfmvar->deltat );
+        dphidt[ip][1] = ( stgN[1].phi[ip] - stgO[1].phi[ip] ) / ( pfmvar->deltat );
+        dphidt[ip][2] = ( stgN[2].phi[ip] - stgO[2].phi[ip] ) / ( pfmvar->deltat );
+        dphidt[ip][3] = ( stgN[3].phi[ip] - stgO[3].phi[ip] ) / ( pfmvar->deltat );
+        dphidt[ip][4] = ( stgN[4].phi[ip] - stgO[4].phi[ip] ) / ( pfmvar->deltat );
+        dphidt[ip][5] = ( stgN[5].phi[ip] - stgO[5].phi[ip] ) / ( pfmvar->deltat );
+        dphidt[ip][6] = ( stgN[6].phi[ip] - stgO[6].phi[ip] ) / ( pfmvar->deltat );
+
+      A1[ip] = sqrt ( pfmvar->ee[ip*npha+(npha-1)] ) / sqrt( pfmvar->w[ip*npha+(npha-1)] );
+
+    }
+
+
+    for ( ip = 0; ip < npha-1; ip++ ) {
+      for ( is = 0; is < nsol; is++ ) {
+          alpha[ip][is][0] = (A1[ip])*( stcscl[0].comie[npha-1][is] - stcscl[0].comie[ip][is] );
+          alpha[ip][is][1] = (A1[ip])*( stcscl[1].comie[npha-1][is] - stcscl[1].comie[ip][is] );
+          alpha[ip][is][2] = (A1[ip])*( stcscl[2].comie[npha-1][is] - stcscl[2].comie[ip][is] );
+          alpha[ip][is][3] = (A1[ip])*( stcscl[3].comie[npha-1][is] - stcscl[3].comie[ip][is] );
+          alpha[ip][is][4] = (A1[ip])*( stcscl[4].comie[npha-1][is] - stcscl[4].comie[ip][is] );
+          alpha[ip][is][5] = (A1[ip])*( stcscl[5].comie[npha-1][is] - stcscl[5].comie[ip][is] );
+          alpha[ip][is][6] = (A1[ip])*( stcscl[6].comie[npha-1][is] - stcscl[6].comie[ip][is] );
+      }
+    }
+
+    for ( ip = 0; ip < npha; ip++ ) {
+        grady_phi[ip][0] = ( stgridO[14].phi[ip] - stgridO[12].phi[ip] ) / ( 2.0*pfmvar->deltay );
+        grady_phi[ip][1] = ( stgridO[11].phi[ip] - stgridO[9 ].phi[ip] ) / ( 2.0*pfmvar->deltay );
+        grady_phi[ip][2] = ( stgridO[17].phi[ip] - stgridO[15].phi[ip] ) / ( 2.0*pfmvar->deltay );
+        grady_phi[ip][3] = ( stgridO[5 ].phi[ip] - stgridO[3 ].phi[ip] ) / ( 2.0*pfmvar->deltay );
+        grady_phi[ip][4] = ( stgridO[23].phi[ip] - stgridO[21].phi[ip] ) / ( 2.0*pfmvar->deltay );
+
+        gradz_phi[ip][0] = ( stgridO[16].phi[ip] - stgridO[10].phi[ip] ) / ( 2.0*pfmvar->deltaz );
+        gradz_phi[ip][1] = ( stgridO[15].phi[ip] - stgridO[9 ].phi[ip] ) / ( 2.0*pfmvar->deltaz );
+        gradz_phi[ip][2] = ( stgridO[17].phi[ip] - stgridO[11].phi[ip] ) / ( 2.0*pfmvar->deltaz );
+        gradz_phi[ip][3] = ( stgridO[7 ].phi[ip] - stgridO[1 ].phi[ip] ) / ( 2.0*pfmvar->deltaz );
+        gradz_phi[ip][4] = ( stgridO[25].phi[ip] - stgridO[19].phi[ip] ) / ( 2.0*pfmvar->deltaz );
+
+        gradx_phi[ip][0] = ( stgridO[22].phi[ip] - stgridO[4 ].phi[ip] ) / ( 2.0*pfmvar->deltax );
+        gradx_phi[ip][1] = ( stgridO[21].phi[ip] - stgridO[3 ].phi[ip] ) / ( 2.0*pfmvar->deltax );
+        gradx_phi[ip][2] = ( stgridO[23].phi[ip] - stgridO[5 ].phi[ip] ) / ( 2.0*pfmvar->deltax );
+        gradx_phi[ip][3] = ( stgridO[19].phi[ip] - stgridO[1 ].phi[ip] ) / ( 2.0*pfmvar->deltax );
+        gradx_phi[ip][4] = ( stgridO[25].phi[ip] - stgridO[7 ].phi[ip] ) / ( 2.0*pfmvar->deltax );
+    }
+
+    for ( ip = 0; ip < npha; ip++ ) {
+
+        phiy[ip][0] = grady_phi[ip][0];
+        phiy[ip][1] = ( stgridO[13].phi[ip] - stgridO[12].phi[ip] ) / ( pfmvar->deltay );
+        phiy[ip][2] = ( stgridO[14].phi[ip] - stgridO[13].phi[ip] ) / ( pfmvar->deltay );
+        phiy[ip][3] = ( grady_phi[ip][0] + grady_phi[ip][1] ) / ( 2.0 );
+        phiy[ip][4] = ( grady_phi[ip][0] + grady_phi[ip][2] ) / ( 2.0 );
+        phiy[ip][5] = ( grady_phi[ip][0] + grady_phi[ip][3] ) / ( 2.0 );
+        phiy[ip][6] = ( grady_phi[ip][0] + grady_phi[ip][4] ) / ( 2.0 );
+
+        phiz[ip][0] = gradz_phi[ip][0];
+        phiz[ip][1] = ( gradz_phi[ip][0] + gradz_phi[ip][1] ) / ( 2.0 );
+        phiz[ip][2] = ( gradz_phi[ip][0] + gradz_phi[ip][2] ) / ( 2.0 );
+        phiz[ip][3] = ( stgridO[13].phi[ip] - stgridO[10].phi[ip] ) / ( pfmvar->deltaz );
+        phiz[ip][4] = ( stgridO[16].phi[ip] - stgridO[13].phi[ip] ) / ( pfmvar->deltaz );
+        phiz[ip][5] = ( gradz_phi[ip][0] + gradz_phi[ip][3] ) / ( 2.0 );
+        phiz[ip][6] = ( gradz_phi[ip][0] + gradz_phi[ip][4] ) / ( 2.0 );
+
+        phix[ip][0] = gradx_phi[ip][0];
+        phix[ip][1] = ( gradx_phi[ip][0] + gradx_phi[ip][1] ) / ( 2.0 );
+        phix[ip][2] = ( gradx_phi[ip][0] + gradx_phi[ip][2] ) / ( 2.0 );
+        phix[ip][3] = ( gradx_phi[ip][0] + gradx_phi[ip][3] ) / ( 2.0 );
+        phix[ip][4] = ( gradx_phi[ip][0] + gradx_phi[ip][4] ) / ( 2.0 );
+        phix[ip][5] = ( stgridO[13].phi[ip] - stgridO[4 ].phi[ip] ) / ( pfmvar->deltax );
+        phix[ip][6] = ( stgridO[22].phi[ip] - stgridO[13].phi[ip] ) / ( pfmvar->deltax );
+    }
+
+    for ( ip = 0; ip < npha-1; ip++ ) {
+	      for ( is = 0; is < nsol; is++ ) {
+          alphidot[ip][is][0] = ( ( alpha[ip][is][0] * dphidt[ip][0] ) + ( alpha[ip][is][1] * dphidt[ip][1] ) ) / ( 2.0 );
+          alphidot[ip][is][1] = ( ( alpha[ip][is][0] * dphidt[ip][0] ) + ( alpha[ip][is][2] * dphidt[ip][2] ) ) / ( 2.0 );
+          alphidot[ip][is][2] = ( ( alpha[ip][is][0] * dphidt[ip][0] ) + ( alpha[ip][is][3] * dphidt[ip][3] ) ) / ( 2.0 );
+          alphidot[ip][is][3] = ( ( alpha[ip][is][0] * dphidt[ip][0] ) + ( alpha[ip][is][4] * dphidt[ip][4] ) ) / ( 2.0 );
+          alphidot[ip][is][4] = ( ( alpha[ip][is][0] * dphidt[ip][0] ) + ( alpha[ip][is][5] * dphidt[ip][5] ) ) / ( 2.0 );
+          alphidot[ip][is][5] = ( ( alpha[ip][is][0] * dphidt[ip][0] ) + ( alpha[ip][is][6] * dphidt[ip][6] ) ) / ( 2.0 );
+	      }
+    }
+
+    for ( ip = 0; ip < npha; ip++ ) {
+      for ( jj = 0; jj < 7; jj++ ) {
+          modgradphi[ip][jj] = sqrt( phiy[ip][jj]*phiy[ip][jj] + phiz[ip][jj]*phiz[ip][jj] + phix[ip][jj]*phix[ip][jj]);
+      }
+    }
+
+    for ( ip = 0; ip < npha-1; ip++ ) {
+      for ( jj = 0; jj < 7; jj++ ) {
+          scalprodct[ip][jj] = -1.0*( phiy[ip][jj]*phiy[npha-1][jj] + phiz[ip][jj]*phiz[npha-1][jj] + phix[ip][jj]*phix[npha-1][jj] );
+          if ( modgradphi[npha-1][jj] > 0.0 ) {
+            scalprodct[ip][jj] /= ( modgradphi[ip][jj] * modgradphi[npha-1][jj] );
+        }
+      }
+    }
+
+
+
+    for ( ip = 0; ip < npha-1; ip++ ) {
+	    for ( is = 0; is < nsol; is++ ) {
+          jat[ip][is][0] = ( ( alphidot[ip][is][0] * phiy[ip][1] ) / ( modgradphi[ip][1] ) )   * ( ( 1.0 - pfmdat->D[ip][is*nsol+is] /   pfmdat->D[npha-1][is*nsol+is] ) * fabs(scalprodct[ip][1]) );
+          jat[ip][is][1] = ( ( alphidot[ip][is][1] * phiy[ip][2] ) / ( modgradphi[ip][2] ) )   * ( ( 1.0 - pfmdat->D[ip][is*nsol+is] /   pfmdat->D[npha-1][is*nsol+is] ) * fabs(scalprodct[ip][2]) );
+          jat[ip][is][2] = ( ( alphidot[ip][is][2] * phiz[ip][3] ) / ( modgradphi[ip][3] ) )   * ( ( 1.0 - pfmdat->D[ip][is*nsol+is] /   pfmdat->D[npha-1][is*nsol+is] ) * fabs(scalprodct[ip][3]) );
+          jat[ip][is][3] = ( ( alphidot[ip][is][3] * phiz[ip][4] ) / ( modgradphi[ip][4] ) )   * ( ( 1.0 - pfmdat->D[ip][is*nsol+is] /   pfmdat->D[npha-1][is*nsol+is] ) * fabs(scalprodct[ip][4]) );
+          jat[ip][is][4] = ( ( alphidot[ip][is][4] * phix[ip][5] ) / ( modgradphi[ip][5] ) )   * ( ( 1.0 - pfmdat->D[ip][is*nsol+is] /   pfmdat->D[npha-1][is*nsol+is] ) * fabs(scalprodct[ip][5]) );
+          jat[ip][is][5] = ( ( alphidot[ip][is][5] * phix[ip][6] ) / ( modgradphi[ip][6] ) )   * ( ( 1.0 - pfmdat->D[ip][is*nsol+is] /   pfmdat->D[npha-1][is*nsol+is] ) * fabs(scalprodct[ip][6]) );
+      }
+    }
+
+    for ( ip = 0; ip < npha-1; ip++ ) {
+      for ( is = 0; is < nsol; is++ ) {
+          for (jj=0; jj< 6; jj++) {
+            if ( modgradphi[ip][jj+1] == 0.0 ) {
+              jat[ip][is][jj] = 0.0;
+          }
+        }
+      }
+    }
+
+    for ( ip = 0; ip < npha-1; ip++ ) {
+      for ( is = 0; is < nsol; is++ ) {
+          cjaty = ( jat[ip][is][1] - jat[ip][is][0] ) / ( pfmvar->deltay );
+          cjatz = ( jat[ip][is][3] - jat[ip][is][2] ) / ( pfmvar->deltaz );
+          cjatx = ( jat[ip][is][5] - jat[ip][is][4] ) / ( pfmvar->deltax );
+          jatc[ip][is] = cjatx + cjaty + cjatz;
+	    }
+    }
+
+    for ( is = 0; is < nsol; is++ ) {
+      jatr[is] = 0.0;
+      for ( ip = 0; ip < npha-1; ip++ ) {
+        jatr[is] += jatc[ip][is];
+      }
+    }
+
+    for ( is1 = 0; is1 < nsol; is1++ ) {
+        sum[is1] = 0.0;
+        sum_dcbdT[is1] = 0.0;
+        for ( is2 = 0; is2 < nsol; is2++ ) {
+          dcdmu[is1*nsol+is2] = 0.0;
+        }
+      }
+
+      for ( ip = 0; ip < npha; ip++ ) {
+        for ( is = 0; is < nsol; is++ ) {
+          dcbdT_phase[ip][is] = 0;
+        }
+      }
+
+      for ( ii = 0; ii < 7; ii++ ) {
+
+        interface = 1;
+        bulkphase = 0;
+        for ( ip = 0; ip < npha; ip++ ) {
+          if ( stgO[ii].phi[ip] >= pfmdat->interfaceUplimit ) {
+            bulkphase = ip;
+            interface = 0;
+            break;
+          }
+        }
+
+        if ( interface ) {
+
+          //stcscl[2].comie[ip][is]
+
+          //if ( pfmdat->ISOTHERMAL ) {
+            for ( ip = 0; ip < npha; ip++ ) {
+              for ( is1 = 0; is1 < nsol; is1++ ) {
+                for ( is2 =0; is2 < nsol; is2++ ) {
+                  dc_dmu[ii][ip][is1*nsol+is2] = propf4->cmu[ip][is1][is2];
+                  //printf("IC: %d, %d, %d, %d, %d, %d, %d, %d, %le, %le\n", tstep[0], x, y, z, index, ip, is1, is2, dc_dmu[ii][ip][is1*nsol+is2], propf4->cmu[ip][is1][is2]);
+                }
+              }
+            }
+          //}
+          /*else {
+            for ( ip = 0; ip < npha; ip++ ) {
+              for ( is1 = 0; is1 < nsol; is1++ ) {
+                for ( is2 =0; is2 < nsol; is2++ ) {
+                  if ( is1 == is2 ) {
+                    muc[ip][is1*nsol+is2] = 2.0 * propf4spline[indij[ii]].A[ip][is1][is2];
+                  }
+                  else {
+                    muc[ip][is1*nsol+is2] = propf4spline[indij[ii]].A[ip][is1][is2];
+                  }
+                }
+              }
+              matinvnew_nsol(muc[ip], dc_dmu[ii][ip]);
+            }
+          }*/
+
+          //printf("%d, %d, %d\n", tstep[0], i, j);
+          for ( is = 0; is < nsol; is++ ) {
+            for ( js =0; js < nsol; js++ ) {
+              Da[ii][is][js] = 0.0;
+              for ( ip = 0; ip < npha; ip++ ) {
+                for ( ks = 0; ks < nsol; ks++ ) {
+                  Da[ii][is][js] += pfmdat->D[ip][is*nsol+ks] * dc_dmu[ii][ip][ks*nsol+js] * stgO[ii].phi[ip];
+                  //Da[ii][is][js] += pfmdat->D[ip][is*nsol+ks] * dc_dmu[ii][ip][ks+nsol*js] * stgO[ii].phi[ip];
+                  //printf("BC: %d, %d, %d, %d, %d, %d, %d, %d, %d, %le\n", tstep[0], x, y, z, index, is, js, ip, ks, Da[ii][is][js]);
+                }
+              }
+            }
+          }
+
+        }
+        else {
+
+          // bulk compositon
+
+          //if ( pfmdat->ISOTHERMAL ) {
+            for ( is1 = 0; is1 < nsol; is1++ ) {
+              for ( is2 = 0; is2 < nsol; is2++ ) {
+                dc_dmu[ii][bulkphase][is1*nsol+is2] = propf4->cmu[bulkphase][is1][is2];
+                //printf("BC: %d, %d, %d, %d, %d, %d, %d, %d, %le, %le\n", tstep[0], x, y, z, index, ip, is1, is2, dc_dmu[ii][ip][is1*nsol+is2], propf4->cmu[ip][is1][is2]);
+              }
+            }
+          //}
+          /*else {
+            for ( is1 = 0; is1 < nsol; is1++ ) {
+              for ( is2 =0; is2 < nsol; is2++ ) {
+                if ( is1 == is2 ) {
+                  muc[bulkphase][is1*nsol+is2] = 2.0 * propf4spline[indij[ii]].A[bulkphase][is1][is2];
+                }
+                else {
+                  muc[bulkphase][is1*nsol+is2] = propf4spline[indij[ii]].A[bulkphase][is1][is2];
+                }
+              }
+              matinvnew_nsol(muc[bulkphase], dc_dmu[ii][bulkphase]);
+            }
+          }*/
+
+
+          for ( is = 0; is < nsol; is++ ) {
+            for ( js =0; js < nsol; js++ ) {
+              Da[ii][is][js] = 0.0;
+              //for ( ip = 0; ip < npha; ip++ ) {
+                for ( ks = 0; ks < nsol; ks++ ) {
+                  Da[ii][is][js] += pfmdat->D[bulkphase][is*nsol+ks] * dc_dmu[ii][bulkphase][ks*nsol+js];
+                  //Da[ii][is][js] += pfmdat->D[bulkphase][is*nsol+ks] * dc_dmu[ii][bulkphase][ks+nsol*js];
+                  //printf("BC: %d, %d, %d, %d, %d, %d, %d, %d, %d, %le\n", tstep[0], x, y, z, index, is, js, bulkphase, ks, Da[ii][is][js]);
+                }
+              //}
+            }
+          }
+
+        }
+
+        //for ( is = 0; is < nsol; is++ ) {
+        //  for ( js =0; js < nsol; js++ ) {
+        //    printf("%d, %d, %d, %d, %d, %d, %d, %d, %le\n", tstep[0], x, y, z, index, is, js, interface, Da[ii][is][js]);
+        //  }
+        //}
+
+
+      }
+
+      for ( is = 0; is < nsol; is++ ) {
+        for ( js =0; js < nsol; js++ ) {
+
+          Damidy[0][is][js] = ( Da[0][is][js] + Da[1][is][js] ) / 2.0;
+          Damidy[1][is][js] = ( Da[2][is][js] + Da[0][is][js] ) / 2.0;
+
+          Damidz[0][is][js] = ( Da[0][is][js] + Da[3][is][js] ) / 2.0;
+          Damidz[1][is][js] = ( Da[4][is][js] + Da[0][is][js] ) / 2.0;
+
+          Damidx[0][is][js] = ( Da[0][is][js] + Da[5][is][js] ) / 2.0;
+          Damidx[1][is][js] = ( Da[6][is][js] + Da[0][is][js] ) / 2.0;
+
+        }
+      }
+
+        // for ( is = 0; is < nsol; is++ ) {
+        //  for ( js =0; js < nsol; js++ ) {
+        //    printf("%d, %d, %d, %d, %d, %d, %d, %le, %le, %le, %le, %le, %le\n", tstep[0], x, y, z, index, is, js, Damidy[0][is][js], Damidy[1][is][js], Damidz[0][is][js], Damidz[1][is][js], Damidx[0][is][js], Damidx[1][is][js]);
+        //  }
+        // }
+
+      for ( is = 0; is < nsol; is++ ) {
+        gradmuy[0][is] = ( stgO[0].mu[is] - stgO[1].mu[is] ) / pfmvar->deltay;
+        gradmuy[1][is] = ( stgO[2].mu[is] - stgO[0].mu[is] ) / pfmvar->deltay;
+
+        gradmuz[0][is] = ( stgO[0].mu[is] - stgO[3].mu[is] ) / pfmvar->deltaz;
+        gradmuz[1][is] = ( stgO[4].mu[is] - stgO[0].mu[is] ) / pfmvar->deltaz;
+
+        gradmux[0][is] = ( stgO[0].mu[is] - stgO[5].mu[is] ) / pfmvar->deltax;
+        gradmux[1][is] = ( stgO[6].mu[is] - stgO[0].mu[is] ) / pfmvar->deltax;
+      }
+
+        //for ( is = 0; is < nsol; is++ ) {
+        //   printf("%d, %d, %d, %d, %d, %d, %le, %le, %le, %le, %le, %le\n", tstep[0], x, y, z, index, is, gradmuy[0][is], gradmuy[1][is], gradmuz[0][is], gradmuz[1][is], gradmux[0][is], gradmux[1][is]);
+        //}
+
+      for ( is = 0; is < nsol; is++ ) {
+        divflux[is] = 0.0;
+        for ( js = 0; js < nsol; js++ ) {
+          //printf("x:%d, %d, %d, %d, %d, %d, %d, %le, %le, %le, %le, %le, %le\n", tstep[0], x, y, z, index, is, js, Damidy[1][is][js], Damidy[0][is][js], Damidz[1][is][js], Damidz[0][is][js], Damidx[1][is][js], Damidx[0][is][js]);
+          //printf("x:%d, %d, %d, %d, %d, %d, %d, %le, %le, %le, %le, %le, %le\n", tstep[0], x, y, z, index, is, js, gradmuy[1][js], gradmuy[0][js], gradmuz[1][js], gradmuz[0][js], gradmux[1][js], gradmux[0][js]);
+
+          divflux[is] +=  ( Damidy[1][is][js] * gradmuy[1][js] - Damidy[0][is][js] * gradmuy[0][js] ) / pfmvar->deltay;
+
+          divflux[is] += ( Damidz[1][is][js] * gradmuz[1][js] - Damidz[0][is][js] * gradmuz[0][js] ) / pfmvar->deltaz;
+
+          divflux[is] += ( Damidx[1][is][js] * gradmux[1][js] - Damidx[0][is][js] * gradmux[0][js] ) / pfmvar->deltax;
+
+        }
+        //printf("x:%d, %d, %d, %d, %d, %le, %le, %le, %le, %le\n", tstep[0], x, y, z, index, ( Damidy[1][is][js] * gradmuy[1][js] - Damidy[0][is][js] * gradmuy[0][js] ), ( Damidz[1][is][js] * gradmuz[1][js] - Damidz[0][is][js] * gradmuz[0][js] ), ( Damidx[1][is][js] * gradmux[1][js] - Damidx[0][is][js] * gradmux[0][js] ), jatr[1], pfmvar->deltat);
+      }
+
+      //printf("x:%d, %d, %d, %d, %d, %le, %le, %le, %le, %le\n", tstep[0], x, y, z, index, divflux[0], divflux[1], jatr[0], jatr[1], pfmvar->deltat);
+      //printf("%d, %d, %d, %d, %d, %le, %le\n", tstep[0], x, y, z, index, divflux[0], divflux[1]);
+
+      interface = 1;
+      bulkphase = 0;
+      for ( ip = 0; ip < npha; ip++ ) {
+        if ( stgO[0].phi[ip] >= pfmdat->interfaceUplimit ) {
+          bulkphase = ip;
+          interface = 0;
+          break;
+        }
+      }
+
+      if ( !interface ) {
+
+        for ( is = 0; is < nsol; is++ ) {
+          gridinfo[index].com[is] = gridinfoO[index].com[is] + pfmvar->deltat * ( divflux[is] + jatr[is] );
+        }
+        //printf("BC:%d, %d, %d, %d, %d, %le, %le, %le, %le, %le\n", tstep[0], x, y, z, index, divflux[0], divflux[1], jatr[0], jatr[1], pfmvar->deltat);
+
+        ip = bulkphase;
+        //if ( pfmdat->ISOTHERMAL ) {
+          tmp0 = 0.0;
+          for ( is1 = 0; is1 < nsol; is1++ ) {
+            tmp0  = 2.0*propf4->A[bulkphase][is1][is1]*gridinfo[index].com[is1] + propf4->B[bulkphase][is1];
+            for ( is2 = 0; is2 < nsol; is2++ ) {
+              if ( is1 != is2 ) {
+                tmp0 += propf4->A[bulkphase][is1][is2]*gridinfo[index].com[is2];
+              }
+            }
+            mu[is1] = tmp0;
+          }
+        //}
+        /*else {
+          tmp0 = 0.0;
+          for ( is1 = 0; is1 < nsol; is1++ ) {
+            tmp0  = 2.0*propf4spline[j].A[bulkphase][is1][is1]*gridinfo[index].com[is1] + propf4spline[j].B[bulkphase][is1];
+            for ( is2 = 0; is2 < nsol; is2++ ) {
+              if ( is1 != is2 ) {
+                tmp0 += propf4spline[j].A[bulkphase][is1][is2]*gridinfo[index].com[is2];
+              }
+            }
+            mu[is1] = tmp0;
+          }
+        }*/
+
+        for ( is = 0; is < nsol; is++ ) {
+          //deltamu[is] = mu[is] - stgO[0].mu[is];
+          gridinfo[index].mu[is] = mu[is];
+        }
+        //printf("BC %d, %d, %d, %le, %le, %le, %le\n", tstep[0], i, j, gridOld[index].mu[0], gridinfo[index].mu[0], gridOld[index].com[0], gridinfo[index].com[0]);
+      }
+      else {
+
+        /*if ( pfmdat->ISOTHERMAL ) {
+          for ( ip = 0; ip < npha; ip++ ) {
+            for ( is = 0; is < nsol; is++ ) {
+              dcbdT_phase[ip][is] = 0.0;
+            }
+          }
+        }*/
+        /*else {
+
+          DELTAT = ( pfmvar->deltat ) * ( -pfmdat->TGRADIENT * pfmdat->velocity );
+
+          for ( ip = 0; ip < npha; ip++ ) {
+            for ( is1 = 0; is1 < nsol; is1++ ) {
+              for ( is2 = 0; is2 < nsol; is2++ ) {
+                if ( is1 == is2 ) {
+                  muc1[is1*nsol+is2] = 2.0 * propf4spline1[j].A[ip][is1][is2];
+                }
+                else {
+                  muc1[is1*nsol+is2] = propf4spline1[j].A[ip][is1][is2];
+                }
+              }
+            }
+            matinvnew_nsol(muc1, cmu1);
+
+            for ( is1 = 0; is1 < nsol; is1++ ) {
+              tmp0 = 0.0;
+              for ( is2 = 0; is2 < nsol; is2++ ) {
+                tmp0 += cmu1[is1*nsol+is2] * ( gridOld[index].mu[is2] - propf4spline1[j].B[ip][is2] );
+              }
+              c_tdt[is1] = tmp0;
+            }
+
+            for ( is = 0; is < nsol; is++ ) {
+              dcbdT_phase[ip][is] = c_tdt[is] - stcscl[4].comie[ip][is];
+            }
+
+          }
+        }*/
+
+        for ( ip1 = 0; ip1 < npha; ip1++ ) {
+          sum_dhphi = 0.0;
+          for ( ip2 = 0; ip2 < npha; ip2++ ) {
+            sum_dhphi += dhfhi(stgO[0].phi, ip1, ip2) * ( gridinfo[index].phi[ip2] - gridinfoO[index].phi[ip2] );
+          }
+
+          for ( is = 0; is < nsol; is++ ) {
+            sum[is]       += stcscl[0].comie[ip1][is] * sum_dhphi;
+            // sum_dcbdT[is] += dcbdT_phase[ip1][is] * hfhi(stgO[0].phi, ip1);
+          }
+        }
+
+        for ( is1 = 0; is1 < nsol; is1++ ) {
+
+          deltac[is1] = pfmvar->deltat * ( divflux[is1] + jatr[is1] );
+
+
+
+          gridinfo[index].com[is1] = stgO[0].com[is1] + deltac[is1];
+
+          //if ( pfmdat->ISOTHERMAL ) {
+            deltac[is1] += -sum[is1];
+          //}
+          //else {
+          //  deltac[is1] += -sum[is1] - sum_dcbdT[is1];
+          //}
+          for ( is2 = 0; is2 < nsol; is2++ ) {
+            for ( ip = 0; ip < npha; ip++ ) {
+              dcdmu[is1*nsol+is2] += dc_dmu[0][ip][is1*nsol+is2] * hfhi(stgO[0].phi, ip);
+            }
+          }
+        }
+        //printf("IC:%d, %d, %d, %d, %d, %le, %le, %le, %le, %le\n", tstep[0], x, y, z, index, divflux[0], divflux[1], jatr[0], jatr[1], pfmvar->deltat);
+
+        matinvnew_nsol(dcdmu, inv_dcdmu);
+
+        multiply_nsol(inv_dcdmu, deltac, deltamu);
+        // for ( is1 = 0; is1 < nsol; is1++ ) {
+        //   tmp0 = 0.0;
+        //   for ( is2 = 0; is2 < nsol; is2++ ) {
+        //     tmp0 += inv_dcdmu[is1*nsol+is2] * deltac[is2];
+        //   }
+        //   deltamu[is1] = tmp0;
+        // }
+
+        //vectorsum(deltamu, stgO[index].mu, gridinfo[index].mu, nsol);
+        for ( is = 0; is < nsol; is++ ) {
+          gridinfo[index].mu[is] = gridinfoO[index].mu[is] + deltamu[is];
+        }
+        //printf("IC %d, %d, %d, %le, %le\n", tstep[0], i, j, gridinfo[index].mu[0], gridinfo[index].com[0]);
+        //printf("IC %d, %d, %d, %le, %le, %le, %le\n", tstep[0], i, j, gridOld[index].mu[0], gridinfo[index].mu[0], gridOld[index].com[0], gridinfo[index].com[0]);
+      }
+      //printf("%d, %d, %d, %d, %d, %le, %le, %le, %le\n", tstep[0], x, y, z, index, divflux[0], divflux[1], jatr[0], jatr[1]);
+      //printf("%d, %d, %d, %d, %d, %le, %le, %le, %le\n", tstep[0], x, y, z, index, gridinfo[index].com[0], gridinfoO[index].com[0], gridinfo[index].com[1], gridinfoO[index].com[1]);
+      //printf("%d, %d, %d, %d, %d, %le, %le, %le, %le\n", tstep[0], x, y, z, index, stgO[0].com[0], gridinfoO[index].com[0], stgO[0].com[1], gridinfoO[index].com[1]);
+
+    }
+
+
+}
+
+
+
+__kernel void SolverStress_iterative(__global struct fields *gridinfoO, __global struct iter_variables *it_gridinfoO, __global struct symmetric_tensor *eigen_strain_phase, __global struct Stiffness_cubic *stiffness_phase, __global struct Stiffness_cubic *stiffness_phase_n, __constant struct pfmval *pfmdat, __constant struct pfmpar *pfmvar, __global int *tstep) {
+
+  int x, y, z, ii, i1, j1, k1, i2;
+  int nx, ny, nz;
+  int index;
+  int X, Y, Z;
+  int center;
+
+  int is, js, ks, il, il1, jl, jl1, ipx;
+  int is1, is2;
+  int ig, jg, ip, ip1, ip2, ip3;
+
+  double deltat_e, damping_factor,  rho;
+ double trace_strain_right;
+ double trace_strain_left;
+ double trace_strain_back;
+ double trace_strain_front;
+ double trace_strain_top;
+ double trace_strain_bottom;
+
+  double lambda_front   ;
+  double lambda_back    ;
+  double mu_front       ;
+  double mu_back        ;
+  double mu_prime_front ;
+  double mu_prime_back  ;
+  double lambda_right   ;
+  double lambda_left    ;
+  double mu_right       ;
+  double mu_left        ;
+  double mu_prime_right ;
+  double mu_prime_left  ;
+  double lambda_top     ;
+  double lambda_bottom  ;
+  double mu_top         ;
+  double mu_bottom      ;
+  double mu_prime_top   ;
+  double mu_prime_bottom;
+
+  double sigma_xx_front;
+  double sigma_xx_back;
+  double sigma_yx_right;
+  double sigma_yx_left;
+  double sigma_xy_front;
+  double sigma_xy_back;
+  double sigma_yy_right;
+  double sigma_yy_left;
+
+ double forceX;
+ double forceY;
+ double forceZ;
+
+ double div_phi_front;
+ double div_phi_back;
+ double div_phi_right;
+ double div_phi_left;
+ double div_phi_top;
+ double div_phi_bottom;
+
+
+  struct symmetric_tensor eigen_strain[3], eigen_strain_lf[3], eigen_strain_rt[3], eigen_strain_bt[3], eigen_strain_tp[3], eigen_strain_bk[3], eigen_strain_ft[3];
+
+  //struct symmetric_tensor eigen_strain_phase[npha];
+
+  struct symmetric_tensor strain[3], strain_lf[3], strain_rt[3], strain_bt[3], strain_tp[3], strain_bk[3], strain_ft[3];
+
+  struct Stiffness_cubic stiffness_c[3], stiffness_c_lf[3], stiffness_c_rt[3], stiffness_c_bt[3], stiffness_c_tp[3], stiffness_c_bk[3], stiffness_c_ft[3];
+
+  //struct Stiffness_cubic stiffness_phase_n[npha];
+
+ struct symmetric_tensor sigma_front;
+ struct symmetric_tensor sigma_back;
+ struct symmetric_tensor sigma_right;
+ struct symmetric_tensor sigma_left;
+ struct symmetric_tensor sigma_top;
+ struct symmetric_tensor sigma_bottom;
+
+  struct fields stgO[7], stgO_lf[7], stgO_rt[7], stgO_bt[7], stgO_tp[7], stgO_bk[7], stgO_ft[7];
+  struct iter_variables st_it_gO[7], st_it_gO_lf[7], st_it_gO_rt[7], st_it_gO_bt[7], st_it_gO_tp[7], st_it_gO_bk[7], st_it_gO_ft[7];
+
+  X = 0;
+  Y = 1;
+  Z = 2;
+
+  deltat_e = pfmdat->deltat_e;
+  rho = pfmdat->rho;
+  damping_factor = pfmdat->damping_factor;
+
+  y = get_global_id(0);
+  z = get_global_id(1);
+  x = get_global_id(2);
+
+  ny = get_global_size(0);
+  nz = get_global_size(1);
+  nx = get_global_size(2);
+
+  //index = y + ny*(z + x*nz);
+
+  if ( ( x > 1 ) && ( x < (nx-2) ) && ( y > 1 ) && ( y < (ny-2) ) && ( z > 1 ) && ( z < (nz-2) ) ) {
+  //if ( x > 1 && x < nx-2 && y > 1 && y < ny-2 && z > 1 && z < nz-2 ) {
+
+    index = y + ny*(z + x*nz);
+    center = index;
+
+    //printf("%d, %d, %d, %d, %le, %le, %le\n", x, y, z , index, it_gridinfoO[center].disp[X][2], it_gridinfoO[center].disp[Y][2], it_gridinfoO[center].disp[Z][2]);
+
+    stgO[0] = gridinfoO[ (y  ) + ny*( (x  )*nz + (z  ) ) ];
+    stgO[1] = gridinfoO[ (y-1) + ny*( (x  )*nz + (z  ) ) ];
+    stgO[2] = gridinfoO[ (y+1) + ny*( (x  )*nz + (z  ) ) ];
+    stgO[3] = gridinfoO[ (y  ) + ny*( (x  )*nz + (z-1) ) ];
+    stgO[4] = gridinfoO[ (y  ) + ny*( (x  )*nz + (z+1) ) ];
+    stgO[5] = gridinfoO[ (y  ) + ny*( (x-1)*nz + (z  ) ) ];
+    stgO[6] = gridinfoO[ (y  ) + ny*( (x+1)*nz + (z  ) ) ];
+
+    st_it_gO[0] = it_gridinfoO[ (y  ) + ny*( (x  )*nz + (z  ) ) ];
+    st_it_gO[1] = it_gridinfoO[ (y-1) + ny*( (x  )*nz + (z  ) ) ];
+    st_it_gO[2] = it_gridinfoO[ (y+1) + ny*( (x  )*nz + (z  ) ) ];
+    st_it_gO[3] = it_gridinfoO[ (y  ) + ny*( (x  )*nz + (z-1) ) ];
+    st_it_gO[4] = it_gridinfoO[ (y  ) + ny*( (x  )*nz + (z+1) ) ];
+    st_it_gO[5] = it_gridinfoO[ (y  ) + ny*( (x-1)*nz + (z  ) ) ];
+    st_it_gO[6] = it_gridinfoO[ (y  ) + ny*( (x+1)*nz + (z  ) ) ];
+
+    eigen_strain[0].xx = 0.0;
+    eigen_strain[0].yy = 0.0;
+    eigen_strain[0].zz = 0.0;
+    eigen_strain[0].yz = 0.0;
+    eigen_strain[0].xz = 0.0;
+    eigen_strain[0].xy = 0.0;
+
+    for (ip = 0; ip < npha; ip++) {
+
+      eigen_strain[X].xx += eigen_strain_phase[ip].xx*stgO[0].phi[ip];
+      eigen_strain[X].yy += eigen_strain_phase[ip].yy*stgO[0].phi[ip];
+      eigen_strain[X].zz += eigen_strain_phase[ip].zz*stgO[0].phi[ip];
+      eigen_strain[X].yz += eigen_strain_phase[ip].yz*stgO[0].phi[ip];
+      eigen_strain[X].xz += eigen_strain_phase[ip].xz*stgO[0].phi[ip];
+      eigen_strain[X].xy += eigen_strain_phase[ip].xy*stgO[0].phi[ip];
+
+    }
+
+    for (i1 = 1; i1 < 3; i1++) {
+
+      eigen_strain[i1].xx = eigen_strain[X].xx;
+      eigen_strain[i1].yy = eigen_strain[X].yy;
+      eigen_strain[i1].zz = eigen_strain[X].zz;
+      eigen_strain[i1].yz = eigen_strain[X].yz;
+      eigen_strain[i1].xz = eigen_strain[X].xz;
+      eigen_strain[i1].xy = eigen_strain[X].xy;
+
+    }
+    // or
+    eigen_strain[Y] = eigen_strain[X];
+    eigen_strain[Z] = eigen_strain[X];
+
+    strain[X].xx = 0.5*(st_it_gO[6].disp[X][2] - st_it_gO[5].disp[X][2]) - eigen_strain[X].xx;
+    strain[X].yy = 0.5*(st_it_gO[2].disp[Y][2] - st_it_gO[1].disp[Y][2]) - eigen_strain[X].yy;
+    strain[X].zz = 0.5*(st_it_gO[4].disp[Z][2] - st_it_gO[3].disp[Z][2]) - eigen_strain[X].zz;
+
+    strain[Y].xx = strain[X].xx;
+    strain[Y].yy = strain[X].yy;
+    strain[Y].zz = strain[X].zz;
+    strain[Z].yy = strain[X].yy;
+    strain[Z].xx = strain[X].xx;
+    strain[Z].zz = strain[X].zz;
+
+    strain[X].xy = 0.25*((st_it_gO[2].disp[X][2] - st_it_gO[1].disp[X][2]) + (st_it_gO[6].disp[Y][2] - st_it_gO[5].disp[Y][2]));
+    strain[X].xz = 0.25*((st_it_gO[4].disp[X][2] - st_it_gO[3].disp[X][2]) + (st_it_gO[6].disp[Z][2] - st_it_gO[5].disp[Z][2]));
+    strain[X].yz = 0.25*((st_it_gO[2].disp[Z][2] - st_it_gO[1].disp[Z][2]) + (st_it_gO[4].disp[Y][2] - st_it_gO[3].disp[Y][2]));
+
+    strain[Y].xy = strain[X].xy;
+    strain[Y].xz = strain[X].xz;
+    strain[Y].yz = strain[X].yz;
+    strain[Z].xy = strain[X].xy;
+    strain[Z].xz = strain[X].xz;
+    strain[Z].yz = strain[X].yz;
+
+    stiffness_c[0].C11 = 0.0;
+    stiffness_c[0].C12 = 0.0;
+    stiffness_c[0].C44 = 0.0;
+    for (ip = 0; ip < npha; ip++) {
+      stiffness_c[X].C11 += (stiffness_phase_n[ip].C11)*stgO[0].phi[ip];
+      stiffness_c[X].C12 += (stiffness_phase_n[ip].C12)*stgO[0].phi[ip];
+      stiffness_c[X].C44 += (stiffness_phase_n[ip].C44)*stgO[0].phi[ip];
+    }
+    stiffness_c[Y] = stiffness_c[X];
+    stiffness_c[Z] = stiffness_c[X];
+
+
+    stgO_lf[0] = gridinfoO[ (y  -1) + ny*( (x  )*nz + (z  ) ) ];
+    stgO_lf[1] = gridinfoO[ (y-1-1) + ny*( (x  )*nz + (z  ) ) ];
+    stgO_lf[2] = gridinfoO[ (y+1-1) + ny*( (x  )*nz + (z  ) ) ];
+    stgO_lf[3] = gridinfoO[ (y  -1) + ny*( (x  )*nz + (z-1) ) ];
+    stgO_lf[4] = gridinfoO[ (y  -1) + ny*( (x  )*nz + (z+1) ) ];
+    stgO_lf[5] = gridinfoO[ (y  -1) + ny*( (x-1)*nz + (z  ) ) ];
+    stgO_lf[6] = gridinfoO[ (y  -1) + ny*( (x+1)*nz + (z  ) ) ];
+
+    st_it_gO_lf[0] = it_gridinfoO[ (y  -1) + ny*( (x  )*nz + (z  ) ) ];
+    st_it_gO_lf[1] = it_gridinfoO[ (y-1-1) + ny*( (x  )*nz + (z  ) ) ];
+    st_it_gO_lf[2] = it_gridinfoO[ (y+1-1) + ny*( (x  )*nz + (z  ) ) ];
+    st_it_gO_lf[3] = it_gridinfoO[ (y  -1) + ny*( (x  )*nz + (z-1) ) ];
+    st_it_gO_lf[4] = it_gridinfoO[ (y  -1) + ny*( (x  )*nz + (z+1) ) ];
+    st_it_gO_lf[5] = it_gridinfoO[ (y  -1) + ny*( (x-1)*nz + (z  ) ) ];
+    st_it_gO_lf[6] = it_gridinfoO[ (y  -1) + ny*( (x+1)*nz + (z  ) ) ];
+
+
+    stgO_rt[0] = gridinfoO[ (y  +1) + ny*( (x  )*nz + (z  ) ) ];
+    stgO_rt[1] = gridinfoO[ (y-1+1) + ny*( (x  )*nz + (z  ) ) ];
+    stgO_rt[2] = gridinfoO[ (y+1+1) + ny*( (x  )*nz + (z  ) ) ];
+    stgO_rt[3] = gridinfoO[ (y  +1) + ny*( (x  )*nz + (z-1) ) ];
+    stgO_rt[4] = gridinfoO[ (y  +1) + ny*( (x  )*nz + (z+1) ) ];
+    stgO_rt[5] = gridinfoO[ (y  +1) + ny*( (x-1)*nz + (z  ) ) ];
+    stgO_rt[6] = gridinfoO[ (y  +1) + ny*( (x+1)*nz + (z  ) ) ];
+
+    st_it_gO_rt[0] = it_gridinfoO[ (y  +1) + ny*( (x  )*nz + (z  ) ) ];
+    st_it_gO_rt[1] = it_gridinfoO[ (y-1+1) + ny*( (x  )*nz + (z  ) ) ];
+    st_it_gO_rt[2] = it_gridinfoO[ (y+1+1) + ny*( (x  )*nz + (z  ) ) ];
+    st_it_gO_rt[3] = it_gridinfoO[ (y  +1) + ny*( (x  )*nz + (z-1) ) ];
+    st_it_gO_rt[4] = it_gridinfoO[ (y  +1) + ny*( (x  )*nz + (z+1) ) ];
+    st_it_gO_rt[5] = it_gridinfoO[ (y  +1) + ny*( (x-1)*nz + (z  ) ) ];
+    st_it_gO_rt[6] = it_gridinfoO[ (y  +1) + ny*( (x+1)*nz + (z  ) ) ];
+
+
+    stgO_bt[0] = gridinfoO[ (y  ) + ny*( (x  )*nz + (z  -1) ) ];
+    stgO_bt[1] = gridinfoO[ (y-1) + ny*( (x  )*nz + (z  -1) ) ];
+    stgO_bt[2] = gridinfoO[ (y+1) + ny*( (x  )*nz + (z  -1) ) ];
+    stgO_bt[3] = gridinfoO[ (y  ) + ny*( (x  )*nz + (z-1-1) ) ];
+    stgO_bt[4] = gridinfoO[ (y  ) + ny*( (x  )*nz + (z+1-1) ) ];
+    stgO_bt[5] = gridinfoO[ (y  ) + ny*( (x-1)*nz + (z  -1) ) ];
+    stgO_bt[6] = gridinfoO[ (y  ) + ny*( (x+1)*nz + (z  -1) ) ];
+
+    st_it_gO_bt[0] = it_gridinfoO[ (y  ) + ny*( (x  )*nz + (z  -1) ) ];
+    st_it_gO_bt[1] = it_gridinfoO[ (y-1) + ny*( (x  )*nz + (z  -1) ) ];
+    st_it_gO_bt[2] = it_gridinfoO[ (y+1) + ny*( (x  )*nz + (z  -1) ) ];
+    st_it_gO_bt[3] = it_gridinfoO[ (y  ) + ny*( (x  )*nz + (z-1-1) ) ];
+    st_it_gO_bt[4] = it_gridinfoO[ (y  ) + ny*( (x  )*nz + (z+1-1) ) ];
+    st_it_gO_bt[5] = it_gridinfoO[ (y  ) + ny*( (x-1)*nz + (z  -1) ) ];
+    st_it_gO_bt[6] = it_gridinfoO[ (y  ) + ny*( (x+1)*nz + (z  -1) ) ];
+
+
+    stgO_tp[0] = gridinfoO[ (y  ) + ny*( (x  )*nz + (z  +1) ) ];
+    stgO_tp[1] = gridinfoO[ (y-1) + ny*( (x  )*nz + (z  +1) ) ];
+    stgO_tp[2] = gridinfoO[ (y+1) + ny*( (x  )*nz + (z  +1) ) ];
+    stgO_tp[3] = gridinfoO[ (y  ) + ny*( (x  )*nz + (z-1+1) ) ];
+    stgO_tp[4] = gridinfoO[ (y  ) + ny*( (x  )*nz + (z+1+1) ) ];
+    stgO_tp[5] = gridinfoO[ (y  ) + ny*( (x-1)*nz + (z  +1) ) ];
+    stgO_tp[6] = gridinfoO[ (y  ) + ny*( (x+1)*nz + (z  +1) ) ];
+
+    st_it_gO_tp[0] = it_gridinfoO[ (y  ) + ny*( (x  )*nz + (z  +1) ) ];
+    st_it_gO_tp[1] = it_gridinfoO[ (y-1) + ny*( (x  )*nz + (z  +1) ) ];
+    st_it_gO_tp[2] = it_gridinfoO[ (y+1) + ny*( (x  )*nz + (z  +1) ) ];
+    st_it_gO_tp[3] = it_gridinfoO[ (y  ) + ny*( (x  )*nz + (z-1+1) ) ];
+    st_it_gO_tp[4] = it_gridinfoO[ (y  ) + ny*( (x  )*nz + (z+1+1) ) ];
+    st_it_gO_tp[5] = it_gridinfoO[ (y  ) + ny*( (x-1)*nz + (z  +1) ) ];
+    st_it_gO_tp[6] = it_gridinfoO[ (y  ) + ny*( (x+1)*nz + (z  +1) ) ];
+
+
+    stgO_bk[0] = gridinfoO[ (y  ) + ny*( (x  -1)*nz + (z  ) ) ];
+    stgO_bk[1] = gridinfoO[ (y-1) + ny*( (x  -1)*nz + (z  ) ) ];
+    stgO_bk[2] = gridinfoO[ (y+1) + ny*( (x  -1)*nz + (z  ) ) ];
+    stgO_bk[3] = gridinfoO[ (y  ) + ny*( (x  -1)*nz + (z-1) ) ];
+    stgO_bk[4] = gridinfoO[ (y  ) + ny*( (x  -1)*nz + (z+1) ) ];
+    stgO_bk[5] = gridinfoO[ (y  ) + ny*( (x-1-1)*nz + (z  ) ) ];
+    stgO_bk[6] = gridinfoO[ (y  ) + ny*( (x+1-1)*nz + (z  ) ) ];
+
+    st_it_gO_bk[0] = it_gridinfoO[ (y  ) + ny*( (x  -1)*nz + (z  ) ) ];
+    st_it_gO_bk[1] = it_gridinfoO[ (y-1) + ny*( (x  -1)*nz + (z  ) ) ];
+    st_it_gO_bk[2] = it_gridinfoO[ (y+1) + ny*( (x  -1)*nz + (z  ) ) ];
+    st_it_gO_bk[3] = it_gridinfoO[ (y  ) + ny*( (x  -1)*nz + (z-1) ) ];
+    st_it_gO_bk[4] = it_gridinfoO[ (y  ) + ny*( (x  -1)*nz + (z+1) ) ];
+    st_it_gO_bk[5] = it_gridinfoO[ (y  ) + ny*( (x-1-1)*nz + (z  ) ) ];
+    st_it_gO_bk[6] = it_gridinfoO[ (y  ) + ny*( (x+1-1)*nz + (z  ) ) ];
+
+
+    stgO_ft[0] = gridinfoO[ (y  ) + ny*( (x  +1)*nz + (z  ) ) ];
+    stgO_ft[1] = gridinfoO[ (y-1) + ny*( (x  +1)*nz + (z  ) ) ];
+    stgO_ft[2] = gridinfoO[ (y+1) + ny*( (x  +1)*nz + (z  ) ) ];
+    stgO_ft[3] = gridinfoO[ (y  ) + ny*( (x  +1)*nz + (z-1) ) ];
+    stgO_ft[4] = gridinfoO[ (y  ) + ny*( (x  +1)*nz + (z+1) ) ];
+    stgO_ft[5] = gridinfoO[ (y  ) + ny*( (x-1+1)*nz + (z  ) ) ];
+    stgO_ft[6] = gridinfoO[ (y  ) + ny*( (x+1+1)*nz + (z  ) ) ];
+
+    st_it_gO_ft[0] = it_gridinfoO[ (y  ) + ny*( (x  +1)*nz + (z  ) ) ];
+    st_it_gO_ft[1] = it_gridinfoO[ (y-1) + ny*( (x  +1)*nz + (z  ) ) ];
+    st_it_gO_ft[2] = it_gridinfoO[ (y+1) + ny*( (x  +1)*nz + (z  ) ) ];
+    st_it_gO_ft[3] = it_gridinfoO[ (y  ) + ny*( (x  +1)*nz + (z-1) ) ];
+    st_it_gO_ft[4] = it_gridinfoO[ (y  ) + ny*( (x  +1)*nz + (z+1) ) ];
+    st_it_gO_ft[5] = it_gridinfoO[ (y  ) + ny*( (x-1+1)*nz + (z  ) ) ];
+    st_it_gO_ft[6] = it_gridinfoO[ (y  ) + ny*( (x+1+1)*nz + (z  ) ) ];
+
+    eigen_strain_lf[0].xx = 0.0;
+    eigen_strain_lf[0].yy = 0.0;
+    eigen_strain_lf[0].zz = 0.0;
+    eigen_strain_lf[0].yz = 0.0;
+    eigen_strain_lf[0].xz = 0.0;
+    eigen_strain_lf[0].xy = 0.0;
+    for (ip = 0; ip < npha; ip++) {
+      eigen_strain_lf[X].xx += eigen_strain_phase[ip].xx*stgO_lf[0].phi[ip];
+      eigen_strain_lf[X].yy += eigen_strain_phase[ip].yy*stgO_lf[0].phi[ip];
+      eigen_strain_lf[X].zz += eigen_strain_phase[ip].zz*stgO_lf[0].phi[ip];
+      eigen_strain_lf[X].yz += eigen_strain_phase[ip].yz*stgO_lf[0].phi[ip];
+      eigen_strain_lf[X].xz += eigen_strain_phase[ip].xz*stgO_lf[0].phi[ip];
+      eigen_strain_lf[X].xy += eigen_strain_phase[ip].xy*stgO_lf[0].phi[ip];
+    }
+    eigen_strain_lf[Y] = eigen_strain_lf[X];
+    eigen_strain_lf[Z] = eigen_strain_lf[X];
+
+    eigen_strain_rt[0].xx = 0.0;
+    eigen_strain_rt[0].yy = 0.0;
+    eigen_strain_rt[0].zz = 0.0;
+    eigen_strain_rt[0].yz = 0.0;
+    eigen_strain_rt[0].xz = 0.0;
+    eigen_strain_rt[0].xy = 0.0;
+    for (ip = 0; ip < npha; ip++) {
+      eigen_strain_rt[X].xx += eigen_strain_phase[ip].xx*stgO_rt[0].phi[ip];
+      eigen_strain_rt[X].yy += eigen_strain_phase[ip].yy*stgO_rt[0].phi[ip];
+      eigen_strain_rt[X].zz += eigen_strain_phase[ip].zz*stgO_rt[0].phi[ip];
+      eigen_strain_rt[X].yz += eigen_strain_phase[ip].yz*stgO_rt[0].phi[ip];
+      eigen_strain_rt[X].xz += eigen_strain_phase[ip].xz*stgO_rt[0].phi[ip];
+      eigen_strain_rt[X].xy += eigen_strain_phase[ip].xy*stgO_rt[0].phi[ip];
+    }
+    eigen_strain_rt[Y] = eigen_strain_rt[X];
+    eigen_strain_rt[Z] = eigen_strain_rt[X];
+
+    eigen_strain_bt[0].xx = 0.0;
+    eigen_strain_bt[0].yy = 0.0;
+    eigen_strain_bt[0].zz = 0.0;
+    eigen_strain_bt[0].yz = 0.0;
+    eigen_strain_bt[0].xz = 0.0;
+    eigen_strain_bt[0].xy = 0.0;
+    for (ip = 0; ip < npha; ip++) {
+      eigen_strain_bt[X].xx += eigen_strain_phase[ip].xx*stgO_bt[0].phi[ip];
+      eigen_strain_bt[X].yy += eigen_strain_phase[ip].yy*stgO_bt[0].phi[ip];
+      eigen_strain_bt[X].zz += eigen_strain_phase[ip].zz*stgO_bt[0].phi[ip];
+      eigen_strain_bt[X].yz += eigen_strain_phase[ip].yz*stgO_bt[0].phi[ip];
+      eigen_strain_bt[X].xz += eigen_strain_phase[ip].xz*stgO_bt[0].phi[ip];
+      eigen_strain_bt[X].xy += eigen_strain_phase[ip].xy*stgO_bt[0].phi[ip];
+    }
+    eigen_strain_bt[Y] = eigen_strain_bt[X];
+    eigen_strain_bt[Z] = eigen_strain_bt[X];
+
+    eigen_strain_tp[0].xx = 0.0;
+    eigen_strain_tp[0].yy = 0.0;
+    eigen_strain_tp[0].zz = 0.0;
+    eigen_strain_tp[0].yz = 0.0;
+    eigen_strain_tp[0].xz = 0.0;
+    eigen_strain_tp[0].xy = 0.0;
+    for (ip = 0; ip < npha; ip++) {
+      eigen_strain_tp[X].xx += eigen_strain_phase[ip].xx*stgO_tp[0].phi[ip];
+      eigen_strain_tp[X].yy += eigen_strain_phase[ip].yy*stgO_tp[0].phi[ip];
+      eigen_strain_tp[X].zz += eigen_strain_phase[ip].zz*stgO_tp[0].phi[ip];
+      eigen_strain_tp[X].yz += eigen_strain_phase[ip].yz*stgO_tp[0].phi[ip];
+      eigen_strain_tp[X].xz += eigen_strain_phase[ip].xz*stgO_tp[0].phi[ip];
+      eigen_strain_tp[X].xy += eigen_strain_phase[ip].xy*stgO_tp[0].phi[ip];
+    }
+    eigen_strain_tp[Y] = eigen_strain_tp[X];
+    eigen_strain_tp[Z] = eigen_strain_tp[X];
+
+    eigen_strain_bk[0].xx = 0.0;
+    eigen_strain_bk[0].yy = 0.0;
+    eigen_strain_bk[0].zz = 0.0;
+    eigen_strain_bk[0].yz = 0.0;
+    eigen_strain_bk[0].xz = 0.0;
+    eigen_strain_bk[0].xy = 0.0;
+    for (ip = 0; ip < npha; ip++) {
+      eigen_strain_bk[X].xx += eigen_strain_phase[ip].xx*stgO_bk[0].phi[ip];
+      eigen_strain_bk[X].yy += eigen_strain_phase[ip].yy*stgO_bk[0].phi[ip];
+      eigen_strain_bk[X].zz += eigen_strain_phase[ip].zz*stgO_bk[0].phi[ip];
+      eigen_strain_bk[X].yz += eigen_strain_phase[ip].yz*stgO_bk[0].phi[ip];
+      eigen_strain_bk[X].xz += eigen_strain_phase[ip].xz*stgO_bk[0].phi[ip];
+      eigen_strain_bk[X].xy += eigen_strain_phase[ip].xy*stgO_bk[0].phi[ip];
+    }
+    eigen_strain_bk[Y] = eigen_strain_bk[X];
+    eigen_strain_bk[Z] = eigen_strain_bk[X];
+
+    eigen_strain_ft[0].xx = 0.0;
+    eigen_strain_ft[0].yy = 0.0;
+    eigen_strain_ft[0].zz = 0.0;
+    eigen_strain_ft[0].yz = 0.0;
+    eigen_strain_ft[0].xz = 0.0;
+    eigen_strain_ft[0].xy = 0.0;
+    for (ip = 0; ip < npha; ip++) {
+      eigen_strain_ft[X].xx += eigen_strain_phase[ip].xx*stgO_ft[0].phi[ip];
+      eigen_strain_ft[X].yy += eigen_strain_phase[ip].yy*stgO_ft[0].phi[ip];
+      eigen_strain_ft[X].zz += eigen_strain_phase[ip].zz*stgO_ft[0].phi[ip];
+      eigen_strain_ft[X].yz += eigen_strain_phase[ip].yz*stgO_ft[0].phi[ip];
+      eigen_strain_ft[X].xz += eigen_strain_phase[ip].xz*stgO_ft[0].phi[ip];
+      eigen_strain_ft[X].xy += eigen_strain_phase[ip].xy*stgO_ft[0].phi[ip];
+    }
+    eigen_strain_ft[Y] = eigen_strain_ft[X];
+    eigen_strain_ft[Z] = eigen_strain_ft[X];
+
+    strain_lf[X].xx = 0.5*(st_it_gO_lf[6].disp[X][2] - st_it_gO_lf[5].disp[X][2]) - eigen_strain_lf[X].xx;
+    strain_lf[X].yy = 0.5*(st_it_gO_lf[2].disp[Y][2] - st_it_gO_lf[1].disp[Y][2]) - eigen_strain_lf[X].yy;
+    strain_lf[X].zz = 0.5*(st_it_gO_lf[4].disp[Z][2] - st_it_gO_lf[3].disp[Z][2]) - eigen_strain_lf[X].zz;
+    strain_lf[Y].xx = strain_lf[X].xx;
+    strain_lf[Y].yy = strain_lf[X].yy;
+    strain_lf[Y].zz = strain_lf[X].zz;
+    strain_lf[Z].yy = strain_lf[X].yy;
+    strain_lf[Z].xx = strain_lf[X].xx;
+    strain_lf[Z].zz = strain_lf[X].zz;
+
+    strain_rt[X].xx = 0.5*(st_it_gO_rt[6].disp[X][2] - st_it_gO_rt[5].disp[X][2]) - eigen_strain_rt[X].xx;
+    strain_rt[X].yy = 0.5*(st_it_gO_rt[2].disp[Y][2] - st_it_gO_rt[1].disp[Y][2]) - eigen_strain_rt[X].yy;
+    strain_rt[X].zz = 0.5*(st_it_gO_rt[4].disp[Z][2] - st_it_gO_rt[3].disp[Z][2]) - eigen_strain_rt[X].zz;
+    strain_rt[Y].xx = strain_rt[X].xx;
+    strain_rt[Y].yy = strain_rt[X].yy;
+    strain_rt[Y].zz = strain_rt[X].zz;
+    strain_rt[Z].yy = strain_rt[X].yy;
+    strain_rt[Z].xx = strain_rt[X].xx;
+    strain_rt[Z].zz = strain_rt[X].zz;
+
+    strain_bt[X].xx = 0.5*(st_it_gO_bt[6].disp[X][2] - st_it_gO_bt[5].disp[X][2]) - eigen_strain_bt[X].xx;
+    strain_bt[X].yy = 0.5*(st_it_gO_bt[2].disp[Y][2] - st_it_gO_bt[1].disp[Y][2]) - eigen_strain_bt[X].yy;
+    strain_bt[X].zz = 0.5*(st_it_gO_bt[4].disp[Z][2] - st_it_gO_bt[3].disp[Z][2]) - eigen_strain_bt[X].zz;
+    strain_bt[Y].xx = strain_bt[X].xx;
+    strain_bt[Y].yy = strain_bt[X].yy;
+    strain_bt[Y].zz = strain_bt[X].zz;
+    strain_bt[Z].yy = strain_bt[X].yy;
+    strain_bt[Z].xx = strain_bt[X].xx;
+    strain_bt[Z].zz = strain_bt[X].zz;
+
+    strain_tp[X].xx = 0.5*(st_it_gO_tp[6].disp[X][2] - st_it_gO_tp[5].disp[X][2]) - eigen_strain_tp[X].xx;
+    strain_tp[X].yy = 0.5*(st_it_gO_tp[2].disp[Y][2] - st_it_gO_tp[1].disp[Y][2]) - eigen_strain_tp[X].yy;
+    strain_tp[X].zz = 0.5*(st_it_gO_tp[4].disp[Z][2] - st_it_gO_tp[3].disp[Z][2]) - eigen_strain_tp[X].zz;
+    strain_tp[Y].xx = strain_tp[X].xx;
+    strain_tp[Y].yy = strain_tp[X].yy;
+    strain_tp[Y].zz = strain_tp[X].zz;
+    strain_tp[Z].yy = strain_tp[X].yy;
+    strain_tp[Z].xx = strain_tp[X].xx;
+    strain_tp[Z].zz = strain_tp[X].zz;
+
+    strain_bk[X].xx = 0.5*(st_it_gO_bk[6].disp[X][2] - st_it_gO_bk[5].disp[X][2]) - eigen_strain_bk[X].xx;
+    strain_bk[X].yy = 0.5*(st_it_gO_bk[2].disp[Y][2] - st_it_gO_bk[1].disp[Y][2]) - eigen_strain_bk[X].yy;
+    strain_bk[X].zz = 0.5*(st_it_gO_bk[4].disp[Z][2] - st_it_gO_bk[3].disp[Z][2]) - eigen_strain_bk[X].zz;
+    strain_bk[Y].xx = strain_bk[X].xx;
+    strain_bk[Y].yy = strain_bk[X].yy;
+    strain_bk[Y].zz = strain_bk[X].zz;
+    strain_bk[Z].yy = strain_bk[X].yy;
+    strain_bk[Z].xx = strain_bk[X].xx;
+    strain_bk[Z].zz = strain_bk[X].zz;
+
+    strain_ft[X].xx = 0.5*(st_it_gO_ft[6].disp[X][2] - st_it_gO_ft[5].disp[X][2]) - eigen_strain_ft[X].xx;
+    strain_ft[X].yy = 0.5*(st_it_gO_ft[2].disp[Y][2] - st_it_gO_ft[1].disp[Y][2]) - eigen_strain_ft[X].yy;
+    strain_ft[X].zz = 0.5*(st_it_gO_ft[4].disp[Z][2] - st_it_gO_ft[3].disp[Z][2]) - eigen_strain_ft[X].zz;
+    strain_ft[Y].xx = strain_ft[X].xx;
+    strain_ft[Y].yy = strain_ft[X].yy;
+    strain_ft[Y].zz = strain_ft[X].zz;
+    strain_ft[Z].yy = strain_ft[X].yy;
+    strain_ft[Z].xx = strain_ft[X].xx;
+    strain_ft[Z].zz = strain_ft[X].zz;
+
+    strain_lf[X].xy = 0.25*((st_it_gO_lf[2].disp[X][2] - st_it_gO_lf[1].disp[X][2]) + (st_it_gO_lf[6].disp[Y][2] - st_it_gO_lf[5].disp[Y][2]));
+    strain_lf[X].xz = 0.25*((st_it_gO_lf[4].disp[X][2] - st_it_gO_lf[3].disp[X][2]) + (st_it_gO_lf[6].disp[Z][2] - st_it_gO_lf[5].disp[Z][2]));
+    strain_lf[X].yz = 0.25*((st_it_gO_lf[2].disp[Z][2] - st_it_gO_lf[1].disp[Z][2]) + (st_it_gO_lf[4].disp[Y][2] - st_it_gO_lf[3].disp[Y][2]));
+    strain_lf[Y].xy = strain_lf[X].xy;
+    strain_lf[Y].xz = strain_lf[X].xz;
+    strain_lf[Y].yz = strain_lf[X].yz;
+    strain_lf[Z].xy = strain_lf[X].xy;
+    strain_lf[Z].xz = strain_lf[X].xz;
+    strain_lf[Z].yz = strain_lf[X].yz;
+
+    strain_rt[X].xy = 0.25*((st_it_gO_rt[2].disp[X][2] - st_it_gO_rt[1].disp[X][2]) + (st_it_gO_rt[6].disp[Y][2] - st_it_gO_rt[5].disp[Y][2]));
+    strain_rt[X].xz = 0.25*((st_it_gO_rt[4].disp[X][2] - st_it_gO_rt[3].disp[X][2]) + (st_it_gO_rt[6].disp[Z][2] - st_it_gO_rt[5].disp[Z][2]));
+    strain_rt[X].yz = 0.25*((st_it_gO_rt[2].disp[Z][2] - st_it_gO_rt[1].disp[Z][2]) + (st_it_gO_rt[4].disp[Y][2] - st_it_gO_rt[3].disp[Y][2]));
+    strain_rt[Y].xy = strain_rt[X].xy;
+    strain_rt[Y].xz = strain_rt[X].xz;
+    strain_rt[Y].yz = strain_rt[X].yz;
+    strain_rt[Z].xy = strain_rt[X].xy;
+    strain_rt[Z].xz = strain_rt[X].xz;
+    strain_rt[Z].yz = strain_rt[X].yz;
+
+    strain_bt[X].xy = 0.25*((st_it_gO_bt[2].disp[X][2] - st_it_gO_bt[1].disp[X][2]) + (st_it_gO_bt[6].disp[Y][2] - st_it_gO_bt[5].disp[Y][2]));
+    strain_bt[X].xz = 0.25*((st_it_gO_bt[4].disp[X][2] - st_it_gO_bt[3].disp[X][2]) + (st_it_gO_bt[6].disp[Z][2] - st_it_gO_bt[5].disp[Z][2]));
+    strain_bt[X].yz = 0.25*((st_it_gO_bt[2].disp[Z][2] - st_it_gO_bt[1].disp[Z][2]) + (st_it_gO_bt[4].disp[Y][2] - st_it_gO_bt[3].disp[Y][2]));
+    strain_bt[Y].xy = strain_bt[X].xy;
+    strain_bt[Y].xz = strain_bt[X].xz;
+    strain_bt[Y].yz = strain_bt[X].yz;
+    strain_bt[Z].xy = strain_bt[X].xy;
+    strain_bt[Z].xz = strain_bt[X].xz;
+    strain_bt[Z].yz = strain_bt[X].yz;
+
+    strain_tp[X].xy = 0.25*((st_it_gO_tp[2].disp[X][2] - st_it_gO_tp[1].disp[X][2]) + (st_it_gO_tp[6].disp[Y][2] - st_it_gO_tp[5].disp[Y][2]));
+    strain_tp[X].xz = 0.25*((st_it_gO_tp[4].disp[X][2] - st_it_gO_tp[3].disp[X][2]) + (st_it_gO_tp[6].disp[Z][2] - st_it_gO_tp[5].disp[Z][2]));
+    strain_tp[X].yz = 0.25*((st_it_gO_tp[2].disp[Z][2] - st_it_gO_tp[1].disp[Z][2]) + (st_it_gO_tp[4].disp[Y][2] - st_it_gO_tp[3].disp[Y][2]));
+    strain_tp[Y].xy = strain_tp[X].xy;
+    strain_tp[Y].xz = strain_tp[X].xz;
+    strain_tp[Y].yz = strain_tp[X].yz;
+    strain_tp[Z].xy = strain_tp[X].xy;
+    strain_tp[Z].xz = strain_tp[X].xz;
+    strain_tp[Z].yz = strain_tp[X].yz;
+
+    strain_bk[X].xy = 0.25*((st_it_gO_bk[2].disp[X][2] - st_it_gO_bk[1].disp[X][2]) + (st_it_gO_bk[6].disp[Y][2] - st_it_gO_bk[5].disp[Y][2]));
+    strain_bk[X].xz = 0.25*((st_it_gO_bk[4].disp[X][2] - st_it_gO_bk[3].disp[X][2]) + (st_it_gO_bk[6].disp[Z][2] - st_it_gO_bk[5].disp[Z][2]));
+    strain_bk[X].yz = 0.25*((st_it_gO_bk[2].disp[Z][2] - st_it_gO_bk[1].disp[Z][2]) + (st_it_gO_bk[4].disp[Y][2] - st_it_gO_bk[3].disp[Y][2]));
+    strain_bk[Y].xy = strain_bk[X].xy;
+    strain_bk[Y].xz = strain_bk[X].xz;
+    strain_bk[Y].yz = strain_bk[X].yz;
+    strain_bk[Z].xy = strain_bk[X].xy;
+    strain_bk[Z].xz = strain_bk[X].xz;
+    strain_bk[Z].yz = strain_bk[X].yz;
+
+    strain_ft[X].xy = 0.25*((st_it_gO_ft[2].disp[X][2] - st_it_gO_ft[1].disp[X][2]) + (st_it_gO_ft[6].disp[Y][2] - st_it_gO_ft[5].disp[Y][2]));
+    strain_ft[X].xz = 0.25*((st_it_gO_ft[4].disp[X][2] - st_it_gO_ft[3].disp[X][2]) + (st_it_gO_ft[6].disp[Z][2] - st_it_gO_ft[5].disp[Z][2]));
+    strain_ft[X].yz = 0.25*((st_it_gO_ft[2].disp[Z][2] - st_it_gO_ft[1].disp[Z][2]) + (st_it_gO_ft[4].disp[Y][2] - st_it_gO_ft[3].disp[Y][2]));
+    strain_ft[Y].xy = strain_ft[X].xy;
+    strain_ft[Y].xz = strain_ft[X].xz;
+    strain_ft[Y].yz = strain_ft[X].yz;
+    strain_ft[Z].xy = strain_ft[X].xy;
+    strain_ft[Z].xz = strain_ft[X].xz;
+    strain_ft[Z].yz = strain_ft[X].yz;
+
+    stiffness_c_lf[0].C11 = 0.0;
+    stiffness_c_lf[0].C12 = 0.0;
+    stiffness_c_lf[0].C44 = 0.0;
+    for (ip = 0; ip < npha; ip++) {
+      stiffness_c_lf[X].C11 += (stiffness_phase_n[ip].C11)*stgO_lf[0].phi[ip];
+      stiffness_c_lf[X].C12 += (stiffness_phase_n[ip].C12)*stgO_lf[0].phi[ip];
+      stiffness_c_lf[X].C44 += (stiffness_phase_n[ip].C44)*stgO_lf[0].phi[ip];
+    }
+    stiffness_c_lf[Y] = stiffness_c_lf[X];
+    stiffness_c_lf[Z] = stiffness_c_lf[X];
+
+    stiffness_c_rt[0].C11 = 0.0;
+    stiffness_c_rt[0].C12 = 0.0;
+    stiffness_c_rt[0].C44 = 0.0;
+    for (ip = 0; ip < npha; ip++) {
+      stiffness_c_rt[X].C11 += (stiffness_phase_n[ip].C11)*stgO_rt[0].phi[ip];
+      stiffness_c_rt[X].C12 += (stiffness_phase_n[ip].C12)*stgO_rt[0].phi[ip];
+      stiffness_c_rt[X].C44 += (stiffness_phase_n[ip].C44)*stgO_rt[0].phi[ip];
+    }
+    stiffness_c_rt[Y] = stiffness_c_rt[X];
+    stiffness_c_rt[Z] = stiffness_c_rt[X];
+
+    stiffness_c_bt[0].C11 = 0.0;
+    stiffness_c_bt[0].C12 = 0.0;
+    stiffness_c_bt[0].C44 = 0.0;
+    for (ip = 0; ip < npha; ip++) {
+      stiffness_c_bt[X].C11 += (stiffness_phase_n[ip].C11)*stgO_bt[0].phi[ip];
+      stiffness_c_bt[X].C12 += (stiffness_phase_n[ip].C12)*stgO_bt[0].phi[ip];
+      stiffness_c_bt[X].C44 += (stiffness_phase_n[ip].C44)*stgO_bt[0].phi[ip];
+    }
+    stiffness_c_bt[Y] = stiffness_c_bt[X];
+    stiffness_c_bt[Z] = stiffness_c_bt[X];
+
+    stiffness_c_tp[0].C11 = 0.0;
+    stiffness_c_tp[0].C12 = 0.0;
+    stiffness_c_tp[0].C44 = 0.0;
+    for (ip = 0; ip < npha; ip++) {
+      stiffness_c_tp[X].C11 += (stiffness_phase_n[ip].C11)*stgO_tp[0].phi[ip];
+      stiffness_c_tp[X].C12 += (stiffness_phase_n[ip].C12)*stgO_tp[0].phi[ip];
+      stiffness_c_tp[X].C44 += (stiffness_phase_n[ip].C44)*stgO_tp[0].phi[ip];
+    }
+    stiffness_c_tp[Y] = stiffness_c_tp[X];
+    stiffness_c_tp[Z] = stiffness_c_tp[X];
+
+    stiffness_c_bk[0].C11 = 0.0;
+    stiffness_c_bk[0].C12 = 0.0;
+    stiffness_c_bk[0].C44 = 0.0;
+    for (ip = 0; ip < npha; ip++) {
+      stiffness_c_bk[X].C11 += (stiffness_phase_n[ip].C11)*stgO_bk[0].phi[ip];
+      stiffness_c_bk[X].C12 += (stiffness_phase_n[ip].C12)*stgO_bk[0].phi[ip];
+      stiffness_c_bk[X].C44 += (stiffness_phase_n[ip].C44)*stgO_bk[0].phi[ip];
+    }
+    stiffness_c_bk[Y] = stiffness_c_bk[X];
+    stiffness_c_bk[Z] = stiffness_c_bk[X];
+
+    stiffness_c_ft[0].C11 = 0.0;
+    stiffness_c_ft[0].C12 = 0.0;
+    stiffness_c_ft[0].C44 = 0.0;
+    for (ip = 0; ip < npha; ip++) {
+      stiffness_c_ft[X].C11 += (stiffness_phase_n[ip].C11)*stgO_ft[0].phi[ip];
+      stiffness_c_ft[X].C12 += (stiffness_phase_n[ip].C12)*stgO_ft[0].phi[ip];
+      stiffness_c_ft[X].C44 += (stiffness_phase_n[ip].C44)*stgO_ft[0].phi[ip];
+    }
+    stiffness_c_ft[Y] = stiffness_c_ft[X];
+    stiffness_c_ft[Z] = stiffness_c_ft[X];
+
+    trace_strain_front     = strain_ft[X].xx + strain_ft[X].yy + strain_ft[X].zz;
+    trace_strain_back      = strain_bk[X].xx + strain_bk[X].yy + strain_bk[X].zz;
+    trace_strain_right     = strain_rt[Y].xx + strain_rt[Y].yy + strain_rt[Y].zz;
+    trace_strain_left      = strain_lf[Y].xx + strain_lf[Y].yy + strain_lf[Y].zz;
+    trace_strain_top       = strain_tp[Z].xx + strain_tp[Z].yy + strain_tp[Z].zz;
+    trace_strain_bottom    = strain_bt[Z].xx + strain_bt[Z].yy + strain_bt[Z].zz;
+
+
+    lambda_front    = stiffness_c_ft[X].C12;  //C12
+    lambda_back     = stiffness_c_bk[X].C12;   //C12
+
+    mu_front        = stiffness_c_ft[X].C44;  //C44
+    mu_back         = stiffness_c_bk[X].C44;   //C44
+
+    mu_prime_front  = stiffness_c_ft[X].C11 - stiffness_c_ft[X].C12 - 2.0*stiffness_c_ft[X].C44;
+    mu_prime_back   = stiffness_c_bk[X].C11 - stiffness_c_bk[X].C12 - 2.0*stiffness_c_bk[X].C44;
+
+    lambda_right    = stiffness_c_rt[Y].C12;  //C12
+    lambda_left     = stiffness_c_lf[Y].C12;   //C12
+
+    mu_right        = stiffness_c_rt[Y].C44;  //C44
+    mu_left         = stiffness_c_lf[Y].C44;   //C44
+
+    mu_prime_right  = stiffness_c_rt[Y].C11 - stiffness_c_rt[Y].C12 - 2.0*stiffness_c_rt[Y].C44;
+    mu_prime_left   = stiffness_c_lf[Y].C11 - stiffness_c_lf[Y].C12 - 2.0*stiffness_c_lf[Y].C44;
+
+    lambda_top      = stiffness_c_tp[Z].C12;  //C12
+    lambda_bottom   = stiffness_c_bt[Z].C12;   //C12
+
+    mu_top          = stiffness_c_tp[Z].C44;  //C44
+    mu_bottom       = stiffness_c_bt[Z].C44;   //C44
+
+    mu_prime_top    = stiffness_c_tp[Z].C11 - stiffness_c_tp[Z].C12 - 2.0*stiffness_c_tp[Z].C44;
+    mu_prime_bottom = stiffness_c_bt[Z].C11 - stiffness_c_bt[Z].C12 - 2.0*stiffness_c_bt[Z].C44;
+
+    sigma_front.xx  = lambda_front*trace_strain_front  + 2.0*mu_front*strain_ft[X].xx		//Cubic
+                      + mu_prime_front*strain_ft[X].xx;
+    sigma_back.xx   = lambda_back*trace_strain_back  + 2.0*mu_back*strain_bk[X].xx
+                      + mu_prime_back*strain_bk[X].xx;
+
+    sigma_right.xy  = 2.0*mu_right*strain_rt[X].xy;
+    sigma_left.xy   = 2.0*mu_left*strain_lf[X].xy;
+
+    sigma_right.yz  = 2.0*mu_right*strain_rt[Z].yz;
+    sigma_left.yz   = 2.0*mu_left*strain_lf[Z].yz;
+
+    sigma_top.xz    = 2.0*mu_top*strain_tp[X].xz;
+    sigma_bottom.xz = 2.0*mu_bottom*strain_bt[X].xz;
+
+    sigma_top.yz    = 2.0*mu_top*strain_tp[Y].yz;
+    sigma_bottom.yz = 2.0*mu_bottom*strain_bt[Y].yz;
+
+    sigma_front.xy  = 2.0*mu_front*strain_ft[Y].xy;
+    sigma_back.xy   = 2.0*mu_back*strain_bk[Y].xy;
+
+    sigma_front.xz  = 2.0*mu_front*strain_ft[Z].xz;
+    sigma_back.xz   = 2.0*mu_back*strain_bk[Z].xz;
+
+    sigma_right.yy  = lambda_right*trace_strain_right   + 2.0*mu_right*strain_rt[Y].yy + mu_prime_right*strain_rt[Y].yy;
+
+    sigma_left.yy   = lambda_left*trace_strain_left     + 2.0*mu_left*strain_lf[Y].yy + mu_prime_left*strain_lf[Y].yy;
+
+    sigma_top.zz    = lambda_top*trace_strain_top       + 2.0*mu_top*strain_tp[Z].zz + mu_prime_top*strain_tp[Z].zz;
+
+    sigma_bottom.zz = lambda_bottom*trace_strain_bottom + 2.0*mu_bottom*strain_bt[Z].zz + mu_prime_bottom*strain_bt[Z].zz;
+
+    forceX          = (sigma_front.xx - sigma_back.xx)  + (sigma_right.xy - sigma_left.xy) + (sigma_top.xz   - sigma_bottom.xz);
+    forceX         *= 0.5;
+
+    forceY          = (sigma_front.xy - sigma_back.xy)  + (sigma_top.yz - sigma_bottom.yz) + (sigma_right.yy - sigma_left.yy);
+    forceY         *= 0.5;
+
+    forceZ          = (sigma_front.xz - sigma_back.xz)  + (sigma_right.yz - sigma_left.yz) + (sigma_top.zz   - sigma_bottom.zz);
+    forceZ         *= 0.5;
+
+    //printf("%d, %d, %d, %d, %le, %le, %le, %le, %le, %le, %le\n", x, y, z , index, sigma_front.xx, sigma_back.xx, sigma_right.xy, sigma_left.xy, sigma_top.xz, sigma_bottom.xz, forceX);
+
+    it_gridinfoO[center].disp[X][0] = it_gridinfoO[center].disp[X][1];
+    it_gridinfoO[center].disp[Y][0] = it_gridinfoO[center].disp[Y][1];
+    it_gridinfoO[center].disp[Z][0] = it_gridinfoO[center].disp[Z][1];
+    it_gridinfoO[center].disp[X][1] = it_gridinfoO[center].disp[X][2];
+    it_gridinfoO[center].disp[Y][1] = it_gridinfoO[center].disp[Y][2];
+    it_gridinfoO[center].disp[Z][1] = it_gridinfoO[center].disp[Z][2];
+
+    it_gridinfoO[center].disp[X][2] = (((deltat_e*deltat_e)/rho)*forceX - (1 - damping_factor*deltat_e)*it_gridinfoO[center].disp[X][0] + 2*it_gridinfoO[center].disp[X][1])/(1.0 + damping_factor*deltat_e);
+    it_gridinfoO[center].disp[Y][2] = (((deltat_e*deltat_e)/rho)*forceY - (1 - damping_factor*deltat_e)*it_gridinfoO[center].disp[Y][0] + 2*it_gridinfoO[center].disp[Y][1])/(1.0 + damping_factor*deltat_e);
+    it_gridinfoO[center].disp[Z][2] = (((deltat_e*deltat_e)/rho)*forceZ - (1 - damping_factor*deltat_e)*it_gridinfoO[center].disp[Z][0] + 2*it_gridinfoO[center].disp[Z][1])/(1.0 + damping_factor*deltat_e);
+
+    //printf("%d, %d, %d, %d, %le, %le, %le\n", x, y, z , index, damping_factor, rho, forceZ);
+
+    //printf("%d, %d, %d, %d, %d, %le, %le, %le\n", tstep[0], x, y, z, index, it_gridinfoO[center].disp[X][2], it_gridinfoO[center].disp[Y][2], it_gridinfoO[center].disp[Z][2]);
+
+
+
+
+  }
+
+}
+
+
+__kernel void SolverStress_iterative_2D(__global struct fields *gridinfoO, __global struct iter_variables *it_gridinfoO, __global struct symmetric_tensor *eigen_strain_phase, __global struct Stiffness_cubic *stiffness_phase, __global struct Stiffness_cubic *stiffness_phase_n, __constant struct pfmval *pfmdat, __constant struct pfmpar *pfmvar, __global int *tstep) {
+
+  int x, y, z, ii, i1, j1, k1, i2;
+  int nx, ny, nz;
+  int index;
+  int X, Y, Z;
+  int center;
+
+  int is, js, ks, il, il1, jl, jl1, ipx;
+  int is1, is2;
+  int ig, jg, ip, ip1, ip2, ip3;
+
+  double deltat_e, damping_factor,  rho;
+ double trace_strain_right;
+ double trace_strain_left;
+ double trace_strain_back;
+ double trace_strain_front;
+ double trace_strain_top;
+ double trace_strain_bottom;
+
+  double lambda_front   ;
+  double lambda_back    ;
+  double mu_front       ;
+  double mu_back        ;
+  double mu_prime_front ;
+  double mu_prime_back  ;
+  double lambda_right   ;
+  double lambda_left    ;
+  double mu_right       ;
+  double mu_left        ;
+  double mu_prime_right ;
+  double mu_prime_left  ;
+
+  double sigma_xx_front;
+  double sigma_xx_back;
+  double sigma_yx_right;
+  double sigma_yx_left;
+  double sigma_xy_front;
+  double sigma_xy_back;
+  double sigma_yy_right;
+  double sigma_yy_left;
+
+ double forceX;
+ double forceY;
+
+ double div_phi_front;
+ double div_phi_back;
+ double div_phi_right;
+ double div_phi_left;
+
+
+  struct symmetric_tensor eigen_strain[3], eigen_strain_lf[3], eigen_strain_rt[3], eigen_strain_bk[3], eigen_strain_ft[3];
+
+  //struct symmetric_tensor eigen_strain_phase[npha];
+
+  struct symmetric_tensor strain[3], strain_lf[3], strain_rt[3], strain_bk[3], strain_ft[3];
+
+  struct Stiffness_cubic stiffness_c[3], stiffness_c_lf[3], stiffness_c_rt[3], stiffness_c_bk[3], stiffness_c_ft[3];
+
+  //struct Stiffness_cubic stiffness_phase_n[npha];
+
+ struct symmetric_tensor sigma_front;
+ struct symmetric_tensor sigma_back;
+ struct symmetric_tensor sigma_right;
+ struct symmetric_tensor sigma_left;
+
+  struct fields stgO[5], stgO_lf[5], stgO_rt[5], stgO_bk[5], stgO_ft[5];
+  struct iter_variables st_it_gO[5], st_it_gO_lf[5], st_it_gO_rt[5], st_it_gO_bk[5], st_it_gO_ft[5];
+
+  X = 0;
+  Y = 1;
+  Z = 2;
+
+  deltat_e = pfmdat->deltat_e;
+  rho = pfmdat->rho;
+  damping_factor = pfmdat->damping_factor;
+
+  y = get_global_id(0);
+  z = get_global_id(1);
+  x = get_global_id(2);
+
+  ny = get_global_size(0);
+  nz = get_global_size(1);
+  nx = get_global_size(2);
+
+  //index = y + ny*(z + x*nz);
+
+  if ( ( x > 1 ) && ( x < (nx-2) ) && ( y > 1 ) && ( y < (ny-2) ) && ( z == 1 ) ) {
+  //if ( x > 1 && x < nx-2 && y > 1 && y < ny-2 && z > 1 && z < nz-2 ) {
+
+    index = y + ny*(z + x*nz);
+    center = index;
+
+    //printf("%d, %d, %d, %d, %le, %le, %le\n", x, y, z , index, it_gridinfoO[center].disp[X][2], it_gridinfoO[center].disp[Y][2], it_gridinfoO[center].disp[Z][2]);
+
+    stgO[0] = gridinfoO[ (y  ) + ny*( (x  )*nz + (z  ) ) ];
+    stgO[1] = gridinfoO[ (y-1) + ny*( (x  )*nz + (z  ) ) ];
+    stgO[2] = gridinfoO[ (y+1) + ny*( (x  )*nz + (z  ) ) ];
+    stgO[3] = gridinfoO[ (y  ) + ny*( (x-1)*nz + (z  ) ) ];
+    stgO[4] = gridinfoO[ (y  ) + ny*( (x+1)*nz + (z  ) ) ];
+
+    st_it_gO[0] = it_gridinfoO[ (y  ) + ny*( (x  )*nz + (z  ) ) ];
+    st_it_gO[1] = it_gridinfoO[ (y-1) + ny*( (x  )*nz + (z  ) ) ];
+    st_it_gO[2] = it_gridinfoO[ (y+1) + ny*( (x  )*nz + (z  ) ) ];
+    st_it_gO[3] = it_gridinfoO[ (y  ) + ny*( (x-1)*nz + (z  ) ) ];
+    st_it_gO[4] = it_gridinfoO[ (y  ) + ny*( (x+1)*nz + (z  ) ) ];
+
+    eigen_strain[0].xx = 0.0;
+    eigen_strain[0].yy = 0.0;
+    eigen_strain[0].xy = 0.0;
+
+    for (ip = 0; ip < npha; ip++) {
+
+      eigen_strain[X].xx += eigen_strain_phase[ip].xx*stgO[0].phi[ip];
+      eigen_strain[X].yy += eigen_strain_phase[ip].yy*stgO[0].phi[ip];
+      eigen_strain[X].xy += eigen_strain_phase[ip].xy*stgO[0].phi[ip];
+
+    }
+
+    for (i1 = 1; i1 < 2; i1++) {
+
+      eigen_strain[i1].xx = eigen_strain[X].xx;
+      eigen_strain[i1].yy = eigen_strain[X].yy;
+      eigen_strain[i1].xy = eigen_strain[X].xy;
+
+    }
+    // or
+    eigen_strain[Y] = eigen_strain[X];
+
+    strain[X].xx = 0.5*(st_it_gO[4].disp[X][2] - st_it_gO[3].disp[X][2]) - eigen_strain[X].xx;
+    strain[X].yy = 0.5*(st_it_gO[2].disp[Y][2] - st_it_gO[1].disp[Y][2]) - eigen_strain[X].yy;
+
+    strain[Y].xx = strain[X].xx;
+    strain[Y].yy = strain[X].yy;
+
+    strain[X].xy = 0.25*((st_it_gO[2].disp[X][2] - st_it_gO[1].disp[X][2]) + (st_it_gO[4].disp[Y][2] - st_it_gO[3].disp[Y][2]));
+
+    strain[Y].xy = strain[X].xy;
+
+    stiffness_c[0].C11 = 0.0;
+    stiffness_c[0].C12 = 0.0;
+    stiffness_c[0].C44 = 0.0;
+    for (ip = 0; ip < npha; ip++) {
+      stiffness_c[X].C11 += (stiffness_phase_n[ip].C11)*stgO[0].phi[ip];
+      stiffness_c[X].C12 += (stiffness_phase_n[ip].C12)*stgO[0].phi[ip];
+      stiffness_c[X].C44 += (stiffness_phase_n[ip].C44)*stgO[0].phi[ip];
+    }
+    stiffness_c[Y] = stiffness_c[X];
+
+
+    stgO_lf[0] = gridinfoO[ (y  -1) + ny*( (x  )*nz + (z  ) ) ];
+    stgO_lf[1] = gridinfoO[ (y-1-1) + ny*( (x  )*nz + (z  ) ) ];
+    stgO_lf[2] = gridinfoO[ (y+1-1) + ny*( (x  )*nz + (z  ) ) ];
+    stgO_lf[3] = gridinfoO[ (y  -1) + ny*( (x-1)*nz + (z  ) ) ];
+    stgO_lf[4] = gridinfoO[ (y  -1) + ny*( (x+1)*nz + (z  ) ) ];
+
+    st_it_gO_lf[0] = it_gridinfoO[ (y  -1) + ny*( (x  )*nz + (z  ) ) ];
+    st_it_gO_lf[1] = it_gridinfoO[ (y-1-1) + ny*( (x  )*nz + (z  ) ) ];
+    st_it_gO_lf[2] = it_gridinfoO[ (y+1-1) + ny*( (x  )*nz + (z  ) ) ];
+    st_it_gO_lf[3] = it_gridinfoO[ (y  -1) + ny*( (x-1)*nz + (z  ) ) ];
+    st_it_gO_lf[4] = it_gridinfoO[ (y  -1) + ny*( (x+1)*nz + (z  ) ) ];
+
+
+    stgO_rt[0] = gridinfoO[ (y  +1) + ny*( (x  )*nz + (z  ) ) ];
+    stgO_rt[1] = gridinfoO[ (y-1+1) + ny*( (x  )*nz + (z  ) ) ];
+    stgO_rt[2] = gridinfoO[ (y+1+1) + ny*( (x  )*nz + (z  ) ) ];
+    stgO_rt[3] = gridinfoO[ (y  +1) + ny*( (x-1)*nz + (z  ) ) ];
+    stgO_rt[4] = gridinfoO[ (y  +1) + ny*( (x+1)*nz + (z  ) ) ];
+
+    st_it_gO_rt[0] = it_gridinfoO[ (y  +1) + ny*( (x  )*nz + (z  ) ) ];
+    st_it_gO_rt[1] = it_gridinfoO[ (y-1+1) + ny*( (x  )*nz + (z  ) ) ];
+    st_it_gO_rt[2] = it_gridinfoO[ (y+1+1) + ny*( (x  )*nz + (z  ) ) ];
+    st_it_gO_rt[3] = it_gridinfoO[ (y  +1) + ny*( (x-1)*nz + (z  ) ) ];
+    st_it_gO_rt[4] = it_gridinfoO[ (y  +1) + ny*( (x+1)*nz + (z  ) ) ];
+
+
+    stgO_bk[0] = gridinfoO[ (y  ) + ny*( (x  -1)*nz + (z  ) ) ];
+    stgO_bk[1] = gridinfoO[ (y-1) + ny*( (x  -1)*nz + (z  ) ) ];
+    stgO_bk[2] = gridinfoO[ (y+1) + ny*( (x  -1)*nz + (z  ) ) ];
+    stgO_bk[3] = gridinfoO[ (y  ) + ny*( (x-1-1)*nz + (z  ) ) ];
+    stgO_bk[4] = gridinfoO[ (y  ) + ny*( (x+1-1)*nz + (z  ) ) ];
+
+    st_it_gO_bk[0] = it_gridinfoO[ (y  ) + ny*( (x  -1)*nz + (z  ) ) ];
+    st_it_gO_bk[1] = it_gridinfoO[ (y-1) + ny*( (x  -1)*nz + (z  ) ) ];
+    st_it_gO_bk[2] = it_gridinfoO[ (y+1) + ny*( (x  -1)*nz + (z  ) ) ];
+    st_it_gO_bk[3] = it_gridinfoO[ (y  ) + ny*( (x-1-1)*nz + (z  ) ) ];
+    st_it_gO_bk[4] = it_gridinfoO[ (y  ) + ny*( (x+1-1)*nz + (z  ) ) ];
+
+
+    stgO_ft[0] = gridinfoO[ (y  ) + ny*( (x  +1)*nz + (z  ) ) ];
+    stgO_ft[1] = gridinfoO[ (y-1) + ny*( (x  +1)*nz + (z  ) ) ];
+    stgO_ft[2] = gridinfoO[ (y+1) + ny*( (x  +1)*nz + (z  ) ) ];
+    stgO_ft[3] = gridinfoO[ (y  ) + ny*( (x-1+1)*nz + (z  ) ) ];
+    stgO_ft[4] = gridinfoO[ (y  ) + ny*( (x+1+1)*nz + (z  ) ) ];
+
+    st_it_gO_ft[0] = it_gridinfoO[ (y  ) + ny*( (x  +1)*nz + (z  ) ) ];
+    st_it_gO_ft[1] = it_gridinfoO[ (y-1) + ny*( (x  +1)*nz + (z  ) ) ];
+    st_it_gO_ft[2] = it_gridinfoO[ (y+1) + ny*( (x  +1)*nz + (z  ) ) ];
+    st_it_gO_ft[3] = it_gridinfoO[ (y  ) + ny*( (x-1+1)*nz + (z  ) ) ];
+    st_it_gO_ft[4] = it_gridinfoO[ (y  ) + ny*( (x+1+1)*nz + (z  ) ) ];
+
+    eigen_strain_lf[0].xx = 0.0;
+    eigen_strain_lf[0].yy = 0.0;
+    eigen_strain_lf[0].xy = 0.0;
+    for (ip = 0; ip < npha; ip++) {
+      eigen_strain_lf[X].xx += eigen_strain_phase[ip].xx*stgO_lf[0].phi[ip];
+      eigen_strain_lf[X].yy += eigen_strain_phase[ip].yy*stgO_lf[0].phi[ip];
+      eigen_strain_lf[X].xy += eigen_strain_phase[ip].xy*stgO_lf[0].phi[ip];
+    }
+    eigen_strain_lf[Y] = eigen_strain_lf[X];
+
+    eigen_strain_rt[0].xx = 0.0;
+    eigen_strain_rt[0].yy = 0.0;
+    eigen_strain_rt[0].xy = 0.0;
+    for (ip = 0; ip < npha; ip++) {
+      eigen_strain_rt[X].xx += eigen_strain_phase[ip].xx*stgO_rt[0].phi[ip];
+      eigen_strain_rt[X].yy += eigen_strain_phase[ip].yy*stgO_rt[0].phi[ip];
+      eigen_strain_rt[X].xy += eigen_strain_phase[ip].xy*stgO_rt[0].phi[ip];
+    }
+    eigen_strain_rt[Y] = eigen_strain_rt[X];
+
+    eigen_strain_bk[0].xx = 0.0;
+    eigen_strain_bk[0].yy = 0.0;
+    eigen_strain_bk[0].xy = 0.0;
+    for (ip = 0; ip < npha; ip++) {
+      eigen_strain_bk[X].xx += eigen_strain_phase[ip].xx*stgO_bk[0].phi[ip];
+      eigen_strain_bk[X].yy += eigen_strain_phase[ip].yy*stgO_bk[0].phi[ip];
+      eigen_strain_bk[X].xy += eigen_strain_phase[ip].xy*stgO_bk[0].phi[ip];
+    }
+    eigen_strain_bk[Y] = eigen_strain_bk[X];
+
+    eigen_strain_ft[0].xx = 0.0;
+    eigen_strain_ft[0].yy = 0.0;
+    eigen_strain_ft[0].xy = 0.0;
+    for (ip = 0; ip < npha; ip++) {
+      eigen_strain_ft[X].xx += eigen_strain_phase[ip].xx*stgO_ft[0].phi[ip];
+      eigen_strain_ft[X].yy += eigen_strain_phase[ip].yy*stgO_ft[0].phi[ip];
+      eigen_strain_ft[X].xy += eigen_strain_phase[ip].xy*stgO_ft[0].phi[ip];
+    }
+    eigen_strain_ft[Y] = eigen_strain_ft[X];
+
+    strain_lf[X].xx = 0.5*(st_it_gO_lf[4].disp[X][2] - st_it_gO_lf[3].disp[X][2]) - eigen_strain_lf[X].xx;
+    strain_lf[X].yy = 0.5*(st_it_gO_lf[2].disp[Y][2] - st_it_gO_lf[1].disp[Y][2]) - eigen_strain_lf[X].yy;
+    strain_lf[Y].xx = strain_lf[X].xx;
+    strain_lf[Y].yy = strain_lf[X].yy;
+
+    strain_rt[X].xx = 0.5*(st_it_gO_rt[4].disp[X][2] - st_it_gO_rt[3].disp[X][2]) - eigen_strain_rt[X].xx;
+    strain_rt[X].yy = 0.5*(st_it_gO_rt[2].disp[Y][2] - st_it_gO_rt[1].disp[Y][2]) - eigen_strain_rt[X].yy;
+    strain_rt[Y].xx = strain_rt[X].xx;
+    strain_rt[Y].yy = strain_rt[X].yy;
+
+    strain_bk[X].xx = 0.5*(st_it_gO_bk[4].disp[X][2] - st_it_gO_bk[3].disp[X][2]) - eigen_strain_bk[X].xx;
+    strain_bk[X].yy = 0.5*(st_it_gO_bk[2].disp[Y][2] - st_it_gO_bk[1].disp[Y][2]) - eigen_strain_bk[X].yy;
+    strain_bk[Y].xx = strain_bk[X].xx;
+    strain_bk[Y].yy = strain_bk[X].yy;
+
+    strain_ft[X].xx = 0.5*(st_it_gO_ft[4].disp[X][2] - st_it_gO_ft[3].disp[X][2]) - eigen_strain_ft[X].xx;
+    strain_ft[X].yy = 0.5*(st_it_gO_ft[2].disp[Y][2] - st_it_gO_ft[1].disp[Y][2]) - eigen_strain_ft[X].yy;
+    strain_ft[Y].xx = strain_ft[X].xx;
+    strain_ft[Y].yy = strain_ft[X].yy;
+
+    strain_lf[X].xy = 0.25*((st_it_gO_lf[2].disp[X][2] - st_it_gO_lf[1].disp[X][2]) + (st_it_gO_lf[4].disp[Y][2] - st_it_gO_lf[3].disp[Y][2]));
+    strain_lf[Y].xy = strain_lf[X].xy;
+
+    strain_rt[X].xy = 0.25*((st_it_gO_rt[2].disp[X][2] - st_it_gO_rt[1].disp[X][2]) + (st_it_gO_rt[4].disp[Y][2] - st_it_gO_rt[3].disp[Y][2]));
+    strain_rt[Y].xy = strain_rt[X].xy;
+
+    strain_bk[X].xy = 0.25*((st_it_gO_bk[2].disp[X][2] - st_it_gO_bk[1].disp[X][2]) + (st_it_gO_bk[4].disp[Y][2] - st_it_gO_bk[3].disp[Y][2]));
+    strain_bk[Y].xy = strain_bk[X].xy;
+
+    strain_ft[X].xy = 0.25*((st_it_gO_ft[2].disp[X][2] - st_it_gO_ft[1].disp[X][2]) + (st_it_gO_ft[4].disp[Y][2] - st_it_gO_ft[3].disp[Y][2]));
+    strain_ft[Y].xy = strain_ft[X].xy;;
+
+    stiffness_c_lf[0].C11 = 0.0;
+    stiffness_c_lf[0].C12 = 0.0;
+    stiffness_c_lf[0].C44 = 0.0;
+    for (ip = 0; ip < npha; ip++) {
+      stiffness_c_lf[X].C11 += (stiffness_phase_n[ip].C11)*stgO_lf[0].phi[ip];
+      stiffness_c_lf[X].C12 += (stiffness_phase_n[ip].C12)*stgO_lf[0].phi[ip];
+      stiffness_c_lf[X].C44 += (stiffness_phase_n[ip].C44)*stgO_lf[0].phi[ip];
+    }
+    stiffness_c_lf[Y] = stiffness_c_lf[X];
+
+    stiffness_c_rt[0].C11 = 0.0;
+    stiffness_c_rt[0].C12 = 0.0;
+    stiffness_c_rt[0].C44 = 0.0;
+    for (ip = 0; ip < npha; ip++) {
+      stiffness_c_rt[X].C11 += (stiffness_phase_n[ip].C11)*stgO_rt[0].phi[ip];
+      stiffness_c_rt[X].C12 += (stiffness_phase_n[ip].C12)*stgO_rt[0].phi[ip];
+      stiffness_c_rt[X].C44 += (stiffness_phase_n[ip].C44)*stgO_rt[0].phi[ip];
+    }
+    stiffness_c_rt[Y] = stiffness_c_rt[X];
+
+    stiffness_c_bk[0].C11 = 0.0;
+    stiffness_c_bk[0].C12 = 0.0;
+    stiffness_c_bk[0].C44 = 0.0;
+    for (ip = 0; ip < npha; ip++) {
+      stiffness_c_bk[X].C11 += (stiffness_phase_n[ip].C11)*stgO_bk[0].phi[ip];
+      stiffness_c_bk[X].C12 += (stiffness_phase_n[ip].C12)*stgO_bk[0].phi[ip];
+      stiffness_c_bk[X].C44 += (stiffness_phase_n[ip].C44)*stgO_bk[0].phi[ip];
+    }
+    stiffness_c_bk[Y] = stiffness_c_bk[X];
+
+    stiffness_c_ft[0].C11 = 0.0;
+    stiffness_c_ft[0].C12 = 0.0;
+    stiffness_c_ft[0].C44 = 0.0;
+    for (ip = 0; ip < npha; ip++) {
+      stiffness_c_ft[X].C11 += (stiffness_phase_n[ip].C11)*stgO_ft[0].phi[ip];
+      stiffness_c_ft[X].C12 += (stiffness_phase_n[ip].C12)*stgO_ft[0].phi[ip];
+      stiffness_c_ft[X].C44 += (stiffness_phase_n[ip].C44)*stgO_ft[0].phi[ip];
+    }
+    stiffness_c_ft[Y] = stiffness_c_ft[X];
+
+    trace_strain_front     = strain_ft[X].xx + strain_ft[X].yy ;
+    trace_strain_back      = strain_bk[X].xx + strain_bk[X].yy ;
+    trace_strain_right     = strain_rt[Y].xx + strain_rt[Y].yy ;
+    trace_strain_left      = strain_lf[Y].xx + strain_lf[Y].yy ;
+
+
+    lambda_front    = stiffness_c_ft[X].C12;  //C12
+    lambda_back     = stiffness_c_bk[X].C12;   //C12
+
+    mu_front        = stiffness_c_ft[X].C44;  //C44
+    mu_back         = stiffness_c_bk[X].C44;   //C44
+
+    mu_prime_front  = stiffness_c_ft[X].C11 - stiffness_c_ft[X].C12 - 2.0*stiffness_c_ft[X].C44;
+    mu_prime_back   = stiffness_c_bk[X].C11 - stiffness_c_bk[X].C12 - 2.0*stiffness_c_bk[X].C44;
+
+    lambda_right    = stiffness_c_rt[Y].C12;  //C12
+    lambda_left     = stiffness_c_lf[Y].C12;   //C12
+
+    mu_right        = stiffness_c_rt[Y].C44;  //C44
+    mu_left         = stiffness_c_lf[Y].C44;   //C44
+
+    mu_prime_right  = stiffness_c_rt[Y].C11 - stiffness_c_rt[Y].C12 - 2.0*stiffness_c_rt[Y].C44;
+    mu_prime_left   = stiffness_c_lf[Y].C11 - stiffness_c_lf[Y].C12 - 2.0*stiffness_c_lf[Y].C44;
+
+    sigma_front.xx  = lambda_front*trace_strain_front  + 2.0*mu_front*strain_ft[X].xx		//Cubic
+                      + mu_prime_front*strain_ft[X].xx;
+    sigma_back.xx   = lambda_back*trace_strain_back  + 2.0*mu_back*strain_bk[X].xx
+                      + mu_prime_back*strain_bk[X].xx;
+
+    sigma_right.xy  = 2.0*mu_right*strain_rt[X].xy;
+    sigma_left.xy   = 2.0*mu_left*strain_lf[X].xy;
+
+    sigma_front.xy  = 2.0*mu_front*strain_ft[Y].xy;
+    sigma_back.xy   = 2.0*mu_back*strain_bk[Y].xy;
+
+    sigma_right.yy  = lambda_right*trace_strain_right   + 2.0*mu_right*strain_rt[Y].yy + mu_prime_right*strain_rt[Y].yy;
+
+    sigma_left.yy   = lambda_left*trace_strain_left     + 2.0*mu_left*strain_lf[Y].yy + mu_prime_left*strain_lf[Y].yy;
+
+    forceX          = (sigma_front.xx - sigma_back.xx)  + (sigma_right.xy - sigma_left.xy) ;
+    forceX         *= 0.5;
+
+    forceY          = (sigma_front.xy - sigma_back.xy) + (sigma_right.yy - sigma_left.yy);
+    forceY         *= 0.5;
+
+    //printf("%d, %d, %d, %d, %le, %le, %le, %le, %le, %le, %le\n", x, y, z , index, sigma_front.xx, sigma_back.xx, sigma_right.xy, sigma_left.xy, sigma_top.xz, sigma_bottom.xz, forceX);
+
+    it_gridinfoO[center].disp[X][0] = it_gridinfoO[center].disp[X][1];
+    it_gridinfoO[center].disp[Y][0] = it_gridinfoO[center].disp[Y][1];
+    it_gridinfoO[center].disp[Z][0] = 0.0;
+    it_gridinfoO[center].disp[X][1] = it_gridinfoO[center].disp[X][2];
+    it_gridinfoO[center].disp[Y][1] = it_gridinfoO[center].disp[Y][2];
+    it_gridinfoO[center].disp[Z][1] = 0.0;
+
+    it_gridinfoO[center].disp[X][2] = (((deltat_e*deltat_e)/rho)*forceX - (1 - damping_factor*deltat_e)*it_gridinfoO[center].disp[X][0] + 2*it_gridinfoO[center].disp[X][1])/(1.0 + damping_factor*deltat_e);
+    it_gridinfoO[center].disp[Y][2] = (((deltat_e*deltat_e)/rho)*forceY - (1 - damping_factor*deltat_e)*it_gridinfoO[center].disp[Y][0] + 2*it_gridinfoO[center].disp[Y][1])/(1.0 + damping_factor*deltat_e);
+    it_gridinfoO[center].disp[Z][2] = 0.0;
+
+    //printf("%d, %d, %d, %d, %le, %le, %le\n", x, y, z , index, damping_factor, rho, forceZ);
+
+    //printf("%d, %d, %d, %d, %d, %le, %le, %le\n", tstep[0], x, y, z, index, it_gridinfoO[center].disp[X][2], it_gridinfoO[center].disp[Y][2], it_gridinfoO[center].disp[Z][2]);
+
+
+
+
+  }
+
+}
+
+
+
+
+
+__kernel void apply_BC_phi_y0_noflux(__global struct fields *gridinfo, __constant struct pfmval *pfmdat, __global struct csle *cscl) {
+  
+  int x, y, z, nx, ny, nz, index;
+  int is, ip;
+  
+  y = get_global_id(0);
+  z = get_global_id(1);
+  x = get_global_id(2);
+  
+  ny = get_global_size(0);
+  nz = get_global_size(1);
+  nx = get_global_size(2);
+  
+  index =  (y  ) + ny*( (x  )*nz + (z  ) );
+  
+  if ( y == 0 ) {
+    for ( ip = 0; ip < npha; ip++ ) {
+      gridinfo[ (y  ) + ny*( (x  )*nz + (z  ) ) ].phi[ip] = gridinfo[ (y+1) + ny*( (x  )*nz + (z  ) ) ].phi[ip];
+    }
+  }
     
+}
+
+__kernel void apply_BC_phi_yn_noflux(__global struct fields *gridinfo, __constant struct pfmval *pfmdat, __global struct csle *cscl) {
+  
+  int x, y, z, nx, ny, nz, index;
+  int is, ip;
+  
+  y = get_global_id(0);
+  z = get_global_id(1);
+  x = get_global_id(2);
+  
+  ny = get_global_size(0);
+  nz = get_global_size(1);
+  nx = get_global_size(2);
+  
+  index =  (y  ) + ny*( (x  )*nz + (z  ) );
+  
+  if ( y == (ny-1) ) {
+    for ( ip = 0; ip < npha; ip++ ) {
+      gridinfo[ (y  ) + ny*( (x  )*nz + (z  ) ) ].phi[ip] = gridinfo[ (y-1) + ny*( (x  )*nz + (z  ) ) ].phi[ip];
+    }
+  }
+    
+}
+
+__kernel void apply_BC_phi_y0_periodic(__global struct fields *gridinfo, __constant struct pfmval *pfmdat, __global struct csle *cscl) {
+  
+  int x, y, z, nx, ny, nz, index;
+  int is, ip;
+  
+  y = get_global_id(0);
+  z = get_global_id(1);
+  x = get_global_id(2);
+  
+  ny = get_global_size(0);
+  nz = get_global_size(1);
+  nx = get_global_size(2);
+  
+  index =  (y  ) + ny*( (x  )*nz + (z  ) );
+  
+  if ( y == 0 ) {
+    for ( ip = 0; ip < npha; ip++ ) {
+      gridinfo[ (y  ) + ny*( (x  )*nz + (z  ) ) ].phi[ip] = gridinfo[ (ny-2) + ny*( (x  )*nz + (z  ) ) ].phi[ip];
+    }
+  }
+    
+}
+
+__kernel void apply_BC_phi_yn_periodic(__global struct fields *gridinfo, __constant struct pfmval *pfmdat, __global struct csle *cscl) {
+  
+  int x, y, z, nx, ny, nz, index;
+  int is, ip;
+  
+  y = get_global_id(0);
+  z = get_global_id(1);
+  x = get_global_id(2);
+  
+  ny = get_global_size(0);
+  nz = get_global_size(1);
+  nx = get_global_size(2);
+  
+  index =  (y  ) + ny*( (x  )*nz + (z  ) );
+  
+  if ( y == (ny-1) ) {
+    for ( ip = 0; ip < npha; ip++ ) {
+      gridinfo[ (y  ) + ny*( (x  )*nz + (z  ) ) ].phi[ip] = gridinfo[ (1 ) + ny*( (x  )*nz + (z  ) ) ].phi[ip];
+    }
+  }
+    
+}
+
+__kernel void apply_BC_phi_z0_noflux(__global struct fields *gridinfo, __constant struct pfmval *pfmdat, __global struct csle *cscl) {
+  
+  int x, y, z, nx, ny, nz, index;
+  int is, ip;
+  
+  y = get_global_id(0);
+  z = get_global_id(1);
+  x = get_global_id(2);
+  
+  ny = get_global_size(0);
+  nz = get_global_size(1);
+  nx = get_global_size(2);
+  
+  index = y + ny*(x*nz + z);
+  
+  if ( z == 0 ) {
+    for ( ip = 0; ip < npha; ip++ ) {
+      gridinfo[ y + ny*(x*nz + z) ].phi[ip] = gridinfo[ y + ny*(x*nz + (z+1)) ].phi[ip];
+    }
+  }
+    
+}
+
+__kernel void apply_BC_phi_zn_noflux(__global struct fields *gridinfo, __constant struct pfmval *pfmdat, __global struct csle *cscl) {
+  
+  int x, y, z, nx, ny, nz, index;
+  int is, ip;
+  
+  y = get_global_id(0);
+  z = get_global_id(1);
+  x = get_global_id(2);
+  
+  ny = get_global_size(0);
+  nz = get_global_size(1);
+  nx = get_global_size(2);
+  
+  index = y + ny*(x*nz + z);
+  
+  if ( z == (nz-1) ) {
+    for ( ip = 0; ip < npha; ip++ ) {
+      gridinfo[ y + ny*(x*nz + z) ].phi[ip] = gridinfo[ y + ny*(x*nz + (z-1)) ].phi[ip];
+    }
+  }
+    
+}
+
+__kernel void apply_BC_phi_z0_periodic(__global struct fields *gridinfo, __constant struct pfmval *pfmdat, __global struct csle *cscl) {
+  
+  int x, y, z, nx, ny, nz, index;
+  int is, ip;
+  
+  y = get_global_id(0);
+  z = get_global_id(1);
+  x = get_global_id(2);
+  
+  ny = get_global_size(0);
+  nz = get_global_size(1);
+  nx = get_global_size(2);
+  
+  index = y + ny*(x*nz + z);
+  
+  if ( z == 0 ) {
+    for ( ip = 0; ip < npha; ip++ ) {
+      gridinfo[ y + ny*(x*nz + z) ].phi[ip] = gridinfo[ y + ny*(x*nz + (nz-2)) ].phi[ip];
+    }
+  }
+  
+}
+
+__kernel void apply_BC_phi_zn_periodic(__global struct fields *gridinfo, __constant struct pfmval *pfmdat, __global struct csle *cscl) {
+  
+  int x, y, z, nx, ny, nz, index;
+  int is, ip;
+  
+  y = get_global_id(0);
+  z = get_global_id(1);
+  x = get_global_id(2);
+  
+  ny = get_global_size(0);
+  nz = get_global_size(1);
+  nx = get_global_size(2);
+  
+  index = y + ny*(x*nz + z);
+  
+  if ( z == (nz-1) ) {
+    for ( ip = 0; ip < npha; ip++ ) {
+      gridinfo[ y + ny*(x*nz + z) ].phi[ip] = gridinfo[ y + ny*(x*nz + 1) ].phi[ip];
+    }
+  }
+    
+}
+
+__kernel void apply_BC_phi_x0_noflux(__global struct fields *gridinfo, __constant struct pfmval *pfmdat, __global struct csle *cscl) {
+  
+  int x, y, z, nx, ny, nz, index;
+  int is, ip;
+  
+  y = get_global_id(0);
+  z = get_global_id(1);
+  x = get_global_id(2);
+  
+  ny = get_global_size(0);
+  nz = get_global_size(1);
+  nx = get_global_size(2);
+  
+  index =  (y  ) + ny*( (x  )*nz + (z  ) );
+  
+  if ( x == 0 ) {
+    for ( ip = 0; ip < npha; ip++ ) {
+      gridinfo[ (y  ) + ny*( (x  )*nz + (z  ) ) ].phi[ip] = gridinfo[ (y ) + ny*( (x+1)*nz + (z  ) ) ].phi[ip];
+    }
+
+    for (is = 0; is < nsol; is++) {
+      gridinfo[ (y  ) + ny*( (x  )*nz + (z  ) ) ].com[is] = gridinfo[ (y ) + ny*( (x+1)*nz + (z  ) ) ].com[is];
+      gridinfo[ (y  ) + ny*( (x  )*nz + (z  ) ) ].mu[is] =  gridinfo[ (y ) + ny*( (x+1)*nz + (z  ) ) ].mu[is];
+    }
+    cscl[ (y  ) + ny*( (x  )*nz + (z  ) ) ] = cscl[ (y ) + ny*( (x+1)*nz + (z  ) ) ];
+
+  }
+    
+}
+
+__kernel void apply_BC_phi_xn_noflux(__global struct fields *gridinfo, __constant struct pfmval *pfmdat, __global struct csle *cscl) {
+  
+  int x, y, z, nx, ny, nz, index;
+  int is, ip;
+  
+  y = get_global_id(0);
+  z = get_global_id(1);
+  x = get_global_id(2);
+  
+  ny = get_global_size(0);
+  nz = get_global_size(1);
+  nx = get_global_size(2);
+  
+  index =  (y  ) + ny*( (x  )*nz + (z  ) );
+  
+  if ( x == (nx-1) ) {
+    for ( ip = 0; ip < npha; ip++ ) {
+      gridinfo[ (y  ) + ny*( (x  )*nz + (z  ) ) ].phi[ip] = gridinfo[ (y ) + ny*( (x-1)*nz + (z  ) ) ].phi[ip];
+    }
+
+    for (is = 0; is < nsol; is++) {
+      gridinfo[ (y  ) + ny*( (x  )*nz + (z  ) ) ].com[is] = gridinfo[ (y ) + ny*( (x-1)*nz + (z  ) ) ].com[is];
+      gridinfo[ (y  ) + ny*( (x  )*nz + (z  ) ) ].mu[is] =  gridinfo[ (y ) + ny*( (x-1)*nz + (z  ) ) ].mu[is];
+    }
+    cscl[ (y  ) + ny*( (x  )*nz + (z  ) ) ] = cscl[ (y ) + ny*( (x-1)*nz + (z  ) ) ];
+
+  }
+    
+}
+
+__kernel void apply_BC_phi_x0_periodic(__global struct fields *gridinfo, __constant struct pfmval *pfmdat, __global struct csle *cscl) {
+  
+  int x, y, z, nx, ny, nz, index;
+  int is, ip;
+  
+  y = get_global_id(0);
+  z = get_global_id(1);
+  x = get_global_id(2);
+  
+  ny = get_global_size(0);
+  nz = get_global_size(1);
+  nx = get_global_size(2);
+  
+  index =  (y  ) + ny*( (x  )*nz + (z  ) );
+  
+  if ( x == 0 ) {
+    for ( ip = 0; ip < npha; ip++ ) {
+      gridinfo[ (y  ) + ny*( (x  )*nz + (z  ) ) ].phi[ip] = gridinfo[ (y ) + ny*( (nx-2)*nz + (z  ) ) ].phi[ip];
+    }
+  }
+    
+}
+
+__kernel void apply_BC_phi_xn_periodic(__global struct fields *gridinfo, __constant struct pfmval *pfmdat, __global struct csle *cscl) {
+  
+  int x, y, z, nx, ny, nz, index;
+  int is, ip;
+  
+  y = get_global_id(0);
+  z = get_global_id(1);
+  x = get_global_id(2);
+  
+  ny = get_global_size(0);
+  nz = get_global_size(1);
+  nx = get_global_size(2);
+  
+  index =  (y  ) + ny*( (x  )*nz + (z  ) );
+  
+  if ( x == (nx-1) ) {
+    for ( ip = 0; ip < npha; ip++ ) {
+      gridinfo[ (y  ) + ny*( (x  )*nz + (z  ) ) ].phi[ip] = gridinfo[ (y  ) + ny*( (1  )*nz + (z  ) ) ].phi[ip];
+    }
+  }
+    
+}
+
+__kernel void apply_BC_com_y0_noflux(__global struct fields *gridinfo, __constant struct pfmval *pfmdat, __global struct csle *cscl) {
+  
+  int x, y, z, nx, ny, nz, index;
+  int is, ip;
+  
+  y = get_global_id(0);
+  z = get_global_id(1);
+  x = get_global_id(2);
+  
+  ny = get_global_size(0);
+  nz = get_global_size(1);
+  nx = get_global_size(2);
+  
+  index = y + ny*(x*nz + z);
+  
+  if ( y == 0 ) {
+    for (is = 0; is < nsol; is++) { 
+      gridinfo[ y + ny*(x*nz + z) ].com[is] = gridinfo[ (y+1) + ny*(x*nz + z) ].com[is];
+      gridinfo[ y + ny*(x*nz + z) ].mu[is]  = gridinfo[ (y+1) + ny*(x*nz + z) ].mu[is];
+    }
+    cscl[ y + ny*(x*nz + z) ] = cscl[ (y+1) + ny*(x*nz + z) ];
+  }
+    
+}
+
+__kernel void apply_BC_com_yn_noflux(__global struct fields *gridinfo, __constant struct pfmval *pfmdat, __global struct csle *cscl) {
+  
+  int x, y, z, nx, ny, nz, index;
+  int is, ip;
+  
+  y = get_global_id(0);
+  z = get_global_id(1);
+  x = get_global_id(2);
+  
+  ny = get_global_size(0);
+  nz = get_global_size(1);
+  nx = get_global_size(2);
+  
+  index = y + ny*(x*nz + z);
+  
+  if ( y == (ny-1) ) {
+    for (is = 0; is < nsol; is++) { 
+      gridinfo[ y + ny*(x*nz + z) ].com[is] = gridinfo[ (y-1) + ny*(x*nz + z) ].com[is];
+      gridinfo[ y + ny*(x*nz + z) ].mu[is]  = gridinfo[ (y-1) + ny*(x*nz + z) ].mu[is];
+    }
+    cscl[ y + ny*(x*nz + z) ] = cscl[ (y-1) + ny*(x*nz + z) ];
+  }
+    
+}
+
+__kernel void apply_BC_com_y0_periodic(__global struct fields *gridinfo, __constant struct pfmval *pfmdat, __global struct csle *cscl) {
+  
+  int x, y, z, nx, ny, nz, index;
+  int is, ip;
+  
+  y = get_global_id(0);
+  z = get_global_id(1);
+  x = get_global_id(2);
+  
+  ny = get_global_size(0);
+  nz = get_global_size(1);
+  nx = get_global_size(2);
+  
+  index = y + ny*(x*nz + z);
+  
+  if ( y == 0 ) {
+    for (is = 0; is < nsol; is++) { 
+      gridinfo[ y + ny*(x*nz + z) ].com[is] = gridinfo[ (ny-2) + ny*(x*nz + z) ].com[is];
+      gridinfo[ y + ny*(x*nz + z) ].mu[is]  = gridinfo[ (ny-2) + ny*(x*nz + z) ].mu[is];
+    }
+    cscl[ y + ny*(x*nz + z) ] = cscl[ (ny-2) + ny*(x*nz + z) ];
+  }
+    
+}
+
+__kernel void apply_BC_com_yn_periodic(__global struct fields *gridinfo, __constant struct pfmval *pfmdat, __global struct csle *cscl) {
+  
+  int x, y, z, nx, ny, nz, index;
+  int is, ip;
+  
+  y = get_global_id(0);
+  z = get_global_id(1);
+  x = get_global_id(2);
+  
+  ny = get_global_size(0);
+  nz = get_global_size(1);
+  nx = get_global_size(2);
+  
+  index = y + ny*(x*nz + z);
+  
+  if ( y == (ny-1) ) {
+    for (is = 0; is < nsol; is++) { 
+      gridinfo[ y + ny*(x*nz + z) ].com[is] = gridinfo[ (1) + ny*(x*nz + z) ].com[is];
+      gridinfo[ y + ny*(x*nz + z) ].mu[is]  = gridinfo[ (1) + ny*(x*nz + z) ].mu[is];
+    }
+    cscl[ y + ny*(x*nz + z) ] = cscl[ (1) + ny*(x*nz + z) ];
+  }
+    
+}
+
+__kernel void apply_BC_com_z0_noflux(__global struct fields *gridinfo, __constant struct pfmval *pfmdat, __global struct csle *cscl) {
+  
+  int x, y, z, nx, ny, nz, index;
+  int is, ip;
+  
+  y = get_global_id(0);
+  z = get_global_id(1);
+  x = get_global_id(2);
+  
+  ny = get_global_size(0);
+  nz = get_global_size(1);
+  nx = get_global_size(2);
+  
+  index = y + ny*(x*nz + z);
+  
+  if ( z == 0 ) {
+    for (is = 0; is < nsol; is++) { 
+      gridinfo[ y + ny*(x*nz + z) ].com[is] = gridinfo[ y + ny*(x*nz + (z+1)) ].com[is];
+      gridinfo[ y + ny*(x*nz + z) ].mu[is]  = gridinfo[ y + ny*(x*nz + (z+1)) ].mu[is];
+    }
+    cscl[ y + ny*(x*nz + z) ] = cscl[ y + ny*(x*nz + (z+1)) ];
+  }
+    
+}
+
+__kernel void apply_BC_com_zn_noflux(__global struct fields *gridinfo, __constant struct pfmval *pfmdat, __global struct csle *cscl) {
+  
+  int x, y, z, nx, ny, nz, index;
+  int is, ip;
+  
+  y = get_global_id(0);
+  z = get_global_id(1);
+  x = get_global_id(2);
+  
+  ny = get_global_size(0);
+  nz = get_global_size(1);
+  nx = get_global_size(2);
+  
+  index = y + ny*(x*nz + z);
+  
+  if ( z == (nz-1) ) {
+    for (is = 0; is < nsol; is++) { 
+      gridinfo[ y + ny*(x*nz + z) ].com[is] = gridinfo[ y + ny*(x*nz + (z-1)) ].com[is];
+      gridinfo[ y + ny*(x*nz + z) ].mu[is]  = gridinfo[ y + ny*(x*nz + (z-1)) ].mu[is];
+    }
+    cscl[ y + ny*(x*nz + z) ] = cscl[ y + ny*(x*nz + (z-1)) ];
+  }
+  
+    
+}
+
+__kernel void apply_BC_com_z0_periodic(__global struct fields *gridinfo, __constant struct pfmval *pfmdat, __global struct csle *cscl) {
+  
+  int x, y, z, nx, ny, nz, index;
+  int is, ip;
+  
+  y = get_global_id(0);
+  z = get_global_id(1);
+  x = get_global_id(2);
+  
+  ny = get_global_size(0);
+  nz = get_global_size(1);
+  nx = get_global_size(2);
+  
+  index = y + ny*(x*nz + z);
+  
+  if ( z == 0 ) {
+    for (is = 0; is < nsol; is++) { 
+      gridinfo[ y + ny*(x*nz + z) ].com[is] = gridinfo[ y + ny*(x*nz + (nz-2)) ].com[is];
+      gridinfo[ y + ny*(x*nz + z) ].mu[is]  = gridinfo[ y + ny*(x*nz + (nz-2)) ].mu[is];
+    }
+    cscl[ y + ny*(x*nz + z) ] = cscl[ y + ny*(x*nz + (nz-2)) ];
+  }
+    
+}
+
+__kernel void apply_BC_com_zn_periodic(__global struct fields *gridinfo, __constant struct pfmval *pfmdat, __global struct csle *cscl) {
+  
+  int x, y, z, nx, ny, nz, index;
+  int is, ip;
+  
+  y = get_global_id(0);
+  z = get_global_id(1);
+  x = get_global_id(2);
+  
+  ny = get_global_size(0);
+  nz = get_global_size(1);
+  nx = get_global_size(2);
+  
+  index = y + ny*(x*nz + z);
+  
+  if ( z == (nz-1) ) {
+    for (is = 0; is < nsol; is++) { 
+      gridinfo[ y + ny*(x*nz + z) ].com[is] = gridinfo[ y + ny*(x*nz + 1) ].com[is];
+      gridinfo[ y + ny*(x*nz + z) ].mu[is]  = gridinfo[ y + ny*(x*nz + 1) ].mu[is];
+    }
+    cscl[ y + ny*(x*nz + z) ] = cscl[ y + ny*(x*nz + 1) ];
+  }
+    
+}
+
+__kernel void apply_BC_com_x0_noflux(__global struct fields *gridinfo, __constant struct pfmval *pfmdat, __global struct csle *cscl) {
+  
+  int x, y, z, nx, ny, nz, index;
+  int is, ip;
+  
+  y = get_global_id(0);
+  z = get_global_id(1);
+  x = get_global_id(2);
+  
+  ny = get_global_size(0);
+  nz = get_global_size(1);
+  nx = get_global_size(2);
+  
+  index = y + ny*(x*nz + z);
+  
+  if ( x == 0 ) {
+
+    for ( ip = 0; ip < npha; ip++ ) {
+      gridinfo[ y + ny*(x*nz + z) ].phi[ip] = gridinfo[ (y) + ny*((x+1)*nz + z) ].phi[ip];
+    }
+
+    for (is = 0; is < nsol; is++) { 
+      gridinfo[ y + ny*(x*nz + z) ].com[is] = gridinfo[ (y) + ny*((x+1)*nz + z) ].com[is];
+      gridinfo[ y + ny*(x*nz + z) ].mu[is]  = gridinfo[ (y) + ny*((x+1)*nz + z) ].mu[is];
+    }
+    cscl[ y + ny*(x*nz + z) ] = cscl[ (y) + ny*((x+1)*nz + z) ];
+  }
+    
+}
+
+__kernel void apply_BC_com_xn_noflux(__global struct fields *gridinfo, __constant struct pfmval *pfmdat, __global struct csle *cscl) {
+  
+  int x, y, z, nx, ny, nz, index;
+  int is, ip;
+  
+  y = get_global_id(0);
+  z = get_global_id(1);
+  x = get_global_id(2);
+  
+  ny = get_global_size(0);
+  nz = get_global_size(1);
+  nx = get_global_size(2);
+  
+  index = y + ny*(x*nz + z);
+  
+  if ( x == (nx-1) ) {
+
+    for ( ip = 0; ip < npha; ip++ ) {
+      gridinfo[ y + ny*(x*nz + z) ].phi[ip] = gridinfo[ y + ny*((x-1)*nz + z) ].phi[ip];
+    }
+
+
+    for (is = 0; is < nsol; is++) { 
+      gridinfo[ y + ny*(x*nz + z) ].com[is] = gridinfo[ y + ny*((x-1)*nz + z) ].com[is];
+      gridinfo[ y + ny*(x*nz + z) ].mu[is]  = gridinfo[ y + ny*((x-1)*nz + z) ].mu[is];
+    }
+    cscl[ y + ny*(x*nz + z) ] = cscl[ y + ny*((x-1)*nz + z) ];
+  }
+    
+}
+
+__kernel void apply_BC_com_x0_periodic(__global struct fields *gridinfo, __constant struct pfmval *pfmdat, __global struct csle *cscl) {
+  
+  int x, y, z, nx, ny, nz, index;
+  int is, ip;
+  
+  y = get_global_id(0);
+  z = get_global_id(1);
+  x = get_global_id(2);
+  
+  ny = get_global_size(0);
+  nz = get_global_size(1);
+  nx = get_global_size(2);
+  
+  index = y + ny*(x*nz + z);
+  
+  if ( x == 0 ) {
+    for (is = 0; is < nsol; is++) { 
+      gridinfo[ y + ny*(x*nz + z) ].com[is] = gridinfo[ y + ny*((nx-2)*nz + z) ].com[is];
+      gridinfo[ y + ny*(x*nz + z) ].mu[is]  = gridinfo[ y + ny*((nx-2)*nz + z) ].mu[is];
+    }
+    cscl[ y + ny*(x*nz + z) ] = cscl[ y + ny*((nx-2)*nz + z) ];
+  }
+    
+}
+
+__kernel void apply_BC_com_xn_periodic(__global struct fields *gridinfo, __constant struct pfmval *pfmdat, __global struct csle *cscl) {
+  
+  int x, y, z, nx, ny, nz, index;
+  int is, ip;
+  
+  y = get_global_id(0);
+  z = get_global_id(1);
+  x = get_global_id(2);
+  
+  ny = get_global_size(0);
+  nz = get_global_size(1);
+  nx = get_global_size(2);
+  
+  index = y + ny*(x*nz + z);
+  
+  if ( x == (nx-1) ) {
+    for (is = 0; is < nsol; is++) { 
+      gridinfo[ y + ny*(x*nz + z) ].com[is] = gridinfo[ y + ny*(1*nz + z) ].com[is];
+      gridinfo[ y + ny*(x*nz + z) ].mu[is]  = gridinfo[ y + ny*(1*nz + z) ].mu[is];
+    }
+    cscl[ y + ny*(x*nz + z) ] = cscl[ y + ny*(1*nz + z) ];
+  }
+    
+}
+
+__kernel void addNoise(__global struct fields *gridinfo, __constant struct pfmval *pfmdat) {
+  
+  int i;
+  int j;
+  int k;
+  int nx;
+  int ny;
+  int nz;
+  int index;
+  int is, js, ip;
+  
+  j = get_global_id(1);
+  i = get_global_id(0);
+  
+  nx = pfmdat->Nx;
+  ny = pfmdat->Ny;
+  index = (i*ny + j);
+
+  double minr = -1.0;
+  double maxr = 1.0;
+  double rt, noise;
+  
+  for ( ip = 0; ip < npha; ip++ ) { 
+
+    if ( ( gridinfo[index].phi[ip] > 0.1 ) && ( gridinfo[index].phi[ip] < 0.5 ) ) { 
+      unsigned long x = get_local_id(0);
+      unsigned long y = get_local_id(1);
+      unsigned long z = get_global_id(0);
+      unsigned long w = get_global_id(1);
+      
+      ulong t = x ^ (x << 11);
+      x = y;
+      y = z;
+      z = w;
+      w=index;
+      w = w ^ (w >> 51) ^ (t ^ (t >> 8));
+      rt = w%2222;
+      noise = minr + rt/3333 * (maxr - minr + 1);
+      
+      //gridinfo[index].phi[ip] = gridinfo[index].phi[ip] - ( pfmdat->NoiseFac * noise );
+      
+      gridinfo[index].phi[ip] = gridinfo[index].phi[ip] - ( pfmdat->NoiseFac * noise ) * gridinfo[index].phi[ip] * ( 1.0 - gridinfo[index].phi[ip] ) * ip / (npha*npha);
+      
+    }
+    
+    if (gridinfo[index].phi[ip] < 0.0) {
+      gridinfo[index].phi[ip] = 0.0;
+    }
+    if (gridinfo[index].phi[ip] > 1.0) {
+      gridinfo[index].phi[ip] = 1.0;
+    }
+
+  }
+
+}
+
+__kernel void copy_New_To_Old(__global struct fields *gridinfoO, __global struct fields *gridinfo, __constant struct pfmval *pfmdat) {
+  
+  int x, y, z;
+  int nx, ny, nz;
+  int index;
+  
+  y = get_global_id(0);
+  z = get_global_id(1);
+  x = get_global_id(2);
+  
+  ny = get_global_size(0);
+  nz = get_global_size(1);
+  nx = get_global_size(2);
+  
+  index = y + ny*(z + x*nz);
+  
+  gridinfoO[index] = gridinfo[index];
+
+}
+
+__kernel void update_temp_UC(__global struct fields *gridinfo, __global int *tstep, __constant struct pfmval *pfmdat, __constant struct pfmpar *pfmvar) {
+
     int i;
-    int j;
-    int k;
-    int nx;
-    int ny;
-    int nz;
-    
-    int index;
-    int indexa;
-    
-    int me;
-    
-    int istart;
-    int iend;
-    int totny;
-    int nxtotny;
-    int totsliceny;
-    
-    j = get_global_id(0);
-    i = get_global_id(1);
-    
-    nx = pfmdat->jNx;
-    ny = pfmdat->iNy;
-    
-    istart = 0;
-    iend = ny;
-    
-    me = pfmdat->myrank;
-    
-    index = (i*nx + j);
-    
-      if ( i == 0 ) {
-	gridNew[(i*nx + j)] = gridNew[((i+1)*nx + j)];
-      }  
-    
-      if ( i == (iend-1) ) {
-	gridNew[(i*nx + j)] = gridNew[((i-1)*nx + j)];
-      }  
-    
-    if ( j == 0 ) {
-        gridNew[(i*nx + j)] = gridNew[(i*nx + (j+1))];
-    }
-    
-    if ( j == (nx-1) ) {
-        gridNew[(i*nx + j)] = gridNew[(i*nx + (j-1))];
-    }
-    
-}
-
-__kernel void apply_BC_phi(__global struct grid *gridNew, __constant struct pfmval *pfmdat) {
-    
-    int i;
-    int j;
-    int k;
-    int nx;
-    int ny;
-    int nz;
-    
-    int index;
-    int indexa;
-    
-    int me;
-    
-    int istart;
-    int iend;
-    int totny;
-    int nxtotny;
-    int totsliceny;
-    
-    j = get_global_id(0);
-    i = get_global_id(1);
-    
-    nx = pfmdat->jNx;
-    ny = pfmdat->iNy;
-    
-    istart = 0;
-    iend = ny;
-    
-    me = pfmdat->myrank;
-    
-    index = (i*nx + j);
-    
-    if ( i == 0 ) {
-	gridNew[(i*nx + j)].phi = gridNew[((i+1)*nx + j)].phi;
-    }
-    
-    if ( i == (iend-1) ) {
-	gridNew[(i*nx + j)].phi = gridNew[((i-1)*nx + j)].phi;
-    }
-    
-    if ( j == 0 ) {
-        gridNew[(i*nx + j)].phi = gridNew[(i*nx + (j+1))].phi;
-    }
-    
-    if ( j == (nx-1) ) {
-        gridNew[(i*nx + j)].phi = gridNew[(i*nx + (j-1))].phi;
-    }
-    
-}
-
-__kernel void apply_BC_com(__global struct grid *gridNew, __constant struct pfmval *pfmdat) {
-    
-    int i;
-    int j;
-    int k;
-    int nx;
-    int ny;
-    int nz;
-    
-    int index;
-    int indexa;
-    
-    int me;
-    
-    int istart;
-    int iend;
-    int totny;
-    int nxtotny;
-    int totsliceny;
-    
-    j = get_global_id(0);
-    i = get_global_id(1);
-    
-    nx = pfmdat->jNx;
-    ny = pfmdat->iNy;
-    
-    istart = 0;
-    iend = ny;
-    
-    me = pfmdat->myrank;
-    
-    index = (i*nx + j);
-    
-      if ( i == 0 ) {
-	gridNew[(i*nx + j)].c1 = gridNew[((i+1)*nx + j)].c1;
-  gridNew[(i*nx + j)].mu[0] = gridNew[((i+1)*nx + j)].mu[0];
-      }  
-    
-      if ( i == (iend-1) ) {
-	gridNew[(i*nx + j)].c1 = gridNew[((i-1)*nx + j)].c1;
-  gridNew[(i*nx + j)].mu[0] = gridNew[((i-1)*nx + j)].mu[0];
-      }  
-    
-    if ( j == 0 ) {
-        gridNew[(i*nx + j)].c1 = gridNew[(i*nx + (j+1))].c1;
-        gridNew[(i*nx + j)].mu[0] = gridNew[(i*nx + (j+1))].mu[0];
-    }
-    
-    if ( j == (nx-1) ) {
-        gridNew[(i*nx + j)].c1 = gridNew[(i*nx + (j-1))].c1;
-        gridNew[(i*nx + j)].mu[0] = gridNew[(i*nx + (j-1))].mu[0];
-    }
-    
-}
-
-__kernel void apply_BC_it_noflux(__global struct grid *gridNew, __constant struct pfmval *pfmdat) {
-    int i, j, k;
-    int nx;
-    int ny;
-    int nz;
-    int index;
-
-    j = get_global_id(0);
-    i = get_global_id(1);
-    
-    nx = pfmdat->jNx;
-    ny = pfmdat->iNy;
-    
-    index = (i*nx + j);
-    
-    if ( i == 0 ) {
-      gridNew[(i*nx + j)] = gridNew[((i+1)*nx + j)];
-    }
-    
-}
-
-__kernel void apply_BC_ib_noflux(__global struct grid *gridNew, __constant struct pfmval *pfmdat) {
-    int i, j, k;
-    int nx;
-    int ny;
-    int nz;
-    int index;
-    
-    j = get_global_id(0);
-    i = get_global_id(1);
-    
-    nx = pfmdat->jNx;
-    ny = pfmdat->iNy;
-    
-    index = (i*nx + j);
-    
-    if ( i == (ny-1) ) {
-      gridNew[(i*nx + j)] = gridNew[((i-1)*nx + j)];  
-    }
-    
-}
-
-__kernel void apply_BC_it_periodic(__global struct grid *gridNew, __constant struct pfmval *pfmdat) {
-    int i, j, k;
-    int nx;
-    int ny;
-    int nz;
-    int index;
-    
-    j = get_global_id(0);
-    i = get_global_id(1);
-    
-    nx = pfmdat->jNx;
-    ny = pfmdat->iNy;
-    
-    index = (i*nx + j);
-    
-    if ( i == 0 ) {
-      gridNew[(i*nx + j)] = gridNew[((ny-2)*nx + j)];
-    }
-    
-}
-
-__kernel void apply_BC_ib_periodic(__global struct grid *gridNew, __constant struct pfmval *pfmdat) {
-    int i, j, k;
-    int nx;
-    int ny;
-    int nz;
-    int index;
-    
-    j = get_global_id(0);
-    i = get_global_id(1);
-    
-    nx = pfmdat->jNx;
-    ny = pfmdat->iNy;
-    
-    index = (i*nx + j);
-    
-    if ( i == (ny-1) ) {
-      gridNew[(i*nx + j)] = gridNew[((1)*nx + j)];  
-    }
-    
-}
-
-__kernel void apply_BC_jl_noflux(__global struct grid *gridNew, __constant struct pfmval *pfmdat) {
-    int i, j, k;
-    int nx;
-    int ny;
-    int nz;
-    int index;
-    
-    j = get_global_id(0);
-    i = get_global_id(1);
-    
-    nx = pfmdat->jNx;
-    ny = pfmdat->iNy;
-    
-    index = (i*nx + j);
-    
-    if ( j == 0 ) {
-        gridNew[(i*nx + j)] = gridNew[(i*nx + (j+1))];
-    }
-    
-}
-
-__kernel void apply_BC_jr_noflux(__global struct grid *gridNew, __constant struct pfmval *pfmdat) {
-    int i, j, k;
-    int nx;
-    int ny;
-    int nz;
-    int index;
-    
-    j = get_global_id(0);
-    i = get_global_id(1);
-    
-    nx = pfmdat->jNx;
-    ny = pfmdat->iNy;
-    
-    index = (i*nx + j);
-    
-    if ( j == (nx-1) ) {
-        gridNew[(i*nx + j)] = gridNew[(i*nx + (j-1))];
-    }
-    
-}
-
-__kernel void apply_BC_jl_periodic(__global struct grid *gridNew, __constant struct pfmval *pfmdat) {
-    int i, j, k;
-    int nx;
-    int ny;
-    int nz;
-    int index;
-    
-    j = get_global_id(0);
-    i = get_global_id(1);
-    
-    nx = pfmdat->jNx;
-    ny = pfmdat->iNy;
-    
-    index = (i*nx + j);
-    
-    if ( j == 0 ) {
-        gridNew[(i*nx + j)] = gridNew[(i*nx + (nx-2))];
-    }
-    
-}
-
-__kernel void apply_BC_jr_periodic(__global struct grid *gridNew, __constant struct pfmval *pfmdat) {
-    int i, j, k;
-    int nx;
-    int ny;
-    int nz;
-    int index;
-    
-    j = get_global_id(0);
-    i = get_global_id(1);
-    
-    nx = pfmdat->jNx;
-    ny = pfmdat->iNy;
-    
-    index = (i*nx + j);
-    
-    if ( j == (nx-1) ) {
-        gridNew[(i*nx + j)] = gridNew[(i*nx + (1))];
-    }
-    
-}
-
-__kernel void apply_BC_phi_it_noflux(__global struct grid *gridNew, __constant struct pfmval *pfmdat) {
-    int i, j, k;
-    int nx;
-    int ny;
-    int nz;
-    int index;
-    
-    j = get_global_id(0);
-    i = get_global_id(1);
-    
-    nx = pfmdat->jNx;
-    ny = pfmdat->iNy;
-    
-    index = (i*nx + j);
-    
-    if ( i == 0 ) {
-	gridNew[(i*nx + j)].phi = gridNew[((i+1)*nx + j)].phi;
-    }
-    
-}
-
-__kernel void apply_BC_phi_ib_noflux(__global struct grid *gridNew, __constant struct pfmval *pfmdat) {
-    int i, j, k;
-    int nx;
-    int ny;
-    int nz;
-    int index;
-    
-    j = get_global_id(0);
-    i = get_global_id(1);
-    
-    nx = pfmdat->jNx;
-    ny = pfmdat->iNy;
-    
-    index = (i*nx + j);
-    
-    if ( i == (ny-1) ) {
-	gridNew[(i*nx + j)].phi = gridNew[((i-1)*nx + j)].phi;
-    }
-    
-}
-
-__kernel void apply_BC_phi_it_periodic(__global struct grid *gridNew, __constant struct pfmval *pfmdat) {
-    int i, j, k;
-    int nx;
-    int ny;
-    int nz;
-    int index;
-    
-    j = get_global_id(0);
-    i = get_global_id(1);
-    
-    nx = pfmdat->jNx;
-    ny = pfmdat->iNy;
-    
-    index = (i*nx + j);
-    
-    if ( i == 0 ) {
-	gridNew[(i*nx + j)].phi = gridNew[((ny-2)*nx + j)].phi;
-    }
-    
-}
-
-__kernel void apply_BC_phi_ib_periodic(__global struct grid *gridNew, __constant struct pfmval *pfmdat) {
-    int i, j, k;
-    int nx;
-    int ny;
-    int nz;
-    int index;
-    
-    j = get_global_id(0);
-    i = get_global_id(1);
-    
-    nx = pfmdat->jNx;
-    ny = pfmdat->iNy;
-    
-    index = (i*nx + j);
-    
-    if ( i == (ny-1) ) {
-	gridNew[(i*nx + j)].phi = gridNew[((1)*nx + j)].phi;
-    }
-    
-}
-
-__kernel void apply_BC_phi_jl_noflux(__global struct grid *gridNew, __constant struct pfmval *pfmdat) {
-    int i, j, k;
-    int nx;
-    int ny;
-    int nz;
-    int index;
-    
-    j = get_global_id(0);
-    i = get_global_id(1);
-    
-    nx = pfmdat->jNx;
-    ny = pfmdat->iNy;
-    
-    index = (i*nx + j);
-    
-    if ( j == 0 ) {
-        gridNew[(i*nx + j)].phi = gridNew[(i*nx + (j+1))].phi;
-    }
-    
-}
-
-__kernel void apply_BC_phi_jr_noflux(__global struct grid *gridNew, __constant struct pfmval *pfmdat) {
-    int i, j, k;
-    int nx;
-    int ny;
-    int nz;
-    int index;
-    
-    j = get_global_id(0);
-    i = get_global_id(1);
-    
-    nx = pfmdat->jNx;
-    ny = pfmdat->iNy;
-    
-    index = (i*nx + j);
-    
-    if ( j == (nx-1) ) {
-        gridNew[(i*nx + j)].phi = gridNew[(i*nx + (j-1))].phi;
-    }
-    
-}
-
-__kernel void apply_BC_phi_jl_periodic(__global struct grid *gridNew, __constant struct pfmval *pfmdat) {
-    int i, j, k;
-    int nx;
-    int ny;
-    int nz;
-    int index;
-    
-    j = get_global_id(0);
-    i = get_global_id(1);
-    
-    nx = pfmdat->jNx;
-    ny = pfmdat->iNy;
-    
-    index = (i*nx + j);
-    
-    if ( j == 0 ) {
-        gridNew[(i*nx + j)].phi = gridNew[(i*nx + (nx-2))].phi;
-    }
-    
-}
-
-__kernel void apply_BC_phi_jr_periodic(__global struct grid *gridNew, __constant struct pfmval *pfmdat) {
-    int i, j, k;
-    int nx;
-    int ny;
-    int nz;
-    int index;
-    
-    j = get_global_id(0);
-    i = get_global_id(1);
-    
-    nx = pfmdat->jNx;
-    ny = pfmdat->iNy;
-    
-    index = (i*nx + j);
-    
-    if ( j == (nx-1) ) {
-        gridNew[(i*nx + j)].phi = gridNew[(i*nx + (1))].phi;
-    }
-    
-}
-
-__kernel void apply_BC_com_it_noflux(__global struct grid *gridNew, __constant struct pfmval *pfmdat) {
-    int i, j, k;
-    int nx;
-    int ny;
-    int nz;
-    int index;
-    
-    j = get_global_id(0);
-    i = get_global_id(1);
-    
-    nx = pfmdat->jNx;
-    ny = pfmdat->iNy;
-    
-    index = (i*nx + j);
-    
-    if ( i == 0 ) {
-      gridNew[(i*nx + j)].c1 = gridNew[((i+1)*nx + j)].c1;
-      gridNew[(i*nx + j)].mu[0] = gridNew[((i+1)*nx + j)].mu[0];
-    }
-    
-}
-
-__kernel void apply_BC_com_ib_noflux(__global struct grid *gridNew, __constant struct pfmval *pfmdat) {
-    int i, j, k;
-    int nx;
-    int ny;
-    int nz;
-    int index;
-    
-    j = get_global_id(0);
-    i = get_global_id(1);
-    
-    nx = pfmdat->jNx;
-    ny = pfmdat->iNy;
-    
-    index = (i*nx + j);
-    
-    if ( i == (ny-1) ) {
-      gridNew[(i*nx + j)].c1 = gridNew[((i-1)*nx + j)].c1;
-      gridNew[(i*nx + j)].mu[0] = gridNew[((i-1)*nx + j)].mu[0];
-    }
-    
-}
-
-__kernel void apply_BC_com_it_periodic(__global struct grid *gridNew, __constant struct pfmval *pfmdat) {
-    int i, j, k;
-    int nx;
-    int ny;
-    int nz;
-    int index;
-    
-    j = get_global_id(0);
-    i = get_global_id(1);
-    
-    nx = pfmdat->jNx;
-    ny = pfmdat->iNy;
-    
-    index = (i*nx + j);
-    
-    if ( i == 0 ) {
-      gridNew[(i*nx + j)].c1 = gridNew[((ny-2)*nx + j)].c1;
-      gridNew[(i*nx + j)].mu[0] = gridNew[((ny-2)*nx + j)].mu[0];
-    }
-    
-}
-
-__kernel void apply_BC_com_ib_periodic(__global struct grid *gridNew, __constant struct pfmval *pfmdat) {
-    int i, j, k;
-    int nx;
-    int ny;
-    int nz;
-    int index;
-    
-    j = get_global_id(0);
-    i = get_global_id(1);
-    
-    nx = pfmdat->jNx;
-    ny = pfmdat->iNy;
-    
-    index = (i*nx + j);
-    
-    if ( i == (ny-1) ) {
-      gridNew[(i*nx + j)].c1 = gridNew[((1)*nx + j)].c1;
-      gridNew[(i*nx + j)].mu[0] = gridNew[((1)*nx + j)].mu[0];
-    }
-    
-}
-
-__kernel void apply_BC_com_jl_noflux(__global struct grid *gridNew, __constant struct pfmval *pfmdat) {
-    int i, j, k;
-    int nx;
-    int ny;
-    int nz;
-    int index;
-    
-    j = get_global_id(0);
-    i = get_global_id(1);
-    
-    nx = pfmdat->jNx;
-    ny = pfmdat->iNy;
-    
-    index = (i*nx + j);
-    
-    if ( j == 0 ) {
-        gridNew[(i*nx + j)].c1 = gridNew[(i*nx + (j+1))].c1;
-        gridNew[(i*nx + j)].mu[0] = gridNew[(i*nx + (j+1))].mu[0];
-    }
-    
-}
-
-__kernel void apply_BC_com_jr_noflux(__global struct grid *gridNew, __constant struct pfmval *pfmdat) {
-    int i, j, k;
-    int nx;
-    int ny;
-    int nz;
-    int index;
-    
-    j = get_global_id(0);
-    i = get_global_id(1);
-    
-    nx = pfmdat->jNx;
-    ny = pfmdat->iNy;
-    
-    index = (i*nx + j);
-    
-    if ( j == (nx-1) ) {
-        gridNew[(i*nx + j)].c1 = gridNew[(i*nx + (j-1))].c1;
-        gridNew[(i*nx + j)].mu[0] = gridNew[(i*nx + (j-1))].mu[0];
-    }
-    
-}
-
-__kernel void apply_BC_com_jl_periodic(__global struct grid *gridNew, __constant struct pfmval *pfmdat) {
-    int i, j, k;
-    int nx;
-    int ny;
-    int nz;
-    int index;
-    
-    j = get_global_id(0);
-    i = get_global_id(1);
-    
-    nx = pfmdat->jNx;
-    ny = pfmdat->iNy;
-    
-    index = (i*nx + j);
-    
-    if ( j == 0 ) {
-        gridNew[(i*nx + j)].c1 = gridNew[(i*nx + (nx-2))].c1;
-        gridNew[(i*nx + j)].mu[0] = gridNew[(i*nx + (nx-2))].mu[0];
-    }
-    
-}
-
-__kernel void apply_BC_com_jr_periodic(__global struct grid *gridNew, __constant struct pfmval *pfmdat) {
-    int i, j, k;
-    int nx;
-    int ny;
-    int nz;
-    int index;
-    
-    j = get_global_id(0);
-    i = get_global_id(1);
-    
-    nx = pfmdat->jNx;
-    ny = pfmdat->iNy;
-    
-    index = (i*nx + j);
-    
-    if ( j == (nx-1) ) {
-        gridNew[(i*nx + j)].c1 = gridNew[(i*nx + (1))].c1;
-        gridNew[(i*nx + j)].mu[0] = gridNew[(i*nx + (1))].mu[0];
-    }
-    
-}
-
-__kernel void addNoise(__global struct grid *gridNew, __constant struct pfmval *pfmdat) {
-
-    int i;
-    int j;
-    int k;
-    int nx;
-    int ny;
-    int nz;
-    int index;
-
-    j = get_global_id(0);
-    i = get_global_id(1);
-
-    nx = pfmdat->jNx;
-    ny = pfmdat->iNy;
-
-    index = (i*nx + j);
-
-    double minr = -1.0;
-    double maxr = 1.0;
-    double rt, noise;
-
-    if ( (gridNew[index].phi > 0.1) && (gridNew[index].phi < 0.5) ) {
-
-        unsigned long x = get_local_id(0);
-        unsigned long y = get_local_id(1);
-        unsigned long z = get_global_id(0);
-        unsigned long w = get_global_id(1);
-
-        ulong t = x ^ (x << 11);
-        x = y; 
-        y = z; 
-        z = w;
-        w=index;
-        w = w ^ (w >> 51) ^ (t ^ (t >> 8));
-        rt = w%2222;
-        noise = minr + rt/3333 * (maxr - minr + 1);
-
-        gridNew[index].phi = gridNew[index].phi - ( pfmdat->NoiseFac * noise );
-
-    }
-
-    if (gridNew[index].phi < 0.0) {
-        gridNew[index].phi = 0.0;
-    }
-    if (gridNew[index].phi > 1.0) {
-        gridNew[index].phi = 1.0;
-    }
-
-}
-
-__kernel void copy_New_To_Old(__global struct grid *gridOld, __global struct grid *gridNew, __constant struct pfmval *pfmdat) {
-
-    int i;
-    int j;
-    int k;
-    int nx;
-    int ny;
-    int nz;
-    int index;
-
-    j = get_global_id(0);
-    i = get_global_id(1);
-
-    nx = pfmdat->jNx;
-    ny = pfmdat->iNy;
-
-    index = (i*nx + j);
-
-    gridOld[index] = gridNew[index];
-
-}
-
-__kernel void update_temp_UC(__global double *temp, __global int *tstep, __constant struct pfmval *pfmdat, __constant struct pfmpar *pfmvar) {
-
-    int i;
-    int j;
-    int k;
-    int nx;
-    int ny;
-    int nz;
-    int index;
-
-    j = get_global_id(0);
-    i = get_global_id(1);
-
-    nx = pfmdat->jNx;
-    ny = pfmdat->iNy;
-
-    temp[j] = pfmdat->T0;
     
 
 }
 
-__kernel void update_temp_DS(__global double *temp, __global int *tstep, __constant struct pfmval *pfmdat, __constant struct pfmpar *pfmvar) {
+__kernel void update_temp_DS(__global struct fields *gridinfo, __global int *tstep, __constant struct pfmval *pfmdat, __constant struct pfmpar *pfmvar) {
 
-    int i;
-    int j;
-    int k;
-    int nx;
-    int ny;
-    int nz;
-    int index;
-    int i0;
-    int j0;
+  int x, y, z, nx, ny, nz, index;
+  int is, ip, x0;
 
-    j = get_global_id(0);
-    i = get_global_id(1);
+  y = get_global_id(0);
+  z = get_global_id(1);
+  x = get_global_id(2);
 
-    nx = pfmdat->jNx;
-    ny = pfmdat->iNy;
+  ny = get_global_size(0);
+  nz = get_global_size(1);
+  nx = get_global_size(2);
 
-    //i0 = i + (pfmdat->myrank*(ny-2))-1; 
-    //temp[i] = pfmdat->Toffset + pfmdat->TG*((i0-pfmdat->PosOffset)*pfmvar->dx - pfmdat->Vp*tstep[0]*pfmvar->dt);
+  index =  (y  ) + ny*( (x  )*nz + (z  ) );
 
-    //i0 = i + (pfmdat->myrank*(ny-2));
-    //temp[i] = pfmdat->Toffset + pfmdat->TGRADIENT*((i0-pfmdat->TPosOffset+pfmdat->shift_OFFSET)*pfmvar->deltax-(pfmdat->velocity*tstep[0]*pfmvar->deltat));
+    x0 = x + (pfmdat->myrank*(nx-2));
+    gridinfo[index].temperature = pfmdat->Toffset + pfmdat->TGRADIENT*((x0-pfmdat->TPosOffset+pfmdat->shift_OFFSET)*pfmvar->deltax-(pfmdat->velocity*tstep[0]*pfmvar->deltat));
 
-    j0 = j + (pfmdat->myrank*(nx-2));
-    temp[j] = pfmdat->Toffset + pfmdat->TGRADIENT*((j0-pfmdat->TPosOffset+pfmdat->shift_OFFSET)*pfmvar->deltax-(pfmdat->velocity*tstep[0]*pfmvar->deltat));
+
 
 }
   
   
-__kernel void update_temp_CR(__global double *temp, __global int *tstep, __constant struct pfmval *pfmdat, __constant struct pfmpar *pfmvar) { 
+__kernel void update_temp_CR(__global struct fields *gridinfo, __global int *tstep, __constant struct pfmval *pfmdat, __constant struct pfmpar *pfmvar) {
     
     int i;
-    int j;
-    int k;
-    int nx;
-    int ny;
-    int nz;
-    int index;
-
-    j = get_global_id(0);
-    i = get_global_id(1);
-
-    nx = pfmdat->jNx;
-    ny = pfmdat->iNy;
-
-    //	temp[i] = pfmdat->Tempstart - pfmdat->CR*tstep[0]*pfmvar->dt;
 
 }
   
-__kernel void apply_BC_temp_it_noflux(__global double *temp, __constant struct pfmval *pfmdat) {
+__kernel void apply_BC_temp_it_noflux(__global struct fields *gridinfo, __constant struct pfmval *pfmdat) {
 
-    int i;
-    int j;
-    int k;
-    int nx;
-    int ny;
-    int nz;
-    int index;
-    int i0;
 
-    j = get_global_id(0);
-    i = get_global_id(1);
+  int x, y, z, nx, ny, nz, index;
+  int is, ip, x0;
 
-    nx = pfmdat->jNx;
-    ny = pfmdat->iNy;
+  y = get_global_id(0);
+  z = get_global_id(1);
+  x = get_global_id(2);
 
-    if ( i == 0 ) { 
-        temp[i] = temp[i+1];
-    }
+  ny = get_global_size(0);
+  nz = get_global_size(1);
+  nx = get_global_size(2);
+
+  index =  (y  ) + ny*( (x  )*nz + (z  ) );
+
+  if (x==0) {
+    gridinfo[index].temperature = gridinfo[(y  ) + ny*( (x+1  )*nz + (z  ) )].temperature;
+  }
 
 }
   
-__kernel void apply_BC_temp_ib_noflux(__global double *temp, __constant struct pfmval *pfmdat) {
+__kernel void apply_BC_temp_ib_noflux(__global struct fields *gridinfo, __constant struct pfmval *pfmdat) {
 
-    int i;
-    int j;
-    int k;
-    int nx;
-    int ny;
-    int nz;
-    int index;
-    int i0;
+  int x, y, z, nx, ny, nz, index;
+  int is, ip, x0;
 
-    j = get_global_id(0);
-    i = get_global_id(1);
+  y = get_global_id(0);
+  z = get_global_id(1);
+  x = get_global_id(2);
 
-    nx = pfmdat->jNx;
-    ny = pfmdat->iNy;
+  ny = get_global_size(0);
+  nz = get_global_size(1);
+  nx = get_global_size(2);
 
-    if ( i == ny-1 ) { 
-        temp[i] = temp[i-1];
-    }
+  index =  (y  ) + ny*( (x  )*nz + (z  ) );
+
+  if (x==nx-1) {
+    gridinfo[index].temperature = gridinfo[(y  ) + ny*( (x-1  )*nz + (z  ) )].temperature;
+  }
+
+}
+
+
+__kernel void apply_BC_ela_y0_noflux(__global struct iter_variables *it_gridinfoO, __constant struct pfmval *pfmdat, __global struct csle *cscl) {
+
+  int x, y, z, nx, ny, nz, index;
+  int is, ip;
+
+  y = get_global_id(0);
+  z = get_global_id(1);
+  x = get_global_id(2);
+
+  ny = get_global_size(0);
+  nz = get_global_size(1);
+  nx = get_global_size(2);
+
+  index =  (y  ) + ny*( (x  )*nz + (z  ) );
+
+  if ( y == 0 ) {
+    it_gridinfoO[ (y  ) + ny*( (x  )*nz + (z  ) ) ] = it_gridinfoO[ (3  ) + ny*( (x  )*nz + (z  ) ) ];
+  }
+
+  if ( y == 1 ) {
+    it_gridinfoO[ (y  ) + ny*( (x  )*nz + (z  ) ) ] = it_gridinfoO[ (2  ) + ny*( (x  )*nz + (z  ) ) ];
+  }
+
+}
+
+__kernel void apply_BC_ela_yn_noflux(__global struct iter_variables *it_gridinfoO, __constant struct pfmval *pfmdat, __global struct csle *cscl) {
+
+  int x, y, z, nx, ny, nz, index;
+  int is, ip;
+
+  y = get_global_id(0);
+  z = get_global_id(1);
+  x = get_global_id(2);
+
+  ny = get_global_size(0);
+  nz = get_global_size(1);
+  nx = get_global_size(2);
+
+  index =  (y  ) + ny*( (x  )*nz + (z  ) );
+
+  if ( y == (ny-1) ) {
+    it_gridinfoO[ (y  ) + ny*( (x  )*nz + (z  ) ) ] = it_gridinfoO[ (ny-4  ) + ny*( (x  )*nz + (z  ) ) ];
+  }
+
+  if ( y == (ny-2) ) {
+    it_gridinfoO[ (y  ) + ny*( (x  )*nz + (z  ) ) ] = it_gridinfoO[ (ny-3  ) + ny*( (x  )*nz + (z  ) ) ];
+  }
+
+}
+
+__kernel void apply_BC_ela_y0_periodic(__global struct iter_variables *it_gridinfoO, __constant struct pfmval *pfmdat, __global struct csle *cscl) {
+
+  int x, y, z, nx, ny, nz, index;
+  int is, ip;
+
+  y = get_global_id(0);
+  z = get_global_id(1);
+  x = get_global_id(2);
+
+  ny = get_global_size(0);
+  nz = get_global_size(1);
+  nx = get_global_size(2);
+
+  index =  (y  ) + ny*( (x  )*nz + (z  ) );
+
+  if ( y == 0 ) {
+    it_gridinfoO[ (y  ) + ny*( (x  )*nz + (z  ) ) ] = it_gridinfoO[ (ny-4  ) + ny*( (x  )*nz + (z  ) ) ];
+  }
+
+  if ( y == 1 ) {
+    it_gridinfoO[ (y  ) + ny*( (x  )*nz + (z  ) ) ] = it_gridinfoO[ (ny-3  ) + ny*( (x  )*nz + (z  ) ) ];
+  }
+
+}
+
+__kernel void apply_BC_ela_yn_periodic(__global struct iter_variables *it_gridinfoO, __constant struct pfmval *pfmdat, __global struct csle *cscl) {
+
+  int x, y, z, nx, ny, nz, index;
+  int is, ip;
+
+  y = get_global_id(0);
+  z = get_global_id(1);
+  x = get_global_id(2);
+
+  ny = get_global_size(0);
+  nz = get_global_size(1);
+  nx = get_global_size(2);
+
+  index =  (y  ) + ny*( (x  )*nz + (z  ) );
+
+  if ( y == (ny-1) ) {
+    it_gridinfoO[ (y  ) + ny*( (x  )*nz + (z  ) ) ] = it_gridinfoO[ (3  ) + ny*( (x  )*nz + (z  ) ) ];
+  }
+
+  if ( y == (ny-2) ) {
+    it_gridinfoO[ (y  ) + ny*( (x  )*nz + (z  ) ) ] = it_gridinfoO[ (2  ) + ny*( (x  )*nz + (z  ) ) ];
+  }
+
+}
+
+__kernel void apply_BC_ela_z0_noflux(__global struct iter_variables *it_gridinfoO, __constant struct pfmval *pfmdat, __global struct csle *cscl) {
+
+  int x, y, z, nx, ny, nz, index;
+  int is, ip;
+
+  y = get_global_id(0);
+  z = get_global_id(1);
+  x = get_global_id(2);
+
+  ny = get_global_size(0);
+  nz = get_global_size(1);
+  nx = get_global_size(2);
+
+  index = y + ny*(x*nz + z);
+
+  if (pfmdat->DIMENSION == 3) {
+  if ( z == 0 ) {
+    it_gridinfoO[ (y  ) + ny*( (x  )*nz + (z  ) ) ] = it_gridinfoO[ (y  ) + ny*( (x  )*nz + (3  ) ) ];
+  }
+
+  if ( z == 1 ) {
+    it_gridinfoO[ (y  ) + ny*( (x  )*nz + (z  ) ) ] = it_gridinfoO[ (y  ) + ny*( (x  )*nz + (2  ) ) ];
+  }
+  }
+  else if (pfmdat->DIMENSION == 2) {
+  if ( z == 0 ) {
+    it_gridinfoO[ (y  ) + ny*( (x  )*nz + (z  ) ) ] = it_gridinfoO[ (y  ) + ny*( (x  )*nz + (1  ) ) ];
+  }
+
+  }
+
+
+}
+
+__kernel void apply_BC_ela_zn_noflux(__global struct iter_variables *it_gridinfoO, __constant struct pfmval *pfmdat, __global struct csle *cscl) {
+
+  int x, y, z, nx, ny, nz, index;
+  int is, ip;
+
+  y = get_global_id(0);
+  z = get_global_id(1);
+  x = get_global_id(2);
+
+  ny = get_global_size(0);
+  nz = get_global_size(1);
+  nx = get_global_size(2);
+
+  index = y + ny*(x*nz + z);
+
+  if (pfmdat->DIMENSION == 3) {
+  if ( z == (nz-1) ) {
+    it_gridinfoO[ (y  ) + ny*( (x  )*nz + (z  ) ) ] = it_gridinfoO[ (y  ) + ny*( (x  )*nz + (nz-4  ) ) ];
+  }
+
+  if ( z == (nz-2) ) {
+    it_gridinfoO[ (y  ) + ny*( (x  )*nz + (z  ) ) ] = it_gridinfoO[ (y  ) + ny*( (x  )*nz + (nz-3  ) ) ];
+  }
+  }
+  else if (pfmdat->DIMENSION == 2) {
+  if ( z == (nz-1) ) {
+    it_gridinfoO[ (y  ) + ny*( (x  )*nz + (z  ) ) ] = it_gridinfoO[ (y  ) + ny*( (x  )*nz + (nz-2  ) ) ];
+  }
+
+  }
+
+}
+
+__kernel void apply_BC_ela_z0_periodic(__global struct iter_variables *it_gridinfoO, __constant struct pfmval *pfmdat, __global struct csle *cscl) {
+
+  int x, y, z, nx, ny, nz, index;
+  int is, ip;
+
+  y = get_global_id(0);
+  z = get_global_id(1);
+  x = get_global_id(2);
+
+  ny = get_global_size(0);
+  nz = get_global_size(1);
+  nx = get_global_size(2);
+
+  index = y + ny*(x*nz + z);
+
+  if (pfmdat->DIMENSION == 3) {
+  if ( z == 0 ) {
+    it_gridinfoO[ (y  ) + ny*( (x  )*nz + (z  ) ) ] = it_gridinfoO[ (y  ) + ny*( (x  )*nz + (nz-4  ) ) ];
+  }
+
+  if ( z == 1 ) {
+    it_gridinfoO[ (y  ) + ny*( (x  )*nz + (z  ) ) ] = it_gridinfoO[ (y  ) + ny*( (x  )*nz + (nz-3  ) ) ];
+  }
+  }
+  else if (pfmdat->DIMENSION == 2) {
+  if ( z == 0 ) {
+    it_gridinfoO[ (y  ) + ny*( (x  )*nz + (z  ) ) ] = it_gridinfoO[ (y  ) + ny*( (x  )*nz + (nz-2  ) ) ];
+  }
+
+  }
+
+}
+
+__kernel void apply_BC_ela_zn_periodic(__global struct iter_variables *it_gridinfoO, __constant struct pfmval *pfmdat, __global struct csle *cscl) {
+
+  int x, y, z, nx, ny, nz, index;
+  int is, ip;
+
+  y = get_global_id(0);
+  z = get_global_id(1);
+  x = get_global_id(2);
+
+  ny = get_global_size(0);
+  nz = get_global_size(1);
+  nx = get_global_size(2);
+
+  index = y + ny*(x*nz + z);
+
+  if (pfmdat->DIMENSION == 3) {
+  if ( z == (nz-1) ) {
+    it_gridinfoO[ (y  ) + ny*( (x  )*nz + (z  ) ) ] = it_gridinfoO[ (y  ) + ny*( (x  )*nz + (3  ) ) ];
+  }
+
+  if ( z == (nz-2) ) {
+    it_gridinfoO[ (y  ) + ny*( (x  )*nz + (z  ) ) ] = it_gridinfoO[ (y  ) + ny*( (x  )*nz + (2  ) ) ];
+  }
+  }
+  else if (pfmdat->DIMENSION == 2) {
+  if ( z == (nz-1) ) {
+    it_gridinfoO[ (y  ) + ny*( (x  )*nz + (z  ) ) ] = it_gridinfoO[ (y  ) + ny*( (x  )*nz + (1  ) ) ];
+  }
+
+  }
+
+}
+
+__kernel void apply_BC_ela_x0_noflux(__global struct iter_variables *it_gridinfoO, __constant struct pfmval *pfmdat, __global struct csle *cscl) {
+
+  int x, y, z, nx, ny, nz, index;
+  int is, ip;
+
+  y = get_global_id(0);
+  z = get_global_id(1);
+  x = get_global_id(2);
+
+  ny = get_global_size(0);
+  nz = get_global_size(1);
+  nx = get_global_size(2);
+
+  index =  (y  ) + ny*( (x  )*nz + (z  ) );
+
+  if ( x == 0 ) {
+    it_gridinfoO[ (y  ) + ny*( (x  )*nz + (z  ) ) ] = it_gridinfoO[ (y  ) + ny*( (3  )*nz + (z  ) ) ];
+  }
+
+  if ( x == 1 ) {
+    it_gridinfoO[ (y  ) + ny*( (x  )*nz + (z  ) ) ] = it_gridinfoO[ (y  ) + ny*( (2  )*nz + (z  ) ) ];
+  }
+
+}
+
+__kernel void apply_BC_ela_xn_noflux(__global struct iter_variables *it_gridinfoO, __constant struct pfmval *pfmdat, __global struct csle *cscl) {
+
+  int x, y, z, nx, ny, nz, index;
+  int is, ip;
+
+  y = get_global_id(0);
+  z = get_global_id(1);
+  x = get_global_id(2);
+
+  ny = get_global_size(0);
+  nz = get_global_size(1);
+  nx = get_global_size(2);
+
+  index =  (y  ) + ny*( (x  )*nz + (z  ) );
+
+  if ( x == (nx-1) ) {
+    it_gridinfoO[ (y  ) + ny*( (x  )*nz + (z  ) ) ] = it_gridinfoO[ (nx  ) + ny*( (nx-4  )*nz + (z  ) ) ];
+  }
+
+  if ( x == (nx-2) ) {
+    it_gridinfoO[ (y  ) + ny*( (x  )*nz + (z  ) ) ] = it_gridinfoO[ (nx  ) + ny*( (nx-3  )*nz + (z  ) ) ];
+  }
+
+}
+
+__kernel void apply_BC_ela_x0_periodic(__global struct iter_variables *it_gridinfoO, __constant struct pfmval *pfmdat, __global struct csle *cscl) {
+
+  int x, y, z, nx, ny, nz, index;
+  int is, ip;
+
+  y = get_global_id(0);
+  z = get_global_id(1);
+  x = get_global_id(2);
+
+  ny = get_global_size(0);
+  nz = get_global_size(1);
+  nx = get_global_size(2);
+
+  index =  (y  ) + ny*( (x  )*nz + (z  ) );
+
+  if ( x == 0 ) {
+    it_gridinfoO[ (y  ) + ny*( (x  )*nz + (z  ) ) ] = it_gridinfoO[ (y  ) + ny*( (nx-4  )*nz + (z  ) ) ];
+  }
+
+  if ( x == 1 ) {
+    it_gridinfoO[ (y  ) + ny*( (x  )*nz + (z  ) ) ] = it_gridinfoO[ (y  ) + ny*( (nx-3  )*nz + (z  ) ) ];
+  }
+
+}
+
+__kernel void apply_BC_ela_xn_periodic(__global struct iter_variables *it_gridinfoO, __constant struct pfmval *pfmdat, __global struct csle *cscl) {
+
+  int x, y, z, nx, ny, nz, index;
+  int is, ip;
+
+  y = get_global_id(0);
+  z = get_global_id(1);
+  x = get_global_id(2);
+
+  ny = get_global_size(0);
+  nz = get_global_size(1);
+  nx = get_global_size(2);
+
+  index =  (y  ) + ny*( (x  )*nz + (z  ) );
+
+  if ( x == (nx-1) ) {
+    it_gridinfoO[ (y  ) + ny*( (x  )*nz + (z  ) ) ] = it_gridinfoO[ (nx  ) + ny*( (3  )*nz + (z  ) ) ];
+  }
+
+  if ( x == (nx-2) ) {
+    it_gridinfoO[ (y  ) + ny*( (x  )*nz + (z  ) ) ] = it_gridinfoO[ (nx  ) + ny*( (2  )*nz + (z  ) ) ];
+  }
 
 }

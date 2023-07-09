@@ -2,17 +2,7 @@ void free_variables(){
 
   ret = clFlush(cmdQ);
   ret = clFinish(cmdQ);
-  ret = clReleaseKernel(kernel1);
-  ret = clReleaseKernel(kernel2);
-  ret = clReleaseKernel(kernel3);
-  ret = clReleaseKernel(kernel4);
-  for ( i = 0; i < 9; i++ ) {
-    ret = clReleaseKernel(kernel5[i]);
-    ret = clReleaseKernel(kernel6[i]);
-    ret = clReleaseKernel(kernel7[i]);
-  }
-  ret = clReleaseKernel(kernel8);
-  ret = clReleaseKernel(kernel9);
+  ret = clReleaseKernel(ker_copy_New_To_Old);
   for ( i = 0; i < 3; i++ ) {
     ret = clReleaseKernel(kernel10[i]);
   }
@@ -21,8 +11,10 @@ void free_variables(){
   }
   ret = clReleaseKernel(kernel12);
   ret = clReleaseProgram(program);    
-  ret = clReleaseMemObject(d_gridOld);
-  ret = clReleaseMemObject(d_gridNew);
+  //ret = clReleaseMemObject(d_gridOld);
+  //ret = clReleaseMemObject(d_gridNew);
+  ret = clReleaseMemObject(d_gridinfomN);
+  ret = clReleaseMemObject(d_gridinfomO);
   ret = clReleaseMemObject(d_cscl);
   ret = clReleaseMemObject(d_pfmdat);
   ret = clReleaseMemObject(d_pfmvar);
@@ -33,8 +25,8 @@ void free_variables(){
 
   free(source_str); 
 
-  free(gridOld);
-  free(gridNew);
+  //free(gridOld);
+  //free(gridNew);
   free(cscl);
   free(temp);
   free(tstep);

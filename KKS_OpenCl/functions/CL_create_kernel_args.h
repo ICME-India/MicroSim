@@ -1,204 +1,225 @@
 void CL_create_kernel_args() {
+
+  printf("In CL_create_kernel_args\n");
+
+  ker_SolverStress_iterative = clCreateKernel(program, "SolverStress_iterative", &ret);
+  if (ret!=CL_SUCCESS) {
+    printf("ker_SolverStress_iterative error %d in rank = %d \n", ret, rank);
+    exit(1);
+  }
+
+  ker_SolverStress_iterative_2D = clCreateKernel(program, "SolverStress_iterative_2D", &ret);
+  if (ret!=CL_SUCCESS) {
+    printf("ker_SolverStress_iterative_2D error %d in rank = %d \n", ret, rank);
+    exit(1);
+  }
   
-//   kernel1 = clCreateKernel(program, "SolverCsClEq", &ret);
-//   if (ret!=CL_SUCCESS) {
-//     printf("kernel1 SolverCsClEq error %d in rank = %d \n", ret, rank);
-//     exit(1);
-//   }
-  kernel1_2 = clCreateKernel(program, "SolverCsClEq_2", &ret);
+  ker_SolverCsClEq_F2 = clCreateKernel(program, "SolverCsClEq_F2", &ret);
   if (ret!=CL_SUCCESS) {
-    printf("kernel1_2 SolverCsClEq_2 error %d in rank = %d \n", ret, rank);
+    printf("ker_SolverCsClEq_F2 error %d in rank = %d \n", ret, rank);
     exit(1);
   }
-  kernel1_3 = clCreateKernel(program, "SolverCsClEq_3", &ret);
+
+  ker_SolverCsClEq_F3 = clCreateKernel(program, "SolverCsClEq_F3", &ret);
   if (ret!=CL_SUCCESS) {
-    printf("kernel1_3 SolverCsClEq_3 error %d in rank = %d \n", ret, rank);
+    printf("ker_SolverCsClEq_F3 error %d in rank = %d \n", ret, rank);
     exit(1);
   }
-  kernel1_4 = clCreateKernel(program, "SolverCsClEq_4", &ret);
+
+  ker_SolverCsClEq_F4 = clCreateKernel(program, "SolverCsClEq_F4", &ret);
   if (ret!=CL_SUCCESS) {
-    printf("kernel1_4 SolverCsClEq_4 error %d in rank = %d \n", ret, rank);
+    printf("ker_SolverCsClEq_F4 error %d in rank = %d \n", ret, rank);
     exit(1);
   }
-//   kernel2a = clCreateKernel(program, "SolverPhiIso", &ret);
-//   if (ret!=CL_SUCCESS) {
-//     printf("kernel2a SolverPhiIso error %d\n", ret);
-//   }
-  kernel2a_2 = clCreateKernel(program, "SolverPhiIso_2", &ret);
+
+  ker_SolverPhi_F2_smooth = clCreateKernel(program, "SolverPhi_F2_smooth", &ret);
   if (ret!=CL_SUCCESS) {
-    printf("kernel2a_2 SolverPhiIso_2 error %d\n", ret);
+    printf("ker_SolverPhi_F2_smooth error %d\n", ret);
   }
-  kernel2a_3 = clCreateKernel(program, "SolverPhiIso_3", &ret);
+
+  ker_SolverPhi_F3_smooth = clCreateKernel(program, "SolverPhi_F3_smooth", &ret);
   if (ret!=CL_SUCCESS) {
-    printf("kernel2a_3 SolverPhiIso_3 error %d\n", ret);
+    printf("ker_SolverPhi_F3_smooth error %d\n", ret);
   }
-  kernel2a_4 = clCreateKernel(program, "SolverPhiIso_4", &ret);
+
+  ker_SolverPhi_F4_smooth = clCreateKernel(program, "SolverPhi_F4_smooth", &ret);
   if (ret!=CL_SUCCESS) {
-    printf("kernel2a_4 SolverPhiIso_4 error %d\n", ret);
+    printf("ker_SolverPhi_F4_smooth error %d\n", ret);
   }
-//   kernel2b = clCreateKernel(program, "SolverPhi", &ret);
-//   if (ret!=CL_SUCCESS) {
-//     printf("kernel2b SolverPhi error %d\n", ret);
-//   }
-  kernel2b_2 = clCreateKernel(program, "SolverPhi_2", &ret);
+  
+  ker_SolverPhi_F2 = clCreateKernel(program, "SolverPhi_F2", &ret);
   if (ret!=CL_SUCCESS) {
-    printf("kernel2b_2 SolverPhi_2 error %d\n", ret);
+    printf("ker_SolverPhi_F2 error %d\n", ret);
   }
-  kernel2b_3 = clCreateKernel(program, "SolverPhi_3", &ret);
+
+  ker_SolverPhi_F3 = clCreateKernel(program, "SolverPhi_F3", &ret);
   if (ret!=CL_SUCCESS) {
-    printf("kernel2b_3 SolverPhi_3 error %d\n", ret);
+    printf("ker_SolverPhi_F3 error %d\n", ret);
   }
-  kernel2b_4 = clCreateKernel(program, "SolverPhi_4", &ret);
+
+  ker_SolverPhi_F4 = clCreateKernel(program, "SolverPhi_F4", &ret);
   if (ret!=CL_SUCCESS) {
-    printf("kernel2b_4 SolverPhi_4 error %d\n", ret);
+    printf("ker_SolverPhi_F4 error %d\n", ret);
   }
-//   kernel3a = clCreateKernel(program, "SolverCWoatr", &ret);
-//   if (ret!=CL_SUCCESS) {
-//     printf("kernel3a SolverCWoatr error %d\n", ret);
-//   }
-  kernel3a_2 = clCreateKernel(program, "SolverCWoatr_2", &ret);
+
+  ker_SolverCatr_F2_smooth = clCreateKernel(program, "SolverCatr_F2_smooth", &ret);
   if (ret!=CL_SUCCESS) {
-    printf("kernel3a_2 SolverCWoatr_2 error %d\n", ret);
+    printf("ker_SolverCatr_F2_smooth error %d\n", ret);
   }
-  kernel3a_3 = clCreateKernel(program, "SolverCWoatr_3", &ret);
+
+  ker_SolverCatr_F3_smooth = clCreateKernel(program, "SolverCatr_F3_smooth", &ret);
   if (ret!=CL_SUCCESS) {
-    printf("kernel3a_3 SolverCWoatr_3 error %d\n", ret);
+    printf("ker_SolverCatr_F3_smooth error %d\n", ret);
   }
-  kernel3a_4 = clCreateKernel(program, "SolverCWoatr_4", &ret);
+
+  ker_SolverCatr_F4_smooth = clCreateKernel(program, "SolverCatr_F4_smooth", &ret);
   if (ret!=CL_SUCCESS) {
-    printf("kernel3a_4 SolverCWoatr_4 error %d\n", ret);
+    printf("ker_SolverCatr_F4_smooth error %d\n", ret);
   }
-//   kernel3b = clCreateKernel(program, "SolverCatr", &ret);
-//   if (ret!=CL_SUCCESS) {
-//     printf("kernel3b SolverCatr error %d\n", ret);
-//   }
-  kernel3b_2 = clCreateKernel(program, "SolverCatr_2", &ret);
+  
+  ker_SolverCatr_F2 = clCreateKernel(program, "SolverCatr_F2", &ret);
   if (ret!=CL_SUCCESS) {
-    printf("kernel3b_2 SolverCatr_2 error %d\n", ret);
+    printf("ker_SolverCatr_F2 error %d\n", ret);
   }
-  kernel3b_3 = clCreateKernel(program, "SolverCatr_3", &ret);
+  
+  ker_SolverCatr_F3 = clCreateKernel(program, "SolverCatr_F3", &ret);
   if (ret!=CL_SUCCESS) {
-    printf("kernel3b_3 SolverCatr_3 error %d\n", ret);
+    printf("ker_SolverCatr_F3 error %d\n", ret);
   }
-  kernel3b_4 = clCreateKernel(program, "SolverCatr_4", &ret);
+
+  ker_SolverCatr_F4 = clCreateKernel(program, "SolverCatr_F4", &ret);
   if (ret!=CL_SUCCESS) {
-    printf("kernel3b_4 SolverCatr_4 error %d\n", ret);
+    printf("ker_SolverCatr_F4 error %d\n", ret);
   }
-  kernel5[0] = clCreateKernel(program, "apply_BC", &ret);
+  
+  ker_apply_BC_phi_y0_noflux = clCreateKernel(program, "apply_BC_phi_y0_noflux", &ret);
   if (ret!=CL_SUCCESS) {
-    printf("kernel5 apply_BC error %d\n", ret);
+    printf("apply_BC_phi_y0_noflux error %d\n", ret);
   }
-  kernel5[1] = clCreateKernel(program, "apply_BC_jl_noflux", &ret);
+  
+  ker_apply_BC_phi_yn_noflux = clCreateKernel(program, "apply_BC_phi_yn_noflux", &ret);
   if (ret!=CL_SUCCESS) {
-    printf("kernel5 apply_BC_jl_noflux error %d\n", ret);
+    printf("apply_BC_phi_yn_noflux error %d\n", ret);
   }
-  kernel5[2] = clCreateKernel(program, "apply_BC_jr_noflux", &ret);
+  
+  ker_apply_BC_phi_y0_periodic = clCreateKernel(program, "apply_BC_phi_y0_periodic", &ret);
   if (ret!=CL_SUCCESS) {
-    printf("kernel5 apply_BC_jr_noflux error %d\n", ret);
+    printf("apply_BC_phi_y0_periodic error %d\n", ret);
   }
-  kernel5[3] = clCreateKernel(program, "apply_BC_jl_periodic", &ret);
+  
+  ker_apply_BC_phi_yn_periodic = clCreateKernel(program, "apply_BC_phi_yn_periodic", &ret);
   if (ret!=CL_SUCCESS) {
-    printf("kernel5 apply_BC_jl_periodic error %d\n", ret);
+    printf("apply_BC_phi_yn_periodic error %d\n", ret);
   }
-  kernel5[4] = clCreateKernel(program, "apply_BC_jr_periodic", &ret);
+  
+  ker_apply_BC_phi_z0_noflux = clCreateKernel(program, "apply_BC_phi_z0_noflux", &ret);
   if (ret!=CL_SUCCESS) {
-    printf("kernel5 apply_BC_jr_periodic error %d\n", ret);
+    printf("apply_BC_phi_z0_noflux error %d\n", ret);
   }
-  kernel5[5] = clCreateKernel(program, "apply_BC_it_noflux", &ret);
+  
+  ker_apply_BC_phi_zn_noflux = clCreateKernel(program, "apply_BC_phi_zn_noflux", &ret);
   if (ret!=CL_SUCCESS) {
-    printf("kernel5 apply_BC_it_noflux error %d\n", ret);
+    printf("apply_BC_phi_zn_noflux error %d\n", ret);
   }
-  kernel5[6] = clCreateKernel(program, "apply_BC_ib_noflux", &ret);
+  
+  ker_apply_BC_phi_z0_periodic = clCreateKernel(program, "apply_BC_phi_z0_periodic", &ret);
   if (ret!=CL_SUCCESS) {
-    printf("kernel5 apply_BC_ib_noflux error %d\n", ret);
+    printf("apply_BC_phi_z0_periodic error %d\n", ret);
   }
-  kernel5[7] = clCreateKernel(program, "apply_BC_it_periodic", &ret);
+  
+  ker_apply_BC_phi_zn_periodic = clCreateKernel(program, "apply_BC_phi_zn_periodic", &ret);
   if (ret!=CL_SUCCESS) {
-    printf("kernel5 apply_BC_it_period error %d\n", ret);
+    printf("apply_BC_phi_zn_periodic error %d\n", ret);
   }
-  kernel5[8] = clCreateKernel(program, "apply_BC_ib_periodic", &ret);
+  
+  ker_apply_BC_phi_x0_noflux = clCreateKernel(program, "apply_BC_phi_x0_noflux", &ret);
   if (ret!=CL_SUCCESS) {
-    printf("kernel5 apply_BC_ib_period error %d\n", ret);
+    printf("apply_BC_phi_x0_noflux error %d\n", ret);
   }
-  kernel6[0] = clCreateKernel(program, "apply_BC_phi", &ret);
+  
+  ker_apply_BC_phi_xn_noflux = clCreateKernel(program, "apply_BC_phi_xn_noflux", &ret);
   if (ret!=CL_SUCCESS) {
-    printf("kernel6 apply_BC_phi error %d\n", ret);
+    printf("apply_BC_phi_xn_noflux error %d\n", ret);
   }
-  kernel6[1] = clCreateKernel(program, "apply_BC_phi_jl_noflux", &ret);
+  
+  ker_apply_BC_phi_x0_periodic = clCreateKernel(program, "apply_BC_phi_x0_periodic", &ret);
   if (ret!=CL_SUCCESS) {
-    printf("kernel6 apply_BC_phi_jl_noflux error %d\n", ret);
+    printf("apply_BC_phi_x0_periodic error %d\n", ret);
   }
-  kernel6[2] = clCreateKernel(program, "apply_BC_phi_jr_noflux", &ret);
+  
+  ker_apply_BC_phi_xn_periodic = clCreateKernel(program, "apply_BC_phi_xn_periodic", &ret);
   if (ret!=CL_SUCCESS) {
-    printf("kernel6 apply_BC_phi_jr_noflux error %d\n", ret);
+    printf("apply_BC_phi_xn_periodic error %d\n", ret);
   }
-  kernel6[3] = clCreateKernel(program, "apply_BC_phi_jl_periodic", &ret);
+  
+  ker_apply_BC_com_y0_noflux = clCreateKernel(program, "apply_BC_com_y0_noflux", &ret);
   if (ret!=CL_SUCCESS) {
-    printf("kernel6 apply_BC_phi_jl_periodic error %d\n", ret);
+    printf("apply_BC_com_y0_noflux error %d\n", ret);
   }
-  kernel6[4] = clCreateKernel(program, "apply_BC_phi_jr_periodic", &ret);
+  
+  ker_apply_BC_com_yn_noflux = clCreateKernel(program, "apply_BC_com_yn_noflux", &ret);
   if (ret!=CL_SUCCESS) {
-    printf("kernel6 apply_BC_phi_jr_periodic error %d\n", ret);
+    printf("apply_BC_com_yn_noflux error %d\n", ret);
   }
-  kernel6[5] = clCreateKernel(program, "apply_BC_phi_it_noflux", &ret);
+  
+  ker_apply_BC_com_y0_periodic = clCreateKernel(program, "apply_BC_com_y0_periodic", &ret);
   if (ret!=CL_SUCCESS) {
-    printf("kernel6 apply_BC_phi_it_noflux error %d\n", ret);
+    printf("apply_BC_com_y0_periodic error %d\n", ret);
   }
-  kernel6[6] = clCreateKernel(program, "apply_BC_phi_ib_noflux", &ret);
+  
+  ker_apply_BC_com_yn_periodic = clCreateKernel(program, "apply_BC_com_yn_periodic", &ret);
   if (ret!=CL_SUCCESS) {
-    printf("kernel6 apply_BC_phi_ib_noflux error %d\n", ret);
+    printf("apply_BC_com_yn_periodic error %d\n", ret);
   }
-  kernel6[7] = clCreateKernel(program, "apply_BC_phi_it_periodic", &ret);
+  
+  ker_apply_BC_com_z0_noflux = clCreateKernel(program, "apply_BC_com_z0_noflux", &ret);
   if (ret!=CL_SUCCESS) {
-    printf("kernel6 apply_BC_phi_it_periodic error %d\n", ret);
+    printf("apply_BC_com_z0_noflux error %d\n", ret);
   }
-  kernel6[8] = clCreateKernel(program, "apply_BC_phi_ib_periodic", &ret);
+  
+  ker_apply_BC_com_zn_noflux = clCreateKernel(program, "apply_BC_com_zn_noflux", &ret);
   if (ret!=CL_SUCCESS) {
-    printf("kernel6 apply_BC_phi_ib_periodic error %d\n", ret);
+    printf("apply_BC_com_zn_noflux error %d\n", ret);
   }
-  kernel7[0] = clCreateKernel(program, "apply_BC_com", &ret);
+  
+  ker_apply_BC_com_z0_periodic = clCreateKernel(program, "apply_BC_com_z0_periodic", &ret);
   if (ret!=CL_SUCCESS) {
-    printf("kernel7 apply_BC_com error %d\n", ret);
+    printf("apply_BC_com_z0_periodic error %d\n", ret);
   }
-  kernel7[1] = clCreateKernel(program, "apply_BC_com_jl_noflux", &ret);
+  
+  ker_apply_BC_com_zn_periodic = clCreateKernel(program, "apply_BC_com_zn_periodic", &ret);
   if (ret!=CL_SUCCESS) {
-    printf("kernel7 apply_BC_com_jl_noflux error %d\n", ret);
+    printf("apply_BC_com_zn_periodic error %d\n", ret);
   }
-  kernel7[2] = clCreateKernel(program, "apply_BC_com_jr_noflux", &ret);
+  
+  ker_apply_BC_com_x0_noflux = clCreateKernel(program, "apply_BC_com_x0_noflux", &ret);
   if (ret!=CL_SUCCESS) {
-    printf("kernel7 apply_BC_com_jr_noflux error %d\n", ret);
+    printf("apply_BC_com_x0_noflux error %d\n", ret);
   }
-  kernel7[3] = clCreateKernel(program, "apply_BC_com_jl_periodic", &ret);
+  
+  ker_apply_BC_com_xn_noflux = clCreateKernel(program, "apply_BC_com_xn_noflux", &ret);
   if (ret!=CL_SUCCESS) {
-    printf("kernel7 apply_BC_com_jl_periodic error %d\n", ret);
+    printf("apply_BC_com_xn_noflux error %d\n", ret);
   }
-  kernel7[4] = clCreateKernel(program, "apply_BC_com_jr_periodic", &ret);
+  
+  ker_apply_BC_com_x0_periodic = clCreateKernel(program, "apply_BC_com_x0_periodic", &ret);
   if (ret!=CL_SUCCESS) {
-    printf("kernel7 apply_BC_com_jr_periodic error %d\n", ret);
+    printf("apply_BC_com_x0_periodic error %d\n", ret);
   }
-  kernel7[5] = clCreateKernel(program, "apply_BC_com_it_noflux", &ret);
+  
+  ker_apply_BC_com_xn_periodic = clCreateKernel(program, "apply_BC_com_xn_periodic", &ret);
   if (ret!=CL_SUCCESS) {
-    printf("kernel7 apply_BC_com_it_noflux error %d\n", ret);
+    printf("apply_BC_com_xn_periodic error %d\n", ret);
   }
-  kernel7[6] = clCreateKernel(program, "apply_BC_com_ib_noflux", &ret);
+  
+  ker_addNoise = clCreateKernel(program, "addNoise", &ret);
   if (ret!=CL_SUCCESS) {
-    printf("kernel7 apply_BC_com_ib_noflux error %d\n", ret);
+    printf("ker_addNoise error %d\n", ret);
   }
-  kernel7[7] = clCreateKernel(program, "apply_BC_com_it_periodic", &ret);
+
+  ker_copy_New_To_Old = clCreateKernel(program, "copy_New_To_Old", &ret);
   if (ret!=CL_SUCCESS) {
-      printf("kernel7 apply_BC_com_it_periodic error %d\n", ret);
-  }
-  kernel7[8] = clCreateKernel(program, "apply_BC_com_ib_periodic", &ret);
-  if (ret!=CL_SUCCESS) {
-      printf("kernel7 apply_BC_com_ib_periodic error %d\n", ret);
-  }
-  kernel8 = clCreateKernel(program, "addNoise", &ret);
-  if (ret!=CL_SUCCESS) {
-    printf("kernel8 addNoise error %d\n", ret);
-  }
-  kernel9 = clCreateKernel(program, "copy_New_To_Old", &ret);
-  if (ret!=CL_SUCCESS) {
-    printf("kernel9 copy_New_To_Old error %d\n", ret);
+    printf("ker_copy_New_To_Old error %d\n", ret);
   }
   kernel10[0] = clCreateKernel(program, "update_temp_UC", &ret);
   if (ret!=CL_SUCCESS) {
@@ -221,222 +242,407 @@ void CL_create_kernel_args() {
     printf("kernel11 apply_BC_temp_ib_noflux error %d\n", ret);
   }
 
-  
-  /* Set OpenCL kernel arguments */
-  // ret = clSetKernelArg(kernel1, 0, sizeof(cl_mem), &d_gridOld);
-  // ret = clSetKernelArg(kernel1, 1, sizeof(cl_mem), &d_cscl);
-  // ret = clSetKernelArg(kernel1, 2, sizeof(cl_mem), &d_pfmdat);
-  // ret = clSetKernelArg(kernel1, 3, sizeof(cl_mem), &d_pfmvar);
-  // ret = clSetKernelArg(kernel1, 4, sizeof(cl_mem), &d_temp);
-  // ret = clSetKernelArg(kernel1, 5, sizeof(cl_mem), &d_tstep);
-  // ret = clSetKernelArg(kernel1, 6, sizeof(cl_mem), &d_propf3);
 
-  ret = clSetKernelArg(kernel1_2, 0, sizeof(cl_mem), &d_gridOld);
-  ret = clSetKernelArg(kernel1_2, 1, sizeof(cl_mem), &d_cscl);
-  ret = clSetKernelArg(kernel1_2, 2, sizeof(cl_mem), &d_pfmdat);
-  ret = clSetKernelArg(kernel1_2, 3, sizeof(cl_mem), &d_pfmvar);
-  ret = clSetKernelArg(kernel1_2, 4, sizeof(cl_mem), &d_temp);
-  ret = clSetKernelArg(kernel1_2, 5, sizeof(cl_mem), &d_tstep);
-  ret = clSetKernelArg(kernel1_2, 6, sizeof(cl_mem), &d_propf3);
 
-  ret = clSetKernelArg(kernel1_3, 0, sizeof(cl_mem), &d_gridOld);
-  ret = clSetKernelArg(kernel1_3, 1, sizeof(cl_mem), &d_cscl);
-  ret = clSetKernelArg(kernel1_3, 2, sizeof(cl_mem), &d_pfmdat);
-  ret = clSetKernelArg(kernel1_3, 3, sizeof(cl_mem), &d_pfmvar);
-  ret = clSetKernelArg(kernel1_3, 4, sizeof(cl_mem), &d_temp);
-  ret = clSetKernelArg(kernel1_3, 5, sizeof(cl_mem), &d_tstep);
-  ret = clSetKernelArg(kernel1_3, 6, sizeof(cl_mem), &d_propf3);
-
-  ret = clSetKernelArg(kernel1_4, 0, sizeof(cl_mem), &d_gridOld);
-  ret = clSetKernelArg(kernel1_4, 1, sizeof(cl_mem), &d_cscl);
-  ret = clSetKernelArg(kernel1_4, 2, sizeof(cl_mem), &d_pfmdat);
-  ret = clSetKernelArg(kernel1_4, 3, sizeof(cl_mem), &d_pfmvar);
-  ret = clSetKernelArg(kernel1_4, 4, sizeof(cl_mem), &d_temp);
-  ret = clSetKernelArg(kernel1_4, 5, sizeof(cl_mem), &d_tstep);
-  ret = clSetKernelArg(kernel1_4, 6, sizeof(cl_mem), &d_propf4);
-  ret = clSetKernelArg(kernel1_4, 7, sizeof(cl_mem), &d_propf4spline);
-
-  // ret = clSetKernelArg(kernel2a, 0, sizeof(cl_mem), &d_gridOld);
-  // ret = clSetKernelArg(kernel2a, 1, sizeof(cl_mem), &d_gridNew);
-  // ret = clSetKernelArg(kernel2a, 2, sizeof(cl_mem), &d_cscl);
-  // ret = clSetKernelArg(kernel2a, 3, sizeof(cl_mem), &d_pfmdat);
-  // ret = clSetKernelArg(kernel2a, 4, sizeof(cl_mem), &d_pfmvar);
-  // ret = clSetKernelArg(kernel2a, 5, sizeof(cl_mem), &d_temp);
-  // ret = clSetKernelArg(kernel2a, 6, sizeof(cl_mem), &d_tstep);
-  // ret = clSetKernelArg(kernel2a, 7, sizeof(cl_mem), &d_propf3);
-
-  ret = clSetKernelArg(kernel2a_2, 0, sizeof(cl_mem), &d_gridOld);
-  ret = clSetKernelArg(kernel2a_2, 1, sizeof(cl_mem), &d_gridNew);
-  ret = clSetKernelArg(kernel2a_2, 2, sizeof(cl_mem), &d_cscl);
-  ret = clSetKernelArg(kernel2a_2, 3, sizeof(cl_mem), &d_pfmdat);
-  ret = clSetKernelArg(kernel2a_2, 4, sizeof(cl_mem), &d_pfmvar);
-  ret = clSetKernelArg(kernel2a_2, 5, sizeof(cl_mem), &d_temp);
-  ret = clSetKernelArg(kernel2a_2, 6, sizeof(cl_mem), &d_tstep);
-  ret = clSetKernelArg(kernel2a_2, 7, sizeof(cl_mem), &d_propf3);
-
-  ret = clSetKernelArg(kernel2a_3, 0, sizeof(cl_mem), &d_gridOld);
-  ret = clSetKernelArg(kernel2a_3, 1, sizeof(cl_mem), &d_gridNew);
-  ret = clSetKernelArg(kernel2a_3, 2, sizeof(cl_mem), &d_cscl);
-  ret = clSetKernelArg(kernel2a_3, 3, sizeof(cl_mem), &d_pfmdat);
-  ret = clSetKernelArg(kernel2a_3, 4, sizeof(cl_mem), &d_pfmvar);
-  ret = clSetKernelArg(kernel2a_3, 5, sizeof(cl_mem), &d_temp);
-  ret = clSetKernelArg(kernel2a_3, 6, sizeof(cl_mem), &d_tstep);
-  ret = clSetKernelArg(kernel2a_3, 7, sizeof(cl_mem), &d_propf3);
-
-  ret = clSetKernelArg(kernel2a_4, 0, sizeof(cl_mem), &d_gridOld);
-  ret = clSetKernelArg(kernel2a_4, 1, sizeof(cl_mem), &d_gridNew);
-  ret = clSetKernelArg(kernel2a_4, 2, sizeof(cl_mem), &d_cscl);
-  ret = clSetKernelArg(kernel2a_4, 3, sizeof(cl_mem), &d_pfmdat);
-  ret = clSetKernelArg(kernel2a_4, 4, sizeof(cl_mem), &d_pfmvar);
-  ret = clSetKernelArg(kernel2a_4, 5, sizeof(cl_mem), &d_temp);
-  ret = clSetKernelArg(kernel2a_4, 6, sizeof(cl_mem), &d_tstep);
-  ret = clSetKernelArg(kernel2a_4, 7, sizeof(cl_mem), &d_propf4);
-  ret = clSetKernelArg(kernel2a_4, 8, sizeof(cl_mem), &d_propf4spline);
-
-  // ret = clSetKernelArg(kernel2b, 0, sizeof(cl_mem), &d_gridOld);
-  // ret = clSetKernelArg(kernel2b, 1, sizeof(cl_mem), &d_gridNew);
-  // ret = clSetKernelArg(kernel2b, 2, sizeof(cl_mem), &d_cscl);
-  // ret = clSetKernelArg(kernel2b, 3, sizeof(cl_mem), &d_pfmdat);
-  // ret = clSetKernelArg(kernel2b, 4, sizeof(cl_mem), &d_pfmvar);
-  // ret = clSetKernelArg(kernel2b, 5, sizeof(cl_mem), &d_temp);
-  // ret = clSetKernelArg(kernel2b, 6, sizeof(cl_mem), &d_tstep);
-  // ret = clSetKernelArg(kernel2b, 7, sizeof(cl_mem), &d_propf3);
-
-  ret = clSetKernelArg(kernel2b_2, 0, sizeof(cl_mem), &d_gridOld);
-  ret = clSetKernelArg(kernel2b_2, 1, sizeof(cl_mem), &d_gridNew);
-  ret = clSetKernelArg(kernel2b_2, 2, sizeof(cl_mem), &d_cscl);
-  ret = clSetKernelArg(kernel2b_2, 3, sizeof(cl_mem), &d_pfmdat);
-  ret = clSetKernelArg(kernel2b_2, 4, sizeof(cl_mem), &d_pfmvar);
-  ret = clSetKernelArg(kernel2b_2, 5, sizeof(cl_mem), &d_temp);
-  ret = clSetKernelArg(kernel2b_2, 6, sizeof(cl_mem), &d_tstep);
-  ret = clSetKernelArg(kernel2b_2, 7, sizeof(cl_mem), &d_propf3);
-
-  ret = clSetKernelArg(kernel2b_3, 0, sizeof(cl_mem), &d_gridOld);
-  ret = clSetKernelArg(kernel2b_3, 1, sizeof(cl_mem), &d_gridNew);
-  ret = clSetKernelArg(kernel2b_3, 2, sizeof(cl_mem), &d_cscl);
-  ret = clSetKernelArg(kernel2b_3, 3, sizeof(cl_mem), &d_pfmdat);
-  ret = clSetKernelArg(kernel2b_3, 4, sizeof(cl_mem), &d_pfmvar);
-  ret = clSetKernelArg(kernel2b_3, 5, sizeof(cl_mem), &d_temp);
-  ret = clSetKernelArg(kernel2b_3, 6, sizeof(cl_mem), &d_tstep);
-  ret = clSetKernelArg(kernel2b_3, 7, sizeof(cl_mem), &d_propf3);
-
-  ret = clSetKernelArg(kernel2b_4, 0, sizeof(cl_mem), &d_gridOld);
-  ret = clSetKernelArg(kernel2b_4, 1, sizeof(cl_mem), &d_gridNew);
-  ret = clSetKernelArg(kernel2b_4, 2, sizeof(cl_mem), &d_cscl);
-  ret = clSetKernelArg(kernel2b_4, 3, sizeof(cl_mem), &d_pfmdat);
-  ret = clSetKernelArg(kernel2b_4, 4, sizeof(cl_mem), &d_pfmvar);
-  ret = clSetKernelArg(kernel2b_4, 5, sizeof(cl_mem), &d_temp);
-  ret = clSetKernelArg(kernel2b_4, 6, sizeof(cl_mem), &d_tstep);
-  ret = clSetKernelArg(kernel2b_4, 7, sizeof(cl_mem), &d_propf4);
-  ret = clSetKernelArg(kernel2b_4, 8, sizeof(cl_mem), &d_propf4spline);
-
-  // ret = clSetKernelArg(kernel3a, 0, sizeof(cl_mem), &d_gridOld);
-  // ret = clSetKernelArg(kernel3a, 1, sizeof(cl_mem), &d_gridNew);
-  // ret = clSetKernelArg(kernel3a, 2, sizeof(cl_mem), &d_cscl);
-  // ret = clSetKernelArg(kernel3a, 3, sizeof(cl_mem), &d_pfmdat);
-  // ret = clSetKernelArg(kernel3a, 4, sizeof(cl_mem), &d_pfmvar);
-  // ret = clSetKernelArg(kernel3a, 5, sizeof(cl_mem), &d_temp);
-  // ret = clSetKernelArg(kernel3a, 6, sizeof(cl_mem), &d_tstep);
-  // ret = clSetKernelArg(kernel3a, 7, sizeof(cl_mem), &d_propf3);
-
-  ret = clSetKernelArg(kernel3a_2, 0, sizeof(cl_mem), &d_gridOld);
-  ret = clSetKernelArg(kernel3a_2, 1, sizeof(cl_mem), &d_gridNew);
-  ret = clSetKernelArg(kernel3a_2, 2, sizeof(cl_mem), &d_cscl);
-  ret = clSetKernelArg(kernel3a_2, 3, sizeof(cl_mem), &d_pfmdat);
-  ret = clSetKernelArg(kernel3a_2, 4, sizeof(cl_mem), &d_pfmvar);
-  ret = clSetKernelArg(kernel3a_2, 5, sizeof(cl_mem), &d_temp);
-  ret = clSetKernelArg(kernel3a_2, 6, sizeof(cl_mem), &d_tstep);
-  ret = clSetKernelArg(kernel3a_2, 7, sizeof(cl_mem), &d_propf3);
-
-  ret = clSetKernelArg(kernel3a_3, 0, sizeof(cl_mem), &d_gridOld);
-  ret = clSetKernelArg(kernel3a_3, 1, sizeof(cl_mem), &d_gridNew);
-  ret = clSetKernelArg(kernel3a_3, 2, sizeof(cl_mem), &d_cscl);
-  ret = clSetKernelArg(kernel3a_3, 3, sizeof(cl_mem), &d_pfmdat);
-  ret = clSetKernelArg(kernel3a_3, 4, sizeof(cl_mem), &d_pfmvar);
-  ret = clSetKernelArg(kernel3a_3, 5, sizeof(cl_mem), &d_temp);
-  ret = clSetKernelArg(kernel3a_3, 6, sizeof(cl_mem), &d_tstep);
-  ret = clSetKernelArg(kernel3a_3, 7, sizeof(cl_mem), &d_propf3);
-
-  ret = clSetKernelArg(kernel3a_4, 0, sizeof(cl_mem), &d_gridOld);
-  ret = clSetKernelArg(kernel3a_4, 1, sizeof(cl_mem), &d_gridNew);
-  ret = clSetKernelArg(kernel3a_4, 2, sizeof(cl_mem), &d_cscl);
-  ret = clSetKernelArg(kernel3a_4, 3, sizeof(cl_mem), &d_pfmdat);
-  ret = clSetKernelArg(kernel3a_4, 4, sizeof(cl_mem), &d_pfmvar);
-  ret = clSetKernelArg(kernel3a_4, 5, sizeof(cl_mem), &d_temp);
-  ret = clSetKernelArg(kernel3a_4, 6, sizeof(cl_mem), &d_tstep);
-  ret = clSetKernelArg(kernel3a_4, 7, sizeof(cl_mem), &d_propf4);
-  ret = clSetKernelArg(kernel3a_4, 8, sizeof(cl_mem), &d_propf4spline);
-  ret = clSetKernelArg(kernel3a_4, 9, sizeof(cl_mem), &d_propf4spline1);
-
-  // ret = clSetKernelArg(kernel3b, 0, sizeof(cl_mem), &d_gridOld);
-  // ret = clSetKernelArg(kernel3b, 1, sizeof(cl_mem), &d_gridNew);
-  // ret = clSetKernelArg(kernel3b, 2, sizeof(cl_mem), &d_cscl);
-  // ret = clSetKernelArg(kernel3b, 3, sizeof(cl_mem), &d_pfmdat);
-  // ret = clSetKernelArg(kernel3b, 4, sizeof(cl_mem), &d_pfmvar);
-  // ret = clSetKernelArg(kernel3b, 5, sizeof(cl_mem), &d_temp);
-  // ret = clSetKernelArg(kernel3b, 6, sizeof(cl_mem), &d_tstep);
-  // ret = clSetKernelArg(kernel3b, 7, sizeof(cl_mem), &d_propf3);
-
-  ret = clSetKernelArg(kernel3b_2, 0, sizeof(cl_mem), &d_gridOld);
-  ret = clSetKernelArg(kernel3b_2, 1, sizeof(cl_mem), &d_gridNew);
-  ret = clSetKernelArg(kernel3b_2, 2, sizeof(cl_mem), &d_cscl);
-  ret = clSetKernelArg(kernel3b_2, 3, sizeof(cl_mem), &d_pfmdat);
-  ret = clSetKernelArg(kernel3b_2, 4, sizeof(cl_mem), &d_pfmvar);
-  ret = clSetKernelArg(kernel3b_2, 5, sizeof(cl_mem), &d_temp);
-  ret = clSetKernelArg(kernel3b_2, 6, sizeof(cl_mem), &d_tstep);
-  ret = clSetKernelArg(kernel3b_2, 7, sizeof(cl_mem), &d_propf3);
-
-  ret = clSetKernelArg(kernel3b_3, 0, sizeof(cl_mem), &d_gridOld);
-  ret = clSetKernelArg(kernel3b_3, 1, sizeof(cl_mem), &d_gridNew);
-  ret = clSetKernelArg(kernel3b_3, 2, sizeof(cl_mem), &d_cscl);
-  ret = clSetKernelArg(kernel3b_3, 3, sizeof(cl_mem), &d_pfmdat);
-  ret = clSetKernelArg(kernel3b_3, 4, sizeof(cl_mem), &d_pfmvar);
-  ret = clSetKernelArg(kernel3b_3, 5, sizeof(cl_mem), &d_temp);
-  ret = clSetKernelArg(kernel3b_3, 6, sizeof(cl_mem), &d_tstep);
-  ret = clSetKernelArg(kernel3b_3, 7, sizeof(cl_mem), &d_propf3);
-
-  ret = clSetKernelArg(kernel3b_4, 0, sizeof(cl_mem), &d_gridOld);
-  ret = clSetKernelArg(kernel3b_4, 1, sizeof(cl_mem), &d_gridNew);
-  ret = clSetKernelArg(kernel3b_4, 2, sizeof(cl_mem), &d_cscl);
-  ret = clSetKernelArg(kernel3b_4, 3, sizeof(cl_mem), &d_pfmdat);
-  ret = clSetKernelArg(kernel3b_4, 4, sizeof(cl_mem), &d_pfmvar);
-  ret = clSetKernelArg(kernel3b_4, 5, sizeof(cl_mem), &d_temp);
-  ret = clSetKernelArg(kernel3b_4, 6, sizeof(cl_mem), &d_tstep);
-  ret = clSetKernelArg(kernel3b_4, 7, sizeof(cl_mem), &d_propf4);
-  ret = clSetKernelArg(kernel3b_4, 8, sizeof(cl_mem), &d_propf4spline);
-  ret = clSetKernelArg(kernel3b_4, 9, sizeof(cl_mem), &d_propf4spline1);
-
-  for ( i = 0; i < 9; i++ ) {
-    ret = clSetKernelArg(kernel5[i], 0, sizeof(cl_mem), &d_gridNew);
-    ret = clSetKernelArg(kernel5[i], 1, sizeof(cl_mem), &d_pfmdat);
-
-    ret = clSetKernelArg(kernel6[i], 0, sizeof(cl_mem), &d_gridNew);
-    ret = clSetKernelArg(kernel6[i], 1, sizeof(cl_mem), &d_pfmdat);
-
-    ret = clSetKernelArg(kernel7[i], 0, sizeof(cl_mem), &d_gridNew);
-    ret = clSetKernelArg(kernel7[i], 1, sizeof(cl_mem), &d_pfmdat);
+  ker_apply_BC_ela_y0_noflux = clCreateKernel(program, "apply_BC_ela_y0_noflux", &ret);
+  if (ret!=CL_SUCCESS) {
+    printf("apply_BC_ela_y0_noflux error %d\n", ret);
   }
 
-  ret = clSetKernelArg(kernel8, 0, sizeof(cl_mem), &d_gridNew);
-  ret = clSetKernelArg(kernel8, 1, sizeof(cl_mem), &d_pfmdat);
+  ker_apply_BC_ela_yn_noflux = clCreateKernel(program, "apply_BC_ela_yn_noflux", &ret);
+  if (ret!=CL_SUCCESS) {
+    printf("apply_BC_ela_yn_noflux error %d\n", ret);
+  }
 
-  ret = clSetKernelArg(kernel9, 0, sizeof(cl_mem), &d_gridOld);
-  ret = clSetKernelArg(kernel9, 1, sizeof(cl_mem), &d_gridNew);
-  ret = clSetKernelArg(kernel9, 2, sizeof(cl_mem), &d_pfmdat);
+  ker_apply_BC_ela_y0_periodic = clCreateKernel(program, "apply_BC_ela_y0_periodic", &ret);
+  if (ret!=CL_SUCCESS) {
+    printf("apply_BC_ela_y0_periodic error %d\n", ret);
+  }
+
+  ker_apply_BC_ela_yn_periodic = clCreateKernel(program, "apply_BC_ela_yn_periodic", &ret);
+  if (ret!=CL_SUCCESS) {
+    printf("apply_BC_ela_yn_periodic error %d\n", ret);
+  }
+
+  ker_apply_BC_ela_z0_noflux = clCreateKernel(program, "apply_BC_ela_z0_noflux", &ret);
+  if (ret!=CL_SUCCESS) {
+    printf("apply_BC_ela_z0_noflux error %d\n", ret);
+  }
+
+  ker_apply_BC_ela_zn_noflux = clCreateKernel(program, "apply_BC_ela_zn_noflux", &ret);
+  if (ret!=CL_SUCCESS) {
+    printf("apply_BC_ela_zn_noflux error %d\n", ret);
+  }
+
+  ker_apply_BC_ela_z0_periodic = clCreateKernel(program, "apply_BC_ela_z0_periodic", &ret);
+  if (ret!=CL_SUCCESS) {
+    printf("apply_BC_ela_z0_periodic error %d\n", ret);
+  }
+
+  ker_apply_BC_ela_zn_periodic = clCreateKernel(program, "apply_BC_ela_zn_periodic", &ret);
+  if (ret!=CL_SUCCESS) {
+    printf("apply_BC_ela_zn_periodic error %d\n", ret);
+  }
+
+  ker_apply_BC_ela_x0_noflux = clCreateKernel(program, "apply_BC_ela_x0_noflux", &ret);
+  if (ret!=CL_SUCCESS) {
+    printf("apply_BC_ela_x0_noflux error %d\n", ret);
+  }
+
+  ker_apply_BC_ela_xn_noflux = clCreateKernel(program, "apply_BC_ela_xn_noflux", &ret);
+  if (ret!=CL_SUCCESS) {
+    printf("apply_BC_ela_xn_noflux error %d\n", ret);
+  }
+
+  ker_apply_BC_ela_x0_periodic = clCreateKernel(program, "apply_BC_ela_x0_periodic", &ret);
+  if (ret!=CL_SUCCESS) {
+    printf("apply_BC_ela_x0_periodic error %d\n", ret);
+  }
+
+  ker_apply_BC_ela_xn_periodic = clCreateKernel(program, "apply_BC_ela_xn_periodic", &ret);
+  if (ret!=CL_SUCCESS) {
+    printf("apply_BC_ela_xn_periodic error %d\n", ret);
+  }
+
+  
+  /* Set OpenCL kernel arguments */
+
+  ret = clSetKernelArg(ker_SolverStress_iterative, 0,  sizeof(cl_mem), &d_gridinfomO);
+  ret = clSetKernelArg(ker_SolverStress_iterative, 1,  sizeof(cl_mem), &d_iter_gridinfom);
+  ret = clSetKernelArg(ker_SolverStress_iterative, 2,  sizeof(cl_mem), &d_eigen_strain_phase);
+  ret = clSetKernelArg(ker_SolverStress_iterative, 3,  sizeof(cl_mem), &d_stiffness_phase);
+  ret = clSetKernelArg(ker_SolverStress_iterative, 4,  sizeof(cl_mem), &d_stiffness_phase_n);
+  ret = clSetKernelArg(ker_SolverStress_iterative, 5,  sizeof(cl_mem), &d_pfmdat);
+  ret = clSetKernelArg(ker_SolverStress_iterative, 6,  sizeof(cl_mem), &d_pfmvar);
+  ret = clSetKernelArg(ker_SolverStress_iterative, 7,  sizeof(cl_mem), &d_tstep);
+
+  ret = clSetKernelArg(ker_SolverStress_iterative_2D, 0,  sizeof(cl_mem), &d_gridinfomO);
+  ret = clSetKernelArg(ker_SolverStress_iterative_2D, 1,  sizeof(cl_mem), &d_iter_gridinfom);
+  ret = clSetKernelArg(ker_SolverStress_iterative_2D, 2,  sizeof(cl_mem), &d_eigen_strain_phase);
+  ret = clSetKernelArg(ker_SolverStress_iterative_2D, 3,  sizeof(cl_mem), &d_stiffness_phase);
+  ret = clSetKernelArg(ker_SolverStress_iterative_2D, 4,  sizeof(cl_mem), &d_stiffness_phase_n);
+  ret = clSetKernelArg(ker_SolverStress_iterative_2D, 5,  sizeof(cl_mem), &d_pfmdat);
+  ret = clSetKernelArg(ker_SolverStress_iterative_2D, 6,  sizeof(cl_mem), &d_pfmvar);
+  ret = clSetKernelArg(ker_SolverStress_iterative_2D, 7,  sizeof(cl_mem), &d_tstep);
+  
+  ret = clSetKernelArg(ker_SolverCsClEq_F2, 0, sizeof(cl_mem), &d_gridinfomO);
+  ret = clSetKernelArg(ker_SolverCsClEq_F2, 1, sizeof(cl_mem), &d_cscl);
+  ret = clSetKernelArg(ker_SolverCsClEq_F2, 2, sizeof(cl_mem), &d_pfmdat);
+  ret = clSetKernelArg(ker_SolverCsClEq_F2, 3, sizeof(cl_mem), &d_pfmvar);
+  ret = clSetKernelArg(ker_SolverCsClEq_F2, 4, sizeof(cl_mem), &d_temp);
+  ret = clSetKernelArg(ker_SolverCsClEq_F2, 5, sizeof(cl_mem), &d_tstep);
+
+  ret = clSetKernelArg(ker_SolverCsClEq_F3, 0, sizeof(cl_mem), &d_gridinfomO);
+  ret = clSetKernelArg(ker_SolverCsClEq_F3, 1, sizeof(cl_mem), &d_cscl);
+  ret = clSetKernelArg(ker_SolverCsClEq_F3, 2, sizeof(cl_mem), &d_pfmdat);
+  ret = clSetKernelArg(ker_SolverCsClEq_F3, 3, sizeof(cl_mem), &d_pfmvar);
+  ret = clSetKernelArg(ker_SolverCsClEq_F3, 4, sizeof(cl_mem), &d_temp);
+  ret = clSetKernelArg(ker_SolverCsClEq_F3, 5, sizeof(cl_mem), &d_tstep);
+  ret = clSetKernelArg(ker_SolverCsClEq_F3, 6, sizeof(cl_mem), &d_propf3);
+
+  ret = clSetKernelArg(ker_SolverCsClEq_F4, 0, sizeof(cl_mem), &d_gridinfomO);
+  ret = clSetKernelArg(ker_SolverCsClEq_F4, 1, sizeof(cl_mem), &d_cscl);
+  ret = clSetKernelArg(ker_SolverCsClEq_F4, 2, sizeof(cl_mem), &d_pfmdat);
+  ret = clSetKernelArg(ker_SolverCsClEq_F4, 3, sizeof(cl_mem), &d_pfmvar);
+  ret = clSetKernelArg(ker_SolverCsClEq_F4, 4, sizeof(cl_mem), &d_temp);
+  ret = clSetKernelArg(ker_SolverCsClEq_F4, 5, sizeof(cl_mem), &d_tstep);
+  ret = clSetKernelArg(ker_SolverCsClEq_F4, 6, sizeof(cl_mem), &d_propf4);
+  ret = clSetKernelArg(ker_SolverCsClEq_F4, 7, sizeof(cl_mem), &d_propf4spline);
+
+  ret = clSetKernelArg(ker_SolverPhi_F2_smooth, 0, sizeof(cl_mem), &d_gridinfomO);
+  ret = clSetKernelArg(ker_SolverPhi_F2_smooth, 1, sizeof(cl_mem), &d_gridinfomN);
+  ret = clSetKernelArg(ker_SolverPhi_F2_smooth, 2, sizeof(cl_mem), &d_cscl);
+  ret = clSetKernelArg(ker_SolverPhi_F2_smooth, 3, sizeof(cl_mem), &d_pfmdat);
+  ret = clSetKernelArg(ker_SolverPhi_F2_smooth, 4, sizeof(cl_mem), &d_pfmvar);
+  ret = clSetKernelArg(ker_SolverPhi_F2_smooth, 5, sizeof(cl_mem), &d_temp);
+  ret = clSetKernelArg(ker_SolverPhi_F2_smooth, 6, sizeof(cl_mem), &d_tstep);
+
+  ret = clSetKernelArg(ker_SolverPhi_F3_smooth, 0, sizeof(cl_mem), &d_gridinfomO);
+  ret = clSetKernelArg(ker_SolverPhi_F3_smooth, 1, sizeof(cl_mem), &d_gridinfomN);
+  ret = clSetKernelArg(ker_SolverPhi_F3_smooth, 2, sizeof(cl_mem), &d_cscl);
+  ret = clSetKernelArg(ker_SolverPhi_F3_smooth, 3, sizeof(cl_mem), &d_pfmdat);
+  ret = clSetKernelArg(ker_SolverPhi_F3_smooth, 4, sizeof(cl_mem), &d_pfmvar);
+  ret = clSetKernelArg(ker_SolverPhi_F3_smooth, 5, sizeof(cl_mem), &d_temp);
+  ret = clSetKernelArg(ker_SolverPhi_F3_smooth, 6, sizeof(cl_mem), &d_tstep);
+  ret = clSetKernelArg(ker_SolverPhi_F3_smooth, 7, sizeof(cl_mem), &d_propf3);
+
+  ret = clSetKernelArg(ker_SolverPhi_F4_smooth, 0, sizeof(cl_mem), &d_gridinfomO);
+  ret = clSetKernelArg(ker_SolverPhi_F4_smooth, 1, sizeof(cl_mem), &d_gridinfomN);
+  ret = clSetKernelArg(ker_SolverPhi_F4_smooth, 2, sizeof(cl_mem), &d_cscl);
+  ret = clSetKernelArg(ker_SolverPhi_F4_smooth, 3, sizeof(cl_mem), &d_pfmdat);
+  ret = clSetKernelArg(ker_SolverPhi_F4_smooth, 4, sizeof(cl_mem), &d_pfmvar);
+  ret = clSetKernelArg(ker_SolverPhi_F4_smooth, 5, sizeof(cl_mem), &d_temp);
+  ret = clSetKernelArg(ker_SolverPhi_F4_smooth, 6, sizeof(cl_mem), &d_tstep);
+  ret = clSetKernelArg(ker_SolverPhi_F4_smooth, 7, sizeof(cl_mem), &d_propf4);
+  ret = clSetKernelArg(ker_SolverPhi_F4_smooth, 8, sizeof(cl_mem), &d_propf4spline);
+  
+
+  ret = clSetKernelArg(ker_SolverPhi_F2, 0, sizeof(cl_mem), &d_gridinfomO);
+  ret = clSetKernelArg(ker_SolverPhi_F2, 1, sizeof(cl_mem), &d_gridinfomN);
+  ret = clSetKernelArg(ker_SolverPhi_F2, 2, sizeof(cl_mem), &d_cscl);
+  ret = clSetKernelArg(ker_SolverPhi_F2, 3, sizeof(cl_mem), &d_pfmdat);
+  ret = clSetKernelArg(ker_SolverPhi_F2, 4, sizeof(cl_mem), &d_pfmvar);
+  ret = clSetKernelArg(ker_SolverPhi_F2, 5, sizeof(cl_mem), &d_temp);
+  ret = clSetKernelArg(ker_SolverPhi_F2, 6, sizeof(cl_mem), &d_tstep);
+  ret = clSetKernelArg(ker_SolverPhi_F2, 7, sizeof(cl_mem), &d_iter_gridinfom);
+  ret = clSetKernelArg(ker_SolverPhi_F2, 8, sizeof(cl_mem), &d_eigen_strain_phase);
+  ret = clSetKernelArg(ker_SolverPhi_F2, 9, sizeof(cl_mem), &d_stiffness_phase);
+  ret = clSetKernelArg(ker_SolverPhi_F2, 10, sizeof(cl_mem), &d_stiffness_phase_n);
+
+  ret = clSetKernelArg(ker_SolverPhi_F3, 0, sizeof(cl_mem), &d_gridinfomO);
+  ret = clSetKernelArg(ker_SolverPhi_F3, 1, sizeof(cl_mem), &d_gridinfomN);
+  ret = clSetKernelArg(ker_SolverPhi_F3, 2, sizeof(cl_mem), &d_cscl);
+  ret = clSetKernelArg(ker_SolverPhi_F3, 3, sizeof(cl_mem), &d_pfmdat);
+  ret = clSetKernelArg(ker_SolverPhi_F3, 4, sizeof(cl_mem), &d_pfmvar);
+  ret = clSetKernelArg(ker_SolverPhi_F3, 5, sizeof(cl_mem), &d_temp);
+  ret = clSetKernelArg(ker_SolverPhi_F3, 6, sizeof(cl_mem), &d_tstep);
+  ret = clSetKernelArg(ker_SolverPhi_F3, 7, sizeof(cl_mem), &d_propf3);
+  ret = clSetKernelArg(ker_SolverPhi_F3, 8, sizeof(cl_mem), &d_iter_gridinfom);
+  ret = clSetKernelArg(ker_SolverPhi_F3, 9, sizeof(cl_mem), &d_eigen_strain_phase);
+  ret = clSetKernelArg(ker_SolverPhi_F3, 10, sizeof(cl_mem), &d_stiffness_phase);
+  ret = clSetKernelArg(ker_SolverPhi_F3, 11, sizeof(cl_mem), &d_stiffness_phase_n);
+
+  ret = clSetKernelArg(ker_SolverPhi_F4, 0, sizeof(cl_mem), &d_gridinfomO);
+  ret = clSetKernelArg(ker_SolverPhi_F4, 1, sizeof(cl_mem), &d_gridinfomN);
+  ret = clSetKernelArg(ker_SolverPhi_F4, 2, sizeof(cl_mem), &d_cscl);
+  ret = clSetKernelArg(ker_SolverPhi_F4, 3, sizeof(cl_mem), &d_pfmdat);
+  ret = clSetKernelArg(ker_SolverPhi_F4, 4, sizeof(cl_mem), &d_pfmvar);
+  ret = clSetKernelArg(ker_SolverPhi_F4, 5, sizeof(cl_mem), &d_temp);
+  ret = clSetKernelArg(ker_SolverPhi_F4, 6, sizeof(cl_mem), &d_tstep);
+  ret = clSetKernelArg(ker_SolverPhi_F4, 7, sizeof(cl_mem), &d_propf4);
+  ret = clSetKernelArg(ker_SolverPhi_F4, 8, sizeof(cl_mem), &d_propf4spline);
+  ret = clSetKernelArg(ker_SolverPhi_F4, 9, sizeof(cl_mem), &d_iter_gridinfom);
+  ret = clSetKernelArg(ker_SolverPhi_F4, 10, sizeof(cl_mem), &d_eigen_strain_phase);
+  ret = clSetKernelArg(ker_SolverPhi_F4, 11, sizeof(cl_mem), &d_stiffness_phase);
+  ret = clSetKernelArg(ker_SolverPhi_F4, 12, sizeof(cl_mem), &d_stiffness_phase_n);
+
+  ret = clSetKernelArg(ker_SolverCatr_F2_smooth, 0, sizeof(cl_mem), &d_gridinfomO);
+  ret = clSetKernelArg(ker_SolverCatr_F2_smooth, 1, sizeof(cl_mem), &d_gridinfomN);
+  ret = clSetKernelArg(ker_SolverCatr_F2_smooth, 2, sizeof(cl_mem), &d_cscl);
+  ret = clSetKernelArg(ker_SolverCatr_F2_smooth, 3, sizeof(cl_mem), &d_pfmdat);
+  ret = clSetKernelArg(ker_SolverCatr_F2_smooth, 4, sizeof(cl_mem), &d_pfmvar);
+  ret = clSetKernelArg(ker_SolverCatr_F2_smooth, 5, sizeof(cl_mem), &d_temp);
+  ret = clSetKernelArg(ker_SolverCatr_F2_smooth, 6, sizeof(cl_mem), &d_tstep);
+
+  ret = clSetKernelArg(ker_SolverCatr_F3_smooth, 0, sizeof(cl_mem), &d_gridinfomO);
+  ret = clSetKernelArg(ker_SolverCatr_F3_smooth, 1, sizeof(cl_mem), &d_gridinfomN);
+  ret = clSetKernelArg(ker_SolverCatr_F3_smooth, 2, sizeof(cl_mem), &d_cscl);
+  ret = clSetKernelArg(ker_SolverCatr_F3_smooth, 3, sizeof(cl_mem), &d_pfmdat);
+  ret = clSetKernelArg(ker_SolverCatr_F3_smooth, 4, sizeof(cl_mem), &d_pfmvar);
+  ret = clSetKernelArg(ker_SolverCatr_F3_smooth, 5, sizeof(cl_mem), &d_temp);
+  ret = clSetKernelArg(ker_SolverCatr_F3_smooth, 6, sizeof(cl_mem), &d_tstep);
+  ret = clSetKernelArg(ker_SolverCatr_F3_smooth, 7, sizeof(cl_mem), &d_propf3);
+
+  ret = clSetKernelArg(ker_SolverCatr_F4_smooth, 0, sizeof(cl_mem), &d_gridinfomO);
+  ret = clSetKernelArg(ker_SolverCatr_F4_smooth, 1, sizeof(cl_mem), &d_gridinfomN);
+  ret = clSetKernelArg(ker_SolverCatr_F4_smooth, 2, sizeof(cl_mem), &d_cscl);
+  ret = clSetKernelArg(ker_SolverCatr_F4_smooth, 3, sizeof(cl_mem), &d_pfmdat);
+  ret = clSetKernelArg(ker_SolverCatr_F4_smooth, 4, sizeof(cl_mem), &d_pfmvar);
+  ret = clSetKernelArg(ker_SolverCatr_F4_smooth, 5, sizeof(cl_mem), &d_temp);
+  ret = clSetKernelArg(ker_SolverCatr_F4_smooth, 6, sizeof(cl_mem), &d_tstep);
+  ret = clSetKernelArg(ker_SolverCatr_F4_smooth, 7, sizeof(cl_mem), &d_propf4);
+  ret = clSetKernelArg(ker_SolverCatr_F4_smooth, 8, sizeof(cl_mem), &d_propf4spline);
+  ret = clSetKernelArg(ker_SolverCatr_F4_smooth, 9, sizeof(cl_mem), &d_propf4spline1);
+
+  ret = clSetKernelArg(ker_SolverCatr_F2, 0, sizeof(cl_mem), &d_gridinfomO);
+  ret = clSetKernelArg(ker_SolverCatr_F2, 1, sizeof(cl_mem), &d_gridinfomN);
+  ret = clSetKernelArg(ker_SolverCatr_F2, 2, sizeof(cl_mem), &d_cscl);
+  ret = clSetKernelArg(ker_SolverCatr_F2, 3, sizeof(cl_mem), &d_pfmdat);
+  ret = clSetKernelArg(ker_SolverCatr_F2, 4, sizeof(cl_mem), &d_pfmvar);
+  ret = clSetKernelArg(ker_SolverCatr_F2, 5, sizeof(cl_mem), &d_temp);
+  ret = clSetKernelArg(ker_SolverCatr_F2, 6, sizeof(cl_mem), &d_tstep);
+
+  ret = clSetKernelArg(ker_SolverCatr_F3, 0, sizeof(cl_mem), &d_gridinfomO);
+  ret = clSetKernelArg(ker_SolverCatr_F3, 1, sizeof(cl_mem), &d_gridinfomN);
+  ret = clSetKernelArg(ker_SolverCatr_F3, 2, sizeof(cl_mem), &d_cscl);
+  ret = clSetKernelArg(ker_SolverCatr_F3, 3, sizeof(cl_mem), &d_pfmdat);
+  ret = clSetKernelArg(ker_SolverCatr_F3, 4, sizeof(cl_mem), &d_pfmvar);
+  ret = clSetKernelArg(ker_SolverCatr_F3, 5, sizeof(cl_mem), &d_temp);
+  ret = clSetKernelArg(ker_SolverCatr_F3, 6, sizeof(cl_mem), &d_tstep);
+  ret = clSetKernelArg(ker_SolverCatr_F3, 7, sizeof(cl_mem), &d_propf3);
+
+  ret = clSetKernelArg(ker_SolverCatr_F4, 0, sizeof(cl_mem), &d_gridinfomO);
+  ret = clSetKernelArg(ker_SolverCatr_F4, 1, sizeof(cl_mem), &d_gridinfomN);
+  ret = clSetKernelArg(ker_SolverCatr_F4, 2, sizeof(cl_mem), &d_cscl);
+  ret = clSetKernelArg(ker_SolverCatr_F4, 3, sizeof(cl_mem), &d_pfmdat);
+  ret = clSetKernelArg(ker_SolverCatr_F4, 4, sizeof(cl_mem), &d_pfmvar);
+  ret = clSetKernelArg(ker_SolverCatr_F4, 5, sizeof(cl_mem), &d_temp);
+  ret = clSetKernelArg(ker_SolverCatr_F4, 6, sizeof(cl_mem), &d_tstep);
+  ret = clSetKernelArg(ker_SolverCatr_F4, 7, sizeof(cl_mem), &d_propf4);
+  ret = clSetKernelArg(ker_SolverCatr_F4, 8, sizeof(cl_mem), &d_propf4spline);
+  ret = clSetKernelArg(ker_SolverCatr_F4, 9, sizeof(cl_mem), &d_propf4spline1);
+  
+  ret = clSetKernelArg(ker_apply_BC_phi_y0_noflux, 0, sizeof(cl_mem), &d_gridinfomN);
+  ret = clSetKernelArg(ker_apply_BC_phi_y0_noflux, 1, sizeof(cl_mem), &d_pfmdat);
+  ret = clSetKernelArg(ker_apply_BC_phi_y0_noflux, 2, sizeof(cl_mem), &d_cscl);
+
+  ret = clSetKernelArg(ker_apply_BC_phi_yn_noflux, 0, sizeof(cl_mem), &d_gridinfomN);
+  ret = clSetKernelArg(ker_apply_BC_phi_yn_noflux, 1, sizeof(cl_mem), &d_pfmdat);
+  ret = clSetKernelArg(ker_apply_BC_phi_yn_noflux, 2, sizeof(cl_mem), &d_cscl);
+
+  ret = clSetKernelArg(ker_apply_BC_phi_y0_periodic, 0, sizeof(cl_mem), &d_gridinfomN);
+  ret = clSetKernelArg(ker_apply_BC_phi_y0_periodic, 1, sizeof(cl_mem), &d_pfmdat);
+  ret = clSetKernelArg(ker_apply_BC_phi_y0_periodic, 2, sizeof(cl_mem), &d_cscl);
+
+  ret = clSetKernelArg(ker_apply_BC_phi_yn_periodic, 0, sizeof(cl_mem), &d_gridinfomN);
+  ret = clSetKernelArg(ker_apply_BC_phi_yn_periodic, 1, sizeof(cl_mem), &d_pfmdat);
+  ret = clSetKernelArg(ker_apply_BC_phi_yn_periodic, 2, sizeof(cl_mem), &d_cscl);
+  
+  ret = clSetKernelArg(ker_apply_BC_phi_z0_noflux, 0, sizeof(cl_mem), &d_gridinfomN);
+  ret = clSetKernelArg(ker_apply_BC_phi_z0_noflux, 1, sizeof(cl_mem), &d_pfmdat);
+  ret = clSetKernelArg(ker_apply_BC_phi_z0_noflux, 2, sizeof(cl_mem), &d_cscl);
+
+  ret = clSetKernelArg(ker_apply_BC_phi_zn_noflux, 0, sizeof(cl_mem), &d_gridinfomN);
+  ret = clSetKernelArg(ker_apply_BC_phi_zn_noflux, 1, sizeof(cl_mem), &d_pfmdat);
+  ret = clSetKernelArg(ker_apply_BC_phi_zn_noflux, 2, sizeof(cl_mem), &d_cscl);
+
+  ret = clSetKernelArg(ker_apply_BC_phi_z0_periodic, 0, sizeof(cl_mem), &d_gridinfomN);
+  ret = clSetKernelArg(ker_apply_BC_phi_z0_periodic, 1, sizeof(cl_mem), &d_pfmdat);
+  ret = clSetKernelArg(ker_apply_BC_phi_z0_periodic, 2, sizeof(cl_mem), &d_cscl);
+
+  ret = clSetKernelArg(ker_apply_BC_phi_zn_periodic, 0, sizeof(cl_mem), &d_gridinfomN);
+  ret = clSetKernelArg(ker_apply_BC_phi_zn_periodic, 1, sizeof(cl_mem), &d_pfmdat);
+  ret = clSetKernelArg(ker_apply_BC_phi_zn_periodic, 2, sizeof(cl_mem), &d_cscl);
+  
+  ret = clSetKernelArg(ker_apply_BC_phi_x0_noflux, 0, sizeof(cl_mem), &d_gridinfomN);
+  ret = clSetKernelArg(ker_apply_BC_phi_x0_noflux, 1, sizeof(cl_mem), &d_pfmdat);
+  ret = clSetKernelArg(ker_apply_BC_phi_x0_noflux, 2, sizeof(cl_mem), &d_cscl);
+
+  ret = clSetKernelArg(ker_apply_BC_phi_xn_noflux, 0, sizeof(cl_mem), &d_gridinfomN);
+  ret = clSetKernelArg(ker_apply_BC_phi_xn_noflux, 1, sizeof(cl_mem), &d_pfmdat);
+  ret = clSetKernelArg(ker_apply_BC_phi_xn_noflux, 2, sizeof(cl_mem), &d_cscl);
+
+  ret = clSetKernelArg(ker_apply_BC_phi_x0_periodic, 0, sizeof(cl_mem), &d_gridinfomN);
+  ret = clSetKernelArg(ker_apply_BC_phi_x0_periodic, 1, sizeof(cl_mem), &d_pfmdat);
+  ret = clSetKernelArg(ker_apply_BC_phi_x0_periodic, 2, sizeof(cl_mem), &d_cscl);
+
+  ret = clSetKernelArg(ker_apply_BC_phi_xn_periodic, 0, sizeof(cl_mem), &d_gridinfomN);
+  ret = clSetKernelArg(ker_apply_BC_phi_xn_periodic, 1, sizeof(cl_mem), &d_pfmdat);
+  ret = clSetKernelArg(ker_apply_BC_phi_xn_periodic, 2, sizeof(cl_mem), &d_cscl);
+//
+
+  ret = clSetKernelArg(ker_apply_BC_com_y0_noflux, 0, sizeof(cl_mem), &d_gridinfomN);
+  ret = clSetKernelArg(ker_apply_BC_com_y0_noflux, 1, sizeof(cl_mem), &d_pfmdat);
+  ret = clSetKernelArg(ker_apply_BC_com_y0_noflux, 2, sizeof(cl_mem), &d_cscl);
+
+  ret = clSetKernelArg(ker_apply_BC_com_yn_noflux, 0, sizeof(cl_mem), &d_gridinfomN);
+  ret = clSetKernelArg(ker_apply_BC_com_yn_noflux, 1, sizeof(cl_mem), &d_pfmdat);
+  ret = clSetKernelArg(ker_apply_BC_com_yn_noflux, 2, sizeof(cl_mem), &d_cscl);
+
+  ret = clSetKernelArg(ker_apply_BC_com_y0_periodic, 0, sizeof(cl_mem), &d_gridinfomN);
+  ret = clSetKernelArg(ker_apply_BC_com_y0_periodic, 1, sizeof(cl_mem), &d_pfmdat);
+  ret = clSetKernelArg(ker_apply_BC_com_y0_periodic, 2, sizeof(cl_mem), &d_cscl);
+
+  ret = clSetKernelArg(ker_apply_BC_com_yn_periodic, 0, sizeof(cl_mem), &d_gridinfomN);
+  ret = clSetKernelArg(ker_apply_BC_com_yn_periodic, 1, sizeof(cl_mem), &d_pfmdat);
+  ret = clSetKernelArg(ker_apply_BC_com_yn_periodic, 2, sizeof(cl_mem), &d_cscl);
+  
+  ret = clSetKernelArg(ker_apply_BC_com_z0_noflux, 0, sizeof(cl_mem), &d_gridinfomN);
+  ret = clSetKernelArg(ker_apply_BC_com_z0_noflux, 1, sizeof(cl_mem), &d_pfmdat);
+  ret = clSetKernelArg(ker_apply_BC_com_z0_noflux, 2, sizeof(cl_mem), &d_cscl);
+
+  ret = clSetKernelArg(ker_apply_BC_com_zn_noflux, 0, sizeof(cl_mem), &d_gridinfomN);
+  ret = clSetKernelArg(ker_apply_BC_com_zn_noflux, 1, sizeof(cl_mem), &d_pfmdat);
+  ret = clSetKernelArg(ker_apply_BC_com_zn_noflux, 2, sizeof(cl_mem), &d_cscl);
+
+  ret = clSetKernelArg(ker_apply_BC_com_z0_periodic, 0, sizeof(cl_mem), &d_gridinfomN);
+  ret = clSetKernelArg(ker_apply_BC_com_z0_periodic, 1, sizeof(cl_mem), &d_pfmdat);
+  ret = clSetKernelArg(ker_apply_BC_com_z0_periodic, 2, sizeof(cl_mem), &d_cscl);
+
+  ret = clSetKernelArg(ker_apply_BC_com_zn_periodic, 0, sizeof(cl_mem), &d_gridinfomN);
+  ret = clSetKernelArg(ker_apply_BC_com_zn_periodic, 1, sizeof(cl_mem), &d_pfmdat);
+  ret = clSetKernelArg(ker_apply_BC_com_zn_periodic, 2, sizeof(cl_mem), &d_cscl);
+  
+  ret = clSetKernelArg(ker_apply_BC_com_x0_noflux, 0, sizeof(cl_mem), &d_gridinfomN);
+  ret = clSetKernelArg(ker_apply_BC_com_x0_noflux, 1, sizeof(cl_mem), &d_pfmdat);
+  ret = clSetKernelArg(ker_apply_BC_com_x0_noflux, 2, sizeof(cl_mem), &d_cscl);
+
+  ret = clSetKernelArg(ker_apply_BC_com_xn_noflux, 0, sizeof(cl_mem), &d_gridinfomN);
+  ret = clSetKernelArg(ker_apply_BC_com_xn_noflux, 1, sizeof(cl_mem), &d_pfmdat);
+  ret = clSetKernelArg(ker_apply_BC_com_xn_noflux, 2, sizeof(cl_mem), &d_cscl);
+
+  ret = clSetKernelArg(ker_apply_BC_com_x0_periodic, 0, sizeof(cl_mem), &d_gridinfomN);
+  ret = clSetKernelArg(ker_apply_BC_com_x0_periodic, 1, sizeof(cl_mem), &d_pfmdat);
+  ret = clSetKernelArg(ker_apply_BC_com_x0_periodic, 2, sizeof(cl_mem), &d_cscl);
+
+  ret = clSetKernelArg(ker_apply_BC_com_xn_periodic, 0, sizeof(cl_mem), &d_gridinfomN);
+  ret = clSetKernelArg(ker_apply_BC_com_xn_periodic, 1, sizeof(cl_mem), &d_pfmdat);
+  ret = clSetKernelArg(ker_apply_BC_com_xn_periodic, 2, sizeof(cl_mem), &d_cscl);
+  
+
+  ret = clSetKernelArg(ker_addNoise, 0, sizeof(cl_mem), &d_gridinfomN);
+  ret = clSetKernelArg(ker_addNoise, 1, sizeof(cl_mem), &d_pfmdat);
+
+  ret = clSetKernelArg(ker_copy_New_To_Old, 0, sizeof(cl_mem), &d_gridinfomO);
+  ret = clSetKernelArg(ker_copy_New_To_Old, 1, sizeof(cl_mem), &d_gridinfomN);
+  ret = clSetKernelArg(ker_copy_New_To_Old, 2, sizeof(cl_mem), &d_pfmdat);
 
   for ( i = 0; i < 3; i++ ) { 
-    ret = clSetKernelArg(kernel10[i], 0, sizeof(cl_mem), &d_temp);
+    ret = clSetKernelArg(kernel10[i], 0, sizeof(cl_mem), &d_gridinfomN);
     ret = clSetKernelArg(kernel10[i], 1, sizeof(cl_mem), &d_tstep);
     ret = clSetKernelArg(kernel10[i], 2, sizeof(cl_mem), &d_pfmdat);
     ret = clSetKernelArg(kernel10[i], 3, sizeof(cl_mem), &d_pfmvar);
   }
 
   for ( i = 0; i < 2; i++ ) {
-    ret = clSetKernelArg(kernel11[i], 0, sizeof(cl_mem), &d_temp);
+    ret = clSetKernelArg(kernel11[i], 0, sizeof(cl_mem), &d_gridinfomN);
     ret = clSetKernelArg(kernel11[i], 1, sizeof(cl_mem), &d_tstep);
     ret = clSetKernelArg(kernel11[i], 2, sizeof(cl_mem), &d_pfmdat);
     ret = clSetKernelArg(kernel11[i], 3, sizeof(cl_mem), &d_pfmvar);
   }
+
+
+
+  ret = clSetKernelArg(ker_apply_BC_ela_y0_noflux, 0, sizeof(cl_mem), &d_iter_gridinfom);
+  ret = clSetKernelArg(ker_apply_BC_ela_y0_noflux, 1, sizeof(cl_mem), &d_pfmdat);
+  ret = clSetKernelArg(ker_apply_BC_ela_y0_noflux, 2, sizeof(cl_mem), &d_cscl);
+
+  ret = clSetKernelArg(ker_apply_BC_ela_yn_noflux, 0, sizeof(cl_mem), &d_iter_gridinfom);
+  ret = clSetKernelArg(ker_apply_BC_ela_yn_noflux, 1, sizeof(cl_mem), &d_pfmdat);
+  ret = clSetKernelArg(ker_apply_BC_ela_yn_noflux, 2, sizeof(cl_mem), &d_cscl);
+
+  ret = clSetKernelArg(ker_apply_BC_ela_y0_periodic, 0, sizeof(cl_mem), &d_iter_gridinfom);
+  ret = clSetKernelArg(ker_apply_BC_ela_y0_periodic, 1, sizeof(cl_mem), &d_pfmdat);
+  ret = clSetKernelArg(ker_apply_BC_ela_y0_periodic, 2, sizeof(cl_mem), &d_cscl);
+
+  ret = clSetKernelArg(ker_apply_BC_ela_yn_periodic, 0, sizeof(cl_mem), &d_iter_gridinfom);
+  ret = clSetKernelArg(ker_apply_BC_ela_yn_periodic, 1, sizeof(cl_mem), &d_pfmdat);
+  ret = clSetKernelArg(ker_apply_BC_ela_yn_periodic, 2, sizeof(cl_mem), &d_cscl);
+
+  ret = clSetKernelArg(ker_apply_BC_ela_z0_noflux, 0, sizeof(cl_mem), &d_iter_gridinfom);
+  ret = clSetKernelArg(ker_apply_BC_ela_z0_noflux, 1, sizeof(cl_mem), &d_pfmdat);
+  ret = clSetKernelArg(ker_apply_BC_ela_z0_noflux, 2, sizeof(cl_mem), &d_cscl);
+
+  ret = clSetKernelArg(ker_apply_BC_ela_zn_noflux, 0, sizeof(cl_mem), &d_iter_gridinfom);
+  ret = clSetKernelArg(ker_apply_BC_ela_zn_noflux, 1, sizeof(cl_mem), &d_pfmdat);
+  ret = clSetKernelArg(ker_apply_BC_ela_zn_noflux, 2, sizeof(cl_mem), &d_cscl);
+
+  ret = clSetKernelArg(ker_apply_BC_ela_z0_periodic, 0, sizeof(cl_mem), &d_iter_gridinfom);
+  ret = clSetKernelArg(ker_apply_BC_ela_z0_periodic, 1, sizeof(cl_mem), &d_pfmdat);
+  ret = clSetKernelArg(ker_apply_BC_ela_z0_periodic, 2, sizeof(cl_mem), &d_cscl);
+
+  ret = clSetKernelArg(ker_apply_BC_ela_zn_periodic, 0, sizeof(cl_mem), &d_iter_gridinfom);
+  ret = clSetKernelArg(ker_apply_BC_ela_zn_periodic, 1, sizeof(cl_mem), &d_pfmdat);
+  ret = clSetKernelArg(ker_apply_BC_ela_zn_periodic, 2, sizeof(cl_mem), &d_cscl);
+
+  ret = clSetKernelArg(ker_apply_BC_ela_x0_noflux, 0, sizeof(cl_mem), &d_iter_gridinfom);
+  ret = clSetKernelArg(ker_apply_BC_ela_x0_noflux, 1, sizeof(cl_mem), &d_pfmdat);
+  ret = clSetKernelArg(ker_apply_BC_ela_x0_noflux, 2, sizeof(cl_mem), &d_cscl);
+
+  ret = clSetKernelArg(ker_apply_BC_ela_xn_noflux, 0, sizeof(cl_mem), &d_iter_gridinfom);
+  ret = clSetKernelArg(ker_apply_BC_ela_xn_noflux, 1, sizeof(cl_mem), &d_pfmdat);
+  ret = clSetKernelArg(ker_apply_BC_ela_xn_noflux, 2, sizeof(cl_mem), &d_cscl);
+
+  ret = clSetKernelArg(ker_apply_BC_ela_x0_periodic, 0, sizeof(cl_mem), &d_iter_gridinfom);
+  ret = clSetKernelArg(ker_apply_BC_ela_x0_periodic, 1, sizeof(cl_mem), &d_pfmdat);
+  ret = clSetKernelArg(ker_apply_BC_ela_x0_periodic, 2, sizeof(cl_mem), &d_cscl);
+
+  ret = clSetKernelArg(ker_apply_BC_ela_xn_periodic, 0, sizeof(cl_mem), &d_iter_gridinfom);
+  ret = clSetKernelArg(ker_apply_BC_ela_xn_periodic, 1, sizeof(cl_mem), &d_pfmdat);
+  ret = clSetKernelArg(ker_apply_BC_ela_xn_periodic, 2, sizeof(cl_mem), &d_cscl);
+
+  printf("Exit CL_create_kernel_args\n");
+
 
 
 }

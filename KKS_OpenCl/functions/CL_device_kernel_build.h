@@ -8,6 +8,8 @@
 
 
 void CL_device_kernel_build() {
+
+  printf("In CL_device_kernel_build\n");
   
   // Get all platforms
   ret = clGetPlatformIDs(0, NULL, &ret_num_platforms);
@@ -19,10 +21,20 @@ void CL_device_kernel_build() {
   if ( rank == 0 ) { 
     printf("No. of platforms %d\n", ret_num_platforms);
   }
-  
+
   if ( ret_num_platforms == 0 ) { 
-    printf("----------------------------------------\n");
-    printf(" OpenCL is not installed on this machine\n");
+    printf("\n-------------------------------------------\n");
+    printf("ERROR:\n");
+    printf("\t OpenCL installation is not available on this machine \t\n");
+    printf("\n-------------------------------------------\n");
+    exit(1);
+  }
+
+  if (platformnumber > ret_num_platforms-1) {
+    printf("\n-------------------------------------------\n");
+    printf("ERROR:\n");
+    printf("Choosen platformID is greater than available platforms\n");
+    printf("\n-------------------------------------------\n");
     exit(1);
   }
 
@@ -93,21 +105,37 @@ void CL_device_kernel_build() {
     }
   }
 
+  if (numtasks == 1) {
+    device_run = devicenumber;
+  }
+  else {
+    device_run = rank%ret_num_devices;
+  }
+
+  if (device_run > ret_num_devices-1) {
+    printf("\n-------------------------------------------\n");
+    printf("ERROR:\n");
+    printf("Choosen deviceID is greater than no. of available devices\n");
+    printf("\n-------------------------------------------\n");
+    exit(1);
+  }
+
+
   //device_run = rank%ret_num_devices;
 
-  device_run = devicenumber;
+  //device_run = devicenumber;
 
-  /*
-  if ( (rank%2 == 0) ) {
+
+  /*if ( (rank%2 == 0) ) {
     device_run = 0;
   }
   else {
     device_run = 1;
-  }
-  */
+  }*/
+
 
   printf("\n*******************************************************************\n");
-  printf("*    DeviceId = %d is choosen by rank = %d        *\n", device_run, rank);
+  printf("*    DeviceId = %d is choosen         *\n", device_run);
   printf("*******************************************************************\n\n");
 
 

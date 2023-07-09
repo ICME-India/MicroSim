@@ -63,6 +63,26 @@ void fill_phase_cube (struct fill_cube fill_cube_parameters, struct fields* grid
     }
   }
 }
+void fill_cube_pattern(long cube_x, long cube_y, long cube_z) {
+  long num;
+  long phase;
+  long x, z;
+  for(x=0;x < rows_x; x=x+cube_x) {
+    for(z=0; z < rows_z; z=z+cube_z) {
+      fill_cube_parameters.x_start = x          + start[X];
+      fill_cube_parameters.x_end   = (x+cube_x) + start[X];
+      fill_cube_parameters.y_start =              start[Y];
+      fill_cube_parameters.y_end   = cube_y     + start[Y];
+      fill_cube_parameters.z_start = z          + start[Z];
+      fill_cube_parameters.z_end   = (z+cube_z) + start[Z];
+      clock_t SEED = clock();
+      num = lrand48();
+      phase = num%(NUMPHASES-1);
+      fill_phase_cube(fill_cube_parameters, gridinfo, phase);
+    }
+  }
+  fill_phase_cube(fill_cube_parameters, gridinfo, NUMPHASES-1);
+}
 
 void fill_phase_ellipse (struct fill_ellipse fill_ellipse_parameters, struct fields* gridinfo, long b) {
   long x, y, z, gidy;
@@ -297,7 +317,7 @@ void fill_phase_sphere_random(long phase, double ppt_radius, double volume_fract
   double volume_per_particle = (double)(ppt_radius*ppt_radius*ppt_radius)*(4.0/3.0)*M_PI;
 
   int num_particles = ceil(volume_domain*volume_fraction/volume_per_particle);
-  printf("Domain volume = %le, ppt_radius = %le, volume_per_particle = %le, Number of particles = %d\n", volume_domain, ppt_radius, volume_per_particle, num_particles);
+  printf("Domain volume = %lf, ppt_radius = %le, volume_per_particle = %lf, Number of particles = %d\n", volume_domain, ppt_radius, volume_per_particle, num_particles);
 
   long particle_index = 1, random_count = 0, random_limit = 1e+5;
 
@@ -414,7 +434,7 @@ void fill_phase_cylinder_random(long phase, double ppt_radius, double volume_fra
     double volume_per_particle = (double)(ppt_radius*ppt_radius)*M_PI;
 
     int num_particles = ceil(volume_domain*volume_fraction/volume_per_particle);
-    printf("Domain volume = %le, ppt_radius = %le, volume_per_particle = %le, Number of particles = %d\n", volume_domain, ppt_radius, volume_per_particle, num_particles);
+    printf("Domain volume = %lf, ppt_radius = %le, volume_per_particle = %lf, Number of particles = %d\n", volume_domain, ppt_radius, volume_per_particle, num_particles);
 
     long particle_index = 1, random_count = 0, random_limit = 1e+4;
 
@@ -467,8 +487,183 @@ void fill_phase_cylinder_random(long phase, double ppt_radius, double volume_fra
     fill_phase_cylinder_occupancy(temp_cyl, gridinfo, NUMPHASES-1, occupancy);
     free(occupancy);
 }
+void fill_phase_voronoi_2D(struct fill_cube fill_cube_parameters, struct fields* gridinfo, long NUMPOINTS_VORONOI, double size_min) {
+  long x, y, gidy, gidy1;
+  long limit_x, limit_y;
+//   static long A = 1000;
+  int k, location, s;
+//   double n[NUMPOINTS_VORONOI], m[NUMPOINTS_VORONOI], l[NUMPOINTS_VORONOI], minimum;
+//   long phase[NUMPOINTS_VORONOI];
+//   int FLAG[rows_x*rows_y];
+  double *n, *m, *p, *l, minimum;
+  long *phase;
+  int *FLAG;
+  
+  FLAG  = (int*)malloc(sizeof(int)*rows_x*rows_y);
+  n     = (double *)malloc(sizeof(double)*NUMPOINTS_VORONOI);
+  m     = (double *)malloc(sizeof(double)*NUMPOINTS_VORONOI);
+  p     = (double *)malloc(sizeof(double)*NUMPOINTS_VORONOI);
+  l     = (double *)malloc(sizeof(double)*NUMPOINTS_VORONOI);
+  phase = (long *)malloc(sizeof(long)*NUMPOINTS_VORONOI);
+  
+  long rand_x, rand_y;
+  //static long size_min=400; 
+  int PHASE_FILLED=0;  
 
+  limit_x =  fill_cube_parameters.x_end - fill_cube_parameters.x_start;
+  limit_y =  fill_cube_parameters.y_end - fill_cube_parameters.y_start;
+  
+  for(k=0;k<NUMPOINTS_VORONOI;k++) {
+    while (PHASE_FILLED!=1) {
+      rand_x = fill_cube_parameters.x_start + (drand48())*limit_x;
+      rand_y = fill_cube_parameters.y_start + (drand48())*limit_y;
+      gidy = rand_x*rows_y + rand_y;
+      if (FLAG[gidy]!=1) {
+        n[k] = rand_x;
+        m[k] = rand_y;
+        for(x=fill_cube_parameters.x_start;x<fill_cube_parameters.x_end;x++){
+         for (y=fill_cube_parameters.y_start; y<fill_cube_parameters.y_end; y++) {
+          if ((m[k]-y)*(m[k]-y) +(n[k]-x)*(n[k]-x) <= size_min*size_min) {
+            gidy1 = x*rows_y + y;
+            FLAG[gidy1] = 1;
+          }
+        }
+      }
+      PHASE_FILLED=1;
+    }
+   }
+   PHASE_FILLED=0;
+  }
+  for(k=0;k<NUMPOINTS_VORONOI;k++) {
+    phase[k] = lrand48()%(NUMPHASES-1);
+  }
+  for(x=fill_cube_parameters.x_start;x<fill_cube_parameters.x_end;x++) {
+    for (y=fill_cube_parameters.y_start; y<fill_cube_parameters.y_end; y++) {
+      gidy   = x*rows_y + y;
+      for(k=0; k<NUMPOINTS_VORONOI; k++) { 
+        l[k] = (n[k]-x)*(n[k]-x) + (m[k]-y)*(m[k]-y);
+      }
+      minimum  = l[0];
+      location = 0;
+      
+      for(k=0;k<NUMPOINTS_VORONOI;k++) {
+        if(l[k]<minimum) {
+          minimum  = l[k];
+          location = phase[k];
+        }
+      }
+      for(s=0;s<NUMPHASES-1;s++) {
+        if(location == s) {
+          gridinfo[gidy].phia[s] = 1.0;
+        }
+        if(location != s) {
+          gridinfo[gidy].phia[s] = 0.0; 
+        }
+      }
+    }
+  }
+  fill_phase_cube(fill_cube_parameters, gridinfo, NUMPHASES-1);
+  free(FLAG);
+  free(n);
+  free(m);
+  free(p);
+  free(l);
+  free(phase);
+}
+void fill_phase_voronoi_3D(struct fill_cube fill_cube_parameters, struct fields* gridinfo, long NUMPOINTS_VORONOI, double size_min) {
+  long x, y, z, gidy, gidy1;
+  long limit_x, limit_y, limit_z;
+//   static long A = 1000;
+  int k, location, s;
+//   double n[NUMPOINTS_VORONOI], m[NUMPOINTS_VORONOI], p[NUMPOINTS_VORONOI], l[NUMPOINTS_VORONOI], minimum;
+//   long phase[NUMPOINTS_VORONOI];
+  
+  double *n, *m, *p, *l, minimum;
+  long *phase;
+  
+//   int FLAG[rows_x*rows_y*rows_z];
+  int *FLAG;
+  FLAG  = (int*)malloc(sizeof(int)*rows_x*rows_y*rows_z);
+  n     = (double *)malloc(sizeof(double)*NUMPOINTS_VORONOI);
+  m     = (double *)malloc(sizeof(double)*NUMPOINTS_VORONOI);
+  p     = (double *)malloc(sizeof(double)*NUMPOINTS_VORONOI);
+  l     = (double *)malloc(sizeof(double)*NUMPOINTS_VORONOI);
+  phase = (long *)malloc(sizeof(long)*NUMPOINTS_VORONOI);
+  long rand_x, rand_y, rand_z;
+  //static long size_min=400; 
+  int PHASE_FILLED=0;  
 
+  limit_x =  fill_cube_parameters.x_end - fill_cube_parameters.x_start;
+  limit_y =  fill_cube_parameters.y_end - fill_cube_parameters.y_start;
+  limit_z =  fill_cube_parameters.z_end - fill_cube_parameters.z_start;
+
+  for(k=0;k<NUMPOINTS_VORONOI;k++) {
+    while (PHASE_FILLED!=1) {
+      rand_x = fill_cube_parameters.x_start + (drand48())*(limit_x-1);
+      rand_y = fill_cube_parameters.y_start + (drand48())*(limit_y-1);
+      rand_z = fill_cube_parameters.z_start + (drand48())*(limit_z-1);
+
+      gidy = rand_x*layer_size + rand_z*rows_y + rand_y;
+      
+      if (FLAG[gidy]!=1) {
+        n[k] = rand_x;
+        m[k] = rand_y;
+        p[k] = rand_z;
+        for(x=fill_cube_parameters.x_start;x < fill_cube_parameters.x_end;x++) {
+         for (y=fill_cube_parameters.y_start; y < fill_cube_parameters.y_end; y++) {
+           for (z=fill_cube_parameters.z_start; z < fill_cube_parameters.z_end; z++) {
+            if ((m[k]-y)*(m[k]-y) + (n[k]-x)*(n[k]-x) + (p[k]-z)*(p[k]-z) <= size_min*size_min) {
+              gidy1 = x*layer_size + z*rows_y + y;
+              FLAG[gidy1] = 1;
+            }
+          }
+        }
+      }
+      PHASE_FILLED=1;
+    }
+   }
+   PHASE_FILLED=0;
+  }
+  
+  for(k=0;k<NUMPOINTS_VORONOI;k++) {
+    phase[k] = lrand48()%(NUMPHASES-1);
+  }
+ 
+  for(x=fill_cube_parameters.x_start; x < fill_cube_parameters.x_end; x++) {
+    for (y=fill_cube_parameters.y_start; y < fill_cube_parameters.y_end; y++) {
+      for (z=fill_cube_parameters.z_start; z < fill_cube_parameters.z_end; z++) {
+        gidy   = x*layer_size + z*rows_y + y;
+        for(k=0; k<NUMPOINTS_VORONOI; k++) { 
+          l[k] = (n[k]-x)*(n[k]-x) + (m[k]-y)*(m[k]-y) + (p[k]-z)*(p[k]-z);
+        }
+        minimum  = l[0];
+        location = 0;
+        
+        for(k=0;k<NUMPOINTS_VORONOI;k++) {
+          if(l[k]<minimum) {
+            minimum  = l[k];
+            location = phase[k];
+          }
+        }
+        for(s=0;s<NUMPHASES-1;s++) {
+          if(location == s) {
+            gridinfo[gidy].phia[s] = 1.0;
+          }
+          if(location != s) {
+            gridinfo[gidy].phia[s] = 0.0; 
+          }
+        }
+      }
+    }
+  }
+  fill_phase_cube(fill_cube_parameters, gridinfo, NUMPHASES-1);
+  free(FLAG);
+  free(n);
+  free(m);
+  free(p);
+  free(l);
+  free(phase);
+}
 void fill_composition_cube(struct fields* gridinfo) {
   long x, y, z, index;
   long k;
@@ -487,13 +682,13 @@ void fill_composition_cube(struct fields* gridinfo) {
             for (k=0; k < NUMCOMPONENTS-1; k++) {
               c[k] = ceq[b][b][k];
             }
-            //init_propertymatrices(Teq);
-            // chemical_potential = 2.0*ceq[NUMPHASES-1][NUMPHASES-1][0];
-            Mu(c, Teq, b, gridinfo[index].compi);
+//             init_propertymatrices(Teq);
+            Mu(c, Teq, b, gridinfo[index].compi); 
             for (k=0; k < NUMCOMPONENTS-1; k++) {
-              //chemical_potential = Mu(c, Teq, b, k);
-              gridinfo[index].composition[k] = c[k];//chemical_potential;
-              // printf("solid_chemical_potential=%le\n",gridinfo[gidy].compi[k]);
+//               chemical_potential = Mu(c, Teq, b, k);
+//               gridinfo[index].compi[k] = chemical_potential;
+              gridinfo[index].composition[k] = c[k];
+  //             printf("solid_chemical_potential=%le\n",gridinfo[gidy].compi[k]);
             }
             PHASE_FILLED =1;
             break;
@@ -509,19 +704,18 @@ void fill_composition_cube(struct fields* gridinfo) {
 //           init_propertymatrices(Teq);
           Mu(c, Teq, NUMPHASES-1, gridinfo[index].compi); 
           for (k=0; k < NUMCOMPONENTS-1; k++) {
-            //chemical_potential = Mu(c, Teq, NUMPHASES-1, k);
-//             printf("chemical_potential =%le\n", chemical_potential);
-            gridinfo[index].composition[k] = c[k];
+//             chemical_potential = Mu(c, Teq, NUMPHASES-1, k);
+// //             printf("chemical_potential =%le\n", chemical_potential);
+//             gridinfo[index].compi[k] = chemical_potential;
+             gridinfo[index].composition[k] = c[k]; 
           }
         }
-        //printf("%ld, %ld, %ld, %le\n", x, y, z, gridinfo[index].composition[0]);
       }
     }
   }
 //   exit(0);
-  //init_propertymatrices(T);
+//   init_propertymatrices(T);
 }
-
 #endif
 
 

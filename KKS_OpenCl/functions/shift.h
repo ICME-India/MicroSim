@@ -33,7 +33,7 @@ void apply_shiftY(struct fields* gridinfo, long INTERFACE_POS_GLOBAL) {
         for (k=0; k < NUMCOMPONENTS-1; k++) {
 //          c[k] = ceq[NUMPHASES-1][NUMPHASES-1][k];
           //c[k] = cfill[NUMPHASES-1][NUMPHASES-1][k];
-          c[k] = cfill[1][1][0];
+          c[k] = cfill[NUMPHASES-1][NUMPHASES-1][k];
         }
         Mu(c, Teq, NUMPHASES-1, gridinfo[gidy].compi); 
         for (k=0; k < NUMCOMPONENTS-1; k++) {
@@ -77,21 +77,27 @@ void apply_shiftY_cscl(struct csle *cscl, long INTERFACE_POS_GLOBAL) {
   double chemical_potential;
   double c[NUMCOMPONENTS-1];
   
-  for(x=0; x < rows_x; x++) {
-    for(z=0; z < rows_z; z++) {
-      for (y=0; y <= (rows_y-1-(INTERFACE_POS_GLOBAL-shiftj)); y++) {
-        gidy = x*layer_size + z*rows_y + y;
-        cscl[gidy].c1l = cscl[gidy+(INTERFACE_POS_GLOBAL-shiftj)].c1l;
-        cscl[gidy].c1s = cscl[gidy+(INTERFACE_POS_GLOBAL-shiftj)].c1s;
-      }
-      
-      for (y=(rows_y-(INTERFACE_POS_GLOBAL-shiftj)); y<=(rows_y-1); y++) {
-        gidy = x*layer_size + z*rows_y + y;
-        cscl[gidy].c1l = ceq[1][1][0];
-        cscl[gidy].c1s = ceq[0][0][0];
-      }
-    }
-  }
+  //for(x=0; x < rows_x; x++) {
+  //  for(z=0; z < rows_z; z++) {
+  //    for (y=0; y <= (rows_y-1-(INTERFACE_POS_GLOBAL-shiftj)); y++) {
+  //      gidy = x*layer_size + z*rows_y + y;
+  //      for (b=0; b < NUMPHASES; b++) {
+  //        for (k=0; k < NUMCOMPONENTS-1; k++) {
+  //          cscl[gidy].comie[b][k] = cscl[gidy+(INTERFACE_POS_GLOBAL-shiftj)].comie[b][k];
+  //        }
+  //      }
+  //    }
+  //    
+  //    for (y=(rows_y-(INTERFACE_POS_GLOBAL-shiftj)); y<=(rows_y-1); y++) {
+  //      gidy = x*layer_size + z*rows_y + y;
+  //      for (b=0; b < NUMPHASES; b++) {
+  //        for (k=0; k < NUMCOMPONENTS-1; k++) {
+  //          cscl[gidy].comie[b][k] = ceq[b][b][k];
+  //        }
+  //      }
+  //    }
+  //  }
+  //}
 }
 
 #endif

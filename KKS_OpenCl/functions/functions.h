@@ -46,6 +46,13 @@ void read_cells_vtk_2D_binary(FILE *fp, struct fields *gridinfo);
 void readfromfile_serial2D_binary(struct fields* gridinfo, char *argv[], long t);
 void apply_temperature_gradientY(struct fields* gridinfo, long shift_OFFSET, long t);
 void apply_shiftY_cscl(struct csle *cscl, long INTERFACE_POS_GLOBAL);
+void mpi_xy(int rank, char *argv[]);
+
+void read_cells_vtk_mpi(FILE *fp, struct fields *gridinfo);
+void readfromfile_serialmpi(struct fields* gridinfo, char *argv[], long t);
+void read_cells_vtk_mpi_binary(FILE *fp, struct fields *gridinfo);
+void readfromfile_serialmpi_binary(struct fields* gridinfo, char *argv[], long t);
+
 #endif
 
 

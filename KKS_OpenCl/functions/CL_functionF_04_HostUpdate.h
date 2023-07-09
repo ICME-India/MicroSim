@@ -21,9 +21,9 @@ void propf4Hostupdate(struct propmatf4 *propf4) {
       propf4->B[ip][is] = B[ip][is]; 
       printf("%d, %d, B = %le\n", ip, is, propf4->B[ip][is]);
       propf4->Beq[ip][is] = Beq[ip][is]; 
-      printf("%d, %d, Beq = %le\n", ip, is, propf4->Beq[ip][is]);
+      //printf("%d, %d, Beq = %le\n", ip, is, propf4->Beq[ip][is]);
       propf4->dBbdT[ip][is] = dBbdT[ip][is]; 
-      printf("%d, %d, dBbdT = %le\n", ip, is, propf4->dBbdT[ip][is]);
+      //printf("%d, %d, dBbdT = %le\n", ip, is, propf4->dBbdT[ip][is]);
     }
     propf4->C[ip] = C[ip]; 
     printf("%d, C = %le\n", ip, propf4->C[ip]);
@@ -41,4 +41,7 @@ void propf4Hostupdate(struct propmatf4 *propf4) {
       }
     }
   }
+
+  printf(" Exit propf4Hosrupdate \n");
+
 }

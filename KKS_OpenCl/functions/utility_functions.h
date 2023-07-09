@@ -290,7 +290,41 @@ void populate_thermodynamic_matrix(double ***Mat, char *tmpstr, long NUMCOMPONEN
   free(tmp);
   tmp = NULL;
 }
-
+void populate_symmetric_tensor(struct symmetric_tensor *Mat, char *tmpstr, long NUMPHASES) {
+  char **tmp;
+  char *str1, *str2, *token;
+  char *saveptr1, *saveptr2;
+  
+  int i,j,k,l;
+  long len = 7;
+  long phase;
+  
+  tmp = (char**)malloc(sizeof(char*)*len);
+  for (i = 0; i < len; ++i) {
+    tmp[i] = (char*)malloc(sizeof(char)*10);
+  }
+  for (i = 0, str1 = tmpstr; ; i++, str1 = NULL) {
+    token = strtok_r(str1, "{,}", &saveptr1);
+    if (token == NULL)
+        break;
+    strcpy(tmp[i],token);
+  }
+  phase = atoi(tmp[0]);
+  
+  Mat[phase].xx = atof(tmp[1]);
+  Mat[phase].yy = atof(tmp[2]);
+  Mat[phase].zz = atof(tmp[3]);
+  Mat[phase].yz = atof(tmp[4]);
+  Mat[phase].xz = atof(tmp[5]);
+  Mat[phase].xy = atof(tmp[6]);
+  
+  
+  for (i = 0; i < len; ++i) {
+    free(tmp[i]);
+  }
+  free(tmp);
+  tmp = NULL;
+}
 void populate_string_array(char**string, char *tmpstr, long size) {
   char **tmp;
   char *str1, *str2, *token;
@@ -311,6 +345,40 @@ void populate_string_array(char**string, char *tmpstr, long size) {
       string[i][strlen(string[i])-1] = '\0';
     }
   }
+}
+void populate_cubic_stiffness(struct Stiffness_cubic *Mat, char *tmpstr) {
+  char **tmp;
+  char *str1, *str2, *token;
+  char *saveptr1, *saveptr2;
+  int i,l;
+  
+  long len = 4;
+  long phase;
+  
+  tmp = (char**)malloc(sizeof(char*)*len);
+  for (i = 0; i < len; ++i) {
+    tmp[i] = (char*)malloc(sizeof(char)*10);
+  }
+  
+  for (i = 0, str1 = tmpstr; ; i++, str1 = NULL) {
+    token = strtok_r(str1, "{,}", &saveptr1);
+    if (token == NULL)
+        break;
+    strcpy(tmp[i],token);
+  }
+  
+  phase = atoi(tmp[0]);
+  
+  Mat[phase].C11 = atof(tmp[1]);
+  Mat[phase].C12 = atof(tmp[2]);
+  Mat[phase].C44 = atof(tmp[3]);
+ 
+  
+  for (i = 0; i < len; ++i) {
+    free(tmp[i]);
+  }
+  free(tmp);
+  tmp = NULL;
 }
 void initialize_boundary_conditions(char *tmpstr) {
   char **tmp;
@@ -347,11 +415,14 @@ void initialize_boundary_conditions(char *tmpstr) {
   if (strcmp(tmp[0], "phi") == 0) {
     assign_buffer_points_conditions(0, BOUNDARY_LEFT, BOUNDARY_RIGHT, BOUNDARY_FRONT, BOUNDARY_BACK, BOUNDARY_TOP, BOUNDARY_BOTTOM);
   }
-  if (strcmp(tmp[0], "c") == 0) {
+  if (strcmp(tmp[0], "mu") == 0) {
     assign_buffer_points_conditions(1, BOUNDARY_LEFT, BOUNDARY_RIGHT, BOUNDARY_FRONT, BOUNDARY_BACK, BOUNDARY_TOP, BOUNDARY_BOTTOM);
   }
   if (strcmp(tmp[0], "T") == 0) {
     assign_buffer_points_conditions(2, BOUNDARY_LEFT, BOUNDARY_RIGHT, BOUNDARY_FRONT, BOUNDARY_BACK, BOUNDARY_TOP, BOUNDARY_BOTTOM);
+  }
+  if (strcmp(tmp[0], "u") == 0) {
+    assign_buffer_points_conditions(3, BOUNDARY_LEFT, BOUNDARY_RIGHT, BOUNDARY_FRONT, BOUNDARY_BACK, BOUNDARY_TOP, BOUNDARY_BOTTOM);
   }
   
   for (i = 0; i < len; ++i) {
@@ -402,6 +473,9 @@ void initialize_boundary_points_values(char *tmpstr) {
   if (strcmp(tmp[0], "T") == 0) {
    assign_boundary_points_values(2, val[1], val[0], val[2], val[3], val[4], val[5]);
   } 
+  if (strcmp(tmp[0], "u") == 0) {
+   assign_boundary_points_values(3, val[1], val[0], val[2], val[3], val[4], val[5]);
+  }
   
   for (i = 0; i < len; ++i) {
     free(tmp[i]);
@@ -479,6 +553,14 @@ void assign_buffer_points_conditions(long j, int BOUNDARY_LEFT, int BOUNDARY_RIG
   if (DIMENSION == 2) {
     boundary[4][j].type = 0;
     boundary[5][j].type = 0;
+  }
+  
+  long i;
+  
+  for(i=0; i<6; i++) {
+    if((boundary[0][j].type == 2) || (boundary[0][j].type == 0)) {
+      fprintf(stdout, "DIRICHLET and FREE boundary conditions have not yet been implemented. Please wait for next release. Will default to PERIODIC\n");
+    }
   }
 }
 
@@ -695,7 +777,7 @@ void populate_rotation_matrix(double ****Mat, double ****Mat_Inv, char *tmpstr) 
     for (j=0; j<3; j++) {
       Mat[phase2][phase1][i][j]     = Mat[phase1][phase2][i][j];
       Mat_Inv[phase2][phase1][i][j] = Mat_Inv[phase1][phase2][i][j];
-      //printf("%le ",Mat_Inv[phase2][phase1][i][j]);
+      //printf("%le ",Mat[phase2][phase1][i][j]);
     }
     //printf("\n");
   }
@@ -776,6 +858,43 @@ void PRINT_STRING_ARRAY(char *key, char **str, long m, FILE *fp) {
   }
   fprintf(fp,"\n");
 }
+void PRINT_SYMMETRIC_TENSOR(char *key, struct symmetric_tensor e, FILE *fp) {
+  long i;
+  char tmp[100];
+  sprintf(tmp, "%s.xx",key);
+  fprintf(fp, "%s = %le\n", tmp, e.xx);
+  sprintf(tmp, "%s.yy",key);
+  fprintf(fp, "%s = %le\n", tmp, e.yy);
+  sprintf(tmp, "%s.zz",key);
+  fprintf(fp, "%s = %le\n", tmp, e.zz);
+  sprintf(tmp, "%s.yz",key);
+  fprintf(fp, "%s = %le\n", tmp, e.yz);
+  sprintf(tmp, "%s.xz",key);
+  fprintf(fp, "%s = %le\n", tmp, e.xz);
+  sprintf(tmp, "%s.xy",key);
+  fprintf(fp, "%s = %le\n", tmp, e.xy);
+  fprintf(fp,"\n");
+}
+void PRINT_VOIGT_ISOTROPIC(char* key, struct Stiffness_cubic Stiffness, FILE *fp) {
+  long i;
+  char tmp[100];
+  sprintf(tmp, "%s.C12",key);
+  fprintf(fp, "%s = %le\n", tmp, Stiffness.C11);
+  sprintf(tmp, "%s.C44",key);
+  fprintf(fp, "%s = %le\n", tmp, Stiffness.C44); 
+  fprintf(fp,"\n");
+}
+void PRINT_VOIGT_CUBIC(char* key, struct Stiffness_cubic Stiffness, FILE *fp) {
+  long i;
+  char tmp[100];
+  sprintf(tmp, "%s.C11",key);
+  fprintf(fp, "%s = %le\n", tmp, Stiffness.C11);
+  sprintf(tmp, "%s.C12",key);
+  fprintf(fp, "%s = %le\n", tmp, Stiffness.C12);
+  sprintf(tmp, "%s.C44",key);
+  fprintf(fp, "%s = %le\n", tmp, Stiffness.C44);
+  fprintf(fp,"\n");
+}
 void PRINT_BOUNDARY_CONDITIONS(FILE *fp) {
   char **key, var[6];
   
@@ -804,12 +923,14 @@ void PRINT_BOUNDARY_CONDITIONS(FILE *fp) {
     for (i=0 ; i<6; i++) {
       if (var[i] == 0) {
         PRINT_STRING(key[i], "FREE", fp);
+        fprintf(fp, "DIRICHLET and FREE boundary conditions have not yet been implemented. Please wait for next release. Will default to PERIODIC\n");
       }
       if (var[i] == 1) {
         PRINT_STRING(key[i], "NEUMANN", fp);
       }
       if (var[i] == 2) {
         PRINT_STRING(key[i], "DIRICHLET", fp);
+        fprintf(stdout, "DIRICHLET and FREE boundary conditions have not yet been implemented. Please wait for next release. Will default to PERIODIC\n");
       }
       if (var[i] == 3) {
         PRINT_STRING(key[i], "PERIODIC", fp);
@@ -825,17 +946,18 @@ void PRINT_BOUNDARY_CONDITIONS(FILE *fp) {
 
 
 void allocate_memory_fields(struct fields *ptr) {
-  ptr->phia        = (double *)malloc(NUMPHASES*sizeof(double));
-  ptr->compi       = (double *)malloc((NUMCOMPONENTS-1)*sizeof(double));
-  ptr->composition       = (double *)malloc((NUMCOMPONENTS-1)*sizeof(double));
+  //ptr->phia        = (double *)malloc(NUMPHASES*sizeof(double));
+  //ptr->compi       = (double *)malloc((NUMCOMPONENTS-1)*sizeof(double));
+  //ptr->composition = (double *)malloc((NUMCOMPONENTS-1)*sizeof(double));
 }
 
 void free_memory_fields(struct fields *ptr) {
-  free(ptr->phia);
-  free(ptr->compi);
+  //free(ptr->phia);
+  //free(ptr->compi);
+  //free(ptr->composition);
 }
 
-void Read_Rotation_Angles(double *Mat, char *tmpstr) {
+void Read_Rotation_Angles(double ***Mat, char *tmpstr) {
   char **tmp;
   char *str1, *str2, *token;
   char *saveptr1, *saveptr2;
@@ -865,9 +987,15 @@ void Read_Rotation_Angles(double *Mat, char *tmpstr) {
   thetay = atof(tmp[3]);
   thetaz = atof(tmp[4]);
 
-  Mat[0] = thetax;
-  Mat[1] = thetay;
-  Mat[2] = thetaz;
+  Mat[phase1][phase2][0] = thetax;
+  Mat[phase1][phase2][1] = thetay;
+  Mat[phase1][phase2][2] = thetaz;
+  
+  for ( i = 0; i < 3; i++ ) {
+    Mat[phase2][phase1][i] = Mat[phase1][phase2][i];
+    Mat[phase1][phase1][i] = 0.0;
+    Mat[phase2][phase2][i] = 0.0;
+  }
   
   //printf("phase1=%ld, phase2=%ld\n", phase1, phase2);
   
