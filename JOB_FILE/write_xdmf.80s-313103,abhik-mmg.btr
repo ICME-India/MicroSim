@@ -1,0 +1,7 @@
+
+write_xdmf:313103 terminated with signal 11 at PC=7f9e9f647580 SP=7ffeff820970.  Backtrace:
+/lib/x86_64-linux-gnu/libc.so.6(+0x47580)[0x7f9e9f647580]
+./write_xdmf[0x400cc4]
+/lib/x86_64-linux-gnu/libc.so.6(+0x29d90)[0x7f9e9f629d90]
+/lib/x86_64-linux-gnu/libc.so.6(__libc_start_main+0x80)[0x7f9e9f629e40]
+./write_xdmf[0x400f09]

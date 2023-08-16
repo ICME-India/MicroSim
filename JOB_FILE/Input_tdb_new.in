@@ -1,0 +1,141 @@
+##Geometrical dimensions of the simulation domain
+DIMENSION = 2;
+MESH_X = 200;
+MESH_Y = 200;
+MESH_Z = 200;
+##Discretization, space and time
+DELTA_X = 0.25e-9;
+DELTA_Y = 0.25e-9;
+DELTA_Z = 0.25e-9;
+DELTA_t = 0.003125e-9;
+##Number of phases and composition
+NUMPHASES = 2;
+NUMCOMPONENTS = 2;
+#Running and saving information
+NTIMESTEPS = 1000;
+NSMOOTH = 20;
+SAVET = 100;
+STARTTIME = 0;
+RESTART = 0;
+numworkers = 8;
+## Component and Phase names
+# COMPONENTS = {Al,Cu,B};
+COMPONENTS = {Al, Zn};
+PHASES = {alpha, liquid};
+##Material properties
+##GAMMA={12, 13, 14, 23, 24...}
+GAMMA = {0.01};
+# Diffusivity = {Diagonal:0/1, phase, 11,22,33, 12, 13, 23...};
+DIFFUSIVITY = {1, 0, 0};
+DIFFUSIVITY = {1, 1, 1e-9};
+##Gas constant and molar volume
+R = 8.314;
+V = 10e-6;
+##Elasticity related parameters
+ELASTICITY = 0;
+EIGEN_STRAIN = {0, 0.01, 0.01, 0.0, 0.0, 0.0, 0.0};
+EIGEN_STRAIN = {1, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+VOIGT_ISOTROPIC = {0, 270e9, 187.5e9, 125e9};
+VOIGT_ISOTROPIC = {1, 270e9, 187.5e9, 125e9};
+rho = 10;
+#damping_factor = 0.4;
+damping_factor = 0.8;
+max_iterations = 5;
+#VOIGT_CUBIC = {phase, c11, c12, c44};
+#VOIGT_TETRAGONAL = {phase, c11, c12, c13, c33, c44, c66};
+##Boundary conditions
+#0: Free, 1: Neumann, 2: Dirichlet, 3: Periodic, 4: Complex
+#Boundary = {phase, X+, X-, Y+, Y-, Z+, Z-}
+# BOUNDARY = {phi, 1, 1, 1, 1, 1, 1};
+# BOUNDARY = {mu, 1, 1, 1, 1, 1, 1};
+# BOUNDARY = {c, 1, 1, 1, 1, 1, 1};
+# BOUNDARY = {T, 1, 1, 1, 1, 1, 1};
+BOUNDARY = {phi, 3, 3, 3, 3, 3, 3};
+BOUNDARY = {mu, 3, 3, 3, 3, 3, 3};
+BOUNDARY = {u, 3, 3, 3, 3, 3, 3};
+BOUNDARY = {c, 3, 3, 3, 3, 3, 3};
+BOUNDARY = {T, 3, 3, 3, 3, 3, 3};
+#Boundary = {phi, 1, 1, 0};
+# Boundary = {"u", 3, 3, 2, 2};
+#Boundary_value = {Value X+, Value X-, Value Y+, Value Y-, Value Z+, Value Z-}
+BOUNDARY_VALUE = {phi, 0, 0, 0, 0, 0, 0};
+BOUNDARY_VALUE = {mu, 0, 0, 0, 0, 0, 0};
+BOUNDARY_VALUE = {c, 0, 0, 0, 0, 0, 0};
+BOUNDARY_VALUE = {T, 0, 0, 0, 0, 0, 0};
+BOUNDARY_VALUE = {u, 3, 3, 3, 3, 3, 3};
+##Type of simulation
+ISOTHERMAL = 1;
+BINARY = 1;
+#TERNARY
+DILUTE = 0;
+T = 840;
+##FILEWRITING and OUTPUTTING TO SCREEN
+## WRITEFORMAT ASCII/BINARY/HDF5(Only for MPI)
+##TRACK_PROGRESS: interval of writing out the progress of the simulation to stdout. 
+WRITEFORMAT = ASCII;
+WRITEHDF5 = 1;
+TRACK_PROGRESS = 10;
+##Model-specific parameters: Grand-potential model
+##Phase-field parameters; epsilon:interface width; it is not the gradient energy coefficient
+epsilon = 1e-9;
+tau = 1.31;
+Tau = {0.28};
+##Anisotropy functions
+##Anisotropy mode, FUNCTION_ANISOTROPY=0 is isotropic
+Function_anisotropy = 1;
+Anisotropy_type = 4; 
+dab = {0.01};
+#Rotation_matrix = {0, 1, Euler_x(ang), Euler_y(ang), Euler_z(ang)};
+Rotation_matrix = {0, 1, 0, 0, 0};
+##Potential function
+Function_W = 1;
+Gamma_abc = {};
+#Shifting of domain for infinite domain simulations
+Shift = 0;
+Shiftj = 30;
+#Writing of composition fields along with the chemical potential fields
+Writecomposition = 1;
+#Noise
+Noise_phasefield = 1;
+Amp_Noise_Phase = 0.1;
+##Temperature
+Equilibrium_temperature = 870; 
+Filling_temperature = 840;
+#TEMPGRADY={BASETEMP, DELTAT, DISTANCE, OFFSET, VELOCITY}
+Tempgrady = {856.95, 0.1, 10e-6, 0, 320e-6};
+##Function_F
+Function_F = 3;
+A = {0, 1};
+A = {1, 1};
+#ceq = {0, 0, 0.83};
+#ceq = {0, 1, 0.55};
+#ceq = {1, 1, 0.55};
+#ceq = {1, 0, 0.55};
+#cfill = {0, 0, 0.83};
+#cfill = {0, 1, 0.55};
+#cfill = {1, 1, 0.55};
+#cfill = {1, 0, 0.55};
+#slopes = {0, 0, 645};
+#slopes = {0, 1, 238};
+#slopes = {1, 0, 238};
+#slopes = {1, 1, 238};
+ceq = {0, 0, 0.926};
+ceq = {0, 1, 0.817};
+ceq = {1, 1, 0.817};
+ceq = {1, 0, 0.817};
+cfill = {0, 0, 0.926};
+cfill = {0, 1, 0.817};
+cfill = {1, 1, 0.817};
+cfill = {1, 0, 0.817};
+c_guess = {0, 0, 0.8868424961322704};
+c_guess = {0, 1, 0.7108988752198813};
+c_guess = {1, 1, 0.7108988752198813};
+c_guess = {1, 0, 0.7108988752198813};
+slopes = {0, 0, 666};
+slopes = {0, 1, 333};
+slopes = {1, 0, 333};
+slopes = {1, 1, 333};
+num_thermo_phases = 2;
+tdbfname = alzn_mey.tdb;
+tdb_phases = {FCC_A1, LIQUID};
+phase_map = {FCC_A1, LIQUID};
