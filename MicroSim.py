@@ -9691,13 +9691,15 @@ class StartScreen(QDialog):
         
         
         self.diffInput.setText(self.Diffusivity[0])
+        self.Estrain.setText( self.eigenStrain[0])
+        self.Econstant.setText(self.elasticConstant[0])
 
-        for i in range(self.noP.value()):
-            self.eigenStrain[i] = "0.01, 0.01, 0.0, 0.0, 0.0, 0.0"
-            self.elasticType[i] = "0"
-            self.elasticConstant[i] = "270, 187.5, 125.0"
-        self.Estrain.setText( "0.01, 0.01, 0.0, 0.0, 0.0, 0.0")     
-        self.Econstant.setText("270, 187.5, 125.0")
+        #for i in range(self.noP.value()):
+         #   self.eigenStrain[i] = "0.01, 0.01, 0.0, 0.0, 0.0, 0.0"
+          #  self.elasticType[i] = "0"
+           # self.elasticConstant[i] = "270, 187.5, 125.0"
+        #self.Estrain.setText( "0.01, 0.01, 0.0, 0.0, 0.0, 0.0")     
+        #self.Econstant.setText("270, 187.5, 125.0")
         
         self.kksFlag[19] =  1
         self.kksFlag[20] =  1

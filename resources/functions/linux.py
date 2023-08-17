@@ -54,7 +54,7 @@ def H5toVTK_Func(self):
         f.write( python_script_for_vtk )
         f.close()
         
-        xmftovtk_cmd = "cd " +h5_outhead + ";pvpython h5tovtk.py;rm h5tovtk.py;cd ..;rm write_xdmf"
+        xmftovtk_cmd = "cd " +h5_outhead + ";pvpython h5tovtk.py;rm h5tovtk.py;cd .."
         os.system("gnome-terminal -e 'bash -c \""+xmftovtk_cmd+";\"'")
         
     elif self.h5tovtk_xmfradio.isChecked():
@@ -98,7 +98,7 @@ def H5toVTK_Func(self):
         f.write( python_script_for_vtk )
         f.close()
         
-        xmftovtk_cmd = "cd " +h5_outhead + ";pvpython h5tovtk.py;rm h5tovtk.py;cd ..;rm write_xdmf"
+        xmftovtk_cmd = "cd " +h5_outhead + ";pvpython h5tovtk.py;rm h5tovtk.py;cd .."
         os.system("gnome-terminal -e 'bash -c \""+xmftovtk_cmd+";\"'")
 
     elif self.h5tovtk_pltradio.isChecked():
