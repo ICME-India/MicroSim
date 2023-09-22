@@ -48,9 +48,10 @@ void fill_phase_cylinder_occupancy(struct fill_cylinder fill_cylinder_parameters
 void fill_phase_sphere_random(long phase, double ppt_radius, double volume_fraction, long shield_dist, double spread);
 void fill_phase_sphere_random(long phase, double ppt_radius, double volume_fraction, long shield_dist, double spread);
 void fill_phase_sphere_occupancy(struct fill_sphere fill_sphere_parameters, struct fields* gridinfo, long b, int* occupancy);
-void fill_cube_pattern(long cube_x, long cube_y, long cube_z);
 void fill_phase_voronoi_2D(struct fill_cube fill_cube_parameters, struct fields* gridinfo, long NUMPOINTS_VORONOI, double size_min);
 void fill_phase_voronoi_3D(struct fill_cube fill_cube_parameters, struct fields* gridinfo, long NUMPOINTS_VORONOI, double size_min);
+void fill_cube_pattern(long variants, long sx, long sy, long sz, double sfrac, long gap, double gfrac);
+void fill_phase_cube_random_variants(long variants, long sx, long sy, long sz, double sfrac, double vfrac, long shield);
 // void init_propertymatrices();
 void q_divx (struct gradlayer *grad1, struct gradlayer *grad1_front, long a, long b, double *qab);
 void q_divy (struct gradlayer *grad1, struct gradlayer *grad1_right, long a, long b, double *qab);
@@ -114,12 +115,12 @@ void Build_derived_type(struct fields* myNode, MPI_Datatype* MPI_gridinfo) {
 //   displacements[3] = address - start_address;
 // //   //Create and Commit new mpi type
 //   MPI_Type_create_struct(4,block_lengths,displacements,typelists,MPI_gridinfo);
-  
+
 //   MPI_Type_indexed(4, block_lengths, displacements, MPI_DOUBLE, MPI_gridinfo);
-  
+
   MPI_Type_contiguous(SIZE_STRUCT_FIELDS, MPI_DOUBLE, MPI_gridinfo);
   MPI_Type_commit(MPI_gridinfo);
-  
+
 //   printf("Displacements[0]=%ld,Displacements[1]=%ld,Displacements[2]=%ld,Displacements[3]=%ld, start_address=%ld,address=%ld\n",displacements[0],displacements[1],displacements[2],displacements[3],start_address,address);
 }
 void Build_derived_type_stress(struct iter_variables* myNode, MPI_Datatype* MPI_iter_gridinfo) {
@@ -161,12 +162,12 @@ void Build_derived_type_stress(struct iter_variables* myNode, MPI_Datatype* MPI_
 //   displacements[3] = address - start_address;
 // //   //Create and Commit new mpi type
 //   MPI_Type_create_struct(4,block_lengths,displacements,typelists,MPI_gridinfo);
-  
+
 //   MPI_Type_indexed(4, block_lengths, displacements, MPI_DOUBLE, MPI_gridinfo);
-  
+
   MPI_Type_contiguous(9, MPI_DOUBLE, MPI_iter_gridinfo);
   MPI_Type_commit(MPI_iter_gridinfo);
-  
+
 //   printf("Displacements[0]=%ld,Displacements[1]=%ld,Displacements[2]=%ld,Displacements[3]=%ld, start_address=%ld,address=%ld\n",displacements[0],displacements[1],displacements[2],displacements[3],start_address,address);
 }
 #endif
@@ -183,7 +184,7 @@ void Build_derived_type_stress(struct iter_variables* myNode, MPI_Datatype* MPI_
 // double D(struct variables*, double T, long index, long k, long l);
 // double df_liquid(double *c, int i);
 // double f_liquid (double *c, int i);
-// 
+//
 // // double free_energy(double *c, double T, long a);
 // // double function_A(double T, long i, long j, long a);
 // // double function_B(double T, long i, long a);
@@ -192,15 +193,15 @@ void Build_derived_type_stress(struct iter_variables* myNode, MPI_Datatype* MPI_
 // // // double free_liquid(double *c);
 // // double c_mu(double *mu, double T, long a, long i);
 // // double dc_dmu(double *mu, double T, long a, long i, long j);
-// 
+//
 // // double c_l(double *mu, int i);
 // double df_phi(double *phi, double *c, int i);
-// 
+//
 // double chempot_phi(double *phi, double *c, int i);
 // double chempot_struct(struct variables* gridinfo, long index, double *mu);
-// 
+//
 // // double dpsi(double *mu, double T, double *phi, long a);
-// 
+//
 // double chempot_c(double *phi, double *c, int i);
 // void writetofile(double *phi,double *c, int t);
 // void writetofile_struct(struct variables* gridinfo,int t);
@@ -209,7 +210,7 @@ void Build_derived_type_stress(struct iter_variables* myNode, MPI_Datatype* MPI_
 // void initdomain_struct(struct variables *gridinfo);
 // void initdomain(double *phi,double *c);
 // void initialize_variables();
-// 
+//
 // void calculate_d3gradients(long x, struct gradlayer **gradient);
 // void calculate_divergence_concentration(long x, struct gradlayer **gradient);
 // void calculate_fluxes_concentration(long x, struct gradlayer **gradient);
@@ -220,9 +221,9 @@ void Build_derived_type_stress(struct iter_variables* myNode, MPI_Datatype* MPI_
 // void calculate_gradients(long x, struct gradlayer **gradient);
 // void calculate_gradients_phasefield(long x, struct gradlayer **gradient);
 // void calculate_gradients_concentration(long x, struct gradlayer **gradient);
-// 
+//
 // // void compute_chemicalpotential(struct variables* gridinfo);
-// 
+//
 // void swaplayers();
 // void solverloop(long *start, long *end);
 // void solverloop_phasefield(long *start, long *end);
@@ -230,17 +231,17 @@ void Build_derived_type_stress(struct iter_variables* myNode, MPI_Datatype* MPI_
 // void  smooth(long *start, long *end);
 // void  smooth_concentration(long *start, long *end);
 // double FunctionTau(double *phi);
-// 
+//
 // // void dAdq (double *qab, double* dadq, long a, long b);
 // // double function_ac(double *qab, long a, long b);
-// 
-// 
-// 
+//
+//
+//
 // // double dAdphi(double *phi, struct gradlayer **gradient, long gidy, long a);
 // // double dAdphi_smooth(double *phi, struct gradlayer **gradient, long gidy, long a);
 // // double divdAdgradphi(struct gradlayer **gradient, long index, long gidy, long a);
 // // double divdAdgradphi_smooth(struct gradlayer **gradient, long index, long gidy, long a);
-// 
+//
 // double d2gradphi(double *phi, struct gradlayer **gradient, long index, long gidy, long a);
 // // void fill_phase_ellipse (double length, double e, double angle, long x_center, long y_center, struct variables* gridinfo, long b);
 // // void rotate_vector(double *q, double *rot_q, long a, long b);
@@ -251,7 +252,7 @@ void Build_derived_type_stress(struct iter_variables* myNode, MPI_Datatype* MPI_
 // double calculate_der_equilibrium_composition(double T, long i, long a);
 // // double func_dcbdT_phase(double *mu, double T, long a, long k);
 // // double func_dBbdT(double T, long a, long k);
-// 
+//
 // //Function to build derived MPI datatype
 // // void Build_derived_type(struct variables* myNode, MPI_Datatype* mesg_mpi_t_ptr);
 // void copyXZ(long copy_to, long copy_from, long x_start, long x_end, struct variables* gridinfo);
@@ -324,10 +325,10 @@ void Build_derived_type_stress(struct iter_variables* myNode, MPI_Datatype* MPI_
 // long assign_phase (double rand_phase);
 // int check_FLAG(int *FLAG_FILLED, long xo, long yo, long radius);
 // void assign_FLAG(int *FLAG_FILLED, long xo, long yo, long radius);
-// 
-// 
+//
+//
 // // void fill_composition_cube(FILE *fp, long j, struct fill_cube* fill_cube_paramaters);
-// 
+//
 // void fill_cells_phase_field (FILE *fp, struct variables*, long b);
 // void fill_cells_phase_field_liquid(FILE *fp, struct variables*, long b);
 // void fill_cells_composition (FILE *fp, struct variables*, long k);
