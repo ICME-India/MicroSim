@@ -208,6 +208,32 @@ void fill_domain(char *argv[]) {
         free(tmp);
         printf("End filling Voronoi 2D");
       }
+      else if ( (strcmp(tmpstr1, "FILLCUBEPATTERN")==0) && (NUMPHASES>0) )
+      {
+        printf("Filling cube pattern.\n");
+        tmp = (char**)malloc(sizeof(char*)*7);
+        for ( i=0; i<7; i++)
+          tmp[i] = (char*)malloc(sizeof(char)*10);
+        for ( i=0, str1=tmpstr2; ; i++, str1=NULL )
+        {
+          token = strtok_r(str1, "{,}", &saveptr1);
+          if ( token==NULL )
+            break;
+          strcpy(tmp[i], token);
+        }
+        long variants  = atol(tmp[0]);
+        long sx        = atol(tmp[1]);
+        long sy        = atol(tmp[2]);
+        long sz        = atol(tmp[3]);
+        double sfrac   = atof(tmp[4]);
+        long gap       = atol(tmp[5]);
+        double gfrac   = atof(tmp[6]);
+        fill_cube_pattern(variants, sx, sy, sz, sfrac, gap, gfrac);
+        for ( i=0; i<7; i++)
+          free(tmp[i]);
+        free(tmp);
+        printf("End filling cube pattern.\n");
+      }
       else if ((strcmp(tmpstr1, "FILLCUBERANDOM") == 0) && (NUMPHASES > 0)) {
         printf("Filling random cubes.\n");
         tmp = (char**)malloc(sizeof(char*)*7);
@@ -302,30 +328,6 @@ void fill_domain(char *argv[]) {
         }
         free(tmp);
         printf("End filling spheres at random\n");
-      }
-      else if ((strcmp(tmpstr1, "FILLCUBEPATTERN") == 0) && (NUMPHASES > 0)) {
-        printf("Filling cylinders at random\n");
-        tmp = (char**)malloc(sizeof(char*)*3);
-        for (i = 0; i < 3; i++) {
-          tmp[i] = (char*)malloc(sizeof(char)*10);
-        }
-        for (i = 0, str1 = tmpstr2; ; i++, str1 = NULL) {
-          token = strtok_r(str1, "{,}", &saveptr1);
-          if (token == NULL)
-              break;
-          strcpy(tmp[i],token);
-        }
-        long cube_x             = atol(tmp[0]);
-        long cube_y             = atol(tmp[1]);
-        long cube_z             = atol(tmp[2]);
-
-        fill_cube_pattern(cube_x, cube_y, cube_z);
-
-        for (i = 0; i < 3; i++) {
-          free(tmp[i]);
-        }
-        free(tmp);
-        printf("End filling cylinders at random\n");
       }
     }
   }

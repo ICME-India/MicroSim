@@ -68,25 +68,97 @@ void fill_phase_cube (struct fill_cube fill_cube_parameters, struct fields* grid
     }
   }
 }
-void fill_cube_pattern(long cube_x, long cube_y, long cube_z) {
-  long num;
-  long phase;
-  long x, z;
-  for(x=0;x < rows_x; x=x+cube_x) {
-    for(z=0; z < rows_z; z=z+cube_z) {
-      fill_cube_parameters.x_start = x          + start[X];
-      fill_cube_parameters.x_end   = (x+cube_x) + start[X];
-      fill_cube_parameters.y_start =              start[Y];
-      fill_cube_parameters.y_end   = cube_y     + start[Y];
-      fill_cube_parameters.z_start = z          + start[Z];
-      fill_cube_parameters.z_end   = (z+cube_z) + start[Z];
-      clock_t SEED = clock();
-      num = lrand48();
-      phase = num%(NUMPHASES-1);
-      fill_phase_cube(fill_cube_parameters, gridinfo, phase);
+
+
+void fill_cube_pattern(long variants, long sx, long sy, long sz,
+                       double sfrac, long gap, double gfrac)
+{
+    /* Randomly fill multiple variants of square/cubic particles
+       in an array.
+       NOTE: the last phase is assumed to be matrix. */
+    ldiv_t resx, resy, resz;
+    long i, j, k, index, sgn, nparticles;
+    long xlo=0, ylo=0, zlo=0;
+    long xhi=1, yhi=1, zhi=1;
+    double r;
+    gsl_rng *rng;
+
+    // Set up GSL RNG.
+    gsl_rng_env_setup();
+    rng = gsl_rng_alloc(gsl_rng_default);
+    gsl_rng_set(rng, time(0));
+
+    if ( NUMPHASES > 1 )
+    {
+        // First, make matrix = 1 everywhere.
+        for ( long x=0; x<rows_x; x++ )
+        {
+            for ( long y=0; y<rows_y; y++ )
+            {
+                for ( long z=0; z<rows_z; z++ )
+                {
+                    index = x*layer_size + z*rows_y + y;
+                    gridinfo[index].phia[NUMPHASES-1] = 1.0;
+                }
+            }
+        }
     }
-  }
-  fill_phase_cube(fill_cube_parameters, gridinfo, NUMPHASES-1);
+
+    resx = ldiv(MESH_X, sx+gap);
+    resy = ldiv(MESH_Y, sy+gap);
+    resz = ldiv(MESH_Z, sz+gap);
+    if ( resx.quot == 0 )
+        resx.quot = 1;
+    if ( resy.quot == 0 )
+        resy.quot = 1;
+    if ( resz.quot == 0 )
+        resz.quot = 1;
+    nparticles = resx.quot * resy.quot * resz.quot;
+    printf("Filling %ld particles.\n", nparticles);
+    for ( i=0; i<resx.quot; i++ )
+    {
+        if ( MESH_X > 1 )
+        {
+            r = gsl_rng_uniform(rng);
+            sgn = 2*lround(r) - 1;
+            xlo = i*(gap+sx) + gap + sgn*gfrac*gap - sgn*sfrac*sx;
+            xhi = (i+1) * (gap+sx) + sgn*gfrac*gap + sgn*sfrac*sx;
+        }
+        for ( j=0; j<resy.quot; j++ )
+        {
+            if ( MESH_Y > 1 )
+            {
+                r = gsl_rng_uniform(rng);
+                sgn = 2*lround(r) - 1;
+                ylo = j*(gap+sy) + gap + sgn*gfrac*gap - sgn*sfrac*sy;
+                yhi = (j+1) * (gap+sy) + sgn*gfrac*gap + sgn*sfrac*sy;
+            }
+            for (k=0; k<resz.quot; k++ )
+            {
+                if ( MESH_Z > 1 )
+                {
+                    r = gsl_rng_uniform(rng);
+                    sgn = 2*lround(r) - 1;
+                    zlo = k*(gap+sz) + gap + sgn*gfrac*gap - sgn*sfrac*sz;
+                    zhi = (k+1) * (gap+sz) + sgn*gfrac*gap + sgn*sfrac*sz;
+                }
+                fill_cube_parameters.x_start = xlo;
+                fill_cube_parameters.x_end   = xhi;
+                fill_cube_parameters.y_start = ylo;
+                fill_cube_parameters.y_end   = yhi;
+                fill_cube_parameters.z_start = zlo;
+                fill_cube_parameters.z_end   = zhi;
+                if ( variants >= NUMPHASES )
+                    variants = NUMPHASES - 1;
+                r = gsl_rng_uniform(rng);
+                long phase = r * variants;
+                printf("phase now = %ld\n", phase);
+                fill_phase_cube(fill_cube_parameters, gridinfo, phase);
+            }
+        }
+    }
+    // Free GSL RNG.
+    gsl_rng_free(rng);
 }
 
 
