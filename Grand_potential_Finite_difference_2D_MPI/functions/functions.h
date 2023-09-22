@@ -51,7 +51,7 @@ void fill_phase_sphere_occupancy(struct fill_sphere fill_sphere_parameters, stru
 void fill_phase_voronoi_2D(struct fill_cube fill_cube_parameters, struct fields* gridinfo, long NUMPOINTS_VORONOI, double size_min);
 void fill_phase_voronoi_3D(struct fill_cube fill_cube_parameters, struct fields* gridinfo, long NUMPOINTS_VORONOI, double size_min);
 void fill_cube_pattern(long variants, long sx, long sy, long sz, double sfrac, long gap, double gfrac);
-void fill_phase_cube_random_variants(long variants, long sx, long sy, long sz, double vfrac, long shield, long spread);
+void fill_phase_cube_random_variants(long variants, long sx, long sy, long sz, double sfrac, double vfrac, long shield);
 // void init_propertymatrices();
 void q_divx (struct gradlayer *grad1, struct gradlayer *grad1_front, long a, long b, double *qab);
 void q_divy (struct gradlayer *grad1, struct gradlayer *grad1_right, long a, long b, double *qab);

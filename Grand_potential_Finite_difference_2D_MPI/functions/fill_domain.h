@@ -250,10 +250,10 @@ void fill_domain(char *argv[]) {
         long sx         = atol(tmp[1]);
         long sy         = atol(tmp[2]);
         long sz         = atol(tmp[3]);
-        double vol_frac = atof(tmp[4]);
-        long shield     = atol(tmp[5]);
-        long spread     = atol(tmp[6]);
-        fill_phase_cube_random_variants(variants, sx, sy, sz, vol_frac, shield, spread);
+        double sfrac    = atof(tmp[4]);
+        double vol_frac = atof(tmp[5]);
+        long shield     = atol(tmp[6]);
+        fill_phase_cube_random_variants(variants, sx, sy, sz, sfrac, vol_frac, shield);
         for (i = 0; i < 7; i++) {
           free(tmp[i]);
         }

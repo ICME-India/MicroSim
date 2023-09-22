@@ -121,8 +121,8 @@ void fill_cube_pattern(long variants, long sx, long sy, long sz,
         {
             r = gsl_rng_uniform(rng);
             sgn = 2*lround(r) - 1;
-            xlo = i*(gap+sx) + gap + sgn*gfrac*gap - sgn*sfrac*sx;
-            xhi = (i+1) * (gap+sx) + sgn*gfrac*gap + sgn*sfrac*sx;
+            xlo = i*(gap+sx) + gap + sgn*gfrac*gap - (2*r-1)*sfrac*sx;
+            xhi = (i+1) * (gap+sx) + sgn*gfrac*gap + (2*r-1)*sfrac*sx;
         }
         for ( j=0; j<resy.quot; j++ )
         {
@@ -130,8 +130,8 @@ void fill_cube_pattern(long variants, long sx, long sy, long sz,
             {
                 r = gsl_rng_uniform(rng);
                 sgn = 2*lround(r) - 1;
-                ylo = j*(gap+sy) + gap + sgn*gfrac*gap - sgn*sfrac*sy;
-                yhi = (j+1) * (gap+sy) + sgn*gfrac*gap + sgn*sfrac*sy;
+                ylo = j*(gap+sy) + gap + sgn*gfrac*gap - (2*r-1)*sfrac*sy;
+                yhi = (j+1) * (gap+sy) + sgn*gfrac*gap + (2*r-1)*sfrac*sy;
             }
             for (k=0; k<resz.quot; k++ )
             {
@@ -139,8 +139,8 @@ void fill_cube_pattern(long variants, long sx, long sy, long sz,
                 {
                     r = gsl_rng_uniform(rng);
                     sgn = 2*lround(r) - 1;
-                    zlo = k*(gap+sz) + gap + sgn*gfrac*gap - sgn*sfrac*sz;
-                    zhi = (k+1) * (gap+sz) + sgn*gfrac*gap + sgn*sfrac*sz;
+                    zlo = k*(gap+sz) + gap + sgn*gfrac*gap - (2*r-1)*sfrac*sz;
+                    zhi = (k+1) * (gap+sz) + sgn*gfrac*gap + (2*r-1)*sfrac*sz;
                 }
                 fill_cube_parameters.x_start = xlo;
                 fill_cube_parameters.x_end   = xhi;
@@ -196,13 +196,13 @@ int check_overlap_sq(struct fill_cube cube, long shield, long vol)
 
 
 void fill_phase_cube_random_variants(long variants, long sx, long sy, long sz,
-                                     double vf, long shield, long spread)
+                                     double sfrac, double vf, long shield)
 {
     /* Randomly fill multiple variants of square/cubic particles
        with a given volume fraction and size.
        NOTE: (1) The last phase is assumed to be matrix.
              (2) `vf` is the total volume fraction. */
-    long index;
+    long index, sgn;
     double r;
     gsl_rng *rng;
 
@@ -239,10 +239,9 @@ void fill_phase_cube_random_variants(long variants, long sx, long sy, long sz,
     {
         printf("num_particles = %d\n", num_particles);
         r = gsl_rng_uniform(rng);
-        long devnow = (2.0*r - 1.0) * spread;
-        long sxnow = sx + devnow;
-        long synow = sy + devnow;
-        long sznow = sz + devnow;
+        long sxnow = sx + (2*r - 1) * sfrac*sx;
+        long synow = sy + (2*r - 1) * sfrac*sy;
+        long sznow = sz + (2*r - 1) * sfrac*sz;
         long xnow = MESH_X * gsl_rng_uniform(rng);
         long ynow = MESH_Y * gsl_rng_uniform(rng);
         long znow = MESH_Z * gsl_rng_uniform(rng);
