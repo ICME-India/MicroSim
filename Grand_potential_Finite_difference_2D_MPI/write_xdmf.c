@@ -55,8 +55,8 @@ void main(int argc, char *argv[]) {
   free(eigen_strain_phase);
   free(stiffness_phase);
   free(stiffness_t_phase);
-  Free3M(cmu,NUMCOMPONENTS-1,NUMCOMPONENTS-1);
-  Free3M(muc,NUMCOMPONENTS-1,NUMCOMPONENTS-1);
+  Free3M(cmu,NUMPHASES,NUMCOMPONENTS-1);
+  Free3M(muc,NUMPHASES,NUMCOMPONENTS-1);
   Free4M(Rotation_matrix,NUMPHASES, NUMPHASES, DIMENSION);
   Free4M(Inv_Rotation_matrix,NUMPHASES, NUMPHASES, DIMENSION);
   free(Rotated_qab);
