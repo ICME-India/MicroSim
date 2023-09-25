@@ -521,7 +521,7 @@ void calculate_gradients_stress_2D(long x, struct gradlayer **gradient) {
 //       printf("grad->eigen_strain[X].xx=%le,grad->eigen_strain[Y].xx=%le,grad->eigen_strain[X].yy=%le,grad->eigen_strain[Y].yy=%le\n",grad->eigen_strain[X].xx,grad->eigen_strain[Y].xx,grad->eigen_strain[X].yy, grad->eigen_strain[Y].yy);
       
 
-      if (x>0) {
+      if ((x>0) && (x<=workers_mpi.end[X]+2)) {
 //         grad->strain[X].xx = ((0.5/deltax)*(iter_gridinfo_w[front].disp[X][2] - iter_gridinfo_w[back].disp[X][2]))
 //                               - grad->eigen_strain[X].xx;
          grad->strain[X].xx = ((0.5)*(iter_gridinfo_w[front].disp[X][2] - iter_gridinfo_w[back].disp[X][2]))
@@ -539,7 +539,7 @@ void calculate_gradients_stress_2D(long x, struct gradlayer **gradient) {
                               
       }
       
-      if ((x > 0) && (gidy >0)) {
+      if ((x > 0) && (gidy >0) && (x<=workers_mpi.end[X]+2)) {
 //         grad->strain[Y].xx = ((0.5/deltax)*(iter_gridinfo_w[front].disp[X][2] - iter_gridinfo_w[back].disp[X][2]))
 //                                           - grad->eigen_strain[Y].xx;
 //         grad->strain[X].xy =  (0.25)*((iter_gridinfo_w[right].disp[X][2]      - iter_gridinfo_w[left].disp[X][2])/deltay  
