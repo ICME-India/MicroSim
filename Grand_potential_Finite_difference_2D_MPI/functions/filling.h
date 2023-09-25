@@ -77,7 +77,7 @@ void fill_cube_pattern(long variants, long sx, long sy, long sz,
        in an array.
        NOTE: the last phase is assumed to be matrix. */
     ldiv_t resx, resy, resz;
-    long i, j, k, index, sgn, nparticles;
+    long i, j, k, x, y, z, index, sgn, nparticles, phase;
     long xlo=0, ylo=0, zlo=0;
     long xhi=1, yhi=1, zhi=1;
     double r;
@@ -91,11 +91,11 @@ void fill_cube_pattern(long variants, long sx, long sy, long sz,
     if ( NUMPHASES > 1 )
     {
         // First, make matrix = 1 everywhere.
-        for ( long x=0; x<rows_x; x++ )
+        for ( x=0; x<rows_x; x++ )
         {
-            for ( long y=0; y<rows_y; y++ )
+            for ( y=0; y<rows_y; y++ )
             {
-                for ( long z=0; z<rows_z; z++ )
+                for ( z=0; z<rows_z; z++ )
                 {
                     index = x*layer_size + z*rows_y + y;
                     gridinfo[index].phia[NUMPHASES-1] = 1.0;
@@ -151,7 +151,7 @@ void fill_cube_pattern(long variants, long sx, long sy, long sz,
                 if ( variants >= NUMPHASES )
                     variants = NUMPHASES - 1;
                 r = gsl_rng_uniform(rng);
-                long phase = r * variants;
+                phase = r * variants;
                 printf("phase now = %ld\n", phase);
                 fill_phase_cube(fill_cube_parameters, gridinfo, phase);
             }
@@ -165,12 +165,12 @@ void fill_cube_pattern(long variants, long sx, long sy, long sz,
 int check_overlap_sq(struct fill_cube cube, long shield, long vol)
 {
     /* Check if the to-be created precipitate is overlapping an existing one. */
-    long index;
-    for ( long x=(cube.x_start-shield); x<(cube.x_end+shield); x++ )
+    long x, y, z, index;
+    for ( x=(cube.x_start-shield); x<(cube.x_end+shield); x++ )
     {
-        for ( long y=(cube.y_start-shield); y<(cube.y_end+shield); y++ )
+        for ( y=(cube.y_start-shield); y<(cube.y_end+shield); y++ )
         {
-            for ( long z=(cube.z_start-shield); z<(cube.z_end+shield); z++ )
+            for ( z=(cube.z_start-shield); z<(cube.z_end+shield); z++ )
             {
                 index = x*layer_size + z*rows_y + y;
                 if ( (0 <= index) && (index <= vol) )
@@ -202,8 +202,11 @@ void fill_phase_cube_random_variants(long variants, long sx, long sy, long sz,
        with a given volume fraction and size.
        NOTE: (1) The last phase is assumed to be matrix.
              (2) `vf` is the total volume fraction. */
-    long index, sgn;
-    double r;
+    long x, y, z, index, phase, volume_domain, random_count, random_limit;
+    long sxnow, synow, sznow, xnow, ynow, znow;
+    long xlo, xhi, ylo, yhi, zlo, zhi;
+    double r, volume_per_particle;
+    int num_particles;
     gsl_rng *rng;
 
     // Set up GSL RNG.
@@ -214,11 +217,11 @@ void fill_phase_cube_random_variants(long variants, long sx, long sy, long sz,
     if ( NUMPHASES > 1 )
     {
         // First, make matrix = 1 everywhere.
-        for ( long x=0; x<rows_x; x++ )
+        for ( x=0; x<rows_x; x++ )
         {
-            for ( long y=0; y<rows_y; y++ )
+            for ( y=0; y<rows_y; y++ )
             {
-                for ( long z=0; z<rows_z; z++ )
+                for ( z=0; z<rows_z; z++ )
                 {
                     index = x*layer_size + z*rows_y + y;
                     gridinfo[index].phia[NUMPHASES-1] = 1.0;
@@ -227,30 +230,30 @@ void fill_phase_cube_random_variants(long variants, long sx, long sy, long sz,
         }
     }
 
-    long volume_domain = MESH_X * MESH_Y * MESH_Z;
-    double volume_per_particle = sx * sy * sz;
-    int num_particles = ceil(volume_domain*vf/volume_per_particle);
+    volume_domain = MESH_X * MESH_Y * MESH_Z;
+    volume_per_particle = sx * sy * sz;
+    num_particles = ceil(volume_domain*vf/volume_per_particle);
     printf("Domain volume = %ld, sx = %ld, sy = %ld, sz = %ld,"
            " volume_per_particle = %lf, number of particles = %d\n",
            volume_domain, sx, sy, sz, volume_per_particle, num_particles);
 
-    long random_count = 0, random_limit = 1e+4;
+    random_count = 0, random_limit = 1e+4;
     while ( num_particles )
     {
         printf("num_particles = %d\n", num_particles);
         r = gsl_rng_uniform(rng);
-        long sxnow = sx + (2*r - 1) * sfrac*sx;
-        long synow = sy + (2*r - 1) * sfrac*sy;
-        long sznow = sz + (2*r - 1) * sfrac*sz;
-        long xnow = MESH_X * gsl_rng_uniform(rng);
-        long ynow = MESH_Y * gsl_rng_uniform(rng);
-        long znow = MESH_Z * gsl_rng_uniform(rng);
-        long xlo = xnow - sxnow/2;
-        long xhi = xnow + sxnow/2;
-        long ylo = ynow - synow/2;
-        long yhi = ynow + synow/2;
-        long zlo = znow - sznow/2;
-        long zhi = znow + sznow/2;
+        sxnow = sx + (2*r - 1) * sfrac*sx;
+        synow = sy + (2*r - 1) * sfrac*sy;
+        sznow = sz + (2*r - 1) * sfrac*sz;
+        xnow = MESH_X * gsl_rng_uniform(rng);
+        ynow = MESH_Y * gsl_rng_uniform(rng);
+        znow = MESH_Z * gsl_rng_uniform(rng);
+        xlo = xnow - sxnow/2;
+        xhi = xnow + sxnow/2;
+        ylo = ynow - synow/2;
+        yhi = ynow + synow/2;
+        zlo = znow - sznow/2;
+        zhi = znow + sznow/2;
         printf("xlo = %ld, xhi = %ld\n", xlo, xhi);
         printf("ylo = %ld, yhi = %ld\n", ylo, yhi);
         printf("zlo = %ld, zhi = %ld\n", zlo, zhi);
@@ -267,7 +270,7 @@ void fill_phase_cube_random_variants(long variants, long sx, long sy, long sz,
         if ( variants >= NUMPHASES )
             variants = NUMPHASES - 1;
         r = gsl_rng_uniform(rng);
-        long phase = r * variants;
+        phase = r * variants;
         printf("phase now = %ld\n", phase);
         fill_phase_cube(fill_cube_parameters, gridinfo, phase);
         --num_particles;
