@@ -211,8 +211,8 @@ void fill_domain(char *argv[]) {
       else if ( (strcmp(tmpstr1, "FILLCUBEPATTERN")==0) && (NUMPHASES>0) )
       {
         printf("Filling cube pattern.\n");
-        tmp = (char**)malloc(sizeof(char*)*7);
-        for ( i=0; i<7; i++)
+        tmp = (char**)malloc(sizeof(char*)*8);
+        for ( i=0; i<8; i++)
           tmp[i] = (char*)malloc(sizeof(char)*10);
         for ( i=0, str1=tmpstr2; ; i++, str1=NULL )
         {
@@ -228,8 +228,9 @@ void fill_domain(char *argv[]) {
         double sfrac   = atof(tmp[4]);
         long gap       = atol(tmp[5]);
         double gfrac   = atof(tmp[6]);
-        fill_cube_pattern(variants, sx, sy, sz, sfrac, gap, gfrac);
-        for ( i=0; i<7; i++)
+        long outof     = atol(tmp[7]);
+        fill_cube_pattern(variants, sx, sy, sz, sfrac, gap, gfrac, outof);
+        for ( i=0; i<8; i++)
           free(tmp[i]);
         free(tmp);
         printf("End filling cube pattern.\n");
