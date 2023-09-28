@@ -71,7 +71,7 @@ void fill_phase_cube (struct fill_cube fill_cube_parameters, struct fields* grid
 
 
 void fill_cube_pattern(long variants, long sx, long sy, long sz,
-                       double sfrac, long gap, double gfrac)
+                       double sfrac, long gap, double gfrac, long outof)
 {
     /* Randomly fill multiple variants of square/cubic particles
        in an array.
@@ -80,6 +80,7 @@ void fill_cube_pattern(long variants, long sx, long sy, long sz,
     long i, j, k, x, y, z, index, sgn, nparticles, phase;
     long xlo=0, ylo=0, zlo=0;
     long xhi=1, yhi=1, zhi=1;
+    long rl;
     double r;
     gsl_rng *rng;
 
@@ -135,6 +136,11 @@ void fill_cube_pattern(long variants, long sx, long sy, long sz,
             }
             for (k=0; k<resz.quot; k++ )
             {
+                if ( outof > 0 )
+                {
+                    if ( !gsl_rng_uniform_int(rng, outof) )
+                        continue;
+                }
                 if ( MESH_Z > 1 )
                 {
                     r = gsl_rng_uniform(rng);
