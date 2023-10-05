@@ -42,7 +42,43 @@ solvers
         relTol                    0.1;
     }
 
-	phi
+	phi_1
+    {
+        solver                    GAMG;
+        preconditioner            FDIC;
+        smoother                symGaussSeidel;//DICGaussSeidel;
+        mergeLevels                1;
+        agglomerator            faceAreaPair;
+        nCellsInCoarsestLevel    50;
+        tolerance                1e-8;
+        relTol                    0.1;
+    }
+
+	phi_2
+    {
+        solver                    GAMG;
+        preconditioner            FDIC;
+        smoother                symGaussSeidel;//DICGaussSeidel;
+        mergeLevels                1;
+        agglomerator            faceAreaPair;
+        nCellsInCoarsestLevel    50;
+        tolerance                1e-8;
+        relTol                    0.1;
+    }
+
+	phi_3
+    {
+        solver                    GAMG;
+        preconditioner            FDIC;
+        smoother                symGaussSeidel;//DICGaussSeidel;
+        mergeLevels                1;
+        agglomerator            faceAreaPair;
+        nCellsInCoarsestLevel    50;
+        tolerance                1e-8;
+        relTol                    0.1;
+    }
+
+	phi_4
     {
         solver                    GAMG;
         preconditioner            FDIC;

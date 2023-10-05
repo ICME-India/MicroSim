@@ -3,11 +3,63 @@
  #include "readTDB.H"
 
   //! Creating phase-field with the option to write
-   volScalarField phi
+   volScalarField phase_index
     (
         IOobject
         (
-            "phi",
+            "phase_index",
+            runTime.timeName(),
+            mesh,
+            IOobject::MUST_READ,
+            IOobject::AUTO_WRITE
+        ),
+        mesh
+    );
+
+   volScalarField phi_1
+    (
+        IOobject
+        (
+            "phi_1",
+            runTime.timeName(),
+            mesh,
+            IOobject::MUST_READ,
+            IOobject::AUTO_WRITE
+        ),
+        mesh
+    );
+
+   volScalarField phi_2
+    (
+        IOobject
+        (
+            "phi_2",
+            runTime.timeName(),
+            mesh,
+            IOobject::MUST_READ,
+            IOobject::AUTO_WRITE
+        ),
+        mesh
+    );
+
+   volScalarField phi_3
+    (
+        IOobject
+        (
+            "phi_3",
+            runTime.timeName(),
+            mesh,
+            IOobject::MUST_READ,
+            IOobject::AUTO_WRITE
+        ),
+        mesh
+    );
+
+   volScalarField phi_4
+    (
+        IOobject
+        (
+            "phi_4",
             runTime.timeName(),
             mesh,
             IOobject::MUST_READ,
@@ -38,6 +90,33 @@
             runTime.timeName(),
             mesh,
             IOobject::MUST_READ,
+            IOobject::AUTO_WRITE
+        ),
+        mesh
+    );
+    
+  //! Creating composition field with the option to write
+    volScalarField c_1
+    (
+        IOobject
+        (
+            "c_1",
+            runTime.timeName(),
+            mesh,
+            IOobject::NO_READ,
+            IOobject::AUTO_WRITE
+        ),
+        mesh
+    );
+
+    volScalarField c_2
+    (
+        IOobject
+        (
+            "c_2",
+            runTime.timeName(),
+            mesh,
+            IOobject::NO_READ,
             IOobject::AUTO_WRITE
         ),
         mesh
@@ -148,9 +227,9 @@ volSymmTensorField strain
         IOobject::NO_WRITE
     ),
 //    mesh
-   ((gradD-phi*phi*(3-2*phi)*cEigenStrain)&&symmTensor(1,0,0,0,0,0))*symmTensor(1,0,0,0,0,0)
-  +((gradD-phi*phi*(3-2*phi)*cEigenStrain)&&symmTensor(0,0,0,1,0,0))*symmTensor(0,0,0,1,0,0)
-  +((gradD-phi*phi*(3-2*phi)*cEigenStrain)&&symmTensor(0,0,0,0,0,1))*symmTensor(0,0,0,0,0,1)
+   ((gradD-phi_1*phi_1*(3-2*phi_1)*cEigenStrain1)&&symmTensor(1,0,0,0,0,0))*symmTensor(1,0,0,0,0,0)
+  +((gradD-phi_1*phi_1*(3-2*phi_1)*cEigenStrain1)&&symmTensor(0,0,0,1,0,0))*symmTensor(0,0,0,1,0,0)
+  +((gradD-phi_1*phi_1*(3-2*phi_1)*cEigenStrain1)&&symmTensor(0,0,0,0,0,1))*symmTensor(0,0,0,0,0,1)
     //volSymmTensorField("strain", dimensionSet(0,0,0,0,0,0,0), Foam::symmTensor(0,0,0,0,0,0))
    // Foam::symmTensor(0,0,0,0,0,0)
 );
@@ -166,7 +245,7 @@ volSymmTensorField sigmaD
         IOobject::NO_WRITE
     ),
 //     (mu1*T+mu2*(1-T))*twoSymm(fvc::grad(D)) + (lambda1*T+lambda2*(1-T))*(I*tr(fvc::grad(D)))
-    (mu1_elast*phi*phi*(3-2*phi) + mu2_elast*(1-phi)*(1-phi)*(1+2*phi))*twoSymm(gradD) + (lambda1*phi*phi*(3-2*phi)    + lambda2*(1-phi)*(1-phi)*(1+2*phi))*(I*tr(gradD))
+    (mu1_elast*phi_1*phi_1*(3-2*phi_1) + mu2_elast*(1-phi_1)*(1-phi_1)*(1+2*phi_1))*twoSymm(gradD) + (lambda1*phi_1*phi_1*(3-2*phi_1)    + lambda2*(1-phi_1)*(1-phi_1)*(1+2*phi_1))*(I*tr(gradD))
 );
 
 volSymmTensorField deltaSigmaD
@@ -180,8 +259,8 @@ volSymmTensorField deltaSigmaD
         IOobject::NO_WRITE
     ),
 //      ((mu1-mu2)*twoSymm(fvc::grad(D)) + (lambda1-lambda2)*(I*tr(fvc::grad(D))) - 2*(mu1-mu2)*T*cEigenStrain - (lambda1-lambda2)*(I*tr(T*cEigenStrain)))
-     ((mu1_elast-mu2_elast)*twoSymm(fvc::grad(D)) + (lambda1-lambda2)*(I*tr(fvc::grad(D))) - 2*(mu1_elast-mu2_elast)*phi*phi*(3-2*phi)*cEigenStrain 
-     - (lambda1-lambda2)*(I*tr(phi*phi*(3-2*phi)*cEigenStrain)))
+     ((mu1_elast-mu2_elast)*twoSymm(fvc::grad(D)) + (lambda1-lambda2)*(I*tr(fvc::grad(D))) - 2*(mu1_elast-mu2_elast)*phi_1*phi_1*(3-2*phi_1)*cEigenStrain1 
+     - (lambda1-lambda2)*(I*tr(phi_1*phi_1*(3-2*phi_1)*cEigenStrain1)))
      + (mu1_elast_-mu2_elast_)*strain
 );
 
@@ -197,7 +276,7 @@ volSymmTensorField Sigma
         IOobject::NO_WRITE
     ),
 //     (2*(mu1*T+mu2*(1-T))*(0.5*twoSymm(fvc::grad(D)) - T*cEigenStrain) + (lambda1*T+lambda2*(1-T))*(I*tr(fvc::grad(D) - T*cEigenStrain)))
-    (2*(mu1_elast*phi*phi*(3-2*phi) + mu2_elast*(1-phi)*(1-phi)*(1+2*phi))*(symm(fvc::grad(D)) - phi*phi*(3-2*phi)*cEigenStrain) + (lambda1*phi*phi*(3-2*phi) + lambda2*(1-phi)*(1-phi)*(1+2*phi))*(I*tr(fvc::grad(D) - phi*phi*(3-2*phi)*cEigenStrain))) + (mu1_elast_*phi*phi*(3-2*phi) + mu2_elast_*(1-phi)*(1-phi)*(1+2*phi))*strain
+    (2*(mu1_elast*phi_1*phi_1*(3-2*phi_1) + mu2_elast*(1-phi_1)*(1-phi_1)*(1+2*phi_1))*(symm(fvc::grad(D)) - phi_1*phi_1*(3-2*phi_1)*cEigenStrain1) + (lambda1*phi_1*phi_1*(3-2*phi_1) + lambda2*(1-phi_1)*(1-phi_1)*(1+2*phi_1))*(I*tr(fvc::grad(D) - phi_1*phi_1*(3-2*phi_1)*cEigenStrain1))) + (mu1_elast_*phi_1*phi_1*(3-2*phi_1) + mu2_elast_*(1-phi_1)*(1-phi_1)*(1+2*phi_1))*strain
 );
 
  volScalarField deltaF
@@ -211,7 +290,7 @@ volSymmTensorField Sigma
             IOobject::NO_WRITE
         ),
 //         mesh
-        6.0*phi*(1-phi)*(0.5*(deltaSigmaD && (symm(fvc::grad(D))-phi*phi*(3-2*phi)*cEigenStrain))-(Sigma && cEigenStrain))
+        6.0*phi_1*(1-phi_1)*(0.5*(deltaSigmaD && (symm(fvc::grad(D))-phi_1*phi_1*(3-2*phi_1)*cEigenStrain1))-(Sigma && cEigenStrain1))
     );
 
 

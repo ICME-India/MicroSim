@@ -32,6 +32,7 @@ DIFFUSIVITY = {1, 1, 1.0e-13, 1.0e-13};
 R = 8.314;
 V = 10e-6;
 ##Elasticity related parameters
+ELASTICITY = 1;
 EIGEN_STRAIN = {0, 0.01, 0.01, 0.0, 0.0, 0.0, 0.0};
 EIGEN_STRAIN = {1, 0.01, 0.01, 0.0, 0.0, 0.0, 0.0};
 VOIGT_ISOTROPIC = {0, 166.83e9, 115.5e9, 77e9};

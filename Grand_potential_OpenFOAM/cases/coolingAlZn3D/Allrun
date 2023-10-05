@@ -12,11 +12,21 @@ application=`getApplication`
 
 runApplication blockMesh
 
-cp 0/phi.orig 0/phi
+cp 0/phi_1.orig 0/phi_1
+
+cp 0/phi_2.orig 0/phi_2
+
+cp 0/phi_3.orig 0/phi_3
+
+cp 0/phi_4.orig 0/phi_4
 
 cp 0/mu_1.orig 0/mu_1
 
 cp 0/mu_2.orig 0/mu_2
+
+cp 0/c_1.orig 0/c_1
+
+cp 0/c_2.orig 0/c_2
 
 cp 0/theta.orig 0/theta
 
