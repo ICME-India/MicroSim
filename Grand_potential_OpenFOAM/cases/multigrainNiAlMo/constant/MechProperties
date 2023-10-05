@@ -23,7 +23,9 @@ FoamFile
 //lambdas         lambdas [0 0 0 0 0 0 0] 1;
 //center_y        center_y [0 1 0 0 0 0 0] 0;
 //DTs        	DTs [0 2 -1 0 0 0 0] 1;
-cEigenStrain	cEigenStrain [0 0 0 0 0 0 0] $EIGEN_STRAIN; //(0.01 0 0 0.01 0 0.00); //(0.0 0 0 0.0 0 0.00);
+cEigenStrain1	cEigenStrain1 [0 0 0 0 0 0 0] $EIGEN_STRAIN1; //(0.01 0 0 0.01 0 0.00); //(0.0 0 0 0.0 0 0.00);
+cEigenStrain2	cEigenStrain2 [0 0 0 0 0 0 0] $EIGEN_STRAIN2; //(0.01 0 0 0.01 0 0.00); //(0.0 0 0 0.0 0 0.00);
+cEigenStrain3	cEigenStrain3 [0 0 0 0 0 0 0] $EIGEN_STRAIN3; //(0.01 0 0 0.01 0 0.00); //(0.0 0 0 0.0 0 0.00);
 mu1_elast       mu1_elast [0 0 0 0 0 0 0] $mu1_elast; //77e9; //38.5e9; //62.5e9; //125e9;
 mu2_elast       mu2_elast [0 0 0 0 0 0 0] $mu2_elast; //77e9; //125e9; 
 lambda1        	lambda1 [0 0 0 0 0 0 0] $lambda1; //115.5e9; //57.75e9; //187.5e9;

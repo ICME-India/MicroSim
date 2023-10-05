@@ -25,25 +25,19 @@ dimt        dimt [0 0 1 0 0 0 0] 1; //Dimension of time
 dimensions $DIMENSION; //Number of dimensions
 phases $NUMPHASES; //Number of phases
 components $NUMCOMPONENTS; //Number of components
-//m_0         m_0 [0 0 0 0 0 0 0] 1e9; //Slope solidus
-//m_1         m_1 [0 0 0 0 0 0 0] 0.45; //Slope liquidus
-//omega       omega [0 0 0 0 0 0 0] 1.687331;
-//omega       omega [0 0 0 0 0 0 0] 1.0; //Relaxation coefficient for phi (order parameter)
-gamma       gamma [0 0 0 0 0 0 0] $GAMMA; //0.01; //Surface Energy
-//epsilon     epsilon [0 0 0 0 0 0 0] 48;
+gamma_1       gamma_1 [0 0 0 0 0 0 0] $GAMMA1; //0.01; //Surface Energy
+gamma_2       gamma_2 [0 0 0 0 0 0 0] $GAMMA2; //0.01; //Surface Energy
+gamma_3       gamma_3 [0 0 0 0 0 0 0] $GAMMA3; //0.01; //Surface Energy
+gamma_4       gamma_4 [0 0 0 0 0 0 0] $GAMMA4; //0.01; //Surface Energy
 epsilon     epsilon [0 0 0 0 0 0 0] $epsilon; //8e-10; //Interface Width
-//c_Sol       c_Sol [0 0 0 0 0 0 0] 0.7815; //Composition of solid in equilibrium with liquid
-//c_Liq       c_Liq [0 0 0 0 0 0 0] 0.5; //Composition of liquid in equilibrium with solid
-//c_eq        c_eq [0 0 0 0 0 0 0] 0.5; //Equilibrium composition or average composition of alloy
 diff_Sol    diff_Sol [0 0 0 0 0 0 0] $DIFFUSIVITY00; //0; //Diffusivity in solid
-diff_Liq    diff_Liq [0 0 0 0 0 0 0] $DIFFUSIVITY10; //1.0e-9; //Diffusivity in liquid
+diff_Liq    diff_Liq [0 0 0 0 0 0 0] $DIFFUSIVITYl0; //1.0e-9; //Diffusivity in liquid
 anti_trap   anti_trap [0 0 0 0 0 0 0] 0.35355; //Antitrapping coefficient
 G           G [0 0 0 0 0 0 0] 0.0; //Thermal gradient
 v           v [0 0 0 0 0 0 0] 0.0; //Velocity
 noise_mag           noise_mag [0 0 0 0 0 0 0] $Amp_Noise_Phase; //0.00; //Noise magnitude
 initial           initial [0 0 0 0 0 0 0] $initial; //Constant value from temperature profile
 T0         	 T0 [0 0 0 0 0 0 0] $T0; //Melting temperature
-//T         	 T0 [0 0 0 0 0 0 0] 0.95; //Operating temperature
 delta_01         delta_01 [0 0 0 0 0 0 0] $dab; //0.00; //Strength of anisotropy
 theta_x         theta_x [0 0 0 0 0 0 0] $theta_x; //0.785; //Constant orientation in radian about x
 theta_y         theta_y [0 0 0 0 0 0 0] $theta_y; //0.785; //Constant orientation in radian about y
@@ -51,7 +45,6 @@ theta_z         theta_z [0 0 0 0 0 0 0] $theta_z; //0.785; //Constant orientatio
 eps         eps [0 0 0 0 0 0 0] 1e-3; // value added to denominator of g_phi
 mu_th          mu_th [0 0 0 0 0 0 0] 0.5; // mu^2 is the strength of the coupling in alpha equation
 Vm              Vm [0 0 0 0 0 0 0] $Vm; //1.0e-5; // Molar volume
-//A            A [0 0 0 0 0 0 0] 1;
 
 qdot         qdot [0 0 0 0 0 0 0] 8e5; //37.7e4; //Heat dissipation in J/mol-s
 
@@ -60,20 +53,8 @@ swcool 1;
 
 //Switch = 1 to enable orientaton field, 2 to model precipitate growth,
 //else 0 for single dendrite solidification
-swch 2;
 
 M_Scale 0.05;
-
-seedRadius $seed_radius;
-
-volume_fraction $volume_fraction;
-
-spread $spread;
-
-//center coordinate only for single seed
-centerX $center_x;
-centerY $center_y;
-centerZ $center_z;
 
 numSeeds 6; //Maximum number depending on probability of nucleation
 
@@ -82,36 +63,27 @@ dt_s 1.0; // Temperature parameters in probability of nucleation
 
 nucleation_interval 1000;
 
-/*
-dcdmu_1[0][0]   0.6666;
-dcdmu_1[0][1]  -0.3333;
-dcdmu_1[1][0]  -0.3333;
-dcdmu_1[1][1]   0.6666;
 
-dcdmu_2[0][0]   0.6666;
-dcdmu_2[0][1]  -0.3333;
-dcdmu_2[1][0]  -0.3333;
-dcdmu_2[1][1]   0.6666;
-*/
-D_a[0][0]       $DIFFUSIVITY00; //1.0e-13;
-D_a[1][1]       $DIFFUSIVITY01; //1.0e-13;
-D_a[0][1]       0.0;
-D_a[1][0]       0.0;
+D_a1[0][0]       $DIFFUSIVITY00; //1.0e-13;
+D_a1[1][1]       $DIFFUSIVITY01; //1.0e-13;
+D_a1[0][1]       0.0;
+D_a1[1][0]       0.0;
 
-D_l[0][0]       $DIFFUSIVITY10; //1.0e-13;
-D_l[1][1]       $DIFFUSIVITY11; //1.0e-13;
+D_a2[0][0]       $DIFFUSIVITY10; //1.0e-13;
+D_a2[1][1]       $DIFFUSIVITY11; //1.0e-13;
+D_a2[0][1]       0.0;
+D_a2[1][0]       0.0;
+
+D_a3[0][0]       $DIFFUSIVITY20; //1.0e-13;
+D_a3[1][1]       $DIFFUSIVITY21; //1.0e-13;
+D_a3[0][1]       0.0;
+D_a3[1][0]       0.0;
+
+D_l[0][0]       $DIFFUSIVITYl0; //1.0e-13;
+D_l[1][1]       $DIFFUSIVITYl1; //1.0e-13;
 D_l[0][1]       0.0;
 D_l[1][0]       0.0;
-/*
-ceq_1[0][0]     0.1;
-ceq_1[1][0]     0.8;
 
-ceq_2[0][0]     0.6;
-ceq_2[1][0]     0.3;
-
-mu_eq[0][0]     1.0;
-mu_eq[1][0]     1.0;
-*/
 
 
 // ************************************************************************* //

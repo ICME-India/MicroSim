@@ -25,10 +25,13 @@ dimt        dimt [0 0 1 0 0 0 0] 1; //Dimension of time
 dimensions $DIMENSION; //Number of dimensions
 phases $NUMPHASES; //Number of phases
 components $NUMCOMPONENTS; //Number of components
-gamma       gamma [0 0 0 0 0 0 0] $GAMMA; //0.01; //Surface Energy
+gamma_1       gamma_1 [0 0 0 0 0 0 0] $GAMMA1; //0.01; //Surface Energy
+gamma_2       gamma_2 [0 0 0 0 0 0 0] $GAMMA2; //0.01; //Surface Energy
+gamma_3       gamma_3 [0 0 0 0 0 0 0] $GAMMA3; //0.01; //Surface Energy
+gamma_4       gamma_4 [0 0 0 0 0 0 0] $GAMMA4; //0.01; //Surface Energy
 epsilon     epsilon [0 0 0 0 0 0 0] $epsilon; //2.0e-9; //Interface Width
 diff_Sol    diff_Sol [0 0 0 0 0 0 0] $DIFFUSIVITY00; //1.0e-13; //Diffusivity in solid
-diff_Liq    diff_Liq [0 0 0 0 0 0 0] $DIFFUSIVITY10; //1.0e-13; //Diffusivity in liquid
+diff_Liq    diff_Liq [0 0 0 0 0 0 0] $DIFFUSIVITYl0; //1.0e-13; //Diffusivity in liquid
 anti_trap   anti_trap [0 0 0 0 0 0 0] 0.35355; //Antitrapping coefficient
 G           G [0 0 0 0 0 0 0] 0.0; //Thermal gradient
 v           v [0 0 0 0 0 0 0] 0.0; //Velocity
@@ -53,22 +56,10 @@ swcool 0;
 
 //Switch = 1 to enable orientaton field, 2 to model precipitate growth,
 //else 0 for single dendrite solidification
-swch 2;
 
 M_Scale 0.4;
 
-seedRadius $seed_radius;
-
-volume_fraction $volume_fraction;
-
-spread $spread;
-
-//center coordinate only for single seed
-centerX $center_x;
-centerY $center_y;
-centerZ $center_z;
-
-numSeeds 4; //Maximum number depending on probability of nucleation
+numSeeds 1; //Maximum number depending on probability of nucleation
 
 dt_0 3.0;
 dt_s 1.0; // Temperature parameters in probability of nucleation

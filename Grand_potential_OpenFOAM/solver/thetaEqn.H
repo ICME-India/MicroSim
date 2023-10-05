@@ -1,11 +1,11 @@
 
 //! Orientation field equation is solved only for multigrain problems
-if (swch == 1)
+if (swch == 1 && phases == 2)
 {
     
-volScalarField g_phi = phi*phi*phi*(7-6*phi)/((1+eps-phi)*(1+eps-phi));
+volScalarField g_phi = phi_1*phi_1*phi_1*(7-6*phi_1)/((1+eps-phi_1)*(1+eps-phi_1));
 
-volScalarField M_theta_func = M_Scale*epsilon*(1-phi*phi*phi*(10-15*phi+6*phi*phi))*(1-phi)*(1-phi);
+volScalarField M_theta_func = M_Scale*epsilon*(1-phi_1*phi_1*phi_1*(10-15*phi_1+6*phi_1*phi_1))*(1-phi_1)*(1-phi_1);
 
 /*forAll(grad_theta_sqr, i)
 {
@@ -77,7 +77,7 @@ theta = Foam::atan2(2*(qt2*qt3 + qt0*qt1), (qt0*qt0 - qt1*qt1 - qt2*qt2 + qt3*qt
   + Foam::atan2(2*(qt1*qt2 + qt0*qt3), (qt0*qt0 + qt1*qt1 - qt2*qt2 - qt3*qt3))*vector(0,0,1);
 }
 
-}
+
 
     // Writing into the log file
     //! For 3D simulations
@@ -87,4 +87,4 @@ Info<< "Min/max thetax:" << min(theta.component(0)).value() << ' ' << max(theta.
 Info<< "Min/max thetay:" << min(theta.component(1)).value() << ' ' << max(theta.component(1)).value() << endl;
 }
 Info<< "Min/max thetaz:" << min(theta.component(2)).value() << ' ' << max(theta.component(2)).value() << endl;
-
+}

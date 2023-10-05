@@ -43,3 +43,15 @@ It contains the OpenFOAM case files required to run the coarsening problem for N
 
 It contains the OpenFOAM case files required to run the coarsening problem while cooling for NiAlMo alloy.
 
+## coarseningNiAlMo2Variant
+
+It contains the OpenFOAM case files required to run the coarsening problem for 3 phase NiAlMo alloy.
+
+## coarseningNiAlMo3Variant
+
+It contains the OpenFOAM case files required to run the coarsening problem for 4 phase NiAlMo alloy.
+
+## coarseningNiAlMoHexagonalOrthorhomic
+
+It contains the OpenFOAM case files required to run the coarsening problem for 4 phase hexagonal orthorhomic NiAlMo alloy.
+

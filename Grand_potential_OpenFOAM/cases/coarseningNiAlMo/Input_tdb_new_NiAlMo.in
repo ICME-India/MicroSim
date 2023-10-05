@@ -7,7 +7,7 @@ MESH_Z = 1;
 DELTA_X = 4e-11;
 DELTA_Y = 4e-11;
 DELTA_Z = 4e-11;
-DELTA_t = 7.5e-9;
+DELTA_t = 1.5e-9;
 ##Number of phases and composition
 NUMPHASES = 2;
 NUMCOMPONENTS = 3;
@@ -32,6 +32,7 @@ DIFFUSIVITY = {1, 1, 1.0e-13, 1.0e-13};
 R = 8.314;
 V = 10e-6;
 ##Elasticity related parameters
+ELASTICITY = 1;
 EIGEN_STRAIN = {0, 0.01, 0.01, 0.0, 0.0, 0.0, 0.0};
 EIGEN_STRAIN = {1, 0.01, 0.01, 0.0, 0.0, 0.0, 0.0};
 VOIGT_ISOTROPIC = {0, 166.83e9, 115.5e9, 77e9};
@@ -66,7 +67,7 @@ WRITEHDF5 = 1;
 TRACK_PROGRESS = 10;
 ##Model-specific parameters: Grand-potential model
 ##Phase-field parameters; epsilon:interface width; it is not the gradient energy coefficient
-epsilon = 32e-11;
+epsilon = 16e-11;
 tau = 1.31;
 Tau = {0.28};
 ##Anisotropy functions

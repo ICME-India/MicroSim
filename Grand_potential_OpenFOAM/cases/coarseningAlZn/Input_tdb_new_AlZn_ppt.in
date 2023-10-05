@@ -33,6 +33,7 @@ R = 8.314;
 # V = 10e-6;
 V = 10e-6;
 ##Elasticity related parameters
+ELASTICITY = 1;
 EIGEN_STRAIN = {0, 0.01, 0.01, 0.0, 0.0, 0.0, 0.0};
 EIGEN_STRAIN = {1, 0.01, 0.01, 0.0, 0.0, 0.0, 0.0};
 VOIGT_ISOTROPIC = {0, 270, 187.5, 125.0};
