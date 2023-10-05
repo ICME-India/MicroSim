@@ -2,6 +2,11 @@ Bootstrap: library
 From: ubuntu:20.04
 Stage: main  
 
+
+#%files
+#/home/user/ParaView-5.7.0-MPI-Linux-Python3.7-64bit /opt
+
+
 %environment
     export OMPI_DIR=/opt/ompi
     export SINGULARITY_OMPI_DIR=$OMPI_DIR
@@ -13,6 +18,7 @@ Stage: main
     export LD_LIBRARY_PATH=/opt/HDF5-1.12.2/include:$LD_LIBRARY_PATH
     export LD_LIBRARY_PATH=/opt/HDF5-1.12.2/lib:$LD_LIBRARY_PATH
 
+    export PATH=/opt/ParaView-5.7.0-MPI-Linux-Python3.7-64bit/bin:$PATH
 
     export PATH=/usr/local/lib:$PATH
     export LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
@@ -26,12 +32,20 @@ Stage: main
     echo "Installing required packages..."
     apt-get update
     apt-get install -y  build-essential dbus-x11 libgl1-mesa-dev wget git bash gcc gfortran g++ make file dbus-x11
-    apt-get install -y x11-apps xauth gnome-terminal build-essential locales 
+    apt-get install -y x11-apps xauth gnome-terminal build-essential locales
+    apt-get install -y libglu1-mesa
     echo "en_US.UTF-8 UTF-8" >> /etc/locale.gen
     locale-gen en_US.utf8
     /usr/sbin/update-locale LANG=en_US.UTF-8
     export LC_ALL=en_US.UTF-8
     export LANG=en_US.UTF-8
+    
+
+  ## Installation of ParaView
+    #******************************************************
+    cd /tmp && wget -O ParaView-5.7.0-MPI-Linux-Python3.7-64bit.tar.gz 'https://www.paraview.org/paraview-downloads/download.php?submit=Download&version=v5.7&type=binary&os=Linux&downloadFile=ParaView-5.7.0-MPI-Linux-Python3.7-64bit.tar.gz'
+    cd /opt && tar xzf /tmp/ParaView-5.7.0-MPI-Linux-Python3.7-64bit.tar.gz && cd ..
+
     
   ## Installation of pip and Python libraries
     #******************************************************
@@ -41,15 +55,9 @@ Stage: main
     apt-get install -y python3-dev
     apt-get install -y python3-pip
     apt-get install -y python3-pyqt5.qtopengl python3-pyqt5.qtquick 
-    pip3 install pyqt5 tinydb sympy==1.8
-    pip3 install vtk
-    pip3 install yt
-    pip3 install pycalphad==0.9.2
-    pip3 install scikit-image
-    pip3 install pymks
+    pip3 install pyqt5 scikit-image vtk tinydb sympy==1.8 pycalphad==0.9.2 pymks yt
     python3 -m pip install pyqt5==5.15.4
 
-    
     
     echo "Installing Open MPI"
     #*********************************
@@ -69,7 +77,6 @@ Stage: main
 
     echo "Compiling the MPI application..."
     export CC=mpicc
-
 
 
 
