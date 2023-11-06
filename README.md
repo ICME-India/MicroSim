@@ -128,6 +128,14 @@ An OpenFOAM phase-field solver to simulate solidification of binary and ternary 
 It contains the source files of the solver.
 
 ### cases
+#### dendriteAlZn
+
+It contains the OpenFOAM case files required to run the single dendrite problem for AlZn alloy.
+
+#### dendriteNiNb
+
+It contains the OpenFOAM case files required to run the single dendrite problem for NiNb alloy.
+
 #### multigrainAlZn
 
 It contains the OpenFOAM case files required to run the multigrain problem for AlZn alloy.
@@ -144,6 +152,10 @@ It contains the OpenFOAM case files required to run the multigrain problem for N
 
 It contains the OpenFOAM case files required to run the coarsening problem for AlZn alloy.
 
+#### dendriteNiAlMo
+
+It contains the OpenFOAM case files required to run the single dendrite problem for NiAlMo alloy.
+
 #### multigrainNiAlMo
 
 It contains the OpenFOAM case files required to run the multigrain problem for NiAlMo alloy.
@@ -159,6 +171,18 @@ It contains the OpenFOAM case files required to run the coarsening problem for N
 #### coolingCoarseningNiAlMo
 
 It contains the OpenFOAM case files required to run the coarsening problem while cooling for NiAlMo alloy.
+
+#### coarseningNiAlMo2Variant
+
+It contains the OpenFOAM case files required to run the coarsening problem for 3 phase NiAlMo alloy.
+
+#### coarseningNiAlMo3Variant
+
+It contains the OpenFOAM case files required to run the coarsening problem for 4 phase NiAlMo alloy.
+
+#### coarseningNiAlMoHexagonalOrthorhomic
+
+It contains the OpenFOAM case files required to run the coarsening problem for 4 phase hexagonal orthorhomic NiAlMo alloy.
 
 
 The following contributers are acknowledged
