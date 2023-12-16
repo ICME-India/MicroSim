@@ -166,6 +166,12 @@ Info<< "Initialised fields." << endl;
 
 Info<< "Min/max phi:" << min(phi_1).value() << ' ' << max(phi_1).value() << endl;
 Info<< "Min/max theta:" << min(theta).value() << ' ' << max(theta).value() << endl;
+
+qt0 = theta.component(2);
+
+volVectorField grad_qt0 = dimx*fvc::grad(qt0);
+
+volScalarField grad_qt_sqr = magSqr(grad_qt0);
 }
 
 //! For 3D simulations
@@ -346,6 +352,18 @@ Info<< "Min/max phi_1:" << min(phi_1).value() << ' ' << max(phi_1).value() << en
 Info<< "Min/max thetaz:" << min(theta.component(2)).value() << ' ' << max(theta.component(2)).value() << endl;
 Info<< "Min/max thetax:" << min(theta.component(0)).value() << ' ' << max(theta.component(0)).value() << endl;
 Info<< "Min/max thetay:" << min(theta.component(1)).value() << ' ' << max(theta.component(1)).value() << endl;
+
+qt0 = (Foam::cos(0.5*theta.component(0))*Foam::cos(0.5*theta.component(1))*Foam::cos(0.5*theta.component(2)) + Foam::sin(0.5*theta.component(0))*Foam::sin(0.5*theta.component(1))*Foam::sin(0.5*theta.component(2)));
+qt1 = (Foam::sin(0.5*theta.component(0))*Foam::cos(0.5*theta.component(1))*Foam::cos(0.5*theta.component(2)) - Foam::cos(0.5*theta.component(0))*Foam::sin(0.5*theta.component(1))*Foam::sin(0.5*theta.component(2)));
+qt2 = (Foam::cos(0.5*theta.component(0))*Foam::sin(0.5*theta.component(1))*Foam::cos(0.5*theta.component(2)) + Foam::sin(0.5*theta.component(0))*Foam::cos(0.5*theta.component(1))*Foam::sin(0.5*theta.component(2)));
+qt3 = (Foam::cos(0.5*theta.component(0))*Foam::cos(0.5*theta.component(1))*Foam::sin(0.5*theta.component(2)) - Foam::sin(0.5*theta.component(0))*Foam::sin(0.5*theta.component(1))*Foam::cos(0.5*theta.component(2)));
+
+volVectorField grad_qt0 = dimx*fvc::grad(qt0);
+volVectorField grad_qt1 = dimx*fvc::grad(qt1);
+volVectorField grad_qt2 = dimx*fvc::grad(qt2);
+volVectorField grad_qt3 = dimx*fvc::grad(qt3);
+
+volScalarField grad_qt_sqr = magSqr(grad_qt0) + magSqr(grad_qt1) + magSqr(grad_qt2) + magSqr(grad_qt3);
 }
 }
 

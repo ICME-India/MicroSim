@@ -18,7 +18,7 @@ FoamFile
 
 application     phaseField;
 
-startFrom       latestTime; //startTime;
+startFrom       startTime;
 
 startTime       $STARTTIME; //0; // the actual time i.e. runtime.value() or no. of iterations*deltaT
 

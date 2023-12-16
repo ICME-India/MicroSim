@@ -789,6 +789,12 @@ if ((swcool == 1)&&(swch == 1))
 
             theta += randTheta[2]*gaussianSeed*vector(0,0,1);
             phi_1 += gaussianSeed;
+
+	qt0 = theta.component(2);
+
+	volVectorField grad_qt0 = dimx*fvc::grad(qt0);
+
+	volScalarField grad_qt_sqr = magSqr(grad_qt0);
             }
 
             if (dimensions == 3)
@@ -810,6 +816,18 @@ if ((swcool == 1)&&(swch == 1))
 
             theta += gaussianSeed*(randTheta[0]*vector(1,0,0) + randTheta[1]*vector(0,1,0) + randTheta[2]*vector(0,0,1));
             phi_1 += gaussianSeed;
+            
+	qt0 = (Foam::cos(0.5*theta.component(0))*Foam::cos(0.5*theta.component(1))*Foam::cos(0.5*theta.component(2)) + Foam::sin(0.5*theta.component(0))*Foam::sin(0.5*theta.component(1))*Foam::sin(0.5*theta.component(2)));
+	qt1 = (Foam::sin(0.5*theta.component(0))*Foam::cos(0.5*theta.component(1))*Foam::cos(0.5*theta.component(2)) - Foam::cos(0.5*theta.component(0))*Foam::sin(0.5*theta.component(1))*Foam::sin(0.5*theta.component(2)));
+	qt2 = (Foam::cos(0.5*theta.component(0))*Foam::sin(0.5*theta.component(1))*Foam::cos(0.5*theta.component(2)) + Foam::sin(0.5*theta.component(0))*Foam::cos(0.5*theta.component(1))*Foam::sin(0.5*theta.component(2)));
+	qt3 = (Foam::cos(0.5*theta.component(0))*Foam::cos(0.5*theta.component(1))*Foam::sin(0.5*theta.component(2)) - Foam::sin(0.5*theta.component(0))*Foam::sin(0.5*theta.component(1))*Foam::cos(0.5*theta.component(2)));
+
+	volVectorField grad_qt0 = dimx*fvc::grad(qt0);
+	volVectorField grad_qt1 = dimx*fvc::grad(qt1);
+	volVectorField grad_qt2 = dimx*fvc::grad(qt2);
+	volVectorField grad_qt3 = dimx*fvc::grad(qt3);
+
+	volScalarField grad_qt_sqr = magSqr(grad_qt0) + magSqr(grad_qt1) + magSqr(grad_qt2) + magSqr(grad_qt3);
             }
             }
 
