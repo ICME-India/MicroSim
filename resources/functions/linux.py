@@ -27,8 +27,9 @@ def H5toVTK_Func(self):
         
         h5toxmf_cmd = "cd " +h5_outhead + "; cd ..;" + "cp ../Grand_potential_Finite_difference_2D_MPI/write_xdmf write_xdmf ; ./write_xdmf " + self.h5tovtk_infileLoc.text() + " "+ h5_outputfilename[0] + " " +  self.h5tovtk_sTime.text() + " "+ self.h5tovtk_eTime.text() 
         
+        #print(h5toxmf_cmd)
 
-        os.system("gnome-terminal -e 'bash -c \""+h5toxmf_cmd+";\"'")
+        os.system("dbus-launch gnome-terminal -e 'bash -c \""+h5toxmf_cmd+";\"'")
         
         
         xmlfile = minidom.parse( h5_outhead +"/" + h5_outputfilename[0] +"_" +self.h5tovtk_sTime.text() + ".xmf")
@@ -47,7 +48,9 @@ def H5toVTK_Func(self):
         xmf_names = sorted(xmf_names,key=lambda x: int(x.split('_')[-1].split('.')[0]))
             
             
-        python_script_for_vtk = "from paraview.simple import *\nparaview.simple._DisableFirstRenderCameraReset()\noutput = XDMFReader(FileNames=" +str(xmf_names) +")\noutput.PointArrayStatus = " +str(scalar_names_xml) + "\nanimationScene1 = GetAnimationScene()\nanimationScene1.UpdateAnimationUsingDataTimeSteps()\nprint('Converting to vtk. Please wait...')\nSaveData('" + vtk_output_fname + "', proxy=output, Writetimestepsasfileseries=1,Firsttimestep=0, Lasttimestep=-1,Timestepstride="+  str(int(self.h5tovtk_eskip.text()) + 1) +")\nprint('Done')"
+    #    python_script_for_vtk = "from paraview.simple import *\nparaview.simple._DisableFirstRenderCameraReset()\noutput = XDMFReader(FileNames=" +str(xmf_names) +")\noutput.PointArrayStatus = " +str(scalar_names_xml) + "\nanimationScene1 = GetAnimationScene()\nanimationScene1.UpdateAnimationUsingDataTimeSteps()\nprint('Converting to vtk. Please wait...')\nSaveData('" + vtk_output_fname + "', proxy=output, Writetimestepsasfileseries=1,Firsttimestep=0, Lasttimestep=-1,Timestepstride="+  str(int(self.h5tovtk_eskip.text()) + 1) +")\nprint('Done')"
+        python_script_for_vtk = "from paraview.simple import *\nparaview.simple._DisableFirstRenderCameraReset()\noutput = XDMFReader(FileNames=" +str(xmf_names) +")\noutput.PointArrayStatus = " +str(scalar_names_xml) + "\nanimationScene1 = GetAnimationScene()\nanimationScene1.UpdateAnimationUsingDataTimeSteps()\nprint('Converting to vtk. Please wait...')\nSaveData('" + vtk_output_fname + "', proxy=output, Writetimestepsasfileseries=1,Firsttimestep="+  str(int(int(self.h5tovtk_sTime.text())/int(self.PP_savet))) +", Lasttimestep="+  str(int(int(self.h5tovtk_eTime.text())/int(self.PP_savet))) +",Timestepstride="+  str(int(int(self.h5tovtk_eskip.text())/int(self.PP_savet))) +")\nprint('Done')"
+        #print(python_script_for_vtk)
         
         fileName = h5_outhead + "/h5tovtk.py"
         f = open(fileName, "w")
@@ -55,7 +58,7 @@ def H5toVTK_Func(self):
         f.close()
         
         xmftovtk_cmd = "cd " +h5_outhead + ";pvpython h5tovtk.py;rm h5tovtk.py;cd .."
-        os.system("gnome-terminal -e 'bash -c \""+xmftovtk_cmd+";\"'")
+        os.system("dbus-launch gnome-terminal -e 'bash -c \""+xmftovtk_cmd+";\"'")
         
     elif self.h5tovtk_xmfradio.isChecked():
         
@@ -99,7 +102,7 @@ def H5toVTK_Func(self):
         f.close()
         
         xmftovtk_cmd = "cd " +h5_outhead + ";pvpython h5tovtk.py;rm h5tovtk.py;cd .."
-        os.system("gnome-terminal -e 'bash -c \""+xmftovtk_cmd+";\"'")
+        os.system("dbus-launch gnome-terminal -e 'bash -c \""+xmftovtk_cmd+";\"'")
 
     elif self.h5tovtk_pltradio.isChecked():
         
@@ -183,7 +186,7 @@ def paraviewFunc(self):
             return
         latest_file = max(list_of_files, key=os.path.getctime)
 
-        paraviewcmd = "gnome-terminal -e 'bash -c \"/opt/paraviewopenfoam56/bin/paraview " +latest_file +"; bash\" '"
+        paraviewcmd = "dbus-launch gnome-terminal -e 'bash -c \"/opt/paraviewopenfoam56/bin/paraview " +latest_file +"; bash\" '"
         os.system(paraviewcmd)
     elif os.path.isfile(os.path.expanduser("./.Paraview")): ## Checking for paraview saved path
         readPath = open(os.path.expanduser('./.Paraview'), "r")
@@ -194,7 +197,7 @@ def paraviewFunc(self):
             return
         latest_file = max(list_of_files, key=os.path.getctime)
 
-        paraviewcmd = "gnome-terminal -e 'bash -c \"" + readPathParaview +" " +latest_file +"; bash\" '"
+        paraviewcmd = "dbus-launch gnome-terminal -e 'bash -c \"" + readPathParaview +" " +latest_file +"; bash\" '"
         os.system(paraviewcmd)
 
     else:
@@ -203,40 +206,40 @@ def paraviewFunc(self):
 def SolverExecute(self):
     commandLine ="mkdir -p ~/MicroSim/bin"
         
-    os.system("gnome-terminal -e 'bash -c  \""+commandLine+";bash\"'")
+    os.system("dbus-launch gnome-terminal -e 'bash -c  \""+commandLine+";bash\"'")
 
     if self.radio_GP.isChecked():
             
-        commandLine ="cd Grand_potential_Finite_difference_2D_MPI/; python3 GEdata_writer.py " +self.runDir +"/"+self.infile.text() + " ;make clean;make; cp microsim_gp ~/MicroSim/bin/;cd " + self.runDir + ";mpirun.mpich -np 4 ~/MicroSim/bin/microsim_gp "  +self.infile.text()+" "+self.filling.text()+" "+self.output.text() + " 2 2"
+        commandLine ="cd Grand_potential_Finite_difference_2D_MPI/; python3 GEdata_writer.py " +self.runDir +"/"+self.infile.text() + " ;make clean;make; cp microsim_gp ~/MicroSim/bin/;cd " + self.runDir + ";mpirun -np 4 ~/MicroSim/bin/microsim_gp "  +self.infile.text()+" "+self.filling.text()+" "+self.output.text() + " 2 2"
         
-        os.system("gnome-terminal -e 'bash -c  \""+commandLine+";bash\"'")
+        os.system("dbus-launch gnome-terminal -e 'bash -c  \""+commandLine+";bash\"'")
 
     elif self.radio_of.isChecked():
             
         commandLine ="cd " + self.runDir + "; cd ../../solver ; wclean; wmake; cd " + self.runDir + " ; ./Allclean; ./Allrun "
         
-        os.system("gnome-terminal -e 'bash -c  \""+commandLine+";bash\"'")
+        os.system("dbus-launch gnome-terminal -e 'bash -c  \""+commandLine+";bash\"'")
 
     elif self.radio_amrex.isChecked():
             
         commandLine ="cd Grand_potential_AMReX/Exec; make clean; make;  g++ -o Replace Replace.cpp; ./Replace "  +self.infile.text()+" "+self.filling.text()+"; cp main2d.gnu.MPI.ex ~/MicroSim/bin/;cd " + self.runDir + ";mpirun -np 2  ~/MicroSim/bin/main2d.gnu.MPI.ex input2.in"
         
-        os.system("gnome-terminal -e 'bash -c  \""+commandLine+";bash\"'")
+        os.system("dbus-launch gnome-terminal -e 'bash -c  \""+commandLine+";bash\"'")
     
     elif self.radio_KKR.isChecked():
         commandLine ="cd KKS_FD_CUDA_MPI/; python3 GEdata_writer.py " +self.runDir +"/"+self.infile.text() + " ;make clean;make; cp microsim_kks_fd_cuda_mpi ~/MicroSim/bin/;cp Makefile "+ self.runDir + ";cd " + self.runDir + ";make run KKS_OUT=~/MicroSim/bin/microsim_kks_fd_cuda_mpi INPUT="+self.infile.text()+" FILLING="+self.filling.text()+" OUTPUT="+self.output.text()+" NPROCS=1"
         
-        os.system("gnome-terminal -e 'bash -c \""+commandLine+";bash\"'")
+        os.system("dbus-launch gnome-terminal -e 'bash -c \""+commandLine+";bash\"'")
 
     elif self.radio_KKS2.isChecked():
         commandLine ="cd KKS_OpenCl/; python3 GEdata_writer.py " +self.runDir +"/"+self.infile.text() + " ;make clean;make; cp microsim_kks_opencl ~/MicroSim/bin/;cd " + self.runDir + ";mpirun -np 1 ~/MicroSim/bin/microsim_kks_opencl "  +self.infile.text()+" "+self.filling.text()+" "+self.output.text()
         
-        os.system("gnome-terminal -e 'bash -c  \""+commandLine+";bash\"'")
+        os.system("dbus-launch gnome-terminal -e 'bash -c  \""+commandLine+";bash\"'")
 
     elif self.radio_CH.isChecked():
         commandLine ="cd Cahn_Hilliard_FFT_2D/; python3 GEdata_writer.py " +self.runDir +"/"+self.infile.text() + " ;make clean;make; cp microsim_ch_fft ~/MicroSim/bin/;cd " + self.runDir + ";~/MicroSim/bin/microsim_ch_fft "  +self.infile.text()+" "+self.filling.text()+" "+self.output.text()
         
-        os.system("gnome-terminal -e 'bash -c \""+commandLine+";bash\"'")
+        os.system("dbus-launch gnome-terminal -e 'bash -c \""+commandLine+";bash\"'")
 
 def SolverExecuteHelp(self):
     runHelpmsg = QMessageBox()
@@ -246,7 +249,7 @@ def SolverExecuteHelp(self):
 
         Model_Folder= "Grand_potential_Finite_difference_2D_MPI"
         Model_code ="microsim_gp"
-        runcmdhelp = "This action will execute the following command:\n\n\n     1) Solver compilation\n\n       cd MicroSim/"+Model_Folder+"/  \n \n      python3 GEdata_writer.py " +self.runDir +"/"+self.infile.text() + "\n\n      make clean\n\n      make\n\n\n     2) Solver execution\n\n      cp "+ Model_code+" ~/MicroSim/bin/\n\n      cd " + self.runDir + "\n\n      mpirun.mpich -np 4 ~/MicroSim/bin/"+ Model_code+" "  +self.infile.text()+" "+self.filling.text()+" "+self.output.text() + " 2 2"
+        runcmdhelp = "This action will execute the following command:\n\n\n     1) Solver compilation\n\n       cd MicroSim/"+Model_Folder+"/  \n \n      python3 GEdata_writer.py " +self.runDir +"/"+self.infile.text() + "\n\n      make clean\n\n      make\n\n\n     2) Solver execution\n\n      cp "+ Model_code+" ~/MicroSim/bin/\n\n      cd " + self.runDir + "\n\n      mpirun -np 4 ~/MicroSim/bin/"+ Model_code+" "  +self.infile.text()+" "+self.filling.text()+" "+self.output.text() + " 2 2"
         
     elif self.radio_of.isChecked():
 
@@ -278,7 +281,7 @@ def SolverExecuteHelp(self):
         Model_code = "microsim_ch_fft"
         runcmdhelp = "This action will execute the following command:\n\n\n     1) Solver compilation\n\n       cd MicroSim/"+Model_Folder+"/  \n \n      python3 GEdata_writer.py " +self.runDir +"/"+self.infile.text() + "\n\n      make clean\n\n      make\n\n\n     2) Solver execution\n\n      cp "+ Model_code+" ~/MicroSim/bin/\n\n      cd " + self.runDir + "\n\n      ~/MicroSim/bin/"+ Model_code+" "  +self.infile.text()+" "+self.filling.text()+" "+self.output.text()
 
-    #runcmdhelp = "This action will execute the following command.\n\n\n     1) Solver compilation\n\n       cd ~/MicroSim/"+Model_Folder+"/  \n \n      python3 GEdata_writer.py " +self.runDir +"/"+self.infile.text() + "\n\n      make clean\n\n      make\n\n\n     2) Solver execution\n\n      cp "+ Model_code+" ~/MicroSim/bin/\n\n      cd " + self.runDir + "\n\n      mpirun.mpich -np 4 ~/MicroSim/bin/"+ Model_code+" "  +self.infile.text()+" "+self.filling.text()+" "+self.output.text() + " 2 2"
+    #runcmdhelp = "This action will execute the following command.\n\n\n     1) Solver compilation\n\n       cd ~/MicroSim/"+Model_Folder+"/  \n \n      python3 GEdata_writer.py " +self.runDir +"/"+self.infile.text() + "\n\n      make clean\n\n      make\n\n\n     2) Solver execution\n\n      cp "+ Model_code+" ~/MicroSim/bin/\n\n      cd " + self.runDir + "\n\n      mpirun -np 4 ~/MicroSim/bin/"+ Model_code+" "  +self.infile.text()+" "+self.filling.text()+" "+self.output.text() + " 2 2"
 
     runHelpmsg.setText(runcmdhelp )
     runHelpmsg.setStyleSheet("QLabel{min-width: 650px;}");
@@ -294,31 +297,31 @@ def generateJobscript(self):
             
         commandLine ="cd Grand_potential_Finite_difference_2D_MPI/; python3 GEdata_writer.py " +self.runDir +"/"+self.infile.text() + " ;make clean;make; cp microsim_gp ~/MicroSim/bin/;cp microsim_gp "+ self.runDir +"/JOB_FILE/;cp reconstruct "+ self.runDir +"/JOB_FILE/;cp write_xdmf "+ self.runDir +"/JOB_FILE/"
         
-        os.system("gnome-terminal -e 'bash -c  \""+commandLine+";bash\"'")
+        os.system("dbus-launch gnome-terminal -e 'bash -c  \""+commandLine+";bash\"'")
     
     elif self.radio_of.isChecked():
             
         commandLine ="cd " + self.runDir + "; cd ../../solver ; wclean; wmake"
         
-        os.system("gnome-terminal -e 'bash -c  \""+commandLine+";bash\"'")
+        os.system("dbus-launch gnome-terminal -e 'bash -c  \""+commandLine+";bash\"'")
         
     elif self.radio_amrex.isChecked():
             
         commandLine ="cd Grand_potential_AMReX/Exec; make clean; make;  g++ -o Replace Replace.cpp; ./Replace "  +self.infile.text()+" "+self.filling.text()+"; cp main2d.gnu.MPI.ex ~/MicroSim/bin/;cp main2d.gnu.MPI.ex "+ self.runDir +"/JOB_FILE/;cp input2.in "+ self.runDir +"/JOB_FILE/"
         
-        os.system("gnome-terminal -e 'bash -c  \""+commandLine+";bash\"'")
+        os.system("dbus-launch gnome-terminal -e 'bash -c  \""+commandLine+";bash\"'")
     
     elif self.radio_KKR.isChecked():
         commandLine ="cd KKS_FD_CUDA_MPI/; python3 GEdata_writer.py " +self.runDir +"/"+self.infile.text() + " ;make clean;make; cp microsim_kks_fd_cuda_mpi ~/MicroSim/bin/;cp microsim_kks_fd_cuda_mpi "+ self.runDir +"/JOB_FILE/;cp reconstruct "+ self.runDir +"/JOB_FILE/;cp write_xdmf "+ self.runDir +"/JOB_FILE/"
         
-        os.system("gnome-terminal -e 'bash -c \""+commandLine+";bash\"'")
+        os.system("dbus-launch gnome-terminal -e 'bash -c \""+commandLine+";bash\"'")
 
     elif self.radio_KKS2.isChecked():
         commandLine ="cd KKS_OpenCl/; python3 GEdata_writer.py " +self.runDir +"/"+self.infile.text() + " ;make clean;make; cp microsim_kks_opencl ~/MicroSim/bin/;cp microsim_kks_opencl "+ self.runDir +"/JOB_FILE/;cp reconstruct "+ self.runDir +"/JOB_FILE/;cp write_xdmf "+ self.runDir +"/JOB_FILE/"
         
-        os.system("gnome-terminal -e 'bash -c  \""+commandLine+";bash\"'")
+        os.system("dbus-launch gnome-terminal -e 'bash -c  \""+commandLine+";bash\"'")
 
     elif self.radio_CH.isChecked():
         commandLine ="cd Cahn_Hilliard_FFT_2D/; python3 GEdata_writer.py " +self.runDir +"/"+self.infile.text() + " ;make clean;make; cp microsim_ch_fft ~/MicroSim/bin/;cp microsim_ch_fft "+ self.runDir +"/JOB_FILE/;cp reconstruct "+ self.runDir +"/JOB_FILE/;cp write_xdmf "+ self.runDir +"/JOB_FILE/"
         
-        os.system("gnome-terminal -e 'bash -c \""+commandLine+";bash\"'")
+        os.system("dbus-launch gnome-terminal -e 'bash -c \""+commandLine+";bash\"'")

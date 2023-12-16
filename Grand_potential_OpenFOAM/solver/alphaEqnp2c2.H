@@ -7,7 +7,7 @@ Random randNum(clock::getTime());
 // Header file to obtain some specific terms in the phase-field equation
 //
 //
-if (phases == 2)
+/*if (phases == 2)
 {
 //! For 2D simulations
 if (dimensions == 2)
@@ -34,7 +34,7 @@ volVectorField grad_qt3 = dimx*fvc::grad(qt3);
 
 volScalarField grad_qt_sqr = magSqr(grad_qt0) + magSqr(grad_qt1) + magSqr(grad_qt2) + magSqr(grad_qt3);
 }
-}
+}*/
 
 #include "dAdgradPhiMod0.H"
 

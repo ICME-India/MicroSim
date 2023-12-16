@@ -143,8 +143,8 @@
             "qt0",
             runTime.timeName(),
             mesh,
-            IOobject::NO_READ,
-            IOobject::NO_WRITE
+            IOobject::MUST_READ,
+            IOobject::AUTO_WRITE
         ),
         mesh
     );
@@ -156,8 +156,8 @@
             "qt1",
             runTime.timeName(),
             mesh,
-            IOobject::NO_READ,
-            IOobject::NO_WRITE
+            IOobject::MUST_READ,
+            IOobject::AUTO_WRITE
         ),
         mesh
     );
@@ -169,8 +169,8 @@
             "qt2",
             runTime.timeName(),
             mesh,
-            IOobject::NO_READ,
-            IOobject::NO_WRITE
+            IOobject::MUST_READ,
+            IOobject::AUTO_WRITE
         ),
         mesh
     );
@@ -182,8 +182,8 @@
             "qt3",
             runTime.timeName(),
             mesh,
-            IOobject::NO_READ,
-            IOobject::NO_WRITE
+            IOobject::MUST_READ,
+            IOobject::AUTO_WRITE
         ),
         mesh
     );
