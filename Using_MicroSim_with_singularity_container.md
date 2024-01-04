@@ -4,27 +4,27 @@
 
     a. Ubuntu 18.04:
     
-        > cd ~/
+    > cd ~/
         
-        > wget https://github.com/sylabs/singularity/releases/download/v3.11.3/singularity-ce_3.11.3-bionic_amd64.deb
+    > wget https://github.com/sylabs/singularity/releases/download/v3.11.3/singularity-ce_3.11.3-bionic_amd64.deb
         
-        > sudo apt install -y ./singularity-ce_3.11.3-bionic_amd64.deb
+    > sudo apt install -y ./singularity-ce_3.11.3-bionic_amd64.deb
 
-     b. Ubuntu 20.04:
+    b. Ubuntu 20.04:
      
-     	> cd ~/
+    > cd ~/
      	
-     	> wget https://github.com/sylabs/singularity/releases/download/v3.11.4/singularity-ce_3.11.4-focal_amd64.deb
+    > wget https://github.com/sylabs/singularity/releases/download/v3.11.4/singularity-ce_3.11.4-focal_amd64.deb
      	
-     	> sudo apt install -y ./singularity-ce_3.11.4-focal_amd64.deb
+    > sudo apt install -y ./singularity-ce_3.11.4-focal_amd64.deb
 
-     c. Ubuntu 22.04:
+    c. Ubuntu 22.04:
      
-     	> cd ~/
+    > cd ~/
      	
-     	> wget https://github.com/sylabs/singularity/releases/download/v3.11.4/singularity-ce_3.11.4-jammy_amd64.deb
+    > wget https://github.com/sylabs/singularity/releases/download/v3.11.4/singularity-ce_3.11.4-jammy_amd64.deb
      	
-     	> sudo apt install -y ./singularity-ce_3.11.4-jammy_amd64.deb
+    > sudo apt install -y ./singularity-ce_3.11.4-jammy_amd64.deb
         
 
 2. Download the MicroSim package from GitHub repository: 
