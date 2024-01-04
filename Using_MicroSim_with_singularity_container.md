@@ -64,7 +64,7 @@ This will generate a GP_GUI.sif file. Move this file to a folder which contains 
 
 * To open the GUI
 
-  > python MicroSim.py
+  > python3 MicroSim.py
 
 * To run the Grand potential solver, go to directory
 
