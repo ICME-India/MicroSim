@@ -44,7 +44,9 @@ This will generate a GP_GUI.sif file. Move this file to a folder which contains 
 
 4. Run the following command in terminal (so that Grand-Potential solver can be used via GUI):
 
-   > cd MicroSim-main
+   > mv MicroSim-main MicroSim
+
+   > cd MicroSim
 
    > sh swap_script.sh
 
@@ -52,7 +54,7 @@ This will generate a GP_GUI.sif file. Move this file to a folder which contains 
 
 5. To load the image in singularity and open singularity terminal, following command has to be run from the folder which contains both GP_GUI.sif and MicroSim:
 
-   > singularity shell --bind /run/user,./MicroSim-main:/mnt GP_GUI.sif
+   > singularity shell --bind /run/user,./MicroSim:/mnt GP_GUI.sif
 
 6. Go to the MicroSim folder using the following command:
 
