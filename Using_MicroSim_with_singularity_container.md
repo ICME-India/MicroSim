@@ -1,6 +1,6 @@
 # MicroSim Installation: Singularity and Grand-Potential solver
 
-1. Install singularity from GitHub according to your OS-version:-
+1. Install singularity from GitHub according to your OS-version:
 
     a. Ubuntu 18.04:
     
@@ -79,4 +79,19 @@ This will generate a GP_GUI.sif file. Move this file to a folder which contains 
 
 # Using in Windows 10 and 11 with WSL2
 
+1. Install WSL2 in Windows
+
+Open Command Prompt in administrator Mode:
+
+> wsl –install
+
+> wsl --update
+
+2. Reboot the system
+
+3. From Microsoft stores install Ubuntu-20.04
+
+4. Open Ubuntu-20.04
+
+5. Follow the steps from the previous section
 
