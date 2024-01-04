@@ -81,7 +81,7 @@ This will generate a GP_GUI.sif file. Move this file to a folder which contains 
 
 # Using in Windows 10 and 11 with WSL2
 
-1. Install WSL2 in Windows
+1. Enable WSL from settings. Install WSL2 in Windows
 
 * Open Command Prompt in administrator Mode:
 
