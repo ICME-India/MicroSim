@@ -81,11 +81,11 @@ This will generate a GP_GUI.sif file. Move this file to a folder which contains 
 
 1. Install WSL2 in Windows
 
-Open Command Prompt in administrator Mode:
+* Open Command Prompt in administrator Mode:
 
-> wsl –install
+  > wsl –install
 
-> wsl --update
+  > wsl --update
 
 2. Reboot the system
 
