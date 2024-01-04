@@ -62,7 +62,11 @@ This will generate a GP_GUI.sif file. Move this file to a folder which contains 
 
 7. Running MicroSim from terminal:
 
-* Go to the Grand potential solver directory
+* To open the GUI
+
+  > python MicroSim.py
+
+* To run the Grand potential solver, go to directory
 
   > cd Grand_potential_Finite_difference_2D_MPI
 
