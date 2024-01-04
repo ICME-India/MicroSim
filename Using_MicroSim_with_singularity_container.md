@@ -36,7 +36,7 @@
    
    > unzip main.zip
 
-3. If you have a pre-built singularity image then skip to step 4. If you do not have a pre-built image, then to build singularity image, go to the folder where def file is located, then run the following command in the terminal:
+3. If you have a [pre-built singularity image](https://drive.google.com/file/d/1TupV1wdxpbEI_KssUNLTt945QX9R1U10/view) then skip to step 4. If you do not have a pre-built image, then to build singularity image, go to the folder where def file is located, then run the following command in the terminal:
 
    > sudo singularity build GP_GUI.sif MicroSim-main/def_files/GP_GUI.def
 
