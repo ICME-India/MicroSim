@@ -9,6 +9,8 @@ Following is a brief description of the different software modules and details o
 
  [Workshop-cum-demo](https://www.youtube.com/channel/UCnmLKb-kqQCNXWa0Oz6Ua_g)  
  
+ [Follow us on LinkedIn](https://www.linkedin.com/company/microstructure-simulator/)
+ 
 ## Grand-Potential Model(SERIAL)
 This is multiphase multi-component phase-field solver based on the 
 grand-potential formalism. This is a 2D serial CPU version of the code.
