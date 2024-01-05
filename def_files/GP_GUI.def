@@ -31,8 +31,8 @@ Stage: main
      export DEBIAN_FRONTEND=noninteractive
     echo "Installing required packages..."
     apt-get update
-    apt-get install -y  build-essential dbus-x11 libgl1-mesa-dev wget git bash gcc gfortran g++ make file dbus-x11
-    apt-get install -y x11-apps xauth gnome-terminal build-essential locales
+    apt-get install -y build-essential dbus-x11 libgl1-mesa-dev wget git bash gcc gfortran g++ make file
+    apt-get install -y x11-apps xauth gnome-terminal locales nano
     apt-get install -y libglu1-mesa
     echo "en_US.UTF-8 UTF-8" >> /etc/locale.gen
     locale-gen en_US.utf8
