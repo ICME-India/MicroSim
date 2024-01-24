@@ -7,7 +7,7 @@
 #include <AMReX_ParmParse.H>
 #include <AMReX_MultiFabUtil.H>
 #include <AMReX_VisMF.H>
-#include "Variables.H"
+#include "Variables.h"
 
 using namespace std;
 using namespace amrex;

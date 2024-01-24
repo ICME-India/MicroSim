@@ -3,26 +3,15 @@
 
 #include <AMReX_BCRec.H>
 #include <AMReX_BCUtil.H>
-#include "Variables.H"
+#include "Variables.h"
 
 using namespace amrex;
 
-void bound_cond(MultiFab& phi_old, Vector<BCRec>& bc, Vector<int>& bc_hi, Vector<int>& bc_lo){
-
-    // //bc_lo is the boundary condition at the lower edge(eg. X-, Y-, Z-)
-    // Vector<int> bc_lo(AMREX_SPACEDIM,0);
-	// //bc_hi is the boundary condition at the upper edge(eg. X+, Y+, Z+)
-    // Vector<int> bc_hi(AMREX_SPACEDIM,0);
-
-	// //Reading the boundary condition from the infile into bc_lo and bc_hi
-	// bc_hi[0] = stod(bound[0][1]);
-	// bc_hi[1] = stod(bound[0][3]);
-	// bc_lo[0] = stod(bound[0][2]);
-	// bc_lo[1] = stod(bound[0][4]);
+void bound_cond(MultiFab& FV, Vector<BCRec>& bc, Vector<int>& bc_hi, Vector<int>& bc_lo){
 
 	BL_PROFILE("bound_cond()");
     
-    for (int n = 0; n < phi_old.nComp(); ++n)
+    for (int n = 0; n < FV.nComp(); ++n)
     {
         for(int idim = 0; idim < AMREX_SPACEDIM; ++idim)
         {

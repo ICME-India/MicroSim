@@ -7,7 +7,7 @@
 #include <fstream>
 #include <string>
 
-//#include "Variables.H"
+#include "Variables.h"
 using namespace std;
 
 using namespace amrex;
@@ -19,7 +19,10 @@ transform(x.begin(),x.end(), back_inserter(y), [](const string & astr){return st
 
 void readinput(){
 
-	BL_PROFILE("readinput()");
+BL_PROFILE("readinput()");
+
+//Reading from infile starts-----------------------------------------------------------------------------------------------
+
 {	
         ParmParse pp;
         pp.get("DIMENSION",s_dim);
@@ -106,7 +109,7 @@ void readinput(){
         ss=0;
 
         pp.get("Function_W",s_funcW);
-        //pp.get("Gamma_abc",gamma_abc);
+        pp.get("Gamma_abc",gamma_abc);
         pp.get("Shift",s_shiftdom);
         pp.get("Shiftj",s_shiftj);
         pp.get("Writecomposition",s_writecomp);
@@ -196,6 +199,13 @@ void readinput(){
     	}
         ss=0;
     }
+
+    //Print()<<"Done read pp\n";
+
+//Reading from infile finished-----------------------------------------------------------------------------------------------
+
+//Extracting data from the strings----------------------------------------------------------------------------------------------- 
+
     dim = stoi(s_dim);
     ncellx = stoi(s_ncellx);
     ncelly = stoi(s_ncelly);
@@ -213,7 +223,14 @@ void readinput(){
     restart = stoi(s_restart);
     numworkers = stoi(s_numworkers);
 
+    //Print()<<"till numwork\n";
+
+//Defining the characters that must be removed from the string-----------------------------------------------------------------------------------------------
+
     string chars = ";( )";
+
+//Storing name of the components-----------------------------------------------------------------------------------------------
+
     for(char c:chars){
         s_comp.erase(remove(s_comp.begin(),s_comp.end(),c),s_comp.end());
     }
@@ -227,6 +244,8 @@ void readinput(){
     ss.str("");
     ss.clear(); 
 
+//Storing name of the phases-----------------------------------------------------------------------------------------------
+
     for(char c:chars){
         s_phase.erase(remove(s_phase.begin(),s_phase.end(),c),s_phase.end());
     }
@@ -239,12 +258,48 @@ void readinput(){
     ss.str("");
     ss.clear();
 
-    for(char c:chars){
-        s_gammaa.erase(remove(s_gammaa.begin(),s_gammaa.end(),c),s_gammaa.end());
-    }
-    gammaa = stod(s_gammaa);
-
     unsigned int count{0};
+
+//Storing the value for gamma-----------------------------------------------------------------------------------------------
+
+    //Print()<<"gamma_start\n";
+
+    for(char c:chars){
+            s_gammaa.erase(remove(s_gammaa.begin(),s_gammaa.end(),c),s_gammaa.end());
+        }
+    
+    ss.str("");
+    ss.clear();
+    ss.str(s_gammaa);
+    while(ss.good()){
+        std::string substr;
+        getline(ss,substr,',');
+        val.push_back(substr);
+    }
+    ss.str("");
+    ss.clear();
+    for (int i = 0; i < val.size(); i++)
+    {
+        gammaa.push_back(stod(val[i]));
+    }
+    val.clear();
+
+    gam = Vector<Vector<Real>>(nump,Vector<Real>(nump,0.0));
+    int m=0;
+    for (int a=0; a<nump; a++){
+        for(int b=0; b<nump; b++){
+            if(a!=b && a<b){
+                gam[a][b] = gammaa[m];
+                m++;
+                //Print()<<"a: "<<a<<"b: "<<b<<" = "<<gam[a][b]<<"\n";
+           }
+        }
+    }
+
+    //Print()<<"gamma_end\n";
+
+
+//Storing Diffusivities of each phase-----------------------------------------------------------------------------------------------
 
     while(count<s_diff.size()){
         for(char c:chars){
@@ -270,17 +325,30 @@ void readinput(){
         dbl.clear();
     }
 
-    diff = Vector<Real>(nump,0);
+    diff = Vector<Vector<Vector<Real>>>(nump,Vector<Vector<Real>>(numcom-1,Vector<Real>(numcom-1,0.0)));
+    int cnt=0;
     for (int a=0; a<nump; a++){
-        diff[diffu[a][1]] = diffu[a][2];
+        for(int k=0; k<numcom-1; k++){
+            for(int l=0; l<numcom-1; l++){
+                if(k==l){
+                    diff[a][k][l] = diffu[a][2+cnt];
+                    cnt++;
+                    //Print()<<diffu[a][0]<<" , "<<diffu[a][1]<<" , "<<diffu[a][2]<<"\n";
+                } 
+            }
+        }
+        cnt=0;
+        //diff[diffu[a][1]] = diffu[a][2];
     }
     
     count=0;
     
-    
+//Storing R and Vm----------------------------------------------------------------------------------------------- 
 
     R=stod(s_R);
     Vm=stod(s_Vm);
+
+//Storing eigen strains-----------------------------------------------------------------------------------------------
 
     while(count<s_egstr.size()){
         for(char c:chars){
@@ -308,7 +376,9 @@ void readinput(){
     
     count=0;
    
-    
+   //Print()<<"eg str\n";
+
+//Storing elastic stiffness property-----------------------------------------------------------------------------------------------
 
     while(count<s_voigiso.size()){
         for(char c:chars){
@@ -336,6 +406,8 @@ void readinput(){
     
     count=0;
 
+//Storing boundary conditions-----------------------------------------------------------------------------------------------
+
     while(count<s_bound.size()){
         for(char c:chars){
             s_bound[count].erase(std::remove(s_bound[count].begin(),s_bound[count].end(),c),s_bound[count].end());
@@ -360,6 +432,8 @@ void readinput(){
     
     count=0;
 
+//Storing boundary values---------------------------------------------------------------------------------------------------------
+
     while(count<s_boundval.size()){
         for(char c:chars){
             s_boundval[count].erase(std::remove(s_boundval[count].begin(),s_boundval[count].end(),c),s_boundval[count].end());
@@ -383,6 +457,10 @@ void readinput(){
     }
     count=0;
 
+    //Print()<<"bval\n";
+
+//Storing iso, bin, dil, T, writeformat, trackprog, eps, tau, Tau, funcANI, ANItype, dab----------------------------------------------------------------------------------------------- 
+
     isothermal=stoi(s_isothermal);
     binary=stoi(s_binary);
     dilute=stoi(s_dilute);
@@ -405,8 +483,38 @@ void readinput(){
     for(char c:chars){
         s_dab.erase(remove(s_dab.begin(),s_dab.end(),c),s_dab.end());
     }
-    dab=stod(s_dab);
     
+    ss.str("");
+    ss.clear();
+    ss.str(s_dab);
+    while(ss.good()){
+        std::string substr;
+        getline(ss,substr,',');
+        val.push_back(substr);
+    }
+    ss.str("");
+    ss.clear();
+    for (int i = 0; i < val.size(); i++)
+    {
+        dab.push_back(stod(val[i]));
+    }
+    val.clear();
+
+    dabb = Vector<Vector<Real>>(nump,Vector<Real>(nump,0.0));
+    m=0;
+    for (int a=0; a<nump; a++){
+        for(int b=0; b<nump; b++){
+            if(a!=b && a<b){
+                dabb[a][b] = dab[m];
+                m++;
+           }
+        }
+    }
+
+    //Print()<<"dab\n";
+
+//Storing rotation matrix-----------------------------------------------------------------------------------------------
+
     count=0;
 
     while(count<s_rotmat.size()){
@@ -433,8 +541,63 @@ void readinput(){
     val.clear();
     dbl.clear();
     }
+
+    //Print()<<"rotmat\n";
+
+//Storing funcW, gamma_abc, shift of domain, writecomp, noise, Teq, Tfill-----------------------------------------------------------------------------------------------
     
     funcW=stoi(s_funcW);
+
+    //Print()<<"gamma_abc_start\n";
+
+    if(nump==3){
+        for(char c:chars){
+            gamma_abc.erase(remove(gamma_abc.begin(),gamma_abc.end(),c),gamma_abc.end());
+        }
+        gammaa_abc.push_back(stod(gamma_abc));
+    }
+
+    if(nump>3){
+    for(char c:chars){
+            gamma_abc.erase(remove(gamma_abc.begin(),gamma_abc.end(),c),gamma_abc.end());
+        }
+    
+    ss.str("");
+    ss.clear();
+    ss.str(gamma_abc);
+    while(ss.good()){
+        std::string substr;
+        getline(ss,substr,',');
+        val.push_back(substr);
+    }
+    ss.str("");
+    ss.clear();
+    for (int i = 0; i < val.size(); i++)
+    {
+        gammaa_abc.push_back(stod(val[i]));
+    }
+    val.clear();
+    //Print()<<"gamma_abc_end\n";
+
+    }
+
+    gam_abc = Vector <Vector<Vector<Real>>>(nump,Vector<Vector<Real>>(nump,Vector<Real>(nump,0)));
+    m=0;
+    for(int a=0; a<nump; a++){
+        for(int b=0; b<nump; b++){
+            for(int c=0; c<nump; c++){
+                if(a<b && b<c){
+                        gam_abc[a][b][c] = gammaa_abc[m];
+                        m++;
+                }
+            }
+        }
+    }
+
+    
+
+    //Print()<<"gamma_abc_end_all\n";
+   
     shiftdom=stod(s_shiftdom);
     shiftj=stod(s_shiftj);
     writecomp=stoi(s_writecomp);
@@ -442,6 +605,8 @@ void readinput(){
     amp_noise_phase=stod(s_amp_noise_phase);
     Teq=stod(s_Teq);
     Tfill=stod(s_Tfill);
+
+//Storing tempgrad-----------------------------------------------------------------------------------------------
 
     for(char c:chars){
         s_tempgrady.erase(remove(s_tempgrady.begin(),s_tempgrady.end(),c),s_tempgrady.end());
@@ -461,7 +626,12 @@ void readinput(){
         tempgrady.push_back(stod(val[i]));
     }
     val.clear();
+
+//Storing value for functionF-----------------------------------------------------------------------------------------------
+
     funcf=stoi(s_funcf);
+
+//Storing A matrix-----------------------------------------------------------------------------------------------
 
     while(count< s_A.size()){
         for(char c:chars){
@@ -487,6 +657,8 @@ void readinput(){
         dbl.clear();
     }
     count=0;
+
+//Storing ceq-----------------------------------------------------------------------------------------------
 
     while(count< s_ceq.size()){
         for(char c:chars){
@@ -526,6 +698,8 @@ void readinput(){
     }	  
     count=0;
 
+//Storing cfill---------------------------------------------------------------------------------------------------------
+
     while(count< s_cfill.size()){
         for(char c:chars){
             s_cfill[count].erase(std::remove(s_cfill[count].begin(),s_cfill[count].end(),c),s_cfill[count].end());
@@ -562,6 +736,8 @@ void readinput(){
     count++;
     }	  
     count=0;
+
+//Storing cguess and slope if not using function F4-----------------------------------------------------------------------------------------------
 
     if (stoi(s_funcf) != 4){
     while(count< s_cguess.size()){
@@ -601,6 +777,7 @@ void readinput(){
     }	  
     count=0;
 
+
     while(count< s_slopes.size()){
         for(char c:chars){
             s_slopes[count].erase(std::remove(s_slopes[count].begin(),s_slopes[count].end(),c),s_slopes[count].end());
@@ -626,6 +803,8 @@ void readinput(){
     }
     count=0;
     }
+
+//Storing number of thermodynamic phases, tdbfname, tdbphase and phase map-----------------------------------------------------------------------------------------------
 
     ntp = stoi(s_ntp);
 
@@ -667,6 +846,9 @@ void readinput(){
         count++;
     }
     count=0;
+
+//Storing filling data-----------------------------------------------------------------------------------------------
+
     dul=0;
     while(dul< s_cube.size()){
         ss.str(s_cube[dul]);

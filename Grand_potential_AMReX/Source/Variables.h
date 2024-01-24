@@ -14,6 +14,63 @@ using namespace std;
 
 using namespace amrex;
 
+//#ifndef phasecount
+#define phasecount 7
+//#endif
+
+//#ifndef compcount
+#define compcount 3
+//#endif
+
+#ifndef X
+#define X 0
+#endif
+
+#ifndef Y
+#define Y 1
+#endif
+
+#ifndef Z
+#define Z 2
+#endif
+
+#ifndef cent
+// center
+#define cent 0
+#endif
+
+
+#ifndef iph
+// i + 1/2
+#define iph 1
+#endif
+
+#ifndef imh
+// i - 1/2
+#define imh 2
+#endif
+
+#ifndef jph
+// j + 1/2
+#define jph 3
+#endif
+
+#ifndef jmh
+// j - 1/2
+#define jmh 4
+#endif
+
+#ifndef kph
+// k + 1/2
+#define kph 5
+#endif
+
+#ifndef kmh
+// k - 1/2
+#define kmh 6
+#endif
+
+
 //Geometrical dimensions
 std::string s_dim;
 int dim;
@@ -57,12 +114,13 @@ std::string s_phase;
 Vector <std::string> phase;
 //Material properties
 std::string s_gammaa;
-Real gammaa;
+Vector<Real> gammaa;
+Vector<Vector<Real>> gam;
 Vector <std::string> val;
 Vector <Real> dbl;
 Vector <std::string> s_diff;
 Vector <Vector<double>> diffu;
-Vector<double> diff;
+Vector<Vector<Vector<double>>> diff;
 //Gas constant and molar volume
 std::string s_R;
 Real R;
@@ -111,14 +169,17 @@ int funcANI;
 std::string s_ANItype;
 int ANItype;
 std::string s_dab;
-Real dab;
+Vector<Real> dab;
+Vector<Vector<Real>> dabb;
 //Rotation matrix
 Vector<std::string> s_rotmat;
 Vector<Vector<Real>> rotmat;
 //Potential function
 std::string s_funcW;
 int funcW;
-//std::string gamma_abc;
+std::string gamma_abc;
+Vector<Real> gammaa_abc;
+Vector<Vector<Vector<Real>>> gam_abc;
 //Shifting of domain
 std::string s_shiftdom;
 Real shiftdom;
@@ -146,15 +207,15 @@ int funcf;
 //A
 std::vector <std::string> s_A;
 Vector<Vector<Real>> A1;
-Vector<Vector<Vector<Real>>> A;
-Vector<Vector<Vector<Real>>> Aeq;
+Vector<Vector<Vector<Real>>> A{};
+Vector<Vector<Vector<Real>>> Aeq{};
 //B and D
-Vector <Real> B;
-Vector <Real> D;
+Vector<Vector<Real>> B{};
+Vector <Real> C{};
 //Real BB;
 //Real DD;
 
-Vector<Vector<double>> A_values;
+Vector<Vector<Vector<double>>> A_values;
 Vector<Vector<double>> A_temp;
 //Vector<std::array<int, 1024>> Aliq;
 
@@ -201,11 +262,18 @@ gsl_interp_accel *A_accel_ptr;
 gsl_spline *A_spline_ptr;
 
 //dcdmu
-Vector <amrex::Real> dcdmu;
-Vector <amrex::Real> dcdmu_eq;
+Vector<Vector<Vector<Real>>> dcdmu;
+Vector<Vector<Vector<Real>>> dcdmu_eq;
 
 //cmu
-Vector <amrex::Real> cmu;
+//Vector<Vector<Vector<Real>>> muc{};
+//Vector<Vector<Vector<Real>>> cmu{};
+Array3D<Real,0,phasecount,0,compcount-1,0,compcount-1> cmu{};
+Array2D<Real,0,phasecount,0,compcount-1> c{};
+
+//Vector<Vector<Vector<Real>>> muc_eq{};
+Array3D<Real,0,phasecount,0,compcount-1,0,compcount-1> cmu_eq{};
+
 
 //Dummy
 // Real sum =0.0;
@@ -213,12 +281,17 @@ Vector <amrex::Real> cmu;
 
 //Function pointers
 void (*dc_dmu)();
-void (*c_mu)(MultiFab& sun);
+//void (*c_mu)(int i, int j, int l, amrex::Array4<Real const> const& mu, Array2D<Real,0,phasecount-1,0,compcount-2, Order::C> &c, Array2D<Real,0,phasecount-1,0,compcount-2, Order::C> BB, Array3D<Real,0,phasecount-1,0,compcount-2,0,compcount-2, Order::C> AA, int nc, int a);
 void (*Mu)(MultiFab& ray);
 void (*function_A)();
 void (*function_B)();
-void (*function_D)();
-void (*free_energy)();
+void (*function_C)();
+//void (*free_energy)(int i, int j, int k, int numphase, Array3D<Real,0,phasecount-1,0,compcount-2,0,compcount-2, Order::C> AA, Array2D<Real,0,phasecount-1,0,compcount-2, Order::C> BB, Array1D <Real,0,phasecount-1> CC, Array1D<Real,0,phasecount-1> &fe , Array2D<Real,0,phasecount-1,0,compcount-2, Order::C> &c, int numcomp, int a);
+void (*dwdphi)(MultiFab& uhl, MultiFab& klk, Geometry const& mrt);
+void (*aniso_term)(MultiFab& qtr, MultiFab& prt, Geometry const& trp);
+void (*Chem_pot)(MultiFab& mu_new, MultiFab& mu_old, MultiFab& phi_new, MultiFab& phi_old, MultiFab& comp_new, MultiFab& comp_old, Geometry const& geom);
+//void (*dAdq)(int i, int j , int k, Array2D <Real,0,phasecount-1,0,phasecount-1,Order::C> daby, Array2D<Real, 0, AMREX_SPACEDIM*2, 0, AMREX_SPACEDIM-1,Order::C> &r_qab,  Array2D<Real, 0, AMREX_SPACEDIM*2, 0, AMREX_SPACEDIM-1,Order::C> &dadq,  Array1D<Real, 0, AMREX_SPACEDIM*2> &q2, int a, int b);
+//void (*function_ac)(int i, int j , int k, Array2D <Real,0,phasecount-1,0,phasecount-1,Order::C> daby, Array2D<Real, 0, AMREX_SPACEDIM*2, 0, AMREX_SPACEDIM-1,Order::C> &r_qab,  Array1D<Real, 0, AMREX_SPACEDIM*2> &ac,  Array1D<Real, 0, AMREX_SPACEDIM*2> &q2, int a, int b);
 void (*Initialise_phi)(MultiFab& qer);
 
 
@@ -238,9 +311,13 @@ double strt_time;
 double stop_time;
 double rst_time=0.0;
 
-Vector<Vector<Vector<Real>>> conc;
-Vector<Vector<Vector<Real>>> conceq;
-Vector<Vector<double>> conc_Sol;
-Vector<Vector<double>> conc_Liq;
+Vector<Vector<Real>> conc;
+Vector<Vector<Real>> conceq;
+Vector<Vector<Vector<double>>> conc_Sol;
+Vector<Vector<Vector<double>>> conc_Liq;
 Vector<Vector<double>> temprt;
+
+Vector<Vector<Real>> tau_ab;
+
+
 #endif
