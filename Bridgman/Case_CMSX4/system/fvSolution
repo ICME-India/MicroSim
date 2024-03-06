@@ -1,0 +1,278 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  4.0                                   |
+|   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    location    "system";
+    object      fvSolution;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+
+solvers
+{
+    T
+    {
+        solver                   smoothSolver;
+        preconditioner            DIC;
+        smoother                symGaussSeidel;
+       // mergeLevels                1;
+      //  agglomerator            faceAreaPair;
+      //  nCellsInCoarsestLevel    50;
+        tolerance                1e-8;
+        relTol                    0;
+    }
+
+   /*T
+	{
+        solver                    GAMG;
+        preconditioner            DIC; // should be DILU for asymmetric matrix
+        smoother                  symGaussSeidel;
+        mergeLevels                1;
+        agglomerator            faceAreaPair;
+        nCellsInCoarsestLevel    100;
+        tolerance                1e-9;
+        relTol                    0.1;
+    }*/	
+
+//     phi
+//     {
+//         solver                   smoothSolver;
+//         preconditioner            DIC;
+//         smoother                symGaussSeidel;
+//        // mergeLevels                1;
+//       //  agglomerator            faceAreaPair;
+//       //  nCellsInCoarsestLevel    50;
+//         tolerance                1e-8;
+//         relTol                    0;
+//     }
+//     psi
+//     {
+//         solver                   smoothSolver;
+//         preconditioner            DIC;
+//         smoother                symGaussSeidel;
+//        // mergeLevels                1;
+//       //  agglomerator            faceAreaPair;
+//       //  nCellsInCoarsestLevel    50;
+//         tolerance                1e-8;
+//         relTol                    0;
+//     }
+//     psi_eq
+//     {
+//         solver                   smoothSolver;
+//         preconditioner            DIC;
+//         smoother                symGaussSeidel;
+//        // mergeLevels                1;
+//       //  agglomerator            faceAreaPair;
+//       //  nCellsInCoarsestLevel    50;
+//         tolerance                1e-8;
+//         relTol                    0;
+//     }
+
+   phi
+	{
+        solver                    GAMG;
+        preconditioner            DIC; // should be DILU for asymmetric matrix
+        smoother                  symGaussSeidel;
+        mergeLevels                1;
+        agglomerator            faceAreaPair;
+        nCellsInCoarsestLevel    100;
+        tolerance                1e-9;
+        relTol                    0.1;
+    }	
+
+// 
+   psi
+	{
+        solver                    GAMG;
+        preconditioner            DIC; // should be DILU for asymmetric matrix
+        smoother                  symGaussSeidel;
+        mergeLevels                1;
+        agglomerator            faceAreaPair;
+        nCellsInCoarsestLevel    100;
+        tolerance                1e-8;
+        relTol                    0.5;
+    }
+    theta
+	  {
+        solver                    GAMG;
+        preconditioner            DIC; // should be DILU for asymmetric matrix
+        smoother                  symGaussSeidel;
+        mergeLevels                1;
+        agglomerator            faceAreaPair;
+        nCellsInCoarsestLevel    100;
+        tolerance                1e-8;
+        relTol                    0.3;
+    }	
+// // 
+//    T
+// 	{
+//         solver                    GAMG;
+//         preconditioner            DIC; // should be DILU for asymmetric matrix
+//         smoother                  symGaussSeidel;
+//         mergeLevels                1;
+//         agglomerator            faceAreaPair;
+//         nCellsInCoarsestLevel    100;
+//         tolerance                1e-8;
+//         relTol                    0.9;
+//     }	
+
+
+
+/*
+	phi
+	{
+        solver                    GAMG;
+        preconditioner            FDIC; // should be DILU for asymmetric matrix
+        smoother                DILU;
+        mergeLevels                1;
+        agglomerator            faceAreaPair;
+        nCellsInCoarsestLevel    100;
+        tolerance                1e-5;
+        relTol                    0.9;
+    }	
+
+	phi0
+	{
+        solver                    GAMG;
+        preconditioner            FDIC; // should be DILU for asymmetric matrix
+        smoother                DILU;
+        mergeLevels                1;
+        agglomerator            faceAreaPair;
+        nCellsInCoarsestLevel    100;
+        tolerance                1e-5;
+        relTol                    0.9;
+    }
+	
+	phi1
+	{
+        solver                    GAMG;
+        preconditioner            FDIC; // should be DILU for asymmetric matrix
+        smoother                DILU;
+        mergeLevels                1;
+        agglomerator            faceAreaPair;
+        nCellsInCoarsestLevel    100;
+        tolerance                1e-5;
+        relTol                    0.9;
+    }
+    
+    phi2
+	{
+        solver                    GAMG;
+        preconditioner            FDIC; // should be DILU for asymmetric matrix
+        smoother                DILU;
+        mergeLevels                1;
+        agglomerator            faceAreaPair;
+        nCellsInCoarsestLevel    100;
+        tolerance                1e-5;
+        relTol                    0.9;
+    }
+
+	mu0 // symmetric matrix
+    {
+        solver                    smoothSolver;
+        preconditioner            FDIC;
+        smoother                GaussSeidel;
+        mergeLevels                1;
+        agglomerator            faceAreaPair;
+        nCellsInCoarsestLevel    100;
+        tolerance                1e-5;
+        relTol                    0.9;
+    }*/
+}
+
+// Valid asymmetric matrix smoothers are :
+// 
+// 5
+// (
+// DILU
+// DILUGaussSeidel
+// GaussSeidel
+// nonBlockingGaussSeidel
+// symGaussSeidel
+// )
+
+
+/*
+solvers
+{
+	c
+    {
+		solver          PCG;
+        preconditioner  DIC;
+        tolerance       1e-08;
+        relTol          0.2;
+    }
+	phi
+    {
+		solver          PCG;
+        preconditioner  DIC;
+        tolerance       1e-08;
+        relTol          0.2;
+    }
+	phi0
+    {
+		solver         PBiCGStab; //PCG;
+        preconditioner  DILU;// DIC;
+        tolerance       1e-08;
+        relTol          0.2;
+    }
+	phi1
+    {
+		solver         PBiCGStab;// PCG;
+        preconditioner  DILU;//DIC;
+        tolerance       1e-08;
+        relTol          0.2;
+    }
+	phi2
+    {
+		solver         PBiCGStab;// PCG;
+        preconditioner  DILU;//DIC;
+        tolerance       1e-08;
+        relTol          0.2;
+    }
+
+//=========== SOLVERS FOR mu ==============//
+//     Unknown symmetric matrix preconditioner DILU
+// 	Valid symmetric matrix preconditioners :
+// 	5
+// 	(
+// 	DIC
+// 	FDIC
+// 	GAMG
+// 	diagonal
+// 	none
+// 	)
+
+	mu0
+    {
+		solver         PBiCGStab;// PCG;
+        preconditioner  DIC;
+        tolerance       1e-08;
+        relTol          0.2;
+    }
+    
+}
+*/
+
+SIMPLE
+{
+    nNonOrthogonalCorrectors 0;
+}
+
+stressAnalysis
+{
+    compactNormalStress yes;
+    nCorrectors     1000;
+    D               1e-05;
+}
+
+
+// ************************************************************************* //

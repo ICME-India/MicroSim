@@ -1,0 +1,107 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  2.1.x                                 |
+|   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    location    "constant";
+    object      transportProperties;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+
+
+dimx        dimx [0 1 0 0 0 0 0] 1;
+dimt        dimt [0 0 1 0 0 0 0] 1;
+// m_0         m_0 [0 0 0 0 0 0 0] 1e9;
+// m_1         m_1 [0 0 0 0 0 0 0] 0.45;
+// //omega       omega [0 0 0 0 0 0 0] 1.687331;
+omega       omega [0 0 0 0 0 0 0] 1e5; //0.18;
+gamma       gamma [0 0 0 0 0 0 0] 2; //1;
+epsilon     epsilon [0 0 0 0 0 0 0] 200e-6; //4;
+flux        flux [0 0 0 0 0 0 0] -100; //-0.001;   //-0.2---0.002
+Cp          Cp [0 0 0 0 0 0 0] 5471550; //3919520; //440; //1.0; //per unit vol
+L           L [0 0 0 0 0 0 0] 1945440000; //2610044000; //293000; //0.5; //per unit vol
+Ks          Ks [0 0 0 0 0 0 0] 90.7; //1.0;
+Kl          Kl [0 0 0 0 0 0 0] 18.14; //0.2;
+Tm          Tm [0 0 0 0 0 0 0] 1623; //0.92; //(Tl+Ts)/2
+Tl          Tl [0 0 0 0 0 0 0] 1653; //0.92;
+Ts          Ts [0 0 0 0 0 0 0] 1593; //0.92;
+Tinf          Tinf [0 0 0 0 0 0 0] 300; //0.92;
+Bd          Bd [0 0 0 0 0 0 0] 1653; //0.92;
+Vpull       Vpull [0 0 0 0 0 0 0] 5e-5;
+// eps         eps [0 0 0 0 0 0 0] 1e-3; // value added to denominator of g_phi
+// mu_t        mu_t [0 0 0 0 0 0 0] 0.5; // mu^2 is the strength of the coupling in alpha equation
+// delta_01    delta_01 [0 0 0 0 0 0 0] 0.01; //Strength of anisotropy
+
+costheta    0.5;
+center_x    100;
+center_y    100;
+//delta       1.0182;
+
+Nucleation_undercooling 0.9;
+Nucleation_Interval     1000;
+seedRadius              5;
+Width                   50;
+Height                  100;
+xbottom                 75;
+ybottom                 250e-5;
+// M_Scale                 0.4;
+
+// numSeeds                4;
+
+
+// epsilon     epsilon [0 0 0 0 0 0 0] 12;
+// c_Sol       c_Sol [0 0 0 0 0 0 0] 0.7815;
+// c_Liq       c_Liq [0 0 0 0 0 0 0] 0.5;
+// c_eq        c_eq [0 0 0 0 0 0 0] 0.5;
+// diff_Sol    diff_Sol [0 0 0 0 0 0 0] 1;
+// diff_Liq    diff_Liq [0 0 0 0 0 0 0] 1;
+// anti_trap   anti_trap [0 0 0 0 0 0 0] 0.35355;//0.35355;  //1/(2sqrt(2))
+// G           G [0 0 0 0 0 0 0] 0;
+// v           v [0 0 0 0 0 0 0] 0.000;
+// noise_mag           noise_mag [0 0 0 0 0 0 0] 0.003;
+// initial           initial [0 0 0 0 0 0 0] 0.8;
+// T0         	 T0 [0 0 0 0 0 0 0] 1.0;
+// T         	 T0 [0 0 0 0 0 0 0] 0.95;
+// delta_01         delta_01 [0 0 0 0 0 0 0] 0.02;
+// A            A [0 0 0 0 0 0 0] 1;
+// 
+// dcdmu_1[0][0]   0.6666;
+// dcdmu_1[0][1]  -0.3333;
+// dcdmu_1[1][0]  -0.3333;
+// dcdmu_1[1][1]   0.6666;
+// 
+// dcdmu_2[0][0]   0.6666;
+// dcdmu_2[0][1]  -0.3333;
+// dcdmu_2[1][0]  -0.3333;
+// dcdmu_2[1][1]   0.6666;
+// 
+// D_1[0][0]       1.0;
+// D_1[1][1]       0.01;
+// D_1[0][1]       0.0;
+// D_1[1][0]       0.0;
+// 
+// D_2[0][0]       1.0;
+// D_2[1][1]       0.01;
+// D_2[0][1]       0.0;
+// D_2[1][0]       0.0;
+// 
+// ceq_1[0][0]     0.1;
+// ceq_1[1][0]     0.8;
+// 
+// ceq_2[0][0]     0.6;
+// ceq_2[1][0]     0.3;
+// 
+// mu_eq[0][0]     1.0;
+// mu_eq[1][0]     1.0;
+
+
+
+// ************************************************************************* //

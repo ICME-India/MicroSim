@@ -1,0 +1,128 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  4.0                                   |
+|   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    location    "system";
+    object      setFieldsDict;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+defaultFieldValues
+(
+   // volScalarFieldValue c 0.1
+//     volScalarFieldValue phi 0.0
+	volScalarFieldValue phi 0.0
+	//volScalarFieldValue phi1 0.0
+	//volScalarFieldValue phi2 0.0
+	volScalarFieldValue mu_1 0.8
+        volScalarFieldValue mu_2 1.2
+);
+
+// regions
+// (
+// 	
+// /*	boxToCell	// boxToCell: work on all cells in a rectangular box defined with starting and end point coordinates
+// 	{
+// 		box (0 0 -0.12) (500 24000 0.12);	// Box can be larger than domain; in general this avoids edge effects
+// 		fieldValues					// NB: no semicolons at the end of the dictionary entries below!
+// 		(
+// 			//volScalarFieldValue c 1.0
+// 			//volScalarFieldValue phi0 0.0
+// 			//volScalarFieldValue phi1 1.0
+// 			//volScalarFieldValue phi2 0.0
+//             volScalarFieldValue alpha 0.0
+// 		);
+// 	}*/
+// 	
+//    /* boxToCell
+//     {
+//         box (0 0 -1) (33 49 1);
+// 
+//         fieldValues
+//         (
+//             volScalarFieldValue phi 1.0
+//             volScalarFieldValue mu_1 1.0
+//             volScalarFieldValue mu_2 1.0
+//         );
+//     }*/
+// 
+// 	
+//     cylinderToCell
+//     {
+//         p1 (100 100 0) ;
+//         p2 (100 100 1);
+// 	radius 30;
+// 
+//         fieldValues
+//         (
+//             volScalarFieldValue phi   1.0
+// 	    volScalarFieldValue mu_1  1.0
+//             volScalarFieldValue mu_2  1.0		
+//         );
+//     }
+//     
+// 
+// );
+
+
+// ************************************************************************* //
+regions (
+cylinderToCell {
+p1 (124 52 0);
+p2 (124 52 1);
+radius 2.000000e+01;
+fieldValues (
+volScalarFieldValue phi   1.000000e+00
+volScalarFieldValue mu_1  8.000000e-01
+volScalarFieldValue mu_2  1.200000e+00
+);
+}
+cylinderToCell {
+p1 (162 65 0);
+p2 (162 65 1);
+radius 2.000000e+01;
+fieldValues (
+volScalarFieldValue phi   1.000000e+00
+volScalarFieldValue mu_1  8.000000e-01
+volScalarFieldValue mu_2  1.200000e+00
+);
+}
+cylinderToCell {
+p1 (104 70 0);
+p2 (104 70 1);
+radius 2.000000e+01;
+fieldValues (
+volScalarFieldValue phi   1.000000e+00
+volScalarFieldValue mu_1  8.000000e-01
+volScalarFieldValue mu_2  1.200000e+00
+);
+}
+cylinderToCell {
+p1 (91 67 0);
+p2 (91 67 1);
+radius 2.000000e+01;
+fieldValues (
+volScalarFieldValue phi   1.000000e+00
+volScalarFieldValue mu_1  8.000000e-01
+volScalarFieldValue mu_2  1.200000e+00
+);
+}
+cylinderToCell {
+p1 (92 31 0);
+p2 (92 31 1);
+radius 2.000000e+01;
+fieldValues (
+volScalarFieldValue phi   1.000000e+00
+volScalarFieldValue mu_1  8.000000e-01
+volScalarFieldValue mu_2  1.200000e+00
+);
+}
+);
