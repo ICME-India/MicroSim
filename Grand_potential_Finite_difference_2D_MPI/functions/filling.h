@@ -1,7 +1,8 @@
 #ifndef FILLING_H_
 #define FILLING_H_
 
-#include "time.h"
+#include <time.h>
+#include <gsl/gsl_rng.h>
 
 int checkOverlap(long centx, long centy, long centz, double rad, long shield_dist, int *occupancy) {
   long x,y,z;
@@ -22,17 +23,19 @@ void fill_phase_cube (struct fill_cube fill_cube_parameters, struct fields* grid
   long x, y, z, index;
   long a;
   double sum;
-  
+
   for(x=0;x < rows_x; x++) {
     for(z=0; z < rows_z; z++) {
       for (y=0; y < rows_y; y++) {
         index = x*layer_size + z*rows_y + y;
-        
+
         gridinfo[index].deltaphi[b] = 0.0;
-        
+
         if (b < (NUMPHASES-1)) {
-          if ((x >= fill_cube_parameters.x_start) && (x <= fill_cube_parameters.x_end) && (y >=fill_cube_parameters.y_start) && (y<=fill_cube_parameters.y_end) && (z >=fill_cube_parameters.z_start) && (z<=fill_cube_parameters.z_end)) {
-            
+          if ((x >= fill_cube_parameters.x_start) && (x <= fill_cube_parameters.x_end)
+               && (y >=fill_cube_parameters.y_start) && (y<=fill_cube_parameters.y_end)
+               && (z >=fill_cube_parameters.z_start) && (z<=fill_cube_parameters.z_end)) {
+
             gridinfo[index].phia[b] = 1.00000;
             for (a=0; a < NUMPHASES; a++) {
               if (b!=a) {
@@ -65,26 +68,231 @@ void fill_phase_cube (struct fill_cube fill_cube_parameters, struct fields* grid
     }
   }
 }
-void fill_cube_pattern(long cube_x, long cube_y, long cube_z) {
-  long num;
-  long phase;
-  long x, z;
-  for(x=0;x < rows_x; x=x+cube_x) {
-    for(z=0; z < rows_z; z=z+cube_z) {
-      fill_cube_parameters.x_start = x          + start[X];
-      fill_cube_parameters.x_end   = (x+cube_x) + start[X];
-      fill_cube_parameters.y_start =              start[Y];
-      fill_cube_parameters.y_end   = cube_y     + start[Y];
-      fill_cube_parameters.z_start = z          + start[Z];
-      fill_cube_parameters.z_end   = (z+cube_z) + start[Z];
-      clock_t SEED = clock();
-      num = lrand48();
-      phase = num%(NUMPHASES-1);
-      fill_phase_cube(fill_cube_parameters, gridinfo, phase);
+
+
+void fill_cube_pattern(long variants, long sx, long sy, long sz,
+                       double sfrac, long gap, double gfrac, long outof)
+{
+    /* Randomly fill multiple variants of square/cubic particles
+       in an array.
+       NOTE: the last phase is assumed to be matrix. */
+    ldiv_t resx, resy, resz;
+    long i, j, k, x, y, z, index, sgn, nparticles, phase;
+    long xlo=0, ylo=0, zlo=0;
+    long xhi=1, yhi=1, zhi=1;
+    long rl;
+    double r;
+    gsl_rng *rng;
+
+    // Set up GSL RNG.
+    gsl_rng_env_setup();
+    rng = gsl_rng_alloc(gsl_rng_default);
+    gsl_rng_set(rng, time(0));
+
+    if ( NUMPHASES > 1 )
+    {
+        // First, make matrix = 1 everywhere.
+        for ( x=0; x<rows_x; x++ )
+        {
+            for ( y=0; y<rows_y; y++ )
+            {
+                for ( z=0; z<rows_z; z++ )
+                {
+                    index = x*layer_size + z*rows_y + y;
+                    gridinfo[index].phia[NUMPHASES-1] = 1.0;
+                }
+            }
+        }
     }
-  }
-  fill_phase_cube(fill_cube_parameters, gridinfo, NUMPHASES-1);
+
+    resx = ldiv(MESH_X, sx+gap);
+    resy = ldiv(MESH_Y, sy+gap);
+    resz = ldiv(MESH_Z, sz+gap);
+    if ( resx.quot == 0 )
+        resx.quot = 1;
+    if ( resy.quot == 0 )
+        resy.quot = 1;
+    if ( resz.quot == 0 )
+        resz.quot = 1;
+    nparticles = resx.quot * resy.quot * resz.quot;
+    printf("Filling %ld particles.\n", nparticles);
+    for ( i=0; i<resx.quot; i++ )
+    {
+        if ( MESH_X > 1 )
+        {
+            r = gsl_rng_uniform(rng);
+            sgn = 2*lround(r) - 1;
+            xlo = i*(gap+sx) + gap + sgn*gfrac*gap - (2*r-1)*sfrac*sx;
+            xhi = (i+1) * (gap+sx) + sgn*gfrac*gap + (2*r-1)*sfrac*sx;
+        }
+        for ( j=0; j<resy.quot; j++ )
+        {
+            if ( MESH_Y > 1 )
+            {
+                r = gsl_rng_uniform(rng);
+                sgn = 2*lround(r) - 1;
+                ylo = j*(gap+sy) + gap + sgn*gfrac*gap - (2*r-1)*sfrac*sy;
+                yhi = (j+1) * (gap+sy) + sgn*gfrac*gap + (2*r-1)*sfrac*sy;
+            }
+            for (k=0; k<resz.quot; k++ )
+            {
+                if ( outof > 0 )
+                {
+                    if ( !gsl_rng_uniform_int(rng, outof) )
+                        continue;
+                }
+                if ( MESH_Z > 1 )
+                {
+                    r = gsl_rng_uniform(rng);
+                    sgn = 2*lround(r) - 1;
+                    zlo = k*(gap+sz) + gap + sgn*gfrac*gap - (2*r-1)*sfrac*sz;
+                    zhi = (k+1) * (gap+sz) + sgn*gfrac*gap + (2*r-1)*sfrac*sz;
+                }
+                fill_cube_parameters.x_start = xlo;
+                fill_cube_parameters.x_end   = xhi;
+                fill_cube_parameters.y_start = ylo;
+                fill_cube_parameters.y_end   = yhi;
+                fill_cube_parameters.z_start = zlo;
+                fill_cube_parameters.z_end   = zhi;
+                if ( variants >= NUMPHASES )
+                    variants = NUMPHASES - 1;
+                r = gsl_rng_uniform(rng);
+                phase = r * variants;
+                printf("phase now = %ld\n", phase);
+                fill_phase_cube(fill_cube_parameters, gridinfo, phase);
+            }
+        }
+    }
+    // Free GSL RNG.
+    gsl_rng_free(rng);
 }
+
+
+int check_overlap_sq(struct fill_cube cube, long shield, long vol)
+{
+    /* Check if the to-be created precipitate is overlapping an existing one. */
+    long x, y, z, index;
+    for ( x=(cube.x_start-shield); x<(cube.x_end+shield); x++ )
+    {
+        for ( y=(cube.y_start-shield); y<(cube.y_end+shield); y++ )
+        {
+            for ( z=(cube.z_start-shield); z<(cube.z_end+shield); z++ )
+            {
+                index = x*layer_size + z*rows_y + y;
+                if ( (0 <= index) && (index <= vol) )
+                {
+                    if ( NUMPHASES > 1 )
+                    {
+                        // For multiple phases, check if phi(matrix) is zero.
+                        if ( !(gridinfo[index].phia[NUMPHASES-1] > 0) )
+                            return 1;
+                    }
+                    else
+                    {
+                        // Else, perform usual check, i.e. if phi is one.
+                        if ( gridinfo[index].phia[NUMPHASES-1] > 0 )
+                            return 1;
+                    }
+                }
+            }
+        }
+    }
+    return 0;
+}
+
+
+void fill_phase_cube_random_variants(long variants, long sx, long sy, long sz,
+                                     double sfrac, double vf, long shield)
+{
+    /* Randomly fill multiple variants of square/cubic particles
+       with a given volume fraction and size.
+       NOTE: (1) The last phase is assumed to be matrix.
+             (2) `vf` is the total volume fraction. */
+    long x, y, z, index, phase, volume_domain, random_count, random_limit;
+    long sxnow, synow, sznow, xnow, ynow, znow;
+    long xlo, xhi, ylo, yhi, zlo, zhi;
+    double r, volume_per_particle;
+    int num_particles;
+    gsl_rng *rng;
+
+    // Set up GSL RNG.
+    gsl_rng_env_setup();
+    rng = gsl_rng_alloc(gsl_rng_default);
+    gsl_rng_set(rng, time(0));
+
+    if ( NUMPHASES > 1 )
+    {
+        // First, make matrix = 1 everywhere.
+        for ( x=0; x<rows_x; x++ )
+        {
+            for ( y=0; y<rows_y; y++ )
+            {
+                for ( z=0; z<rows_z; z++ )
+                {
+                    index = x*layer_size + z*rows_y + y;
+                    gridinfo[index].phia[NUMPHASES-1] = 1.0;
+                }
+            }
+        }
+    }
+
+    volume_domain = MESH_X * MESH_Y * MESH_Z;
+    volume_per_particle = sx * sy * sz;
+    num_particles = ceil(volume_domain*vf/volume_per_particle);
+    printf("Domain volume = %ld, sx = %ld, sy = %ld, sz = %ld,"
+           " volume_per_particle = %lf, number of particles = %d\n",
+           volume_domain, sx, sy, sz, volume_per_particle, num_particles);
+
+    random_count = 0, random_limit = 1e+4;
+    while ( num_particles )
+    {
+        printf("num_particles = %d\n", num_particles);
+        r = gsl_rng_uniform(rng);
+        sxnow = sx + (2*r - 1) * sfrac*sx;
+        synow = sy + (2*r - 1) * sfrac*sy;
+        sznow = sz + (2*r - 1) * sfrac*sz;
+        xnow = MESH_X * gsl_rng_uniform(rng);
+        ynow = MESH_Y * gsl_rng_uniform(rng);
+        znow = MESH_Z * gsl_rng_uniform(rng);
+        xlo = xnow - sxnow/2;
+        xhi = xnow + sxnow/2;
+        ylo = ynow - synow/2;
+        yhi = ynow + synow/2;
+        zlo = znow - sznow/2;
+        zhi = znow + sznow/2;
+        printf("xlo = %ld, xhi = %ld\n", xlo, xhi);
+        printf("ylo = %ld, yhi = %ld\n", ylo, yhi);
+        printf("zlo = %ld, zhi = %ld\n", zlo, zhi);
+        fill_cube_parameters.x_start = xlo;
+        fill_cube_parameters.x_end = xhi;
+        fill_cube_parameters.y_start = ylo;
+        fill_cube_parameters.y_end = yhi;
+        fill_cube_parameters.z_start = zlo;
+        fill_cube_parameters.z_end = zhi;
+        // Skip if this particle is overlapping an existing particle.
+        if ( check_overlap_sq(fill_cube_parameters, shield, volume_domain) )
+            continue;
+        // Else, create the particle.
+        if ( variants >= NUMPHASES )
+            variants = NUMPHASES - 1;
+        r = gsl_rng_uniform(rng);
+        phase = r * variants;
+        printf("phase now = %ld\n", phase);
+        fill_phase_cube(fill_cube_parameters, gridinfo, phase);
+        --num_particles;
+        ++random_count;
+        if (random_count > random_limit)
+        {
+            printf("Warning: random filling limit = %ld reached."
+                   " %d particles could not be filled.\n",
+                   random_limit, num_particles);
+            break;
+        }
+    }
+    // Free GSL RNG.
+    gsl_rng_free(rng);
+}
+
 
 void fill_phase_ellipse (struct fill_ellipse fill_ellipse_parameters, struct fields* gridinfo, long b) {
   long x, y, z, gidy;
@@ -95,14 +303,14 @@ void fill_phase_ellipse (struct fill_ellipse fill_ellipse_parameters, struct fie
   long x_center, y_center, z_center;
   double l, e, angle;
   double angle_rad = angle*M_PI/180.0;
-  
+
   x_center =  fill_ellipse_parameters.x_center;
   y_center =  fill_ellipse_parameters.y_center;
   z_center =  fill_ellipse_parameters.z_center;
   l        =  fill_ellipse_parameters.major_axis;
   e        =  fill_ellipse_parameters.eccentricity;
   angle    =  fill_ellipse_parameters.rot_angle;
-  
+
   for(x=0;x<=(MESH_X-1);x++) {
     for (y=0; y<=(MESH_Y-1); y++) {
       if (b < (NUMPHASES-1)) {
@@ -153,16 +361,16 @@ void fill_phase_cylinder(struct fill_cylinder fill_cylinder_parameters, struct f
   long x, y, z, index;
   long a;
   double sum;
-  
+
   long x_center, y_center, z_start, z_end;
   double radius;
-  
+
   x_center = fill_cylinder_parameters.x_center;
   y_center = fill_cylinder_parameters.y_center;
   z_start  = fill_cylinder_parameters.z_start;
   z_end    = fill_cylinder_parameters.z_end;
   radius   = fill_cylinder_parameters.radius;
-  
+
   for(x=0;x < rows_x; x++) {
     for (z=0; z < rows_z; z++) {
       for (y=0; y < rows_y; y++) {
@@ -205,15 +413,15 @@ void fill_phase_sphere(struct fill_sphere fill_sphere_parameters, struct fields*
   long x, y, z, index;
   long a;
   double sum;
-  
+
   long x_center, y_center, z_center;
   double radius;
-  
+
   x_center = fill_sphere_parameters.x_center;
   y_center = fill_sphere_parameters.y_center;
   z_center = fill_sphere_parameters.z_center;
   radius   = fill_sphere_parameters.radius;
-  
+
   for(x=0;x < rows_x; x++) {
     for (z=0; z < rows_z; z++) {
       for (y=0; y < rows_y; y++) {
@@ -256,15 +464,15 @@ void fill_phase_sphere_occupancy(struct fill_sphere fill_sphere_parameters, stru
   long x, y, z, index;
   long a;
   double sum;
-  
+
   long x_center, y_center, z_center;
   double radius;
-  
+
   x_center = fill_sphere_parameters.x_center;
   y_center = fill_sphere_parameters.y_center;
   z_center = fill_sphere_parameters.z_center;
   radius   = fill_sphere_parameters.radius;
-  
+
   for(x=0;x < rows_x; x++) {
     for (z=0; z < rows_z; z++) {
       for (y=0; y < rows_y; y++) {
@@ -326,7 +534,7 @@ void fill_phase_sphere_random(long phase, double ppt_radius, double volume_fract
   struct fill_sphere temp_sph;
 
   while (particle_index <= num_particles) {
-    
+
       long centx = MESH_X*drand48();
       long centy = MESH_Y*drand48();
       long centz = MESH_Z*drand48();
@@ -500,21 +708,21 @@ void fill_phase_voronoi_2D(struct fill_cube fill_cube_parameters, struct fields*
   double *n, *m, *p, *l, minimum;
   long *phase;
   int *FLAG;
-  
+
   FLAG  = (int*)malloc(sizeof(int)*rows_x*rows_y);
   n     = (double *)malloc(sizeof(double)*NUMPOINTS_VORONOI);
   m     = (double *)malloc(sizeof(double)*NUMPOINTS_VORONOI);
   p     = (double *)malloc(sizeof(double)*NUMPOINTS_VORONOI);
   l     = (double *)malloc(sizeof(double)*NUMPOINTS_VORONOI);
   phase = (long *)malloc(sizeof(long)*NUMPOINTS_VORONOI);
-  
+
   long rand_x, rand_y;
-  //static long size_min=400; 
-  int PHASE_FILLED=0;  
+  //static long size_min=400;
+  int PHASE_FILLED=0;
 
   limit_x =  fill_cube_parameters.x_end - fill_cube_parameters.x_start;
   limit_y =  fill_cube_parameters.y_end - fill_cube_parameters.y_start;
-  
+
   for(k=0;k<NUMPOINTS_VORONOI;k++) {
     while (PHASE_FILLED!=1) {
       rand_x = fill_cube_parameters.x_start + (drand48())*limit_x;
@@ -542,12 +750,12 @@ void fill_phase_voronoi_2D(struct fill_cube fill_cube_parameters, struct fields*
   for(x=fill_cube_parameters.x_start;x<fill_cube_parameters.x_end;x++) {
     for (y=fill_cube_parameters.y_start; y<fill_cube_parameters.y_end; y++) {
       gidy   = x*rows_y + y;
-      for(k=0; k<NUMPOINTS_VORONOI; k++) { 
+      for(k=0; k<NUMPOINTS_VORONOI; k++) {
         l[k] = (n[k]-x)*(n[k]-x) + (m[k]-y)*(m[k]-y);
       }
       minimum  = l[0];
       location = 0;
-      
+
       for(k=0;k<NUMPOINTS_VORONOI;k++) {
         if(l[k]<minimum) {
           minimum  = l[k];
@@ -559,7 +767,7 @@ void fill_phase_voronoi_2D(struct fill_cube fill_cube_parameters, struct fields*
           gridinfo[gidy].phia[s] = 1.0;
         }
         if(location != s) {
-          gridinfo[gidy].phia[s] = 0.0; 
+          gridinfo[gidy].phia[s] = 0.0;
         }
       }
     }
@@ -579,10 +787,10 @@ void fill_phase_voronoi_3D(struct fill_cube fill_cube_parameters, struct fields*
   int k, location, s;
 //   double n[NUMPOINTS_VORONOI], m[NUMPOINTS_VORONOI], p[NUMPOINTS_VORONOI], l[NUMPOINTS_VORONOI], minimum;
 //   long phase[NUMPOINTS_VORONOI];
-  
+
   double *n, *m, *p, *l, minimum;
   long *phase;
-  
+
 //   int FLAG[rows_x*rows_y*rows_z];
   int *FLAG;
   FLAG  = (int*)malloc(sizeof(int)*rows_x*rows_y*rows_z);
@@ -592,8 +800,8 @@ void fill_phase_voronoi_3D(struct fill_cube fill_cube_parameters, struct fields*
   l     = (double *)malloc(sizeof(double)*NUMPOINTS_VORONOI);
   phase = (long *)malloc(sizeof(long)*NUMPOINTS_VORONOI);
   long rand_x, rand_y, rand_z;
-  //static long size_min=400; 
-  int PHASE_FILLED=0;  
+  //static long size_min=400;
+  int PHASE_FILLED=0;
 
   limit_x =  fill_cube_parameters.x_end - fill_cube_parameters.x_start;
   limit_y =  fill_cube_parameters.y_end - fill_cube_parameters.y_start;
@@ -606,7 +814,7 @@ void fill_phase_voronoi_3D(struct fill_cube fill_cube_parameters, struct fields*
       rand_z = fill_cube_parameters.z_start + (drand48())*(limit_z-1);
 
       gidy = rand_x*layer_size + rand_z*rows_y + rand_y;
-      
+
       if (FLAG[gidy]!=1) {
         n[k] = rand_x;
         m[k] = rand_y;
@@ -626,21 +834,21 @@ void fill_phase_voronoi_3D(struct fill_cube fill_cube_parameters, struct fields*
    }
    PHASE_FILLED=0;
   }
-  
+
   for(k=0;k<NUMPOINTS_VORONOI;k++) {
     phase[k] = lrand48()%(NUMPHASES-1);
   }
- 
+
   for(x=fill_cube_parameters.x_start; x < fill_cube_parameters.x_end; x++) {
     for (y=fill_cube_parameters.y_start; y < fill_cube_parameters.y_end; y++) {
       for (z=fill_cube_parameters.z_start; z < fill_cube_parameters.z_end; z++) {
         gidy   = x*layer_size + z*rows_y + y;
-        for(k=0; k<NUMPOINTS_VORONOI; k++) { 
+        for(k=0; k<NUMPOINTS_VORONOI; k++) {
           l[k] = (n[k]-x)*(n[k]-x) + (m[k]-y)*(m[k]-y) + (p[k]-z)*(p[k]-z);
         }
         minimum  = l[0];
         location = 0;
-        
+
         for(k=0;k<NUMPOINTS_VORONOI;k++) {
           if(l[k]<minimum) {
             minimum  = l[k];
@@ -652,7 +860,7 @@ void fill_phase_voronoi_3D(struct fill_cube fill_cube_parameters, struct fields*
             gridinfo[gidy].phia[s] = 1.0;
           }
           if(location != s) {
-            gridinfo[gidy].phia[s] = 0.0; 
+            gridinfo[gidy].phia[s] = 0.0;
           }
         }
       }
@@ -673,7 +881,7 @@ void fill_composition_cube(struct fields* gridinfo) {
   double c[NUMCOMPONENTS-1];
   double chemical_potential;
   long PHASE_FILLED=0;
-  
+
   for(x=0;x<rows_x;x++) {
     for(z=0; z<rows_z; z++) {
       for (y=0; y<rows_y; y++) {
@@ -685,7 +893,7 @@ void fill_composition_cube(struct fields* gridinfo) {
               c[k] = ceq[b][b][k];
             }
 //             init_propertymatrices(Teq);
-            Mu(c, Teq, b, gridinfo[index].compi); 
+            Mu(c, Teq, b, gridinfo[index].compi);
             for (k=0; k < NUMCOMPONENTS-1; k++) {
 //               chemical_potential = Mu(c, Teq, b, k);
 //               gridinfo[index].compi[k] = chemical_potential;
@@ -704,12 +912,12 @@ void fill_composition_cube(struct fields* gridinfo) {
   //         c[0] = 0.160413;
   //         c[1] = 0.245857;
 //           init_propertymatrices(Teq);
-          Mu(c, Teq, NUMPHASES-1, gridinfo[index].compi); 
+          Mu(c, Teq, NUMPHASES-1, gridinfo[index].compi);
           for (k=0; k < NUMCOMPONENTS-1; k++) {
 //             chemical_potential = Mu(c, Teq, NUMPHASES-1, k);
 // //             printf("chemical_potential =%le\n", chemical_potential);
 //             gridinfo[index].compi[k] = chemical_potential;
-             gridinfo[index].composition[k] = c[k]; 
+             gridinfo[index].composition[k] = c[k];
           }
         }
       }
@@ -729,13 +937,13 @@ void fill_composition_cube(struct fields* gridinfo) {
 //   double chemical_potential;
 //   FILE *fp;
 //   long b, k;
-//   
+//
 //   char name[1000];
-//   
+//
 //   //Filling algorithm for the phases---------------------------------------------------------------
 //   long cubes;
 //   long start_cube;
-//   
+//
 //   char pattern[10000];
 //   sprintf(pattern, "01");
 //   long pattern_length = 2;
@@ -743,17 +951,17 @@ void fill_composition_cube(struct fields* gridinfo) {
 //   long numperiods=1;
 //   //Filling cubes of phases
 //   //Filling abg configuration for half the domain--------------------------------------------------
-//   start_cube = 0;  
+//   start_cube = 0;
 //   //Determine the number of cubes of each phase in the pattern
 //   find_numcubes(pattern, filling_type_phase);
 //   long lambda = period/numperiods;
-// 
+//
 //   for (a=0; a < NUMPHASES; a++) {
 //     filling_type_phase[a].length = ((filling_type_phase[a].volume_fraction/filling_type_phase[a].NUMCUBES)*lambda);
 //   }
-//   
+//
 // //   fillpattern(pattern, filling_type_phase, start_cube, numperiods, gridinfo);
-// 
+//
 // //You need to write your filling function here
 // //   fill_random();
 //   fill_cube_parameters.x_start = 0;
@@ -762,24 +970,24 @@ void fill_composition_cube(struct fields* gridinfo) {
 //   fill_cube_parameters.y_end   = 20;
 //  fill_phase_cube(fill_cube_parameters, gridinfo, 0);
 //  fill_phase_cube(fill_cube_parameters, gridinfo, NUMPHASES-1);
-//   
-//   
+//
+//
 // //   fill_phase_circle(10, 0,               0, gridinfo, 0);
 // //   fill_phase_circle(10, 0.25*(MESH_X-1), 0, gridinfo, 0);
 // //   fill_phase_circle(10, 0.5*(MESH_X-1),  0, gridinfo, 0);
 // //   fill_phase_circle(10, 0.75*(MESH_X-1), 0, gridinfo, 0);
 // //   fill_phase_circle(10, (MESH_X-1),      0, gridinfo, 0);
-// 
-// 
+//
+//
 // //   fill_phase_circle(10, 0, 0, gridinfo, NUMPHASES-1);
-//   
+//
 // //   fill_phase_ellipse(50, 0.1,  -0.0, 0.5*(MESH_X-1), 0.5*(MESH_Y-1), gridinfo, 0);
 // //   fill_phase_ellipse(50, 0.1,  -0.0, 0.5*(MESH_X-1), 0.5*(MESH_Y-1), gridinfo, NUMPHASES-1);
-//   
+//
 //   fill_composition_cube(gridinfo);
 //   writetofile_struct(gridinfo, 0);
 // }
-// 
+//
 // long assign_phase (double rand_phase) {
 //   long i;
 //   for (i=0; i < NUMPHASES-1; i++) {
@@ -819,24 +1027,24 @@ void fill_composition_cube(struct fields* gridinfo) {
 //   long particlesize_bin[NUMBINS];
 //   long numparticles_bin[NUMBINS];
 //   int FLAG, *FLAG_FILLED;
-//   
+//
 //   long fill_count;
 //   long x, y, b;
 //   long i;
 //   long gidy;
-//   
+//
 //   double rand_phase;
 //   double rand_particle;
-//   
+//
 //   FLAG_FILLED = (int*)malloc((MESH_X*MESH_Y)*sizeof(*FLAG_FILLED));
-//   
+//
 //   for (x =0; x < MESH_X; x++) {
 //     for (y =0; y < MESH_Y; y++) {
 //       gidy = x*MESH_Y + y;
 //       FLAG_FILLED[gidy] = 0;
 //     }
 //   }
-//   
+//
 //   for (i=0; i< NUMBINS; i++) {
 //     particlesize_bin[i] = (2*i+3)*0.5*BINSIZE;
 //     x                   = particlesize_bin[i]*(0.7/25.0);
@@ -844,7 +1052,7 @@ void fill_composition_cube(struct fields* gridinfo) {
 // //     numparticles_bin[i] = floor((double)NUMPARTICLES*(double)(1.0/(sqrt(2.0*M_PI*MAXPARTICLE_SIZE*0.25)))*exp(-(x-MAXPARTICLE_SIZE*0.5)*(x-MAXPARTICLE_SIZE*0.5)/(2.0*MAXPARTICLE_SIZE*0.25)));
 //     //...................................................................
 //     numparticles_bin[i] = floor((double)NUMPARTICLES*(0.0087+0.32101*x-0.37669*pow(x,2.0)+0.16378*pow(x,3.0)-0.02991*pow(x,4.0)+0.00181*pow(x,5.0)));
-//     
+//
 //     printf("%ld %ld %ld\n",i, x, numparticles_bin[i]);
 //   }
 //   srand(time(NULL));
@@ -854,7 +1062,7 @@ void fill_composition_cube(struct fields* gridinfo) {
 //        while (fill_count <= numparticles_bin[i]) {
 //           x = floor((MESH_X-1)*(double)(rand())/(double)RAND_MAX);
 //           y = floor((MESH_Y-1)*(double)(rand())/(double)RAND_MAX);
-//           
+//
 //           gidy = x*MESH_Y + y;
 //           if ((fill_count <= numparticles_bin[i]) && (x < MESH_X) && (y<MESH_Y)) {
 // //               FLAG = check_FLAG(FLAG_FILLED, x, y, particlesize_bin[i]);
@@ -874,15 +1082,15 @@ void fill_composition_cube(struct fields* gridinfo) {
 //   }
 //   free(FLAG_FILLED);
 // }
-// 
+//
 // void find_numcubes(char *pattern, struct filling_type* filling_type_phase) {
 //   long x;
 //   long a;
-//   
+//
 //   for (a=0; a < NUMPHASES-1; a++) {
 //     filling_type_phase[a].NUMCUBES = 0;
 //   }
-//   
+//
 //   for (x=0; x < strlen(pattern); x++) {
 //     for (a=0; a < NUMPHASES; a++) {
 //       if ((pattern[x]) == '0'+ a) {
@@ -937,11 +1145,11 @@ void fill_composition_cube(struct fields* gridinfo) {
 //   filling_type_phase[1].volume_fraction = 0.5;
 //   filling_type_phase[2].volume_fraction = 0.5;
 // //   filling_type_phase[3].volume_fraction = 0.33333333333;
-//   
+//
 // //   filling_type_phase[0].NUMCUBES = 2;
 // //   filling_type_phase[1].NUMCUBES = 2;
 // //   filling_type_phase[2].NUMCUBES = 2;
 // //   filling_type_phase[3].NUMCUBES = 1;
 // }
-// 
-// 
+//
+//

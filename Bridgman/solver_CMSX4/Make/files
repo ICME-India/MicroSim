@@ -1,3 +1,0 @@
-Smooth_Boundary_layer.C
-
-EXE = $(FOAM_USER_APPBIN)/Smooth_Boundary_layer_dim
