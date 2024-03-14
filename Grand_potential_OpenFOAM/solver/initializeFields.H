@@ -72,6 +72,7 @@ for(int i=0; i<numSeeds; i++){
 //! Initial conditions for precipitate growth simulation
 if (swch == 2)
 {
+anti_trap = 0;
     /*theta = 0.01;
     //NS = 1;
     
@@ -242,6 +243,7 @@ for(int i=0; i<numSeeds; i++){
 //! Initial conditions for precipitate growth simulation
 if (swch == 2)
 {
+anti_trap = 0;
     /*theta = 0.01;
     //NS = 1;
 
@@ -374,6 +376,7 @@ if (dimensions == 2)
 //! Initial conditions for precipitate growth simulation
 if (swch == 2)
 {
+anti_trap = 0;
     /*theta = 0.01;
     //NS = 1;
 
@@ -473,6 +476,7 @@ if (dimensions == 3)
 //! Initial conditions for precipitate growth simulation
 if (swch == 2)
 {
+anti_trap = 0;
     /*theta = 0.01;
     //NS = 1;
 
@@ -583,6 +587,7 @@ if (dimensions == 2)
 //! Initial conditions for precipitate growth simulation
 if (swch == 2)
 {
+anti_trap = 0;
     /*theta = 0.01;
     //NS = 1;
 
@@ -692,6 +697,7 @@ if (dimensions == 3)
 //! Initial conditions for precipitate growth simulation
 if (swch == 2)
 {
+anti_trap = 0;
     /*theta = 0.01;
     //NS = 1;
 
