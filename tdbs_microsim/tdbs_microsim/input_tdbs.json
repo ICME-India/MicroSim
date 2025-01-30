@@ -1,0 +1,12 @@
+{"Material":"A656(3)",
+"Thermodynamic_Database": "TCFE11",
+"Kintic_Database": "MOBFE6",
+"Base_element": "FE",
+"Solutes": ["MN", "C", "V", "SI", "NB"],
+"alloy_composition": [0.0165, 0.0018, 0.0015, 0.006, 0.001],
+"Composition_unit": "mole",
+"Matrix_phase":"LIQUID",
+"Solid_Phases": ["BCC_A2"],
+"Tmin":1730,
+"Tmax":1780
+}
