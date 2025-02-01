@@ -1,4 +1,4 @@
-###  Python scripts to generate Composition and Hessian files in .csv format from the corresponding .dat files generated from PanDat
+##  Python scripts to generate Composition and Hessian files in .csv format from the corresponding .dat files generated from PanDat
 
 The python scripts have been tested for n-component alloy with 2 phases.
 In these python scripts, the user needs to modify the following details:
@@ -10,5 +10,5 @@ The example .dat files are also shared.
 You may use any python IDE (eg. spyder) or run it directly from terminal.
 
 
-## Aknowledgement
+### Aknowledgement
 Swapnil Bhure
