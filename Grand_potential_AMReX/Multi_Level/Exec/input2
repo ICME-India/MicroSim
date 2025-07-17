@@ -1,0 +1,106 @@
+# ================ -: INPUT FILE :- ================
+
+# Problem Size
+geometry.prob_lo        =   0.0      0.0 
+geometry.prob_hi        =   0.128e-5   0.128e-5
+
+# Boundary condition 
+geometry.is_periodic    =   0   0
+
+# Resolution and Refinment
+#(Number of cell and max grid size should be match to number of processors)
+amr.n_cell              =   64  64                 
+amr.max_level           =   1
+amr.ref_ratio           =   2    2 
+amr.max_grid_size       =   32  32                  
+amr.blocking_factor_x   =   8
+amr.blocking_factor_y   =   8 
+amr.n_error_buf_x       =   2   
+amr.n_error_buf_y	    =   2
+amr.n_error_buf_z	    =   2
+
+# Number of time steps
+max_step                =   50000		# for subcycling reduce time steps
+amr.plot_file           =   plt    
+amr.plot_int            =   5000
+regrid_int              =   2
+do_subcycle             =   1		# for subcycling 1
+
+# Geometrical dimensions of the simulation domain 
+#(if do subcyle is true (1) then change the value of DELTA_t)
+DELTA_t                 =   18e-9  # for subcycling 36e-9
+DIM                     =   2
+
+# Number of phases and composition
+NUMPHASES               =   2 
+NUMCOMPONENTS           =   2 
+
+# Component and Phase names
+COMPONENTS              =   Al Zn  
+PHASES                  =   alpha liquid 
+
+# Material properties   
+GAMMA                   =   0.1  
+R                       =   8.314 
+V                       =   10e-6 
+DIFFUSIVITY             =   1 0 0  
+DIFFUSIVITY             =   1 1 1e-9  
+EIGEN_STRAIN            =   0 0.01 0.01 0.0 0.0 0.0 0.0  
+EIGEN_STRAIN            =   1 0.01 0.01 0.0 0.0 0.0 0.0  
+VOIGT_ISOTROPIC         =   0 270 187.5 125.0  
+VOIGT_ISOTROPIC         =   1 270 187.5 125.0  
+
+# Boundary conditions
+BOUNDARY                =   phi 1 1 1 1 0 0  
+BOUNDARY                =   mu 1 1 1 1 0 0  
+BOUNDARY                =   c 1 1 1 1 0 0  
+BOUNDARY                =   T 1 1 1 1 0 0  
+BOUNDARY_VALUE          =   phi 0 0 0 0 0 0  
+BOUNDARY_VALUE          =   mu 0 0 0 0 0 0  
+BOUNDARY_VALUE          =   c 0 0 0 0 0 0  
+BOUNDARY_VALUE          =   T 0 0 0 0 0 0  
+
+# Model-specific parameters: Grand-potential model
+ISOTHERMAL              =   1 
+BINARY                  =   1 
+TERNARY                 =   0 
+DILUTE                  =   0 
+T                       =   857 
+WRITEFORMAT             =   ASCII 
+WRITEHDF5               =   1 
+TRACK_PROGRESS          =   1 
+epsilon                 =   4e-8 
+tau                     =   1.31 
+Tau                     =   0.28  
+Function_anisotropy     =   1 
+Anisotropy_type         =   4 
+dab                     =   0.01  
+Function_W              =   1
+Shift                   =   0 
+Shiftj                  =   30 
+# Writecomposition        =   1 
+# Noise_phasefield        =   0 
+# Amp_Noise_Phase         =   0.1 
+Equilibrium_temperature =   870 
+Filling_temperature     =   857 
+Tempgrady               =   856.95 0.1 10e-6 0 320e-6  
+Function_F              =   4 
+num_thermo_phases       =   2 
+tdbfname                =   alzn_mey.tdb 
+tdb_phases              =   FCC_A1 LIQUID  
+phase_map               =   FCC_A1 LIQUID  
+ceq                     =   0   0   0.92642  
+ceq                     =   0   1   0.81683  
+ceq                     =   1   0   0.81683  
+ceq                     =   1   1   0.81683  
+cfill                   =   0 0 0.92642  
+cfill                   =   0 1 0.81683  
+cfill                   =   1 0 0.81683  
+cfill                   =   1 1 0.81683  
+# c_guess                 =   0 0 0.90965  
+# c_guess                 =   0 1 0.77269  
+# c_guess                 =   1 0 0.77269  
+# c_guess                 =   1 1 0.77269  
+Rotation_matrix         =   0 1 0 0 45  
+FILLCYLINDER            =   0 0 0 0 0 5  
+# FILLCYLINDER, FILLCUBE, FILLSPERE, FILLELLIPSE
