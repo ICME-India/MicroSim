@@ -693,8 +693,8 @@ long time_file;
  * New additions
  */
 
+const bool USE_NEW_INPFILE = true;
 const bool USE_NEW_MALLOC  = false;
-const bool USE_NEW_INPFILE = false;
 const bool USE_NEW_IO_BUFF = false;
 const bool USE_NEW_MPIINFO = false;
 const bool USE_AUTO_DEFAULT= false;

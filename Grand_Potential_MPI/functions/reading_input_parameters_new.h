@@ -70,29 +70,27 @@ void ms_GlobalInit_PhaseFieldMatrices()
     Gamma_abc   = ms_Malloc_3D(NUMPHASES, NUMPHASES, NUMPHASES);
 }
 
-long ms_readvar_l(char *file_path, char * var_name)
-{    
-    long var;
-    char line_buffer[1024];
-    char name_buffer[64];
-    char value_buffer[64];
-
-    FILE *FPtr = ms_FILE_Open(file_path, "rt");
-    
-    while(fgets(line_buffer,1024,FPtr))
-    {
-        sscanf(line_buffer, "%64s = %64[^;];", name_buffer, value_buffer);
-        if(name_buffer[0] != '#')
-        {
-            if (!strcmp(name_buffer,var_name))
-            {
-                var = atol(value_buffer);
-            }
-        }
-    }
-    fclose(FPtr);
-    return var;
-}
+// long ms_readvar_l(char *file_path, char * var_name)
+// {    
+//     long var;
+//     char line_buffer[1024];
+//     char name_buffer[64];
+//     char value_buffer[64];
+//     FILE *FPtr = ms_FILE_Open(file_path, "rt");
+//     while(fgets(line_buffer,1024,FPtr))
+//     {
+//         sscanf(line_buffer, "%64s = %64[^;];", name_buffer, value_buffer);
+//         if(name_buffer[0] != '#')
+//         {
+//             if (!strcmp(name_buffer,var_name))
+//             {
+//                 var = atol(value_buffer);
+//             }
+//         }
+//     }
+//     fclose(FPtr);
+//     return var;
+// }
 
 void ms_ReadInputParameters(char *file_path)
 {
@@ -560,7 +558,7 @@ void ms_ReadInputParameters(char *file_path)
 
         else if (!strcmp(Name, "DIFFUSIVITY"))
         {
-            msExpectedSizeIs(2 + (NUMCOMPONENTS-1)*(NUMCOMPONENTS-1));
+            // msExpectedSizeIs(2 + (NUMCOMPONENTS-1)*(NUMCOMPONENTS-1));
             ms_PopulateMatrix_Diffusivity_aij(Diffusivity, Tokens);
         }
 

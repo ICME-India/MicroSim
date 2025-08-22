@@ -288,7 +288,7 @@ void solverloop_phasefield_tdb(long *start, long *end) {
     }
     calculate_gradients_phasefield(x+1, gradient, 0);
     calculate_divergence_phasefield(x, gradient);
-    if ((FUNCTION_F == 5)) {
+    if (FUNCTION_F == 5) {
       if(SHIFT) {
         //Check condition for the shift only for the lowest level
         INTERFACE_POS = check_SHIFT(x-1);

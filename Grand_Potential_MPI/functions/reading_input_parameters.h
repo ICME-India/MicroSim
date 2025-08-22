@@ -9,7 +9,7 @@ void reading_input_parameters(char *argv[]) {
 
   FILE * fr = ms_FILE_Open(argv[1], "rt");
 
-  if(taskid == MASTER){
+  if(taskid == MASTER) {
     printf("\n- [%d] Reading Infile `%s`",taskid, argv[1]);
   }
     
@@ -462,6 +462,10 @@ void reading_input_parameters(char *argv[]) {
   }
   fclose(fr);
 //   MPI_File_close(&fr);  
+
+  if(taskid == MASTER) {
+    printf("\n- [%d] Reading Infile `%s`  done!",taskid, argv[1]);
+  }
 }
 
 #endif

@@ -74,9 +74,10 @@ void Free4M(double ****Mat, long m, long n, long k) {
   free(Mat);
   Mat=NULL;
 }
+
 long file_exists(const char *fname) {
-    FILE *file;
-    if (file = fopen(fname, "r"))
+    FILE *file = fopen(fname, "r");
+    if (file)
     {
         fclose(file);
         return 1;
@@ -208,8 +209,12 @@ void populate_diffusivity_matrix(double ***Mat, char *tmpstr, long NUMCOMPONENTS
     }
     for(i=0; i < NUMCOMPONENTS-1; i++) {
       for (j=0; j < NUMCOMPONENTS-1; j++) {
-        Mat[phase][i][j] = atof(tmp[1+l]);
-        l++;
+        /// added as you have already read the diagonal elements
+        if (i != j)
+        {
+          Mat[phase][i][j] = atof(tmp[1+l]);
+          l++;
+        }
       }
     }
   }
@@ -1281,20 +1286,24 @@ void allocate_memory_gradlayer(struct gradlayer *ptr)
   ptr->gradcomp     = MallocM(3,NUMCOMPONENTS-1);
 }
 void allocate_memory_fields(struct fields *ptr) {
-  double *tmp;
-  tmp = (double *)malloc((2*NUMPHASES+2*(NUMCOMPONENTS-1))*sizeof(double));
+  size_t field_size = (2*NUMPHASES+2*(NUMCOMPONENTS-1));
+
+  double * tmp = (double *)malloc(field_size*sizeof(double));
+  for (size_t i = 0; i < field_size; i++) {
+    tmp[i] = 0.0;
+  }
+  
   ptr->phia        = tmp;
   ptr->compi       = tmp + NUMPHASES;
   ptr->composition = tmp + NUMPHASES   + (NUMCOMPONENTS-1);
   ptr->deltaphi    = tmp + (NUMPHASES) + 2*(NUMCOMPONENTS-1);
 }
 void allocate_memory_lbm_fields(struct lbm_fields *ptr) {
-  double *tmp;
-  long size, s;
-  size = SIZE_LBM_FIELDS - 4;
-  tmp = (double *)malloc((size)*sizeof(double));
-  for(s = 0; s < size; s++){
-    tmp[s] = 0.0 ;
+  size_t field_size = (SIZE_LBM_FIELDS - 4);
+  
+  double *tmp = (double *)malloc((field_size)*sizeof(double));
+  for (size_t i = 0; i < field_size; i++) {
+    tmp[i] = 0.0;
   }
   ptr->fdis        = tmp;
 //     ptr->compi       = tmp + NUMPHASES;

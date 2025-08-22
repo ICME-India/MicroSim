@@ -13,12 +13,15 @@ extern "C" {
 #include <assert.h>
 #include <strings.h>
 
+#include <mpi.h>
+
 #include "global_vars.h"
 
 #define msSelf(var) #var
 #define msMalloc(T, arr_size) ((T*)malloc(sizeof(T)*(arr_size)))
 #define msCalloc(T, arr_size) ((T*)calloc((arr_size),sizeof(T)))
 
+void        ms_Abort();
 void        ms_Assert_Terminate(int err);
 
 double*     ms_Malloc_1D(size_t m);
@@ -65,9 +68,7 @@ void ms_Assert_Terminate(int err)
 {
   if (err)
   {
-    fprintf(stderr, "\nTerminating execution\nPlease refer documentation.\n- Run as:\n  mpirun -np <num procs> ./microsim_gp InpFile FillFile OutName numworkers_x numworkers_y numworkers_z\n- Eg for 2D : mpirun -np 4 ./microsim_gp Input.in Fill.in out-data 2 2\n- Eg for 3D : mpirun -np 8 ./microsim_gp Input.in Fill.in out-data 2 2 2\n\n");
-    MPI_Abort(MPI_COMM_WORLD,1);
-    exit(1);  
+    ms_Abort();
   }
 }
 
@@ -237,9 +238,16 @@ void ms_Regex_ExtractMatch(const char * Line, regmatch_t match, char * dest, siz
     dest[LineLen] = '\0';
 }
 
+void ms_Abort()
+{
+    fprintf(stderr, "\nAborting Execution!\nPlease consult our documentation!\n");
+    MPI_Abort(MPI_COMM_WORLD,1);
+    exit(EXIT_FAILURE);
+}
+
 void ms_Throw_SizeExpectationError(size_t expected, const char * Name, char **Tokens, size_t numtok)
 {
-    if (numtok < expected)
+    if (numtok != expected)
     {
         fprintf(stderr, "\n**ERROR** Expected %ld values in array %s\n", expected, Name);
         fprintf(stderr, "You entered %ld values\n", numtok);
@@ -247,9 +255,22 @@ void ms_Throw_SizeExpectationError(size_t expected, const char * Name, char **To
         {
             fprintf(stderr, "%s[%ld] = %s\n", Name, i, Tokens[i]);
         }
-        fprintf(stderr, "\nPlease consult our documentation!\n");
-        exit(EXIT_FAILURE);
+        ms_Abort();
     }
+}
+
+void ms_mpi_try(int mpi_error)
+{
+    static char msg[MPI_MAX_ERROR_STRING];
+    msg[0]  = '\0';
+    int msg_len = 0;
+    if (mpi_error != MPI_SUCCESS)
+    {
+        fprintf(stderr, "\n**ERROR** MPI Error!\n");
+        MPI_Error_string(mpi_error, msg, &msg_len);
+        fprintf(stderr, "%s[%d]", msg, msg_len);
+        ms_Abort();
+    }    
 }
 
 char **ms_ArrayString_Create(size_t arr_size, size_t string_size)
@@ -399,7 +420,7 @@ void ms_PopulateMatrix_Diffusivity_aij(double *** Mat, char **tokens)
 {
     int  i, j, l = 0;
 
-    int diagonal = atoi(tokens[l++]),
+    int diagonal = atoi(tokens[l++]) == 1,
         phase    = atoi(tokens[l++]);
 
     for (i = 0; i < NUMCOMPONENTS-1; i++)
@@ -413,7 +434,10 @@ void ms_PopulateMatrix_Diffusivity_aij(double *** Mat, char **tokens)
         {
             for (j=0; j < NUMCOMPONENTS-1; j++)
             {
-                Mat[phase][i][j] = atof(tokens[l++]);
+                if (i != j)
+                {
+                    Mat[phase][i][j] = atof(tokens[l++]);    
+                }
             }
         }
     }
@@ -422,12 +446,13 @@ void ms_PopulateMatrix_Diffusivity_aij(double *** Mat, char **tokens)
 void ms_PopulateMatrix_Thermodynamic_abi(double ***Mat, char **tokens)
 {
     int  i, j = 0;
-
     int phase1 = atoi(tokens[j++]);
     int phase2 = atoi(tokens[j++]);
     for (i=0; i < NUMCOMPONENTS-1; i++)
     {
-        Mat[phase1][phase2][i] = atof(tokens[j++]);
+        double value = atof(tokens[j++]);
+        Mat[phase1][phase2][i] = value;
+        Mat[phase2][phase1][i] = value;
     }
 }
 

@@ -39,7 +39,7 @@ void calculate_distribution_function_2D(long x) {
       gradphi[1] = 0.0;
     }
     
-    if ((fabs(gradphi[0]) > 1e-12) || (fabs(gradphi[1] > 1e-12))) {
+    if ((fabs(gradphi[0]) > 1e-12) || (fabs(gradphi[1]) > 1e-12)) {
       n[0] = gradphi[0]/((gradphi[0]*gradphi[0] + gradphi[1]*gradphi[1] + 1e-6));
       n[1] = gradphi[1]/((gradphi[0]*gradphi[0] + gradphi[1]*gradphi[1] + 1e-6));
     }

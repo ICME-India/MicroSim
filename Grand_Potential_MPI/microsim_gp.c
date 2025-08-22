@@ -97,31 +97,17 @@ int main(int argc, char * argv[])
   }
   else {
     reading_input_parameters(argv);
-
     read_boundary_conditions(argv);
     msDyInp_Initialize(argv);
   }
 
   /// automatic mpi decomposition if decomposition isnt provided
-  int mpi_size[3] = {0,0,0};
-  if ((argc == 4)) {
-    MPI_Dims_create(numtasks, (int)DIMENSION, mpi_size);
-  }
-  else {
-    assert(((DIMENSION == 2) && (argc >= 6)) || (DIMENSION == 3) && (argc == 7));
-    mpi_size[X] = atoi(argv[4]);
-    mpi_size[Y] = atoi(argv[5]);
-    mpi_size[Z] = (DIMENSION == 2) ? 1 : atoi(argv[6]);
-  }
+  ms_mpi_Init_numworkers(argc, argv);
 
-  numworkers_x = mpi_size[X];
-  numworkers_y = mpi_size[Y];
-  numworkers_z = (DIMENSION == 2) ? 1 : mpi_size[Z];  
-  if (!taskid) fprintf(stderr, "numworkers = %d %d %d\n", numworkers_x, numworkers_y, numworkers_z);
-  assert(numtasks == numworkers_x*numworkers_y*numworkers_z);   
-
+  /// Initialize the global tensors
   initialize_variables();
   
+  /// Initialize the function pointers
   initialize_functions_solverloop();
 
   if (USE_GSL_MATINV)
@@ -346,7 +332,7 @@ int main(int argc, char * argv[])
   // if(RESTART && STARTTIME > 0 ){
   //   // write the intial files
   //   if (!WRITEHDF5) {
-  //     if ((ASCII == 0)) {
+  //     if (ASCII == 0) {
   //       writetofile_mpi_binary(gridinfo_w, argv, 0 + STARTTIME +1);
   //     } else {
   //       writetofile_mpi(gridinfo_w, argv, 0 + STARTTIME +1);
@@ -397,7 +383,7 @@ int main(int argc, char * argv[])
     } // end of smooth loop
 
     if (!WRITEHDF5) {
-      if ((ASCII == 0)) {
+      if (ASCII == 0) {
         writetofile_mpi_binary(gridinfo_w, argv, 0 + STARTTIME);
       } else {
         writetofile_mpi(gridinfo_w, argv, 0 + STARTTIME);
@@ -567,7 +553,7 @@ int main(int argc, char * argv[])
       }
       
       if (!WRITEHDF5) {
-        if ((ASCII == 0)) {
+        if (ASCII == 0) {
           writetofile_mpi_binary(gridinfo_w, argv, t + STARTTIME);
         } else {
           writetofile_mpi(gridinfo_w, argv, t + STARTTIME);

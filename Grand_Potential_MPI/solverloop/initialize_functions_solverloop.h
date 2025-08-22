@@ -13,7 +13,7 @@ void initialize_functions_solverloop(){
        function_C                = function_F_01_function_C;
        init_propertymatrices     = function_F_01_init_propertymatrices;
   }
-  if ((FUNCTION_F == 2)) {
+  if (FUNCTION_F == 2) {
     thermo_phase = (long*)malloc(NUMPHASES*sizeof(long));
     long a, b;
     for (a=0; a<NUMPHASES; a++) {
@@ -30,7 +30,7 @@ void initialize_functions_solverloop(){
     Mu                        = function_F_02_Mu;
     dpsi                      = function_F_02_dpsi;
   }
-  if ((FUNCTION_F == 3)) {
+  if (FUNCTION_F == 3) {
     thermo_phase = (long*)malloc(NUMPHASES*sizeof(long));
     long a, b;
     for (a=0; a<NUMPHASES; a++) {
@@ -51,7 +51,7 @@ void initialize_functions_solverloop(){
     function_C                = function_F_03_function_C;
     init_propertymatrices     = function_F_03_init_propertymatrices;
   }
-  if ((FUNCTION_F == 4)) {
+  if (FUNCTION_F == 4) {
     thermo_phase = (long*)malloc(NUMPHASES*sizeof(long));
     long a, b;
     for (a=0; a<NUMPHASES; a++) {
@@ -72,7 +72,7 @@ void initialize_functions_solverloop(){
     function_C                = function_F_04_function_C;
     init_propertymatrices     = function_F_04_init_propertymatrices;
   }
-   if ((FUNCTION_F == 5)) {
+   if (FUNCTION_F == 5) {
 //     thermo_phase = (long*)malloc(NUMPHASES*sizeof(long));
 //     long a, b;
 //     for (a=0; a<NUMPHASES; a++) {
@@ -94,7 +94,7 @@ void initialize_functions_solverloop(){
 //     init_propertymatrices     = function_F_04_init_propertymatrices;
      dpsi                      = function_F_05_dpsi;
   }
-  if ((FUNCTION_F == 6)) {
+  if (FUNCTION_F == 6) {
     thermo_phase = (long*)malloc(NUMPHASES*sizeof(long));
     long a, b;
     for (a=0; a < NUMPHASES; a++) {

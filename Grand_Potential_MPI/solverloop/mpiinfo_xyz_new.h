@@ -3,41 +3,38 @@
 
 #include <mpi.h>
 
-// void ms_mpi_Init(int argc, char * args[])
-// {
-//   /// Initialize MPI Environment
-//   MPI_Init(&argc,&argv);
-//   MPI_Comm_size(MPI_COMM_WORLD,&numtasks);
-//   MPI_Comm_rank(MPI_COMM_WORLD,&taskid);
-//   mpi_topo_comm = MPI_COMM_WORLD;
+void ms_mpi_Init_numworkers(int argc, char * argv[])
+{
+  int mpi_size[3] = {0,0,0};
 
-//   /// assert the existence of Input and Filling Files
-//   ms_Assert_Terminate(!ms_FILE_IsRegular(args[1]));
-//   ms_Assert_Terminate(!ms_FILE_IsRegular(args[2]));
+  if (argc == 4) {
+    fprintf(stderr, "mpi - creating numworkers");
+    ms_mpi_try(
+      MPI_Dims_create(numtasks, (int)DIMENSION, mpi_size)
+    );
+  }
+  else {
+    assert(((DIMENSION == 2) && (argc >= 6)) || (DIMENSION == 3) && (argc == 7));
+    mpi_size[X] = atoi(argv[4]);
+    mpi_size[Y] = atoi(argv[5]);
+    mpi_size[Z] = (DIMENSION == 2) ? 1 : atoi(argv[6]);
+  }
 
-//   DIMENSION = ms_readvar_l(args[1], "DIMENSION");
+  numworkers_x = mpi_size[X];
+  numworkers_y = mpi_size[Y];
+  numworkers_z = (DIMENSION == 2) ? 1 : mpi_size[Z];  
+  
+  if (!taskid)
+  {
+    fprintf(stderr, "numworkers = %d %d %d\n", numworkers_x, numworkers_y, numworkers_z);
+  }
 
-//   int mpi_size[3] = {0,0,0};
-
-//   if (argc == 4) {
-//     MPI_Dims_create(numtasks, (int)DIMENSION, mpi_size);
-//   }
-//   else {
-//     assert(((DIMENSION == 2) && (argc >= 6)) || (DIMENSION == 3) && (argc == 7));
-//     mpi_size[X] = atoi(argv[4]);
-//     mpi_size[Y] = atoi(argv[5]);
-//     mpi_size[Z] = (DIMENSION == 2) ? 1 : atoi(argv[6]);
-//   }
-
-//   numworkers_x = mpi_size[X];
-//   numworkers_y = mpi_size[Y];
-//   numworkers_z = (DIMENSION == 2) ? 1 : mpi_size[Z];  
-
-//   if (!taskid) fprintf(stderr, "numworkers = %d %d %d\n", numworkers_x, numworkers_y, numworkers_z);
-
-//   assert(numtasks == numworkers_x*numworkers_y*numworkers_z);
-
-// }
+  if(numtasks != numworkers_x*numworkers_y*numworkers_z)
+  {
+    fprintf(stderr, "**ERROR** in numworkers.\n- Run as:\n  mpirun -np <num procs> ./microsim_gp InpFile FillFile OutName numworkers_x numworkers_y numworkers_z\n- Eg for 2D : mpirun -np 4 ./microsim_gp Input.in Fill.in out-data 2 2\n- Eg for 3D : mpirun -np 8 ./microsim_gp Input.in Fill.in out-data 2 2 2\n\n");
+    ms_Abort();
+  }
+}
 
 int ms_mpi_GetRankRelative(int * coord, int x, int y, int z, MPI_Comm COMM)
 {
