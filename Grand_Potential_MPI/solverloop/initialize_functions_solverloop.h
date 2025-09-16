@@ -143,10 +143,13 @@ void initialize_functions_solverloop(){
     ANISOTROPY = 1;
   }
 
-  if (fab != NULL) {
+  if (USING_FAB)
+  {
     dAdq        = anisotropy_gen_dAdq;
     function_ac = anisotropy_gen_function_ac;
-  } else {
+  } 
+  else 
+  {
     if (FOLD == 4) {
       dAdq        = anisotropy_01_dAdq;
       function_ac = anisotropy_01_function_ac;

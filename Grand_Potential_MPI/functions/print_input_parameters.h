@@ -76,8 +76,11 @@ void print_input_parameters(char *argv[]){
   strcpy(key, "dab");
   PRINT_MATRIX(key, dab, NUMPHASES, NUMPHASES, fr);
   
-  strcpy(key, "fab");
-  PRINT_MATRIX(key, fab, NUMPHASES, NUMPHASES, fr);
+  if (USING_FAB)
+  {  
+    strcpy(key, "fab");
+    PRINT_MATRIX(key, fab, NUMPHASES, NUMPHASES, fr);  
+  }
 
   strcpy(key, "Tau");
   PRINT_MATRIX(key, tau_ab, NUMPHASES, NUMPHASES, fr);

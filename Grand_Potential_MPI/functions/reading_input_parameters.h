@@ -284,6 +284,7 @@ void reading_input_parameters(char *argv[]) {
         populate_matrix(dab, tmpstr2, NUMPHASES);
       }
       else if ((strcmp(tmpstr1, "fab") == 0) && (NUMPHASES > 0)) {
+        USING_FAB = true;
         fab = MallocM(NUMPHASES, NUMPHASES);
         populate_matrix(fab, tmpstr2, NUMPHASES);
       }
