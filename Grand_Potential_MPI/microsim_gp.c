@@ -685,7 +685,7 @@ int main(int argc, char * argv[])
   //   ms_FreeAllGlobalVariables(); 
   // }
   // else {
-  //   free_variables();
+    free_variables();
   // }
   
   if (taskid == MASTER) {

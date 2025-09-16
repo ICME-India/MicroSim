@@ -45,6 +45,8 @@ void ms_GlobalInit_PhaseFieldMatrices()
     Rotation_matrix     = ms_Malloc_4D(NUMPHASES,       NUMPHASES,   3,             3);
     Inv_Rotation_matrix = ms_Malloc_4D(NUMPHASES,       NUMPHASES,   3,             3);
     Rotated_qab         = ms_Malloc_1D(3);
+
+    // ms_Init_RotationMatrix(Rotation_matrix, Inv_Rotation_matrix);
     
     eigen_strain_phase  = msMalloc(struct symmetric_tensor,      NUMPHASES);
     stiffness_phase     = msMalloc(struct Stiffness_cubic,       NUMPHASES);
@@ -68,6 +70,52 @@ void ms_GlobalInit_PhaseFieldMatrices()
     fab         = ms_Malloc_2D(NUMPHASES, NUMPHASES);
 
     Gamma_abc   = ms_Malloc_3D(NUMPHASES, NUMPHASES, NUMPHASES);
+}
+
+void ms_GlobalFree_PhaseFieldMatrices()
+{
+    free(start);
+    free(end);
+    free(averow);
+    free(rows);
+    free(offset);
+    free(extra);
+
+    ms_Free_3D(Diffusivity);
+    ms_Free_3D(ceq);
+    ms_Free_3D(cfill);
+    ms_Free_3D(c_guess);
+    ms_Free_3D(ceq_coeffs);
+    ms_Free_3D(slopes);
+    ms_Free_3D(dcbdT);
+    ms_Free_3D(A);
+
+    ms_Free_2D(DELTA_T);
+    ms_Free_2D(DELTA_C);
+    ms_Free_2D(dcbdT_phase);
+    ms_Free_2D(B);
+    ms_Free_2D(Beq);
+    ms_Free_2D(dBbdT);
+    ms_Free_1D(C);
+
+    ms_Free_3D(cmu);
+    ms_Free_3D(muc);
+
+    ms_Free_4D(Rotation_matrix);
+    ms_Free_4D(Inv_Rotation_matrix);
+    ms_Free_1D(Rotated_qab);
+
+    ms_Free_2D(Gamma);
+    ms_Free_2D(tau_ab);
+    ms_Free_2D(dab);
+    ms_Free_2D(fab);
+
+    ms_Free_3D(Gamma_abc);
+
+    ms_ArrayString_Free(Components, NUMCOMPONENTS);
+    ms_ArrayString_Free(Phases,     NUMPHASES);
+    ms_ArrayString_Free(Phases_tdb, NUMPHASES);
+    ms_ArrayString_Free(phase_map,  NUMPHASES);
 }
 
 // long ms_readvar_l(char *file_path, char * var_name)
@@ -300,20 +348,10 @@ void ms_ReadInputParameters(char *file_path)
             {
                 DILUTE = atoi(Value) == 1;
             }
-            else if (!strcmp(Name, "GAMMA"))
-            {
-                msExpectedSizeIs(NUMPHASES*(NUMPHASES-1)/2);
-                ms_PopulateMatrix_Symmetric_ab(Gamma, NUMPHASES, Tokens);
-            }
             else if (!strcmp(Name, "Tau"))
             {
                 msExpectedSizeIs(NUMPHASES*(NUMPHASES-1)/2);
                 ms_PopulateMatrix_Symmetric_ab(tau_ab, NUMPHASES, Tokens);
-            }
-            else if (!strcmp(Name, "Gamma_abc") && (NUMPHASES > 2))
-            {
-                msExpectedSizeIs(NUMPHASES*(NUMPHASES-1)*(NUMPHASES-2)/6);
-                ms_PopulateMatrix_Symmetric_abc(Gamma_abc, NUMPHASES, Tokens);
             }
             else if (!strcmp(Name, "ceq"))
             {
@@ -327,6 +365,14 @@ void ms_ReadInputParameters(char *file_path)
             }
 
             else if (!strcmp(Name, "Function_F")) { FUNCTION_F = atoi(Value); }
+            else if (!strcmp(Name,  "ISOTHERMAL"))
+            {
+                ISOTHERMAL = atoi(Value) == 1;
+                TEMPGRADY  = !ISOTHERMAL;
+            }
+            
+            else if (!strcmp(Name, "Equilibrium_temperature")) { Teq   = atof(Value); }
+            else if (!strcmp(Name, "Filling_temperature"))     { Tfill = atof(Value); }
 
             else if ((FUNCTION_F == 5) && !strcmp(Name, "Latent_heat")) { Lf = atof(Value);}
             else if ((FUNCTION_F == 5) && !strcmp(Name, "Thermal_conductivity")) { therm_cond = atof(Value);}
@@ -436,14 +482,11 @@ void ms_ReadInputParameters(char *file_path)
                 }
             }
 
-            else if (LBM && !strcmp(Name, "LBM_SAVE_FREQ"))  { lbmSaveFreq = atoi(Value); }
             else if (LBM && !strcmp(Name, "LBM_RESTART"))    { LBM_RESTART = atoi(Value); }
             else if (LBM && !strcmp(Name, "NU_LBM"))         { nu_lbm      = atof(Value); }
 
             else if (LBM && !strcmp(Name, "nu")) { nu   = atof(Value); }
             else if (LBM && !strcmp(Name, "W0")) { W_0  = atof(Value); }
-            else if (LBM && !strcmp(Name, "gy")) { g_y  = atof(Value); }
-            else if (LBM && !strcmp(Name, "dt")) { dt   = atof(Value); }
             else if (LBM && !strcmp(Name, "rho_LBM"))
             {
                 msExpectedSizeIs(NUMPHASES);
@@ -499,14 +542,46 @@ void ms_ReadInputParameters(char *file_path)
         else if (!strcmp(Name, "NTIMESTEPS"))        { ntimesteps  = atol(Value); }
         else if (!strcmp(Name, "SAVET"))             { saveT       = atol(Value); }
         else if (!strcmp(Name, "TRACK_PROGRESS"))    { time_output = atol(Value); }
-
+        
+        else if (!strcmp(Name, "DIFFUSIVITY"))
+        {
+            // if (atoi(Tokens[0]) == 1) {
+            //     msExpectedSizeIs(2 + (NUMCOMPONENTS-1));
+            // }
+            // else {
+            //     msExpectedSizeIs(2 + (NUMCOMPONENTS-1)*(NUMCOMPONENTS-1));
+            // }
+            ms_PopulateMatrix_Diffusivity_aij(Diffusivity, Tokens);
+        }
+        else if (!strcmp(Name, "GAMMA"))
+        {
+            msExpectedSizeIs(NUMPHASES*(NUMPHASES-1)/2);
+            ms_PopulateMatrix_Symmetric_ab(Gamma, NUMPHASES, Tokens);
+        }
+        else if (!strcmp(Name, "Gamma_abc") && (NUMPHASES > 2))
+        {
+            msExpectedSizeIs(NUMPHASES*(NUMPHASES-1)*(NUMPHASES-2)/6);
+            ms_PopulateMatrix_Symmetric_abc(Gamma_abc, NUMPHASES, Tokens);
+        }
         else if (!strcmp(Name, "Function_anisotropy"))
         {
             FUNCTION_ANISOTROPY = atoi(Value);
+            ANISOTROPY = FUNCTION_ANISOTROPY != 0;
         }
         else if (ANISOTROPY && !strcmp(Name, "Anisotropy_type"))
         {
             FOLD = atoi(Value);
+        }
+        else if (ANISOTROPY && !strcmp(Name, "dab"))
+        {
+            msExpectedSizeIs(NUMPHASES*(NUMPHASES-1)/2);
+            ms_PopulateMatrix_Symmetric_ab(dab, NUMPHASES, Tokens);
+        }
+        else if (ANISOTROPY && !strcmp(Name, "fab"))
+        {
+            msExpectedSizeIs(NUMPHASES*(NUMPHASES-1)/2);
+            ms_PopulateMatrix_Symmetric_ab(fab, NUMPHASES, Tokens);
+            USING_FAB = true;
         }
         else if (ANISOTROPY && !strcmp(Name, "Rotation_matrix"))
         {
@@ -514,15 +589,7 @@ void ms_ReadInputParameters(char *file_path)
             ms_PopulateMatrix_Rotation_abqr(Rotation_matrix, Inv_Rotation_matrix, Tokens);
         }
 
-        else if (!strcmp(Name,  "ISOTHERMAL"))
-        {
-            ISOTHERMAL = atoi(Value) == 1;
-            TEMPGRADY  = !ISOTHERMAL;
-        }
-        
-        else if (!strcmp(Name, "Equilibrium_temperature")) { Teq   = atof(Value); }
-        else if (!strcmp(Name, "Filling_temperature"))     { Tfill = atof(Value); }
-        else if (!strcmp(Name, "T"))                       { T     = atof(Value); }
+        else if (!strcmp(Name, "T")) { T = atof(Value); }
         
         else if (TEMPGRADY && !strcmp(Name, "Tempgrady"))
         {
@@ -545,22 +612,9 @@ void ms_ReadInputParameters(char *file_path)
             AMP_NOISE_PHASE = atof(Value);
         }
 
-        else if (ANISOTROPY && !strcmp(Name, "dab"))
-        {
-            msExpectedSizeIs(NUMPHASES*(NUMPHASES-1)/2);
-            ms_PopulateMatrix_Symmetric_ab(dab, NUMPHASES, Tokens);
-        }
-        else if (ANISOTROPY && !strcmp(Name, "fab"))
-        {
-            msExpectedSizeIs(NUMPHASES*(NUMPHASES-1)/2);
-            ms_PopulateMatrix_Symmetric_ab(fab, NUMPHASES, Tokens);
-        }
-
-        else if (!strcmp(Name, "DIFFUSIVITY"))
-        {
-            // msExpectedSizeIs(2 + (NUMCOMPONENTS-1)*(NUMCOMPONENTS-1));
-            ms_PopulateMatrix_Diffusivity_aij(Diffusivity, Tokens);
-        }
+        else if (LBM && !strcmp(Name, "LBM_SAVE_FREQ"))  { lbmSaveFreq = atoi(Value); }
+        else if (LBM && !strcmp(Name, "gy")) { g_y  = atof(Value); }
+        else if (LBM && !strcmp(Name, "dt")) { dt   = atof(Value); }
 
         else if ((EIDT.mode == 1) && !strcmp(Name, "comp_ff_rate"))
         {
