@@ -70,6 +70,7 @@
 #include "solverloop/solverloop.h"
 #include "solverloop/file_writer.h"
 #include "solverloop/file_writer_3D.h"
+#include "solverloop/file_writer_xmf.h" // newly added
 #include "solverloop/mpiinfo_xyz.h"
 #include "solverloop/mpiinfo_xyz_new.h"
 #include "solverloop/boundary_mpi.h"
@@ -390,6 +391,10 @@ int main(int argc, char * argv[])
       }
     } else {
       writetofile_mpi_hdf5(gridinfo_w, argv, 0 + STARTTIME);
+      if (taskid == MASTER)
+      {
+        ms_write_xmf(argv[3], 0+STARTTIME);  
+      }
     }
 
     if(taskid == MASTER){printf("\n- [%d] Smooth complete", taskid) ;}
@@ -560,7 +565,14 @@ int main(int argc, char * argv[])
         }
       } else {
         LBM_ALL_SAVE = LBM && (t % lbmSaveFreq == 0) ;
+
         writetofile_mpi_hdf5(gridinfo_w, argv, t + STARTTIME);
+
+        if (taskid == MASTER)
+        {
+          ms_write_xmf(argv[3], t+STARTTIME);  
+        }
+        
         LBM_ALL_SAVE = false ;
       }
 

@@ -1,0 +1,5 @@
+{
+    "files.associations": {
+        "boundary_mpi.h": "c"
+    }
+}
