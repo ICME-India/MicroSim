@@ -25,7 +25,7 @@ def H5toVTK_Func(self):
             return False
             
         
-        h5toxmf_cmd = "cd " +h5_outhead + "; cd ..;" + "cp ../Grand_potential_Finite_difference_2D_MPI/write_xdmf write_xdmf ; ./write_xdmf " + self.h5tovtk_infileLoc.text() + " "+ h5_outputfilename[0] + " " +  self.h5tovtk_sTime.text() + " "+ self.h5tovtk_eTime.text() 
+        h5toxmf_cmd = "cd " +h5_outhead + "; cd ..;" + "cp ../Grand_Potential_MPI/write_xdmf write_xdmf ; ./write_xdmf " + self.h5tovtk_infileLoc.text() + " "+ h5_outputfilename[0] + " " +  self.h5tovtk_sTime.text() + " "+ self.h5tovtk_eTime.text() 
         
         #print(h5toxmf_cmd)
 
@@ -210,7 +210,7 @@ def SolverExecute(self):
 
     if self.radio_GP.isChecked():
             
-        commandLine ="cd Grand_potential_Finite_difference_2D_MPI/; python3 GEdata_writer.py " +self.runDir +"/"+self.infile.text() + " ;make clean;make; cp microsim_gp ~/MicroSim/bin/;cd " + self.runDir + ";mpirun -np 4 ~/MicroSim/bin/microsim_gp "  +self.infile.text()+" "+self.filling.text()+" "+self.output.text() + " 2 2"
+        commandLine ="cd Grand_Potential_MPI/; python3 GEdata_writer.py " +self.runDir +"/"+self.infile.text() + " ;make clean;make; cp microsim_gp ~/MicroSim/bin/;cd " + self.runDir + ";mpirun -np 4 ~/MicroSim/bin/microsim_gp "  +self.infile.text()+" "+self.filling.text()+" "+self.output.text() + " 2 2"
         
         os.system("dbus-launch gnome-terminal -e 'bash -c  \""+commandLine+";bash\"'")
 
@@ -247,7 +247,7 @@ def SolverExecuteHelp(self):
     
     if self.radio_GP.isChecked():
 
-        Model_Folder= "Grand_potential_Finite_difference_2D_MPI"
+        Model_Folder= "Grand_otential_MPI"
         Model_code ="microsim_gp"
         runcmdhelp = "This action will execute the following command:\n\n\n     1) Solver compilation\n\n       cd MicroSim/"+Model_Folder+"/  \n \n      python3 GEdata_writer.py " +self.runDir +"/"+self.infile.text() + "\n\n      make clean\n\n      make\n\n\n     2) Solver execution\n\n      cp "+ Model_code+" ~/MicroSim/bin/\n\n      cd " + self.runDir + "\n\n      mpirun -np 4 ~/MicroSim/bin/"+ Model_code+" "  +self.infile.text()+" "+self.filling.text()+" "+self.output.text() + " 2 2"
         
@@ -295,7 +295,7 @@ def generateJobscript(self):
 
     if self.radio_GP.isChecked():
             
-        commandLine ="cd Grand_potential_Finite_difference_2D_MPI/; python3 GEdata_writer.py " +self.runDir +"/"+self.infile.text() + " ;make clean;make; cp microsim_gp ~/MicroSim/bin/;cp microsim_gp "+ self.runDir +"/JOB_FILE/;cp reconstruct "+ self.runDir +"/JOB_FILE/;cp write_xdmf "+ self.runDir +"/JOB_FILE/"
+        commandLine ="cd Grand_Potential_MPI/; python3 GEdata_writer.py " +self.runDir +"/"+self.infile.text() + " ;make clean;make; cp microsim_gp ~/MicroSim/bin/;cp microsim_gp "+ self.runDir +"/JOB_FILE/;cp reconstruct "+ self.runDir +"/JOB_FILE/;cp write_xdmf "+ self.runDir +"/JOB_FILE/"
         
         os.system("dbus-launch gnome-terminal -e 'bash -c  \""+commandLine+";bash\"'")
     

@@ -68,7 +68,7 @@ This will generate a GP_GUI.sif file. Move this file to a folder which contains 
 
 * To run the Grand potential solver, go to directory
 
-  > cd Grand_potential_Finite_difference_2D_MPI
+  > cd Grand_Potential_MPI
 
 * clean the old compiled files
 

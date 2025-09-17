@@ -100,7 +100,7 @@ This is multiphase multi-component phase-field solver based on the
 grand-potential formalism. The solver is parallelized using MPI on
 CPUs and requires the **h5pcc** compiler for compilation and execution.
 
-- Navigate to the folder 'Grand_potential_Finite_difference_2D_MPI'
+- Navigate to the folder 'Grand_Potential_MPI'
 - Compile by running :
 
         make

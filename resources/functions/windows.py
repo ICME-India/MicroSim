@@ -26,7 +26,7 @@ def H5toVTK_Func(self):
         
 
         h5_outheadLinux = "/mnt/" +  str. lower(h5_outhead[0])+h5_outhead[2:]
-        h5toxmf_cmd = "cd " +h5_outheadLinux + "; cd ..;" + "cp /mnt/c/Users/%username%/Documents/MicroSim/Grand_potential_Finite_difference_2D_MPI/write_xdmf write_xdmf ; ./write_xdmf " + h5tovtk_infileLoc_tail + " "+ h5_outputfilename[0] + " " +  self.h5tovtk_sTime.text() + " "+ self.h5tovtk_eTime.text() 
+        h5toxmf_cmd = "cd " +h5_outheadLinux + "; cd ..;" + "cp /mnt/c/Users/%username%/Documents/MicroSim/Grand_Potential_MPI/write_xdmf write_xdmf ; ./write_xdmf " + h5tovtk_infileLoc_tail + " "+ h5_outputfilename[0] + " " +  self.h5tovtk_sTime.text() + " "+ self.h5tovtk_eTime.text() 
         
         os.system(f'wsl ~ -e sh -c "{h5toxmf_cmd }" ')
         
@@ -117,7 +117,7 @@ def SolverExecute(self):
     if self.radio_GP.isChecked():
             
         runDirGE = "/mnt/c" + self.runDir[2:]
-        commandLine ="cd /mnt/c/Users/%username%/Documents/MicroSim/Grand_potential_Finite_difference_2D_MPI/; python3 GEdata_writer.py " +runDirGE +"/"+self.infile.text() + " ;make clean;make; cp microsim_gp " + runDirGE +  ";cd " + runDirGE + ";mpirun.mpich -np 4 ./microsim_gp "  +self.infile.text()+" "+self.filling.text()+" "+self.output.text() + " 2 2"
+        commandLine ="cd /mnt/c/Users/%username%/Documents/MicroSim/Grand_Potential_MPI/; python3 GEdata_writer.py " +runDirGE +"/"+self.infile.text() + " ;make clean;make; cp microsim_gp " + runDirGE +  ";cd " + runDirGE + ";mpirun.mpich -np 4 ./microsim_gp "  +self.infile.text()+" "+self.filling.text()+" "+self.output.text() + " 2 2"
         
         os.system(f'cmd /c start cmd /c wsl ~ -e sh -c "{commandLine }" ')
     
@@ -152,7 +152,7 @@ def SolverExecuteHelp(self):
     
     if self.radio_GP.isChecked():
 
-        Model_Folder= "Grand_potential_Finite_difference_2D_MPI"
+        Model_Folder= "Grand_Potential_MPI"
         Model_code ="microsim_gp"
     
     elif self.radio_KKR.isChecked():
@@ -184,7 +184,7 @@ def generateJobscript(self):
 
     if self.radio_GP.isChecked():
             
-        commandLine ="cd /mnt/c/Users/%username%/Documents/MicroSim/Grand_potential_Finite_difference_2D_MPI/; python3 GEdata_writer.py " +self.runDir +"/"+self.infile.text() + " ;make clean;make; cp microsim_gp ~/MicroSim/bin/;cp microsim_gp "+ self.runDir +"/JOB_FILE/;cp reconstruct "+ self.runDir +"/JOB_FILE/;cp write_xdmf "+ self.runDir +"/JOB_FILE/"
+        commandLine ="cd /mnt/c/Users/%username%/Documents/MicroSim/Grand_Potential_MPI/; python3 GEdata_writer.py " +self.runDir +"/"+self.infile.text() + " ;make clean;make; cp microsim_gp ~/MicroSim/bin/;cp microsim_gp "+ self.runDir +"/JOB_FILE/;cp reconstruct "+ self.runDir +"/JOB_FILE/;cp write_xdmf "+ self.runDir +"/JOB_FILE/"
         
         os.system("gnome-terminal -e 'bash -c  \""+commandLine+";bash\"'")
     
