@@ -1,66 +1,110 @@
-FDIR=functions
-SDIR=solverloop
-TDIR=tdbs
-CC=h5pcc #-O3
-# CFLAGS=-I.
-#LDIR=$(GSL_ROOT_DIR)/lib
-#IDIR=$(GSL_ROOT_DIR)/include
+# Directories
+FDIR ?= functions
+SDIR ?= solverloop
+TDIR ?= tdbs
 
-LDIR=/share/apps/gsl/lib
-IDIR=/share/apps/gsl/include
-CFLAGS=-I $(IDIR)
+# Flags (Spack controls these)
+CFLAGS   ?=
+CPPFLAGS ?=
+LDFLAGS  ?=
+LIBS     ?=
 
-_FUNCTION_DEPS = global_vars.h functions.h matrix.h utility_functions.h functionH.h functionF_01.h functionF_02.h functionF_03.h functionF_04.h functionF_05.h  functionF_06.h functionQ.h \
-                 functionF_elast.h functionW_01.h functionW_02.h function_A_00.h function_A_01.h anisotropy_01.h functionTau.h \
-                 functionD.h filling.h reading_input_parameters.h reading_input_parameters_new.h dynamic_input_parameters.h read_boundary_conditions.h print_boundary_conditions.h print_input_parameters.h \
-                 initialize_variables.h free_variables.h fill_domain.h shift.h Temperature_gradient.h
+# Local includes
+CPPFLAGS += -I.
+
+# Libraries (resolved by Spack)
+LIBS += -lm -lgsl -lgslcblas
+
+# -----------------------------------------------------------------------------
+# Dependencies
+# -----------------------------------------------------------------------------
+
+_FUNCTION_DEPS = global_vars.h functions.h matrix.h utility_functions.h \
+                 functionH.h functionF_01.h functionF_02.h functionF_03.h \
+                 functionF_04.h functionF_05.h functionF_06.h functionQ.h \
+                 functionF_elast.h functionW_01.h functionW_02.h \
+                 function_A_00.h function_A_01.h anisotropy_01.h \
+                 functionTau.h functionD.h filling.h \
+                 reading_input_parameters.h reading_input_parameters_new.h \
+                 dynamic_input_parameters.h read_boundary_conditions.h \
+                 print_boundary_conditions.h print_input_parameters.h \
+                 initialize_variables.h free_variables.h fill_domain.h \
+                 shift.h Temperature_gradient.h
 
 DEPS = $(patsubst %,$(FDIR)/%,$(_FUNCTION_DEPS))
 
-_SOLVERLOOP_DEPS = serialinfo_xy.h mpiinfo_xyz.h gradients.h simplex_projection.h calculate_gradients.h \
-		   calculate_fluxes_concentration.h calculate_divergence_phasefield.h calculate_divergence_concentration.h calculate_divergence_stress.h calculate_LBM_distribution.h calculate_LBM_distribution3D.h\
-		   file_writer.h file_writer_3D.h initialize_functions_solverloop.h solverloop.h boundary_mpi.h
-
+_SOLVERLOOP_DEPS = serialinfo_xy.h mpiinfo_xyz.h gradients.h \
+                   simplex_projection.h calculate_gradients.h \
+                   calculate_fluxes_concentration.h \
+                   calculate_divergence_phasefield.h \
+                   calculate_divergence_concentration.h \
+                   calculate_divergence_stress.h \
+                   calculate_LBM_distribution.h \
+                   calculate_LBM_distribution3D.h \
+                   file_writer.h file_writer_3D.h \
+                   initialize_functions_solverloop.h \
+                   solverloop.h boundary_mpi.h
 
 DEPS += $(patsubst %,$(SDIR)/%,$(_SOLVERLOOP_DEPS))
 
-_tdb_DEPS = Thermo.c Thermo.h
+_TDB_DEPS = Thermo.c Thermo.h
+DEPS += $(patsubst %,$(TDIR)/%,$(_TDB_DEPS))
 
-DEPS += $(patsubst %,$(TDIR)/%,$(_tdb_DEPS))
+# -----------------------------------------------------------------------------
+# Main target
+# -----------------------------------------------------------------------------
 
-LIBS =-L $(LDIR) -lm -lgsl -lgslcblas
+TARGET = microsim_gp
 
-all : microsim_gp
+all: $(TARGET)
 
-# echo "Making microsim_gp solver (grand-potential based phase-field model)"
+$(TARGET): microsim_gp.o
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
-microsim_gp : microsim_gp.o
-	$(CC) -o microsim_gp microsim_gp.o $(CFLAGS) $(LIBS) -Wall
+microsim_gp.o: $(DEPS)
 
-microsim_gp.o : $(DEPS)
+# -----------------------------------------------------------------------------
+# XDMF writer utility
+# -----------------------------------------------------------------------------
 
-_HEADERS_XDMF_WRITER = global_vars.h functions.h matrix.h utility_functions.h reading_input_parameters.h
+XDMF = write_xdmf
 
-_HEADERS_RECONSTRUCT = global_vars.h functions.h matrix.h utility_functions.h reading_input_parameters.h
+_HEADERS_XDMF = global_vars.h functions.h matrix.h \
+                utility_functions.h reading_input_parameters.h
 
-DEPS_XDMF_WRITER = $(patsubst %,$(FDIR)/%,$(_HEADERS_XDMF_WRITER))
+DEPS_XDMF = $(patsubst %,$(FDIR)/%,$(_HEADERS_XDMF))
 
-DEPS_RECONSTRUCT = $(patsubst %,$(FDIR)/%,$(_HEADERS_RECONSTRUCT))
+$(XDMF): write_xdmf.o
+	$(CC) $(LDFLAGS) -o $@ $^ $(LIBS)
 
+write_xdmf.o: $(DEPS_XDMF)
 
-# echo "Making xdmf file write for .h5 files. Required for viewing in paraview"
+# -----------------------------------------------------------------------------
+# Install (required for Spack)
+# -----------------------------------------------------------------------------
 
-write_xdmf : write_xdmf.o
-	$(CC) -o write_xdmf write_xdmf.o $(CFLAGS) $(LIBS)
+PREFIX ?= /usr/local
+BINDIR ?= $(PREFIX)/bin
 
-write_xdmf.o : $(DEPS_XDMF_WRITER)
+install: $(TARGET) $(XDMF)
+	mkdir -p $(DESTDIR)$(BINDIR)
+	cp $(TARGET) $(XDMF) $(DESTDIR)$(BINDIR)/
 
-# echo "Making reconstruct for collating different processor files into consolidated .vtk files. Valid for non .h5 files"
+# -----------------------------------------------------------------------------
+# Run helper (not used by Spack, but kept)
+# -----------------------------------------------------------------------------
 
-run: microsim_gp
-	mpirun -np 2 ./microsim_gp Inp.md Fill.in outpuut 1 2 1
+run: $(TARGET)
+	mpirun -np 2 ./$(TARGET) Inp.md Fill.in output 1 2 1
 
-.PHONY : clean
+# -----------------------------------------------------------------------------
+# Cleanup
+# -----------------------------------------------------------------------------
 
-clean :
-	rm microsim_gp.o microsim_gp
+clean:
+	rm -f *.o $(TARGET) $(XDMF)
+
+distclean: clean
+	rm -f *.out *.dat *.vtk *.log *.err
+
+.PHONY: all install run clean distclean
