@@ -1,0 +1,4 @@
+FILLSPHERE = {0,  50, 100, 0, 10};
+FILLSPHERE = {0, 150, 100, 0, 3};
+# FILLCYLINDERRANDOM = {phase, r, vf, shield, spread};
+# FILLCYLINDERRANDOM = {0, 10, 0.1, 3, 0.2};

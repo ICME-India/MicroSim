@@ -31,8 +31,7 @@ DEPS += $(patsubst %,$(TDIR)/%,$(_tdb_DEPS))
 LIBS =-L $(LDIR) -lm -lgsl -lgslcblas
 
 all : microsim_gp
-
-# echo "Making microsim_gp solver (grand-potential based phase-field model)"
+	@echo "Making microsim_gp solver (grand-potential based phase-field model) done!"
 
 microsim_gp : microsim_gp.o
 	$(CC) -o microsim_gp microsim_gp.o $(CFLAGS) $(LIBS) -Wall
