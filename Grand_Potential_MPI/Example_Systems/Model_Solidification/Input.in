@@ -7,7 +7,7 @@ MESH_Z = 1;
 DELTA_X = 12.0;
 DELTA_Y = 12.0;
 DELTA_Z = 12.0;
-DELTA_t = 12.0;
+DELTA_t = 20.0;
 ##Number of phases and composition
 NUMPHASES = 2;
 NUMCOMPONENTS = 2;
@@ -68,7 +68,7 @@ ISOTHERMAL = 1;
 BINARY = 1;
 #TERNARY
 DILUTE = 0;
-T = 0.92;
+T = 0.96;
 ##FILEWRITING and OUTPUTTING TO SCREEN
 ## WRITEFORMAT ASCII/BINARY/HDF5(Only for MPI)
 ##TRACK_PROGRESS: interval of writing out the progress of the simulation to stdout. 
