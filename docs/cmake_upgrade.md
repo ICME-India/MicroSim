@@ -16,12 +16,12 @@ build system.  The original `Makefile`s are retained alongside the new
 5. [Building Individual Solvers](#building-individual-solvers)
 6. [Configuration Options](#configuration-options)
 7. [Solver-Specific Notes](#solver-specific-notes)
-   - [Grand\_Potential\_Serial](#grand_potential_serial)
-   - [Grand\_Potential\_MPI](#grand_potential_mpi)
-   - [KKS\_CuFFT](#kks_cufft)
-   - [KKS\_FD\_CUDA\_MPI](#kks_fd_cuda_mpi)
-   - [KKS\_OpenCl](#kks_opencl)
-   - [Cahn\_Hilliard\_FFT\_2D](#cahn_hilliard_fft_2d)
+   - [Grand_Potential_Serial](#grand_potential_serial)
+   - [Grand_Potential_MPI](#grand_potential_mpi)
+   - [KKS_CuFFT](#kks_cufft)
+   - [KKS_FD_CUDA_MPI](#kks_fd_cuda_mpi)
+   - [KKS_OpenCl](#kks_opencl)
+   - [Cahn_Hilliard_FFT_2D](#cahn_hilliard_fft_2d)
 8. [Out-of-Scope Modules](#out-of-scope-modules)
 9. [Troubleshooting](#troubleshooting)
 
@@ -48,13 +48,13 @@ inside each solver subdirectory.  This caused several pain points:
 |---|---|---|
 | CMake | 3.18 | all |
 | C compiler (GCC, Clang, NVHPC) | C11 | all |
-| C++ compiler | C++17 | KKS\_FD\_CUDA\_MPI |
-| CUDA Toolkit | 11.0 | KKS\_CuFFT, KKS\_FD\_CUDA\_MPI |
-| MPI (OpenMPI / MPICH) | any | Grand\_Potential\_MPI, KKS\_FD\_CUDA\_MPI, KKS\_OpenCl |
-| HDF5 (parallel build) | 1.10+ | Grand\_Potential\_MPI, KKS\_FD\_CUDA\_MPI, KKS\_OpenCl |
-| GSL | 2.0+ | Grand\_Potential\_MPI, KKS\_FD\_CUDA\_MPI, KKS\_OpenCl |
-| OpenCL | 1.2+ | KKS\_OpenCl |
-| FFTW3 | 3.x | Cahn\_Hilliard\_FFT\_2D |
+| C++ compiler | C++17 | KKS_FD_CUDA_MPI |
+| CUDA Toolkit | 11.0 | KKS_CuFFT, KKS_FD_CUDA_MPI |
+| MPI (OpenMPI / MPICH) | any | Grand_Potential_MPI, KKS_FD_CUDA_MPI, KKS_OpenCl |
+| HDF5 (parallel build) | 1.10+ | Grand_Potential_MPI, KKS_FD_CUDA_MPI, KKS_OpenCl |
+| GSL | 2.0+ | Grand_Potential_MPI, KKS_FD_CUDA_MPI, KKS_OpenCl |
+| OpenCL | 1.2+ | KKS_OpenCl |
+| FFTW3 | 3.x | Cahn_Hilliard_FFT_2D |
 
 ---
 
@@ -164,8 +164,8 @@ cmake --build build -j8
 | `BUILD_KKS_OPENCL` | `ON` | Build the KKS OpenCL solver |
 | `BUILD_CAHN_HILLIARD_FFT_2D` | `ON` | Build the Cahn-Hilliard FFT 2D solver |
 | `CUDA_ARCH` | `70` | CUDA GPU architecture (e.g. `70`, `80`, `90`) |
-| `ENABLE_HDF5` *(KKS\_FD\_CUDA\_MPI)* | `ON` | Enable HDF5 output |
-| `ENABLE_CUFFTMP` *(KKS\_FD\_CUDA\_MPI)* | `OFF` | Enable multi-GPU cuFFTMp support |
+| `ENABLE_HDF5` *(KKS_FD_CUDA_MPI)* | `ON` | Enable HDF5 output |
+| `ENABLE_CUFFTMP` *(KKS_FD_CUDA_MPI)* | `OFF` | Enable multi-GPU cuFFTMp support |
 | `CUFFTMP_INCLUDE_DIR` | *(unset)* | Path to cuFFTMp headers (needed when `ENABLE_CUFFTMP=ON`) |
 | `CUFFTMP_LIB_DIR` | *(unset)* | Path to cuFFTMp library (needed when `ENABLE_CUFFTMP=ON`) |
 | `FFTW3_ROOT` | *(unset)* | Hint path for FFTW3 installation prefix |
@@ -180,7 +180,7 @@ cmake -S . -B build -DCUDA_ARCH=80 -DBUILD_KKS_FD_CUDA_MPI=ON -DENABLE_CUFFTMP=O
 
 ## Solver-Specific Notes
 
-### Grand\_Potential\_Serial
+### Grand_Potential_Serial
 
 - **Languages**: C
 - **Dependencies**: libm (standard library)
@@ -188,7 +188,7 @@ cmake -S . -B build -DCUDA_ARCH=80 -DBUILD_KKS_FD_CUDA_MPI=ON -DENABLE_CUFFTMP=O
 - The solver is a single-translation-unit program; all `functions/` and
   `solverloop/` files are header-only includes.
 
-### Grand\_Potential\_MPI
+### Grand_Potential_MPI
 
 - **Languages**: C
 - **Dependencies**: MPI, HDF5 (parallel), GSL
@@ -200,7 +200,7 @@ cmake -S . -B build -DCUDA_ARCH=80 -DBUILD_KKS_FD_CUDA_MPI=ON -DENABLE_CUFFTMP=O
   cmake -S . -B build -DGSL_ROOT_DIR=/path/to/gsl
   ```
 
-### KKS\_CuFFT
+### KKS_CuFFT
 
 - **Languages**: CUDA
 - **Dependencies**: CUDA Toolkit (cuFFT)
@@ -209,7 +209,7 @@ cmake -S . -B build -DCUDA_ARCH=80 -DBUILD_KKS_FD_CUDA_MPI=ON -DENABLE_CUFFTMP=O
   the solver's expected output path.
 - Set the target GPU architecture with `-DCUDA_ARCH=<sm>` (default: `70`).
 
-### KKS\_FD\_CUDA\_MPI
+### KKS_FD_CUDA_MPI
 
 - **Languages**: C, C++, CUDA
 - **Dependencies**: MPI, HDF5, GSL, CUDA Toolkit (cuFFT or cuFFTMp)
@@ -225,7 +225,7 @@ cmake -S . -B build -DCUDA_ARCH=80 -DBUILD_KKS_FD_CUDA_MPI=ON -DENABLE_CUFFTMP=O
         -DCUFFTMP_LIB_DIR=/opt/nvidia/hpc_sdk/.../math_libs/lib64
   ```
 
-### KKS\_OpenCl
+### KKS_OpenCl
 
 - **Languages**: C
 - **Dependencies**: MPI, OpenCL, HDF5, GSL
@@ -236,7 +236,7 @@ cmake -S . -B build -DCUDA_ARCH=80 -DBUILD_KKS_FD_CUDA_MPI=ON -DENABLE_CUFFTMP=O
   cmake -S . -B build -DOpenCL_ROOT=/usr/local/cuda
   ```
 
-### Cahn\_Hilliard\_FFT\_2D
+### Cahn_Hilliard_FFT_2D
 
 - **Languages**: C
 - **Dependencies**: FFTW3
