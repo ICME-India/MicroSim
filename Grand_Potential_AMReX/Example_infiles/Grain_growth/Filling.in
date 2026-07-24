@@ -1,0 +1,2 @@
+# FILLVORONOI2D = {xlo, xhi, ylo, yhi, npoints, size};
+FILLVORONOI2D = {0, 100, 0, 100, 30, 5};
