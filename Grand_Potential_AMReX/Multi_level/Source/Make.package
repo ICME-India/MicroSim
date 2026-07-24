@@ -1,0 +1,20 @@
+CEXE_sources += main.cpp
+CEXE_sources += AmrCoreGP.cpp  
+CEXE_sources += AdvancePhi.cpp
+CEXE_sources += Adv_Chem_Pot.cpp 
+CEXE_sources += Function_A.cpp
+CEXE_sources += Function_dpsi.cpp
+CEXE_sources += Function_F4.cpp
+CEXE_sources += Function_W.cpp
+CEXE_sources += Function_Q.cpp
+CEXE_sources += GP_Utility.cpp
+CEXE_sources += Init_Data.cpp
+CEXE_sources += ReadInput.cpp
+
+CEXE_headers += AmrCoreGP.H 
+CEXE_headers += Anisotropy_01.h
+CEXE_headers += Boundary_condition.h
+CEXE_headers += Cal_MOI.h
+CEXE_headers += CalculateGrad.H
+CEXE_headers += Function_H.h  
+CEXE_headers += Proj_on_simplex.H
