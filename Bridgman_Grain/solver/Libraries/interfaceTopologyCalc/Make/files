@@ -1,0 +1,17 @@
+interfaceTopologyCalc.C
+interfaceTopologyLoopCalc.C
+
+comboFieldCalc.C
+comboFieldValidation.C
+
+interfaceTopologyManager/interfaceTopologyManager.C
+interfaceTopologyManager/interfaceTopologyManagerSettings.C
+interfaceTopologyManager/interfaceTopologyManagerManual.C
+interfaceTopologyManager/interfaceTopologyManagerValidation.C
+interfaceTopologyManager/interfaceTopologyManagerAccess.C
+interfaceTopologyManager/interfaceTopologyManagerCalc.C
+interfaceTopologyManager/interfaceTopologyManagerOutput.C
+
+regionDataSharer/regionDataSharer.C
+
+LIB = $(FOAM_USER_LIBBIN)/libinterfaceTopologyCalc

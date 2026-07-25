@@ -1,0 +1,34 @@
+ EXE_INC = \
+    -I$(FOAM_MODULES)/solid/lnInclude \
+    -I../Module_Bridgman1/lnInclude \
+    -I../Module_Bridgman1/solidDisplacementThermoo/lnInclude \
+    -I../Module_Bridgman/constSolidThermoo/lnInclude \
+    -I../../Libraries/interfaceTopologyCalc/lnInclude \
+    -I$(LIB_SRC)/physicalProperties/lnInclude \
+    -I$(LIB_SRC)/thermophysicalModels/basic/lnInclude \
+    -I$(LIB_SRC)/thermophysicalModels/solidThermo/lnInclude \
+    -I$(LIB_SRC)/ThermophysicalTransportModels/thermophysicalTransportModel/lnInclude \
+    -I$(LIB_SRC)/ThermophysicalTransportModels/solid/lnInclude \
+    -I$(LIB_SRC)/finiteVolume/lnInclude \
+    -I$(LIB_SRC)/meshTools/lnInclude \
+    -I$(LIB_SRC)/sampling/lnInclude \
+    -I$(LIB_SRC)/functionObjects/field/lnInclude \
+
+LIB_LIBS = \
+    -L$(FOAM_USER_LIBBIN)/ \
+    -lfieldFunctionObjects \
+    -lutilityFunctionObjects \
+    -lsolid \
+    -lBridgman1 \
+    -lsolidThermo \
+    -lsolidDisplacementThermoo \
+    -lconstSolidThermoo \
+    -linterfaceTopologyCalc \
+    -lsolidThermophysicalTransportModels \
+    -lcoupledThermophysicalTransportModels \
+    -lspecie \
+    -lfiniteVolume \
+    -lmeshTools \
+    -lsampling \
+    -lfvModels \
+    -lfvConstraints 

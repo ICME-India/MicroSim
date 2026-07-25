@@ -1,0 +1,32 @@
+EXE_INC = \
+    -I$(FOAM_MODULES)/solid/lnInclude \
+    -IbridgmanThermo/lnInclude \
+    -IconstSolidThermoo/lnInclude \
+    -I../../Libraries/interfaceTopologyCalc/lnInclude \
+    -I$(LIB_SRC)/physicalProperties/lnInclude \
+    -I$(LIB_SRC)/thermophysicalModels/basic/lnInclude \
+    -I$(LIB_SRC)/thermophysicalModels/solidThermo/lnInclude \
+    -I$(LIB_SRC)/ThermophysicalTransportModels/thermophysicalTransportModel/lnInclude \
+    -I$(LIB_SRC)/ThermophysicalTransportModels/solid/lnInclude \
+    -I$(LIB_SRC)/finiteVolume/lnInclude \
+    -I$(LIB_SRC)/meshTools/lnInclude \
+    -I$(LIB_SRC)/sampling/lnInclude
+
+
+LIB_LIBS = \
+    -L$(FOAM_USER_LIBBIN)/ \
+    -lsolid \
+    -lsolidThermo \
+    -lbridgmanThermo \
+    -lconstSolidThermoo \
+    -linterfaceTopologyCalc \
+    -lsolidThermophysicalTransportModels \
+    -lcoupledThermophysicalTransportModels \
+    -lspecie \
+    -lfiniteVolume \
+    -lmeshTools \
+    -lsampling \
+    -lfvModels \
+    -lfvConstraints
+    
+  

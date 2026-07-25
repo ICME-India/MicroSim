@@ -1,0 +1,6 @@
+Bridgman.C
+Equations/psiEqn.C
+Equations/STEqn.C
+
+LIB = $(FOAM_USER_LIBBIN)/libBridgman100
+

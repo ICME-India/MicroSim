@@ -1,0 +1,140 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  12
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+
+FoamFile
+{
+    format      ascii;
+    class       dictionary;
+    location    "constant";
+    object      dynamicMeshDict;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+/*
+topoChanger                                                 // Dynamic mesh refinement
+{
+    type            refiner;
+
+    libs            ("libfvMeshTopoChangers.so");
+
+    mover           none;
+
+    // How often to refine
+    refineInterval  2002;
+
+    // Field to be refinement on
+    field           BB1Phi;
+    
+    // Refine field in between lower..upper bounds of BBPhi field
+    lowerRefineLevel   0.06;                      
+    upperRefineLevel   3;    //0.94                    
+ 
+    // Have slower than 2:1 refinement
+    nBufferLayers   2;
+
+    // Refine cells only up to maxRefinement levels (can be more than 1)
+    maxRefinement   2;
+
+    // Stop refinement if maxCells reached
+    maxCells        20000000;
+
+    // Write the refinement level as a volScalarField
+    dumpLevel       true;
+ 
+}
+
+
+distributor                                                // Dynamic distribution of cells
+{
+    type             distributor;
+
+    libs            ("libfvMeshDistributors.so");
+
+    //multiConstraint true;
+    
+    redistributionInterval  4004;
+    
+    maxImbalance    0.002;
+  
+}
+*/
+
+/*
+dynamicFvMesh   dynamicMotionSolverFvMesh;
+
+motionSolverLibs ("libfvMotionSolvers.so");
+
+motionSolver    solidBodyMotionSolver;
+
+solidBodyMotionFunction translatingMotion;
+velocity    (0 0.001 0);  
+*/
+
+mover
+{
+    type            motionSolver;
+
+    libs            ("libfvMotionSolvers.so");
+
+    motionSolver    solidBody;
+
+    //cellZone        rotating;
+
+    /*solidBodyMotionFunction  translatingMotion;
+
+    velocity    (0 0.001 0); */
+
+    //origin        (0 0 0);
+    //axis          (0 0 1);
+    //omega         20 [rpm];
+    select          all;
+
+    solidBodyMotionFunction linearMotion;
+
+    linearMotionCoeffs
+    {
+        velocity    (0 0.001 0);   // [m/s]
+    }
+    
+    
+    
+    
+    
+    /*code
+    #{
+    const Foam::Time& runTime = mesh().time();
+    label timeIndex = runTime.timeIndex();
+
+    // Translation step (in metres per trigger)
+    static vector stepDisp(0.001, 0, 0);
+
+    // Only move every 1000 iterations
+    if (timeIndex % 1000 == 0)
+    {
+        Info<< ">>> Translating solid body at iteration "
+            << timeIndex << " <<<" << nl;
+
+        // Translation only, no rotation
+        translation() = stepDisp;
+        R() = tensor::I;
+    }
+    else
+    {
+        translation() = vector::zero;
+        R() = tensor::I;
+    }
+    #};*/
+        
+}
+
+
+
+
+
+
+

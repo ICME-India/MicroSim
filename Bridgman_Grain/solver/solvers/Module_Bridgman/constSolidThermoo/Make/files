@@ -1,0 +1,4 @@
+
+solid/constSolidThermoo.C
+
+LIB = $(FOAM_USER_LIBBIN)/libconstSolidThermoo

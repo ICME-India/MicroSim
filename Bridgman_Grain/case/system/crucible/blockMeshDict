@@ -1,0 +1,144 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  12
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    format      ascii;
+    class       dictionary;
+    object      blockMeshDict;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+
+convertToMeters 50e-6;
+
+//vertex coordinates (option 2)
+x_min 0; x_max 100; // 150; 
+y_min 0; y_max 140; //direction of growth
+z_min 0; z_max 100; //150
+
+
+//Mesh divisons
+Mx 32; My 45; Mz 32;
+
+vertices
+(
+//block 1
+    ($x_min $y_min $z_max) ($x_max $y_min $z_max) ($x_max $y_min $z_min) ($x_min $y_min $z_min)
+    ($x_min $y_max $z_max) ($x_max $y_max $z_max) ($x_max $y_max $z_min) ($x_min $y_max $z_min)
+        
+);
+
+blocks
+(
+    hex (0 1 2 3 4 5 6 7) ($Mx $Mz $My) simpleGrading (1 1 1)      
+);
+
+edges
+(
+);
+
+
+//================= FOR CYCLIC BOUNDARY CONDITIONS ==============
+boundary
+(
+    top
+    {
+        type cyclic;
+        neighbourPatch bottom;
+        
+        faces
+        (
+            (4 5 6 7)
+        );
+    }
+    
+    bottom
+    {
+        type cyclic;
+        neighbourPatch top;
+        
+        faces
+        (
+            (0 1 2 3)  
+        );
+     }
+     
+     left
+     {
+	type cyclic;
+        neighbourPatch right;
+        
+	faces
+	(
+	(3 0 4 7) 
+	);	
+     }
+
+     right
+     {
+	type cyclic;
+        neighbourPatch left;
+        
+	faces
+	(
+        (1 2 6 5)
+	);	
+     }
+     
+     front
+     {
+	type cyclic;
+        neighbourPatch back;
+        
+	faces
+	(
+        (0 1 4 5)
+	);	
+     }
+     
+     back
+     {
+	type cyclic;
+        neighbourPatch front;
+        
+	faces
+	(
+	(2 3 7 6)
+	);	
+     }  
+     
+  /*defaultPatch
+    {
+        type internal;
+        name cope;
+        //faces ();
+    }*/
+
+   internal
+    {
+        type internal;
+        faces ();
+    }
+    
+);
+
+  /*defaultPatch
+    {
+        type internal;
+        name cope;
+        //faces ();
+    }*/
+
+mergePatchPairs
+(
+
+);
+
+
+
+// ************************************************************************* //

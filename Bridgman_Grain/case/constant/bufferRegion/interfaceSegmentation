@@ -1,0 +1,109 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     |
+    \\  /    A nd           |
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    location    "constant";
+    object      interfaceSegmentationDict;
+}
+
+
+default
+{
+    // ---------------------- Required entries ---------------------- //
+
+    entries      (grainFront);
+ 
+    BPsiName     sPhi;
+    
+
+    //BPsiNames   { sPhi; }
+
+    //- Melting temperature [K]
+    Tm                  1640;
+
+    //  Interface band = [Tm - limT, Tm + limT]
+    limT                5.41;
+
+    //- Inverse length scale [1/m]
+    idimx               1;
+
+    //  Interface only detected above (ybottom + yRef4)
+    
+    //- Bottom reference Y coordinate [m]
+    ybottom             0;
+
+    //- Y reference offset [m]
+    yRef4               0;
+
+    // ---------------------- Optional entries ---------------------- //
+
+    //- BPsi threshold for crucible interior region
+    interiorThreshold   0.91;
+
+    //- BPsi threshold for crucible boundary region
+    boundaryThreshold   0.055;
+
+    //- Minimum cells required to declare interface formed
+    interfaceMinCells   1;  
+
+    //- Mask radius in units of average cell width
+    //  cells around minimum distance that are masked
+    maskTolerance       3.0;  
+
+    //- Small epsilon for region I masking
+    //  Cells with regionI < regionMaskEps treated as non-region-I
+    regionMaskEps       0.001;     
+}
+
+
+grainFront
+{
+
+    Field          mapped_crucible_grainT;
+
+    Tm                  1640;
+    
+    yRef4               0;  
+    
+    limT                5.41;  //5.41;  
+}
+
+
+/*
+default
+{
+    // ---------------------- Required entries ---------------------- //
+
+    fields      (T combo1);
+ 
+    BPsiName    BPsi;
+    
+
+    BPsiNames   { T BPsi; }
+
+    //- Melting temperature [K]
+    Tm                  1640;
+
+    //  Interface band = [Tm - limT, Tm + limT]
+    limT                5.41;
+
+    //- Inverse length scale [1/m]
+    idimx               1;
+
+    //  Interface only detected above (ybottom + yRef4)
+    
+    //- Bottom reference Y coordinate [m]
+    ybottom             0.01231;
+
+    //- Y reference offset [m]
+    yRef4               0.00411;
+}
+*/

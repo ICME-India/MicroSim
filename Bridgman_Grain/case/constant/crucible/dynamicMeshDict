@@ -1,0 +1,79 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  12
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+
+FoamFile
+{
+    format      ascii;
+    class       dictionary;
+    location    "constant";
+    object      dynamicMeshDict;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+
+topoChanger                                                 // Dynamic mesh refinement
+{
+    type            refiner;
+
+    libs            ("libfvMeshTopoChangers.so");
+
+    mover           none;
+
+    // How often to refine
+    refineInterval  2002;
+
+    // Field to be refinement on
+    field           BBPhi;
+    
+    // Refine field in between lower..upper bounds of BBPhi field
+    lowerRefineLevel   0.06;                      
+    upperRefineLevel   3;    //0.94                    
+ 
+    // Have slower than 2:1 refinement
+    nBufferLayers   2;
+
+    // Refine cells only up to maxRefinement levels (can be more than 1)
+    maxRefinement   2;
+
+    // Stop refinement if maxCells reached
+    maxCells        20000000; 
+    
+    dumpLevel       false;
+}
+
+/*
+distributor                                                // Dynamic distribution of cells
+{
+   type             distributor;
+
+    distributor      simple;
+
+    libs            ("libfvMeshDistributors.so");
+    
+    redistributionInterval  4004;
+    
+    //maxImbalance    0.00001;
+}
+*/
+/*mover
+{
+    type            motionSolver;
+
+    libs            ("libfvMotionSolvers.so");
+    
+    select          all; 
+
+    motionSolver    solidBody;
+
+    solidBodyMotionFunction linearMotion;
+
+    velocity        (0 0 0);
+}*/
+
+    
+

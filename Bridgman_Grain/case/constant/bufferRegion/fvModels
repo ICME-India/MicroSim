@@ -1,0 +1,82 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  12
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+/*FoamFile
+{
+    format      ascii;
+    class       dictionary;
+    location    "constant";
+    object      fvModels;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+airToPorous
+{
+
+    type            interRegionHeatTransfer;
+
+    libs            ("libinterRegionFvModels.so");
+
+    nbrRegion       Domain2;
+    master          false;
+
+    interpolationMethod intersection;
+
+    semiImplicit    no;
+    
+    interRegionHeatTransferCoeffs
+    {
+        type            constantHeatTransfer; // Or other models like tabulatedNTUHeatTransfer
+        nbrRegion       Domain2;
+        htc             1;       // e.g., 100 W/m2/K
+        Av              1;       // Area per unit volume
+        interpolationMethod intersection;
+        semiImplicit    no;
+        heatTransferCoefficientModel "constant";
+    }
+    log
+    {
+        // This is the name of the new volScalarField that will be created
+        // and written to the time directories (e.g., 0.1/Q_irht)
+        fieldName       Q_irht; 
+    }
+}
+    
+
+/*porosity
+{
+    type            interRegionPorosityForce;
+
+    libs            ("libinterRegionFvModels.so");
+
+    interRegionPorosityForceCoeffs
+    {
+        nbrRegion       Domain2;
+
+        interpolationMethod intersection;
+
+        type            DarcyForchheimer;
+
+        d   (-1000 -1000 1e4);
+        f   (0 0 0);
+
+        coordinateSystem
+        {
+            type    cartesian;
+            origin  (0 0 0);
+            coordinateRotation
+            {
+                type    axesRotation;
+                e1      (0 1 0);
+                e2      (0 0 1);
+            }
+        }
+    }
+}*/
+
+*/
+// ************************************************************************* //

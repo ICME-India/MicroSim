@@ -1,0 +1,179 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  12
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    format      ascii;
+    class       dictionary;
+    location    "constant";
+    object      physicalProperties;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+thermoType
+{
+    type            heRhoThermo;
+    mixture         pureMixture;
+    transport       const;
+    thermo          eConst;
+    equationOfState Boussinesq;
+    specie          specie;
+    energy          sensibleInternalEnergy;
+}
+
+mixture
+{
+    specie
+    {
+        molWeight       28.9;
+    }
+    equationOfState
+    {
+        rho0            1;
+        T0              300;
+        beta            3e-03;
+    }
+    thermodynamics
+    {
+        Cv              712;
+        hf              0;
+    }
+    transport
+    {
+        mu              1e-05;
+        Pr              0.7;
+    }
+}
+
+
+Cv
+{
+    type        uniform;
+    value       434;
+}
+/////////////////////////////////////////////////////////////
+
+
+interfaceSL
+{
+    // parameters.smoothBoundary
+    omega       1e5;
+    gamma       2;
+    epsilon     200e-6;
+};
+
+crucible
+{
+    // parameters.Bridgman
+    flux        -80;
+    Tinf        400;
+    Bd          1656;
+    Vpull       5e-5;
+    ybottom     0.0025;
+};
+
+CMSX4
+{
+    // phaseProperties.CMSX4
+    Cpp         5471550;
+    L           1945440000;
+    Ks          90.7;
+    Kl          18.14;
+    kc          1.31;
+    Tm          1623;
+    Tl          1653;
+    Ts          1593;
+};
+
+
+// furnaceProperties
+
+furnace
+{
+    furnaceModel isothermal;
+
+    isothermalCoeffs
+    {
+        uniformT 300;
+    }
+}
+
+coeffsT
+(
+    (2643.90000  9.18290 -0.28100)
+    (1128.50000  18.2673 1.213929)
+    (302.534000  34.7846 1.293900)
+    (153.779100  51.4367 1.292700)
+    (142.741700  69.1533 1.058700)
+    (112.999100  78.0118 2.525000)
+    (1.785430e4  97.9142 1.793700)
+    (1.782715e4  97.9285 4.932500)
+);
+
+
+// ************************************************************************* //
+
+
+/*
+    furnaceModel uniformTemperature;
+
+    uniformTemperature
+    {
+       furnaceT 300;
+    }
+*/
+
+
+/*
+    furnace
+    {
+        furnaceModel uniformTemperature;
+    
+        uniformTemperature
+        {
+            furnaceT 300;
+        }
+    }
+*/
+
+
+/*
+    furnaceModel uniform;
+	
+    uniform
+    {
+        value 300;
+    }
+*/
+
+
+/*
+    furnaceModel lineTemperature;
+	
+    lineTemperature
+    {
+        series  sine;   
+	   
+        interpMaxY    0.24; 
+	   
+        interpMinY    0;
+	   
+        referenceY    0.19;
+	   
+        coeffsT
+	(
+    	    (2643.90000  9.18290 -0.28100)
+    	    (1128.50000  18.2673 1.213929)
+    	    (302.534000  34.7846 1.293900)
+    	    (153.779100  51.4367 1.292700)
+    	    (142.741700  69.1533 1.058700)
+    	    (112.999100  78.0118 2.525000)
+    	    (1.785430e4  97.9142 1.793700)
+    	    (1.782715e4  97.9285 4.932500)
+	); 
+    }  
+*/

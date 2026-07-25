@@ -1,0 +1,38 @@
+#!/bin/sh
+cd ${0%/*} || exit 1    # Run from this directory
+
+# Source tutorial run functions
+. $WM_PROJECT_DIR/bin/tools/RunFunctions
+
+# Create meshes
+runApplication -s bufferRegion blockMesh -region bufferRegion
+runApplication -s mushyRegion blockMesh -region mushyRegion
+runApplication -s crucible blockMesh -region crucible
+
+# Extract surface features
+runApplication surfaceFeatures -dict system/surfaceFeaturesDict 
+
+# Run snappyHex
+#runApplication -s mushyRegion snappyHexMesh -overwrite -region mushyRegion
+runApplication -s crucible snappyHexMesh -overwrite -region crucible
+
+# Run setFields
+runApplication -s Domain1 setFields -region Domain1
+runApplication -s crucible setFields -region crucible
+
+# Create rotor blades in air region
+#runApplication -s mushyRegion.1 topoSet -region Domain1 -dict topoSetDict.1
+
+#runApplication createBaffles -region mushyRegion -overwrite
+
+# Create rotor zone in air region for MRF
+#runApplication -s mushyRegion.2 topoSet -region Domain1 -dict topoSetDict.2
+
+#rm -rf constant/Domain1/polyMesh/sets
+
+# Create dummy files for post-processing
+paraFoam -touch -region bufferRegion
+paraFoam -touch -region mushyRegion
+paraFoam -touch -region crucible
+
+#------------------------------------------------------------------------------

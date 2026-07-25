@@ -1,0 +1,78 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  12
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    format      ascii;
+    class       dictionary;
+    location    "system";
+    object      controlDict;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+application     foamMultiRun;
+
+regionSolvers
+{
+    crucible       Bridgman100;
+    bufferRegion   grainBuffer;
+    mushyRegion    grainFrontSim;
+}
+
+startFrom       latestTime;
+
+startTime       0;
+
+stopAt          endTime;
+
+endTime         2.5;     //15; //0.4;
+
+deltaT          4e-5;
+
+writeControl    runTime;
+
+writeInterval   1;
+
+purgeWrite      0;
+
+writeFormat     ascii;
+
+writePrecision  6;
+
+writeCompression off;
+
+timeFormat      general;
+
+timePrecision   6;
+
+runTimeModifiable true;
+
+// ************************************************************************* //
+
+/*functions
+{
+    mapEvery1000
+    {
+        type            systemCall;
+        libs            ("libutilityFunctionObjects.so");
+
+        // Command to execute
+        command         "mapFields oldCase -consistent -sourceTime latestTime";
+
+        // Control when to execute
+        executeControl  timeStep;
+        executeInterval 10;
+
+        // Disable writing of results
+        writeControl    none;
+    }
+}*/
+
+
+
+
+

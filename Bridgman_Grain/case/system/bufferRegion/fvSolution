@@ -1,0 +1,231 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  12
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    format      ascii;
+    class       dictionary;
+    location    "system/Domain1";
+    object      fvSolution;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+// ************************************************************************* //
+
+
+solvers
+{
+    "(U|e)"
+    {
+        solver          PBiCGStab;
+        preconditioner  DILU;
+        tolerance       1e-7;
+        relTol          0.1;
+        minIter         1;
+    }
+    
+    eFinal
+    {
+        solver          PBiCGStab;
+        preconditioner  DILU;
+        tolerance       1e-7;
+        relTol          0.1;
+        minIter         1;
+    }
+          
+    age
+    {
+        $U;
+        relTol          0.001;
+    }
+
+    BRT
+    {
+        solver                   smoothSolver;
+        preconditioner            DIC;
+        smoother                symGaussSeidel;
+        tolerance                1e-8;
+        relTol                    0;
+    }
+
+    T
+    {
+        solver                   smoothSolver;
+        preconditioner            DIC;
+        smoother                symGaussSeidel;
+        tolerance                1e-8;
+        relTol                    0;
+    }
+
+   B1Phi
+	{
+        solver                    GAMG;
+        preconditioner            DIC; // should be DILU for asymmetric matrix
+        smoother                  symGaussSeidel;
+        mergeLevels                1;
+        agglomerator            faceAreaPair;
+        nCellsInCoarsestLevel    100;
+        tolerance                1e-9;
+        relTol                    0.1;
+    }
+// 
+   B1Psi
+	{
+        solver                    GAMG;
+        preconditioner            DIC; // should be DILU for asymmetric matrix
+        smoother                  symGaussSeidel;
+        mergeLevels                1;
+        agglomerator            faceAreaPair;
+        nCellsInCoarsestLevel    100;
+        tolerance                1e-8;
+        relTol                    0.5;
+    }
+    
+   // changed by JS 
+   B1Phi2
+	{
+        solver                    GAMG;
+        preconditioner            DIC; // should be DILU for asymmetric matrix
+        smoother                  symGaussSeidel;
+        mergeLevels                1;
+        agglomerator            faceAreaPair;
+        nCellsInCoarsestLevel    100;
+        tolerance                1e-8;
+        relTol                    0.5;
+    }
+    
+    
+    ".*"
+    {
+        solver          GAMG;
+        tolerance       1e-06;
+        relTol          0.9;
+        smoother        GaussSeidel;
+        nCellsInCoarsestLevel 20;
+    }
+
+    "phase_*"
+    {
+        solver          GAMG;
+        tolerance       1e-06;
+        relTol          0.9;
+        smoother        GaussSeidel;
+        nCellsInCoarsestLevel 20;
+    }
+
+    "comp_*"
+    {
+        solver          GAMG;
+        tolerance       1e-06;
+        relTol          0.9;
+        smoother        GaussSeidel;
+        nCellsInCoarsestLevel 20;
+    }
+}    
+
+
+shareData
+{
+    import
+    {
+        liquidusTCoords
+        { 
+            type boundingCoords;
+            retryIfUavailable true;   // wait one step if not ready
+        }
+        
+        soilidusTCoords 
+        { 
+            type boundingCoords;
+            retryIfUavailable true;   // wait one step if not ready
+        }
+    }
+}
+
+
+PIMPLE
+{
+
+   
+   momentumPredictor   no;
+   
+    nCorrectors       1; // Number of inner correctors
+    nOuterCorrectors  1; // Number of outer correctors
+    simplifyEqn       yes;
+    BPsi_diffusion    yes;
+    flag_1               3;
+  
+    nNonOrthogonalCorrectors 0;
+    compactNormalStress no;
+    accelerationFactor  1.9; // Lower for higher Poisson ratio
+    
+    residualControl
+    {
+        // Empty or relaxed to disable early stopping
+    }
+    
+    pRefCell 10;         // ID of the reference cell
+    pRefValue 1e5;        // Pressure value assigned to that cell
+        
+
+    meshMoveInterval    0.05;
+    nbrMapInterval      -1;
+    
+    initialPositioning
+    {
+        region                  crucible;
+        field                   BPsi;
+        fieldThreshold          0.97;
+        
+        // Optional — override auto-detected position entirely
+        // initialPosition  (0.05 0.1 0.05);
+
+        // Optional — additional shift applied after positioning
+        initialOffset    (0 0.00005 0);
+    }
+
+    neighbourRegions
+    {
+        crucible
+        {
+            fields  ( grainT );
+        }
+    }
+  
+}
+
+relaxationFactors
+{
+    equations
+    {
+        U               0.2;
+        e               0.1;
+        "(k|epsilon|R)" 0.7;
+        age             1;
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

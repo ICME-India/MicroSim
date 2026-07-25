@@ -1,0 +1,14 @@
+
+#!/bin/sh
+
+cd "${0%/*}" || exit 1
+
+
+echo "Cleaning libraries..."
+(cd Libraries/interfaceTopologyCalc && ./Allwmake) || exit 1
+
+echo "Cleaning solvers..."
+(cd solvers && ./Allwmake) || exit 1
+
+
+#------------------------------------------------------------------------------

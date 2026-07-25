@@ -1,0 +1,20 @@
+
+#!/bin/sh
+
+cd "${0%/*}" || exit 1
+
+echo "Building Module_Bridgman..."
+(cd Module_Bridgman && ./Allwmake) || exit 1
+
+echo "Building Module_Bridgman1..."
+(cd Module_Bridgman1 && ./Allwmake) || exit 1
+
+echo "Building grainBuffer..."
+(cd grainBuffer && ./Allwmake) || exit 1
+
+echo "Building grainFrontSim..."
+(cd grainFrontSim && ./Allwmake) || exit 1
+
+echo "Done."
+
+#------------------------------------------------------------------------------

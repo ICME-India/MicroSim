@@ -1,0 +1,20 @@
+
+#!/bin/sh
+
+cd "${0%/*}" || exit 1
+
+echo "Cleaning Module_Bridgman..."
+(cd Module_Bridgman && ./Allwclean) || exit 1
+
+echo "Cleaning Module_Bridgman1..."
+(cd Module_Bridgman1 && ./Allwclean) || exit 1
+
+echo "Cleaning grainBuffer..."
+(cd grainBuffer && ./Allwclean) || exit 1
+
+echo "Cleaning grainFrontSim..."
+(cd grainFrontSim && ./Allwclean) || exit 1
+
+echo "Done."
+
+#------------------------------------------------------------------------------

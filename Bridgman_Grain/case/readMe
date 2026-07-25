@@ -1,0 +1,17 @@
+## The case simulates the Bridgman on large mesh and grain growth on smaller mesh 
+## The two meshes are dynamically coupled through field interpolation
+
+
+## Compile the libraries and solvers
+# 1. Navigate to Bramhaguptha folder and run the command
+# ./Allwclean and ./Allwmake
+
+## Run the case:
+
+# 1. For parallel run
+# Ensure numberOfSubdomains and simpleCoeffs fields in decomposePar 
+# are configured according to the processor availabe in system
+# command: ./Allrun-parallel
+
+# 2. Single core eun
+# command ./Allrun 

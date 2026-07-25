@@ -1,0 +1,53 @@
+FoamFile
+{
+    format      ascii;
+    class       dictionary;
+    location    "constant";
+    object      physicalProperties;
+}
+
+NumPhases                   4;
+/*
+Temperature_Equilibrium     1653;
+Temperature_Base            1652;
+Temperature_BasePoint       (0 0 0);
+Temperature_Gradient        (10 0 0);
+PullingVelocity             (1e-5 0 0);
+EPSILON 8e-06;
+UseTemperatureCorrector     true;
+GG_Mobility_sol             2e-4;
+GG_Mobility_liq             2e-4;
+GG_Gamma                    1.0;
+GG_Coeff_A1                 0;
+GG_Coeff_A2                 100e-6;
+GG_Coeff_A3                 0;
+// GG_Coeff_A3              8.18e-5;
+GG_Coeff_H_phi              1.0;
+GG_Coeff_AntiCap            1.0;
+GG_Coeff_Asym               10;
+GG_Angles_Z                 (0 15 30 0);
+GG_Angles_Y                 (0 0 0 0);
+GG_Angles_X                 (0 0 0 0);
+*/
+
+Temperature_Equilibrium     1653;
+Temperature_Base            1652;
+Temperature_BasePoint       (0 0 0);
+Temperature_Gradient        (0 3000 0);
+PullingVelocity             (0 1e-5 0);
+EPSILON 8e-06;
+UseTemperatureCorrector     true;
+GG_Mobility_sol             2e-4;
+GG_Mobility_liq             2e-4;
+GG_Gamma                    1.0;
+GG_Coeff_A1                 0;
+GG_Coeff_A2                 100e-6;
+GG_Coeff_A3                 0;
+// GG_Coeff_A3              8.18e-5;
+GG_Coeff_H_phi              1.0;
+GG_Coeff_AntiCap            1.0;
+GG_Coeff_Asym               10;
+GG_Angles_Z                 (0 15 30 0);
+GG_Angles_Y                 (0 0 0 0);
+GG_Angles_X                 (0 0 0 0);
+/******************** */

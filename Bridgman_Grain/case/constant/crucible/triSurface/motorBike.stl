@@ -1,0 +1,86 @@
+solid zone0
+ facet normal -1 0 0
+  outer loop
+   vertex 0.00145 0.00200001 0.00155
+   vertex 0.00145 0.00200001 0.00352999
+   vertex 0.00145 0.00499999 0.00352999
+  endloop
+ endfacet
+ facet normal -1 0 0
+  outer loop
+   vertex 0.00145 0.00200001 0.00155
+   vertex 0.00145 0.00499999 0.00352999
+   vertex 0.00145 0.00499999 0.00155
+  endloop
+ endfacet
+ facet normal 1 0 0
+  outer loop
+   vertex 0.00345 0.00200001 0.00155
+   vertex 0.00345 0.00499999 0.00155
+   vertex 0.00345 0.00499999 0.00352999
+  endloop
+ endfacet
+ facet normal 1 0 0
+  outer loop
+   vertex 0.00345 0.00200001 0.00155
+   vertex 0.00345 0.00499999 0.00352999
+   vertex 0.00345 0.00200001 0.00352999
+  endloop
+ endfacet
+ facet normal 0 -1 0
+  outer loop
+   vertex 0.00145 0.00200001 0.00155
+   vertex 0.00345 0.00200001 0.00155
+   vertex 0.00345 0.00200001 0.00352999
+  endloop
+ endfacet
+ facet normal 0 -1 0
+  outer loop
+   vertex 0.00145 0.00200001 0.00155
+   vertex 0.00345 0.00200001 0.00352999
+   vertex 0.00145 0.00200001 0.00352999
+  endloop
+ endfacet
+ facet normal 0 1 0
+  outer loop
+   vertex 0.00145 0.00499999 0.00155
+   vertex 0.00145 0.00499999 0.00352999
+   vertex 0.00345 0.00499999 0.00352999
+  endloop
+ endfacet
+ facet normal 0 1 0
+  outer loop
+   vertex 0.00145 0.00499999 0.00155
+   vertex 0.00345 0.00499999 0.00352999
+   vertex 0.00345 0.00499999 0.00155
+  endloop
+ endfacet
+ facet normal 0 0 -1
+  outer loop
+   vertex 0.00145 0.00200001 0.00155
+   vertex 0.00145 0.00499999 0.00155
+   vertex 0.00345 0.00499999 0.00155
+  endloop
+ endfacet
+ facet normal 0 0 -1
+  outer loop
+   vertex 0.00145 0.00200001 0.00155
+   vertex 0.00345 0.00499999 0.00155
+   vertex 0.00345 0.00200001 0.00155
+  endloop
+ endfacet
+ facet normal 0 0 1
+  outer loop
+   vertex 0.00145 0.00200001 0.00352999
+   vertex 0.00345 0.00200001 0.00352999
+   vertex 0.00345 0.00499999 0.00352999
+  endloop
+ endfacet
+ facet normal 0 0 1
+  outer loop
+   vertex 0.00145 0.00200001 0.00352999
+   vertex 0.00345 0.00499999 0.00352999
+   vertex 0.00145 0.00499999 0.00352999
+  endloop
+ endfacet
+endsolid zone0

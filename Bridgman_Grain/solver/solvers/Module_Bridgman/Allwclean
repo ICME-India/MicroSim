@@ -1,0 +1,6 @@
+#!/bin/sh
+cd ${0%/*} || exit 1
+
+wclean constSolidThermoo
+wclean bridgmanThermo
+wclean
