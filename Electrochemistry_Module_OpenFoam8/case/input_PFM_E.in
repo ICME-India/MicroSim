@@ -1,0 +1,71 @@
+##Geometrical dimensions of the simulation domain
+MESH_X = 200;
+MESH_Y = 200;
+MESH_Z = 1;
+##Discretization, space and time
+DELTA_X = 1;
+DELTA_Y = 1;
+DELTA_Z = 1;
+DELTA_t = 8e-7;
+#Running and saving information
+NTIMESTEPS = 0.02;
+SAVET = 1e-4;
+STARTTIME = 0;
+## Component and Phase names
+COMPONENTS = {Li};
+PHASES = {Electrode, Electrolyte};
+##Material Parameters (Non-dimensionalized)
+##Phase-field Parameters
+W = 1.78;
+k = 0.5;
+L_sigma = 25000;
+##Electrochemical Kinetics
+L_eta  = 7.24; 
+alpha = 0.5; 
+##Diffusivity
+D = 1.278e06; 
+##Initial concentration
+C_0 = 1.0; 
+##Site densities of lithium
+C_m_s = 76.4; 
+C_m_l = 14.4; 
+##Electrical conductivity
+Sigma_s = 1e07; 
+Sigma_l = 1.19; 
+##Initial chemical potential difference
+epsilon_s = -13.8; 
+epsilon_l = 2.63; 
+##Electrochemical constants
+n = 1; 
+F = 96485; 
+R = 8.314; 
+T = 298; 
+##Boundary conditions
+#0: Free, 1: Neumann, 2: Dirichlet, 3: Periodic, 4: Complex
+#Boundary = {phase, X+, X-, Y+, Y-, Z+, Z-}
+BOUNDARY = {eta,1,2,1,2,2};
+BOUNDARY = {c,1,2,1,2,2};
+BOUNDARY = {mu,1,2,1,1,2};
+BOUNDARY = {phi,1,2,1,2,2};
+#Boundary_value = {Value X+, Value X-, Value Y+, Value Y-, Value Z+, Value Z-}
+BOUNDARY_VALUE = {eta,0,1,0,1,0};
+BOUNDARY_VALUE = {c,0,0,0,0,1};
+BOUNDARY_VALUE = {mu,0,0,0,0,0};
+BOUNDARY_VALUE = {phi,0,-0.45,0,-0.45,0};
+##Initial Fields and geometry (setfields)
+##Box Geometry
+X_BOX = 10;
+Y_BOX = 200;
+Z_BOX = 1;
+##Initial Default Value
+ETA_DEFAULT = 0;
+MU_DEFAULT = 0;
+PHI_DEFAULT = 0;
+C_DEFAULT = 1;
+##Initial Field Value
+ETA_INIT = 1.0;
+MU_INIT = -1;
+PHI_INIT = -0.45;
+C_INIT = 0;
+
+

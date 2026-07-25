@@ -1,0 +1,97 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  5                                     |
+|   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       volScalarField;
+    object      c;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+dimensions      [0 0 0 0 0 0 0];
+
+internalField   uniform 0;
+
+boundaryField
+{
+    floor
+    {
+        type            zeroGradient;
+    }
+    boxtoCell
+    {
+        type            fixedValue;
+        value           uniform 0.0;
+    }
+
+    ceiling
+    {
+        type            zeroGradient;
+    }
+    electrode
+    {
+        type            fixedValue;
+        value           uniform 0.0;
+    }
+    electrolyte
+    {
+        type            fixedValue;
+        value           uniform 1.0;
+    }
+}
+
+// // ************************************************************************* //
+//
+// //============== NO-FLUX BOUNDARY CONDITIONS ====================//
+//
+// // boundaryField
+// // {
+// //     floor
+// //     {
+//         type            fixedValue;
+//         value           uniform 1.0;
+// //     }
+// //     ceiling
+// //     {
+//         type            fixedValue;
+//         value           uniform 1.0;
+// //     }
+// //     sideSolid
+// //     {
+//         type            fixedValue;
+//         value           uniform 1.0;
+// //     }
+// //
+// // }
+//
+// //============== CYCLIC BOUNDARY CONDITIONS ====================//
+//
+// // // boundaryField
+// // // {
+// // //     top
+// // //     {
+//         type            fixedValue;
+// // //     }
+// // //     bottom
+// // //     {
+//         type            fixedValue;
+// // //     }
+// // //     left
+// // //     {
+//         type            fixedValue;
+// // //     }
+// // //     right
+// // //     {
+//         type            fixedValue;
+// // //     }
+// // //     frontAndBack
+// // //     {
+//         type            fixedValue;
+// // //     }
+// // // }

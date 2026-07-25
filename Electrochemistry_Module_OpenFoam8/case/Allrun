@@ -1,0 +1,32 @@
+#!/bin/sh
+cd ${0%/*} || exit 1    # Run from this directory
+
+# Source tutorial run functions
+. $WM_PROJECT_DIR/bin/tools/RunFunctions
+
+application=`getApplication`
+
+runApplication blockMesh
+
+cp 0/eta.orig 0/eta
+
+cp 0/mu.orig 0/mu
+
+cp 0/c.orig 0/c
+
+cp 0/phi.orig 0/phi
+
+runApplication setFields -dict system/setFieldsDict
+
+runApplication decomposePar
+
+runParallel `getApplication`
+
+#mpirun --oversubscribe -np 8 `getApplication` -parallel
+
+#runApplication `getApplication`
+
+runApplication reconstructPar
+
+
+#------------------------------------------------------------------------------
