@@ -1,0 +1,168 @@
+##Geometrical dimensions of the simulation domain
+DIMENSION = 2;
+MESH_X = 100;
+MESH_Y = 200;
+MESH_Z = 100;
+##Discretization, space and time
+DELTA_X = 0.85e-8;
+DELTA_Y = 0.85e-8;
+DELTA_Z = 0.85e-8;
+DELTA_t = 4.80e-9; 
+##Number of phases and composition
+NUMPHASES = 2;
+NUMCOMPONENTS = 10;
+#Running and saving information
+NTIMESTEPS = 500000;
+NSMOOTH = 10;
+SAVET = 100;
+STARTTIME = 0;
+RESTART = 0;
+numworkers = 4;
+## Component and Phase names
+# COMPONENTS = {Al,Cu,B};
+COMPONENTS = {Si,Co,Ti,Cr,Mn,Fe,Al,Nb,Mo,Ni};
+PHASES = {FCC, LIQUID};
+##Material properties
+##GAMMA={12, 13, 14, 23, 24...}
+GAMMA = {0.1};
+# Diffusivity = {Diagonal:0/1, phase, 11,22,33, 12, 13, 23...};
+DIFFUSIVITY = {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+DIFFUSIVITY = {1, 1, 3e-9, 3e-9, 3e-9, 3e-9, 3e-9, 3e-9, 3e-9, 3e-9, 3e-9};
+##Gas constant and molar volume
+R = 8.314;
+V = 10e-6;
+ELASTICITY = 0;
+##Elasticity related parameters
+EIGEN_STRAIN = {0, 0.01, 0.01, 0.0, 0.0, 0.0, 0.0};
+EIGEN_STRAIN = {1, 0.01, 0.01, 0.0, 0.0, 0.0, 0.0};
+VOIGT_ISOTROPIC = {0, 29.24e9, 20.19e9, 13.5e9};
+VOIGT_ISOTROPIC = {1, 58.48e9, 40.38e9, 27e9};
+#VOIGT_CUBIC = {phase, c11, c12, c44};
+#VOIGT_TETRAGONAL = {phase, c11, c12, c13, c33, c44, c66};
+##Boundary conditions
+#0: Free, 1: Neumann, 2: Dirichlet, 3: Periodic, 4: Complex
+#Boundary = {phase, X+, X-, Y+, Y-, Z+, Z-}
+BOUNDARY = {phi, 3, 3, 1, 1, 0, 0};
+BOUNDARY = {mu, 3, 3, 1, 1, 0, 0};
+BOUNDARY = {c, 3, 3, 1, 1, 0, 0};
+BOUNDARY = {T, 3, 3, 1, 1, 0, 0};
+# Boundary = {phi, 1, 1, 0};
+# Boundary = {"u", 3, 3, 2, 2};
+#Boundary_value = {Value X+, Value X-, Value Y+, Value Y-, Value Z+, Value Z-}
+BOUNDARY_VALUE = {phi, 0, 0, 0, 0, 0, 0};
+BOUNDARY_VALUE = {mu, 0, 0, 0, 0, 0, 0};
+BOUNDARY_VALUE = {c, 0, 0, 0, 0, 0, 0};
+BOUNDARY_VALUE = {T, 0, 0, 0, 0, 0, 0};
+##Type of simulation
+ISOTHERMAL = 0;
+BINARY = 0;
+#TERNARY
+DILUTE = 0;
+T = 1537;
+##FILEWRITING and OUTPUTTING TO SCREEN
+## WRITEFORMAT ASCII/BINARY/HDF5(Only for MPI)
+##TRACK_PROGRESS: interval of writing out the progress of the simulation to stdout. 
+WRITEFORMAT = ASCII;
+WRITEHDF5 = 1;
+TRACK_PROGRESS = 10;
+##Model-specific parameters: Grand-potential model
+##Phase-field parameters; epsilon:interface width; it is not the gradient energy coefficient
+epsilon = 3.4e-8;
+tau = 1.31;
+Tau = {0.28};
+##Anisotropy functions
+##Anisotropy mode, FUNCTION_ANISOTROPY=0 is isotropic
+Function_anisotropy = 1;
+Anisotropy_type = 4; 
+dab = {0.01};
+#Rotation_matrix = {0, 1, Euler_x(ang), Euler_y(ang), Euler_z(ang)};
+Rotation_matrix = {0, 1, 0, 0, 0};
+##Potential function
+Function_W = 1;
+Gamma_abc = {};
+#Shifting of domain for infinite domain simulations
+Shift = 10;
+Shiftj = 20;
+#Writing of composition fields along with the chemical potential fields
+Writecomposition = 1;
+#Noise
+Noise_phasefield = 1;
+Amp_Noise_Phase = 0.1;
+##Temperature
+Equilibrium_Temperature = 1630; 
+Filling_Temperature = 1608;
+#TEMPGRADY={BASETEMP, DELTAT, DISTANCE, OFFSET, VELOCITY}
+#Tempgrady = {1608, 10, 1.275e-5, 0, 7.55e-4};
+Tempgrady = {1540, 90, 1.7e-5, 0.0, 1.05e-3};
+#Tempgrady = {1600, 0.75, 7.5e-6, 0, 2e-3};
+##Tempgrady = {1604, 0.366, 7.5e-6, 0, 8.7267e-4};
+##Function_F
+Function_F = 4;
+#A = {0, 1};
+#A = {1, 1};
+#ceq = {0, 0, 0.83};
+#ceq = {0, 1, 0.55};
+#ceq = {1, 1, 0.55};
+#ceq = {1, 0, 0.55};
+#cfill = {0, 0, 0.83};
+#cfill = {0, 1, 0.55};
+#cfill = {1, 1, 0.55};
+#cfill = {1, 0, 0.55};
+#slopes = {0, 0, 645};
+#slopes = {0, 1, 238};
+#slopes = {1, 0, 238};
+#slopes = {1, 1, 238};
+#ceq = {0, 0, 0.00519457,0.011157,0.00373236,0.240386,0.00234837,0.184636,0.00641303,0.0117098,0.0220543};
+#ceq = {0, 1, 0.00723962,0.0098084,0.0109695,0.211221,0.0037048,0.172996,0.0107812,0.0326561,0.0186678};
+#ceq = {1, 1, 0.00723962,0.0098084,0.0109695,0.211221,0.0037048,0.172996,0.0107812,0.0326561,0.0186678};
+#ceq = {1, 0, 0.00723962,0.0098084,0.0109695,0.211221,0.0037048,0.172996,0.0107812,0.0326561,0.0186678};
+#T1540
+ceq = {0, 0, 0.00698972,0.00990718,0.0103774,0.213598,0.00365552,0.173776,0.0106382,0.0311889,0.0188375};
+ceq = {0, 1, 0.0147237,0.00706874,0.0277528,0.143983,0.00479434,0.151778,0.0137741,0.0730062,0.014397};
+ceq = {1, 1, 0.0147237,0.00706874,0.0277528,0.143983,0.00479434,0.151778,0.0137741,0.0730062,0.014397};
+ceq = {1, 0, 0.0147237,0.00706874,0.0277528,0.143983,0.00479434,0.151778,0.0137741,0.0730062,0.014397};
+#cfill = {0, 0, 0.00519457,0.011157,0.00373236,0.240386,0.00234837,0.184636,0.00641303,0.0117098,0.0220543};
+## cfill_liq = cfill_sol at T1540
+
+
+cfill = {0, 0, 0.00698972,0.00990718,0.0103774,0.213598,0.00365552,0.173776,0.0106382,0.0311889,0.0188375};
+cfill = {0, 1, 0.00698972,0.00990718,0.0103774,0.213598,0.00365552,0.173776,0.0106382,0.0311889,0.0188375};
+cfill = {1, 1, 0.00698972,0.00990718,0.0103774,0.213598,0.00365552,0.173776,0.0106382,0.0311889,0.0188375};
+cfill = {1, 0, 0.00698972,0.00990718,0.0103774,0.213598,0.00365552,0.173776,0.0106382,0.0311889,0.0188375};
+
+
+#T1630 
+#cfill = {0, 0, 0.00723962,0.0098084,0.0109695,0.211221,0.0037048,0.172996,0.0107812,0.0326561,0.0186678};
+#cfill = {0, 1, 0.00723962,0.0098084,0.0109695,0.211221,0.0037048,0.172996,0.0107812,0.0326561,0.0186678};
+#cfill = {1, 1, 0.00723962,0.0098084,0.0109695,0.211221,0.0037048,0.172996,0.0107812,0.0326561,0.0186678};
+#cfill = {1, 0, 0.00723962,0.0098084,0.0109695,0.211221,0.0037048,0.172996,0.0107812,0.0326561,0.0186678};
+#1600
+#c_guess = {0, 0, 0.00557296,0.0108085,0.00565983,0.233915,0.00297426,0.180623,0.00836978,0.0179296,0.0206559};
+#c_guess = {0, 1, 0.00887338,0.00883071,0.0161593,0.189005,0.00441036,0.165572,0.0131131,0.0470288,0.0167407};
+#c_guess = {1, 1, 0.00887338,0.00883071,0.0161593,0.189005,0.00441036,0.165572,0.0131131,0.0470288,0.0167407};
+#c_guess = {1, 0, 0.00887338,0.00883071,0.0161593,0.189005,0.00441036,0.165572,0.0131131,0.0470288,0.0167407};
+#1604
+#c_guess = {0, 0, 0.00551748,0.0108644,0.00538479,0.23504,0.00290304,0.181119,0.008137,0.0170648,0.0208166}; 
+#c_guess = {0, 1, 0.00862277,0.00896214,0.0154438,0.192108,0.00434038,0.166514,0.0128799,0.0451308,0.0169592};
+#c_guess = {1, 1, 0.00862277,0.00896214,0.0154438,0.192108,0.00434038,0.166514,0.0128799,0.0451308,0.0169592};
+#c_guess = {1, 0, 0.00862277,0.00896214,0.0154438,0.192108,0.00434038,0.166514,0.0128799,0.0451308,0.0169592};
+#1610
+#c_guess = {0, 0, 0.00543878,0.0109443,0.00498257,0.236607,0.0027893,0.181881,0.00777084,0.0157852,0.0210705};
+#c_guess = {0, 1, 0.00826848,0.00916036,0.0143835,0.196722,0.00422226,0.167948,0.0124847,0.0422658,0.0173067};
+#c_guess = {1, 1, 0.00826848,0.00916036,0.0143835,0.196722,0.00422226,0.167948,0.0124847,0.0422658,0.0173067};
+#c_guess = {1, 0, 0.00826848,0.00916036,0.0143835,0.196722,0.00422226,0.167948,0.0124847,0.0422658,0.0173067};
+#1608 
+
+c_guess = {0, 0, 0.00546449,0.0109183,0.00511526,0.236102,0.00282814,0.181625,0.00789512,0.0162092,0.020984};
+c_guess = {0, 1, 0.00838384,0.00909421,0.0147352,0.195191,0.00426343,0.167466,0.0126225,0.0432228,0.0171881};
+c_guess = {1, 1, 0.00838384,0.00909421,0.0147352,0.195191,0.00426343,0.167466,0.0126225,0.0432228,0.0171881};
+c_guess = {1, 0, 0.00838384,0.00909421,0.0147352,0.195191,0.00426343,0.167466,0.0126225,0.0432228,0.0171881};
+
+#slopes = {0, 0, 666};
+#slopes = {0, 1, 333};
+#slopes = {1, 0, 333};
+#slopes = {1, 1, 333};
+num_thermo_phases = 2;
+tdbfname = alzn_mey.tdb;
+tdb_phases = {FCC, LIQUID};
+phase_map = {FCC, LIQUID};

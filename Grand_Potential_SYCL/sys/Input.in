@@ -1,0 +1,88 @@
+##Geometrical dimensions of the simulation domain
+DIMENSION = 2;
+MESH_X = 200;
+MESH_Y = 200;
+MESH_Z = 200;
+##Discretization, space and time
+DELTA_X = 2.0;
+DELTA_Y = 2.0;
+DELTA_Z = 2.0;
+DELTA_t = 0.01;
+##Number of phases and composition
+NUMPHASES = 2;
+NUMCOMPONENTS = 2;
+#Running and saving information
+NTIMESTEPS = 100000;
+NSMOOTH = 1;
+SAVET = 500;
+RESTART = 0;
+STARTTIME = 0;
+numworkers = 4;
+## Component and Phase names
+COMPONENTS = {Al,Cu};
+PHASES = {alpha,beta};
+##Material properties
+GAMMA = {1.0};
+R = 1.0;
+V = 1.0;
+DIFFUSIVITY = {1,0,0};
+DIFFUSIVITY = {1,1,1};
+EIGEN_STRAIN = {0,0.01,0.01,0.0,0.0,0.0,0.0};
+EIGEN_STRAIN = {1,0.0,0.0,0.0,0.0,0.0,0.0};
+VOIGT_ISOTROPIC = {0,270,187.5,125.0};
+VOIGT_ISOTROPIC = {1,270,187.5,125.0};
+##Boundary conditions
+BOUNDARY = {phi,3,3,3,3,0,0};
+BOUNDARY = {mu,3,3,3,3,0,0};
+BOUNDARY = {c,3,3,3,3,0,0};
+BOUNDARY = {T,2,3,2,3,0,0};
+BOUNDARY_VALUE = {phi,1,0,0,0,0,0};
+BOUNDARY_VALUE = {mu,0,0,0,0,0,0};
+BOUNDARY_VALUE = {c,0,0,0,0,0,0};
+BOUNDARY_VALUE = {T,1,0,1,0,0,0};
+##Model-specific parameters: Grand-potential model
+ISOTHERMAL = 1;
+BINARY = 1;
+TERNARY = 0;
+DILUTE = 0;
+GRAIN_GROWTH = 0;
+ELASTICITY = 0;
+rho = 100;
+damping_factor = 0.4;
+max_iterations = 5;
+T = 0.1;
+WRITEFORMAT = BINARY;
+WRITEHDF5 = 1;
+TRACK_PROGRESS = 10;
+epsilon = 8.0;
+tau = 1.31;
+Tau = {0.28};
+Function_anisotropy = 1;
+Anisotropy_type = 4;
+dab = {0.02};
+Function_W = 1;
+Gamma_abc = {};
+Shift = 0;
+Shiftj = 30;
+FOLD = 4;
+Writecomposition = 1;
+Noise_phasefield = 0;
+Amp_Noise_Phase = 0.001;
+Equilibrium_temperature = 1.0;
+Filling_temperature = 2.0;
+Tempgrady = {0.96,0.06,800.0,0,0.016};
+Function_F = 1;
+A = {0,1};
+A = {1,1};
+ceq = {0,0,0.78125};
+ceq = {0,1,0.5};
+ceq = {1,0,0.5};
+ceq = {1,1,0.5};
+cfill = {0,0,0.78125};
+cfill = {0,1,0.5};
+cfill = {1,0,0.5};
+cfill = {1,1,0.5};
+slopes = {0,0,0.45};
+slopes = {0,1,0.45};
+slopes = {1,0,0.45};
+slopes = {1,1,0.45};

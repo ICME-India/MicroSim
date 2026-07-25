@@ -1,0 +1,42 @@
+BOUNDARY_LEFT[PHI] = NEUMANN
+
+BOUNDARY_RIGHT[PHI] = NEUMANN
+
+BOUNDARY_FRONT[PHI] = NEUMANN
+
+BOUNDARY_BACK[PHI] = NEUMANN
+
+BOUNDARY_TOP[PHI] = FREE
+
+DIRICHLET and FREE boundary conditions have not yet been implemented. Please wait for next release. Will default to PERIODIC
+BOUNDARY_BOTTOM[PHI] = FREE
+
+DIRICHLET and FREE boundary conditions have not yet been implemented. Please wait for next release. Will default to PERIODIC
+BOUNDARY_LEFT[MU] = NEUMANN
+
+BOUNDARY_RIGHT[MU] = NEUMANN
+
+BOUNDARY_FRONT[MU] = NEUMANN
+
+BOUNDARY_BACK[MU] = NEUMANN
+
+BOUNDARY_TOP[MU] = FREE
+
+DIRICHLET and FREE boundary conditions have not yet been implemented. Please wait for next release. Will default to PERIODIC
+BOUNDARY_BOTTOM[MU] = FREE
+
+DIRICHLET and FREE boundary conditions have not yet been implemented. Please wait for next release. Will default to PERIODIC
+BOUNDARY_LEFT[T] = NEUMANN
+
+BOUNDARY_RIGHT[T] = NEUMANN
+
+BOUNDARY_FRONT[T] = NEUMANN
+
+BOUNDARY_BACK[T] = NEUMANN
+
+BOUNDARY_TOP[T] = FREE
+
+DIRICHLET and FREE boundary conditions have not yet been implemented. Please wait for next release. Will default to PERIODIC
+BOUNDARY_BOTTOM[T] = FREE
+
+DIRICHLET and FREE boundary conditions have not yet been implemented. Please wait for next release. Will default to PERIODIC

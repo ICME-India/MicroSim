@@ -1,0 +1,58 @@
+##Geometrical dimensions of the simulation domain
+DIMENSION = 2;
+MESH_X = 320;
+MESH_Y = 640;
+MESH_Z = 100;
+##Discretization, space and time
+DELTA_X = 5.0;
+DELTA_Y = 5.0;
+DELTA_Z = 5.0;
+DELTA_t = 2.5;
+##Number of phases and composition
+NUMPHASES = 2;
+NUMCOMPONENTS = 6;
+#Running and saving information
+NTIMESTEPS = 9000000;
+SAVET = 1000;
+## Component and Phase names
+COMPONENTS = {Cr,Fe, Mo, Nb, Ti, Ni};
+PHASES = {solid,liquid};
+##Material properties
+R = 8.314;
+V = 7.34;
+##DIFFUSIVITY = {1,0,0,0,0,0,0};
+DIFFUSIVITY = {1, 1, 3.5e-5, 2.95e-5, 1.09e-5, 3.6e-5, 3.39e-5};
+##Boundary conditions
+BOUNDARY = {phi,3,3,1,1,0,0};
+BOUNDARY = {mu,3,3,1,1,0,0};
+BOUNDARY = {c,3,3,1,1,0,0};
+BOUNDARY = {T,3,3,1,1,0,0};
+BOUNDARY_VALUE = {phi,0,0,0,0,0,0};
+BOUNDARY_VALUE = {mu,0,0,0,0,0,0};
+BOUNDARY_VALUE = {c,0,0,0,0,0,0};
+BOUNDARY_VALUE = {T,0,0,0,0,0,0};
+##Model-specific parameters: KKS
+refD = 3.5e-5;
+Er = 14366.592;
+epsc = 0.023;
+epsm = 0.0;
+W = 0.50452;
+ee = 130.630;
+IntMobInv = 0.18101;
+a2 = 0.78333;
+ISOTHERMAL = 0;
+Equilibrium_temperature = 1616.0;
+Filling_temperature = 1616.0;
+#Tempgrady = {basetemp, deltaT, dist(meters), offset, velocity}
+# DELTA_Y=5.0 nm, MESH_Y=640 => total domain = 3.2 μm = 3.2e-6 m
+# For reasonable gradient G = 50 K/μm = 5e7 K/m, use Distance = 3.2e-6 m
+Tempgrady = {1616.0,50.0,3.2e-6,0,0.016};
+#Tempgrady = {1540, 90, 1.7e-5, 0, 1.05e-3};
+ceq = {0, 0, 0.2192, 0.02082, 0.014127, 0.012138, 0.0060896};
+ceq = {0, 1, 0.2134, 0.19033, 0.019497, 0.03211, 0.01160};
+ceq = {1, 0, 0.2134, 0.19033, 0.019497, 0.03211, 0.01160};
+ceq = {1, 1, 0.2134, 0.19033, 0.019497, 0.03211, 0.01160};
+cfill = {0, 0, 0.2192, 0.02082, 0.014127, 0.012138, 0.0060896};
+cfill = {0, 1, 0.2134, 0.19033, 0.019497, 0.03211, 0.01160};
+cfill = {1, 0, 0.2134, 0.19033, 0.019497, 0.03211, 0.01160};
+cfill = {1, 1, 0.2134, 0.19033, 0.019497, 0.03211, 0.01160};
