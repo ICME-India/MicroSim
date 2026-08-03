@@ -2,12 +2,12 @@ FDIR=functions
 SDIR=solverloop
 TDIR=tdbs
 CC=h5pcc #-O3
-# CFLAGS=-I.
-#LDIR=$(GSL_ROOT_DIR)/lib
-#IDIR=$(GSL_ROOT_DIR)/include
 
-LDIR=/share/apps/gsl/lib
-IDIR=/share/apps/gsl/include
+# GSL paths: set GSL_ROOT_DIR to your GSL installation prefix.
+# If unset, the build tries to locate GSL via gsl-config.
+GSL_ROOT_DIR ?= $(shell gsl-config --prefix 2>/dev/null)
+LDIR=$(GSL_ROOT_DIR)/lib
+IDIR=$(GSL_ROOT_DIR)/include
 CFLAGS=-I $(IDIR)
 
 _FUNCTION_DEPS = global_vars.h functions.h matrix.h utility_functions.h functionH.h functionF_01.h functionF_02.h functionF_03.h functionF_04.h functionF_05.h  functionF_06.h functionQ.h \
