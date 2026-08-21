@@ -225,7 +225,7 @@ void function_A_01_ani_2D(MultiFab& term1, MultiFab& phi_old, Geometry const& ge
 
 		//Redifing variables in GPU space------------------------------------------------------------------------------
 		Real numphase = nump;
-		int anisotropy_type = ANItype;
+		//int anisotropy_type = ANItype;
 
 		//delta stores dx,dy and dz------------------------------------------------------------------------------------
 		GpuArray<Real,AMREX_SPACEDIM> delta = geom.CellSizeArray();
@@ -368,7 +368,7 @@ void function_A_01_ani_3D(MultiFab& term1, MultiFab& phi_old, Geometry const& ge
 
 		//Redifing variables in GPU space------------------------------------------------------------------------------
 		Real numphase = nump;
-		int anisotropy_type = ANItype;
+		//int anisotropy_type = ANItype;
 
 		//delta stores dx,dy and dz------------------------------------------------------------------------------------
 		GpuArray<Real,AMREX_SPACEDIM> delta = geom.CellSizeArray();

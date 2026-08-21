@@ -105,19 +105,19 @@ void readC()
 
         }
         Print()<<"After readc files\n";
-        //Print() << "conc_Sol.size() = " << conc_Sol.size() << "\n";
-        //Print() << "conc_Liq.size() = " << conc_Liq.size() << "\n";
-        //Print() << "temprt.size() = " << temprt.size() << "\n";
+        Print() << "conc_Sol.size() = " << conc_Sol.size() << "\n";
+        Print() << "conc_Liq.size() = " << conc_Liq.size() << "\n";
+        Print() << "temprt.size() = " << temprt.size() << "\n";
 
-        // for(int a=0; a<nump-1; a++){
-        //     for(int b=0; b<temprt[a].size(); b++){
-        //         Print()<<"temprt["<<a<<","<<b<<"] = "<<temprt[a][b]<<"\n";
-        //         for(int r=0; r<numcom-1; r++){
-        //             Print()<<"conc_Sol["<<a<<","<<b<<","<<r<<"] = "<<conc_Sol[a][b][r]<<"\n";
-        //             Print()<<"conc_Liq["<<a<<","<<b<<","<<r<<"] = "<<conc_Liq[a][b][r]<<"\n";
-        //         }
-        //     }
-        // }
+        for(int a=0; a<nump-1; a++){
+            for(int b=0; b<temprt[a].size(); b++){
+                Print()<<"temprt["<<a<<","<<b<<"] = "<<temprt[a][b]<<"\n";
+                for(int r=0; r<numcom-1; r++){
+                    Print()<<"conc_Sol["<<a<<","<<b<<","<<r<<"] = "<<conc_Sol[a][b][r]<<"\n";
+                    Print()<<"conc_Liq["<<a<<","<<b<<","<<r<<"] = "<<conc_Liq[a][b][r]<<"\n";
+                }
+            }
+        }
 
 }
 
@@ -366,11 +366,11 @@ void function_F_04_function_B(){
             }
             }
             B[a][i] = (2.0*(A[nump-1][i][i]*conc_l[a][i] - A[a][i][i]*conc_s[a][i]) + sum_c);
-            // Print()<<"Sum_c = "<<sum_c<<"\n";
-            // Print()<<"A_liq["<<nump-1<<","<<i<<","<<i<<"]="<<A[nump-1][i][i]<<"\n";
-            // Print()<<"A_sol["<<a<<","<<i<<","<<i<<"]="<<A[a][i][i]<<"\n";
-            // Print()<<"conc_liq["<<nump-1<<","<<i<<"]="<<conc_l[a][i]<<"\n";
-            // Print()<<"conc_sol["<<a<<","<<i<<"]="<<conc_s[a][i]<<"\n";
+            Print()<<"Sum_c = "<<sum_c<<"\n";
+            Print()<<"A_liq["<<nump-1<<","<<i<<","<<i<<"]="<<A[nump-1][i][i]<<"\n";
+            Print()<<"A_sol["<<a<<","<<i<<","<<i<<"]="<<A[a][i][i]<<"\n";
+            Print()<<"conc_liq["<<nump-1<<","<<i<<"]="<<conc_l[a][i]<<"\n";
+            Print()<<"conc_sol["<<a<<","<<i<<"]="<<conc_s[a][i]<<"\n";
             sum_c=0.0;
             Print()<<"B["<<a<<" , "<<i<<"] = "<<B[a][i]<<"\n";
         }
@@ -389,10 +389,10 @@ void function_F_04_function_C(){
             for(int j=0; j<numcom-1; j++){
                 if (i <= j) {
                     C[a] += (A[a][i][j]*conc_s[a][i]*conc_s[a][j] - A[nump-1][i][j]*conc_l[a][i]*conc_l[a][j]);
-                    // Print()<<"A_sol["<<a<<","<<i<<","<<j<<"]="<<A[a][i][j]<<"\n";
-                    // Print()<<"A_liq["<<nump-1<<","<<i<<","<<j<<"]="<<A[nump-1][i][j]<<"\n";
-                    // Print()<<"conc_sol["<<a<<","<<i<<"]="<<conc_s[a][i]<<"\n";
-                    // Print()<<"conc_liq["<<nump-1<<","<<i<<"]="<<conc_l[a][i]<<"\n";
+                    Print()<<"A_sol["<<a<<","<<i<<","<<j<<"]="<<A[a][i][j]<<"\n";
+                    Print()<<"A_liq["<<nump-1<<","<<i<<","<<j<<"]="<<A[nump-1][i][j]<<"\n";
+                    Print()<<"conc_sol["<<a<<","<<i<<"]="<<conc_s[a][i]<<"\n";
+                    Print()<<"conc_liq["<<nump-1<<","<<i<<"]="<<conc_l[a][i]<<"\n";
                     
                 }
             }
@@ -482,7 +482,7 @@ void function_F_04_dc_dmu(){
                 }
 
                 if(numcom>3){
-                    mat_inv(muc,inv_muc,numcom);
+                    mat_inv_c(muc,inv_muc,numcom);
 
                     for(int m=0; m<numcom-1; m++){
                         for(int n=0; n< numcom-1; n++){

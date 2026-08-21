@@ -38,7 +38,8 @@ void update_phi(MultiFab& phi_new, MultiFab& phi_old, MultiFab& term1, MultiFab&
 		Real molar_vol = Vm;
 		int numphase = nump; 
 		int dimsn = dim;
-        GpuArray<Real,AMREX_SPACEDIM> delta = geom.CellSizeArray();
+		int elst = ELASTICITY;
+    GpuArray<Real,AMREX_SPACEDIM> delta = geom.CellSizeArray();
 				
 
 		amrex::ParallelFor( dbx, 
@@ -70,7 +71,7 @@ void update_phi(MultiFab& phi_new, MultiFab& phi_old, MultiFab& term1, MultiFab&
 
 					lamb(i,j,k,a) = epsilon*fin_term1(i,j,k,a)-fin_term2(i,j,k,a)/epsilon-fin_term3(i,j,k,a)/molar_vol;
 
-					if(ELASTICITY==1){
+					if(elst==1){
 						lamb(i,j,k,a) = lamb(i,j,k,a) - fin_term4(i,j,k,a);
 					}
 

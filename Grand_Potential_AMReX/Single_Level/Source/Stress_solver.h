@@ -128,7 +128,7 @@ void Stress_solver_2D(MultiFab& phi_old, MultiFab& disp_X, MultiFab& disp_Y, Mul
         amrex::ParallelFor(vbx,
 		[=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
 		{   
-            Array2D<Real,0,AMREX_SPACEDIM-1,0,5,Order::C> eg_st{};
+            //Array2D<Real,0,AMREX_SPACEDIM-1,0,5,Order::C> eg_st{};
             //Array2D<Real,0,2*AMREX_SPACEDIM-1,0,2,Order::C> str_X{};         //strain[X][xx] = 0,0 and so on
             //Array2D<Real,0,2*AMREX_SPACEDIM-1,0,2,Order::C> str_Y{};
             Array2D<Real,0,AMREX_SPACEDIM-1,0,2,Order::C> stiffness_c_ipo{};
@@ -288,7 +288,7 @@ void Stress_solver_3D(MultiFab& phi_old, MultiFab& disp_X, MultiFab& disp_Y, Mul
         amrex::ParallelFor(vbx,
 		[=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
 		{   
-            Array2D<Real,0,AMREX_SPACEDIM-1,0,5,Order::C> eg_st{};
+            //Array2D<Real,0,AMREX_SPACEDIM-1,0,5,Order::C> eg_st{};
             //Array2D<Real,0,2*AMREX_SPACEDIM-1,0,2,Order::C> str_X{};         //strain[X][xx] = 0,0 and so on
             //Array2D<Real,0,2*AMREX_SPACEDIM-1,0,2,Order::C> str_Y{};
             Array2D<Real,0,AMREX_SPACEDIM-1,0,2,Order::C> stiffness_c_ipo{};

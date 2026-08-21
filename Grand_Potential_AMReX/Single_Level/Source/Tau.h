@@ -84,7 +84,7 @@ void Calculate_Tau(MultiFab& phi_old, Vector<Vector<Real>>& tau_ab)
                 }
             }
 
-            mat_inv(prd,inv_prd,numcom);
+            mat_inv_c(prd,inv_prd,numcom);
 
             for(int i=0; i<prod.size();i++){
                 for(int j=0; j<prod[0].size();j++){

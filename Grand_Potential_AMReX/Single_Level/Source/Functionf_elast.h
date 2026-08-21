@@ -89,7 +89,6 @@ void df_elast_2D(MultiFab& phi_old, MultiFab& disp_X, MultiFab& disp_Y, MultiFab
 }
 
 
-AMREX_GPU_DEVICE AMREX_FORCE_INLINE
 void df_elast_3D(MultiFab& phi_old, MultiFab& disp_X, MultiFab& disp_Y, MultiFab& disp_Z, MultiFab& term4){
 	
 	#ifdef AMREX_USE_OMP

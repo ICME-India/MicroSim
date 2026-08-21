@@ -190,6 +190,123 @@ void mat_inv(Array2D<Real,0,compcount-2,0,compcount-2, Order::C> &denom, Array2D
 
 }
 
+
+void mat_inv_c(Array2D<Real,0,compcount-2,0,compcount-2, Order::C> &denom, Array2D<Real,0,compcount-2,0,compcount-2, Order::C> &inv_denom,int numcomp){
+
+    int size = numcomp-1;
+    Real fact{};
+    Array2D<Real,0,compcount-2,0,compcount-2, Order::C> factor{};
+    Array2D<Real,0,compcount-2,0,compcount-2, Order::C> iden{};
+    Array1D<Real,0,compcount-2> vec1{};
+    Array1D<Real,0,compcount-2> vec{};
+    //making upper traingular matrix
+    for(int m=0; m<size; m++){
+        //pivot
+        Real big = amrex::Math::abs(denom(m,m));
+        int tag1 = m;
+        Real swap{0.0};
+        for(int n=m+1; n<size;n++){
+            if(amrex::Math::abs(denom(n,m))>big){
+                big=denom(n,m);
+            }
+        }
+
+        for(int n=0;n<size;n++)
+	    {
+            swap = denom(m,n);
+            denom(m,n)=denom(tag1,n);
+            denom(tag1,n)=swap;
+        }
+        for(int n=0; n<m; n++)
+        {
+            swap=factor(m,n);
+            factor(m,n)=factor(tag1,n);
+            factor(tag1,n)=swap;
+        }
+
+        //back to loop
+        for(int n=m+1; n<size; n++){
+            fact = -denom(n,m)/denom(m,m);
+            factor(n,m) = -fact;
+            for(int p=m; (p<=size-1); p++){
+                denom(n,p) = fact*denom(m,p)+denom(n,p);
+            }
+        }
+    }
+
+    for(int m=0; m<size; m++) {
+		for(int n=0; n<size; n++)
+		{
+			if(m==n)
+				factor(m,n)=1;
+			if(n>m)
+				factor(m,n)=0;
+		}
+	}
+    
+    //Identity matrix
+    for(int m=0; m<(size);m++)
+	{
+		for(int n=0;n<(size);n++)
+		{
+			if(m==n)
+				iden(m,n)=1;
+			else
+				iden(m,n)=0;
+		}
+	}
+
+    //Forward and backward substitution
+
+    for(int m=0; m<size; m++){
+      
+   
+
+    //forward substitution 
+      double sum;
+      Array1D<Real,0,compcount-2> d;
+    
+      for(int n=0;n<size;n++){
+        d(n)=iden(n,m);
+      }
+        vec1(0)=d(0);
+      for(int n=1; n<size; n++)
+      {
+        sum=0;
+        for(int l=0; l<n; l++){
+          sum=sum-factor(n,l)*vec1(l);
+        }
+        vec1(n)=d(n)+sum;
+      }
+
+
+
+    //backward substitution
+      vec(size-1)=vec1(size-1)*pow(denom(size-1,size-1),-1);
+      for(int n=(size-2); n>=0; n--)
+      {
+        sum=0;
+        for(int l=n+1; l<(size); l++){
+          sum=sum-denom(n,l)*vec(l);
+        }
+
+        vec(n)=(vec1(n)+sum)*pow(denom(n,n),-1);
+      }
+
+
+    //copying to inv
+      for(int n=0; n<(size); n++){
+			  inv_denom(n,m)=vec(n);
+      }
+
+
+    }
+
+    
+
+}
+
+
 void mat_mul2D(Vector<Vector<Vector<Real>>> &dc_dmu,Vector<Vector<Vector<double>>> &diffu,Vector<Vector<Real>> &prod, int sz) {
 	
     Real sum;

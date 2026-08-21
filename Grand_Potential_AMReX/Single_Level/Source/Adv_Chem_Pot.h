@@ -68,6 +68,8 @@ void dmudt_2D(MultiFab& mu_new, MultiFab& mu_old, MultiFab& phi_new, MultiFab& p
 		Real epsilon = eps;
 		int numphase = nump;
 		int numcomp = numcom;
+		int funcw = funcW;
+		int dil = dilute;
 		
 		//delta stores dx, dy and dz -----------------------------------------------------------
 		GpuArray<Real,AMREX_SPACEDIM> delta = geom.CellSizeArray();
@@ -199,7 +201,7 @@ void dmudt_2D(MultiFab& mu_new, MultiFab& mu_old, MultiFab& phi_new, MultiFab& p
 
 					
 
-					if(funcW==1){
+					if(funcw==1){
 
 						if(phiOld(i,j,k,a)*(1.0-phiOld(i,j,k,a))>0.0){
 							s_phi_cent = phiOld(i,j,k,a)*(1.0-hphi(i,j,k,phiOld,a,numphase))/(sqrt(phiOld(i,j,k,a)*(1.0-phiOld(i,j,k,a))));
@@ -248,7 +250,7 @@ void dmudt_2D(MultiFab& mu_new, MultiFab& mu_old, MultiFab& phi_new, MultiFab& p
 
 				}
 				
-				if(funcW==2){
+				if(funcw==2){
 				for(int l=0; l<numcomp-1; l++){
 					
 					jat(iph,l) += (1.0-diffs(a,l,l)/diffs(numphase-1,l,l))*(0.5/sqrt(2))*((c_ip_liq(l)-c_ip(l))*(phiNew(i+1,j,k,a)-phiOld(i+1,j,k,a)) + (c_liq(l)-c(l))*(phiNew(i,j,k,a)-phiOld(i,j,k,a)))*(norm_x(a,iph))*fabs(norm_x(a,iph)*norm_x(numphase-1,iph)+norm_y(a,iph)*norm_y(numphase-1,iph));
@@ -261,13 +263,13 @@ void dmudt_2D(MultiFab& mu_new, MultiFab& mu_old, MultiFab& phi_new, MultiFab& p
 			}
 
 			//Calculating \frac{-\epsilon}{\Delta t} \left (\frac{\partial j_{at}^{x}}{\partial x}  + \frac{\partial j_{at}^{y}}{\partial y} \right ) ---------------------------
-			if(funcW==1){
+			if(funcw==1){
 				for(int l=0; l<numcomp-1;l++){
 					divjat(l) = (jat(iph,l)-jat(imh,l))*(-0.25*M_PI*epsilon)/(delta[X]) + (jat(jph,l)-jat(jmh,l))*(-0.25*M_PI*epsilon)/(delta[Y]);
 				}
 			}
 
-			if(funcW==2){
+			if(funcw==2){
 				for(int l=0; l<numcomp-1;l++){
 					divjat(l) = (jat(iph,l)-jat(imh,l))*(-1.0*epsilon)/(delta[X]) + (jat(jph,l)-jat(jmh,l))*(-1.0*epsilon)/(delta[Y]);
 				}
@@ -358,7 +360,7 @@ void dmudt_2D(MultiFab& mu_new, MultiFab& mu_old, MultiFab& phi_new, MultiFab& p
 
 			}
 
-			if(dilute){
+			if(dil){
 				for(int m=0; m<numcomp-1;m++){
 					inv_denom(m,m) = 1.0/denom(m,m);
 					
@@ -459,6 +461,8 @@ void dmudt_3D(MultiFab& mu_new, MultiFab& mu_old, MultiFab& phi_new, MultiFab& p
 		Real epsilon = eps;
 		int numphase = nump;
 		int numcomp = numcom;
+		int funcw = funcW;
+		int dil = dilute;
 		
 		//delta stores dx, dy and dz -----------------------------------------------------------
 		GpuArray<Real,AMREX_SPACEDIM> delta = geom.CellSizeArray();
@@ -474,7 +478,7 @@ void dmudt_3D(MultiFab& mu_new, MultiFab& mu_old, MultiFab& phi_new, MultiFab& p
 			Array2D <Real, 0, phasecount-1,0, AMREX_SPACEDIM*2,Order::C> norm_y{};
 			Array2D <Real, 0, phasecount-1,0, AMREX_SPACEDIM*2,Order::C> norm_z{};
 			Array1D <Real, 0, AMREX_SPACEDIM*2> mod{};
-			Array2D <Real, 0, phasecount-1,0, AMREX_SPACEDIM*2,Order::C> conct{};
+			//Array2D <Real, 0, phasecount-1,0, AMREX_SPACEDIM*2,Order::C> conct{};
 			Array2D <Real, 0, AMREX_SPACEDIM*2,0,AMREX_SPACEDIM-1,Order::C> gradphi{};
 			Array2D <Real, 0, AMREX_SPACEDIM*2, 0, compcount-2, Order::C> dmu{};
 			Array3D <Real, 0, AMREX_SPACEDIM*2, 0, compcount-2, 0, compcount-2, Order::C> der_M{};
@@ -621,7 +625,7 @@ void dmudt_3D(MultiFab& mu_new, MultiFab& mu_old, MultiFab& phi_new, MultiFab& p
 					c_mu(i,j,k+1,muo,c_kp,der_cmu,BB,AA,numcomp,a);
 					c_mu(i,j,k-1,muo,c_km,der_cmu,BB,AA,numcomp,a);
 
-					if(funcW==1){
+					if(funcw==1){
 					
 
 						if(phiOld(i,j,k,a)*(1.0-phiOld(i,j,k,a))>0.0){
@@ -688,7 +692,7 @@ void dmudt_3D(MultiFab& mu_new, MultiFab& mu_old, MultiFab& phi_new, MultiFab& p
 
 					}
 					
-					if(funcW==2){
+					if(funcw==2){
 
 						for(int l=0; l<numcomp-1; l++){
 							
@@ -705,13 +709,13 @@ void dmudt_3D(MultiFab& mu_new, MultiFab& mu_old, MultiFab& phi_new, MultiFab& p
 			}
 
 			//Calculating \frac{-\epsilon}{\Delta t} \left (\frac{\partial j_{at}^{x}}{\partial x}  + \frac{\partial j_{at}^{y}}{\partial y} \right ) ---------------------------
-			if(funcW==1){
+			if(funcw==1){
 				for(int l=0; l<numcomp-1;l++){
 					divjat(l) = (jat(iph,l)-jat(imh,l))*(-0.25*M_PI*epsilon)/(delta[X]) + (jat(jph,l)-jat(jmh,l))*(-0.25*M_PI*epsilon)/(delta[Y]) + (jat(kph,l)-jat(kmh,l))*(-0.25*M_PI*epsilon)/(delta[Z]);
 				}
 			}
 			
-			if(funcW==2){		
+			if(funcw==2){		
 				for(int l=0; l<numcomp-1;l++){
 					divjat(l) = (jat(iph,l)-jat(imh,l))*(-1.0*epsilon)/(delta[X]) + (jat(jph,l)-jat(jmh,l))*(-1.0*epsilon)/(delta[Y]) + (jat(kph,l)-jat(kmh,l))*(-1.0*epsilon)/(delta[Z]);
 				}
@@ -796,7 +800,7 @@ void dmudt_3D(MultiFab& mu_new, MultiFab& mu_old, MultiFab& phi_new, MultiFab& p
         		}
 			}
 
-			if(dilute){
+			if(dil){
 				for(int m=0; m<numcomp-1;m++){
 					inv_denom(m,m) = 1.0/denom(m,m);
 					
@@ -810,24 +814,24 @@ void dmudt_3D(MultiFab& mu_new, MultiFab& mu_old, MultiFab& phi_new, MultiFab& p
 				}
 			}
 
-			if(!(dilute || binary || ternary)){
-				mat_inv(denom, inv_denom,numcomp);
+			// if(!(dilute || binary || ternary)){
+			// 	mat_inv(denom, inv_denom,numcomp);
 
-				for (int l=0; l < numcomp-1; l++ ) {
-					delta_mu(l) = 0.0;
-					delta_c(l) = 0.0;
+			// 	for (int l=0; l < numcomp-1; l++ ) {
+			// 		delta_mu(l) = 0.0;
+			// 		delta_c(l) = 0.0;
 
-					delta_c(l) = divflux(l) - divjat(l);
+			// 		delta_c(l) = divflux(l) - divjat(l);
 
-          			for (int m=0; m < numcomp-1; m++) {
-            			delta_mu(l) = delta_mu(l) + (divflux(m) - sum_fin(m) - divjat(m))*inv_denom(l,m);
-          			}
+      //     			for (int m=0; m < numcomp-1; m++) {
+      //       			delta_mu(l) = delta_mu(l) + (divflux(m) - sum_fin(m) - divjat(m))*inv_denom(l,m);
+      //     			}
 
-					mun(i,j,k,l) = muo(i,j,k,l) + delta_mu(l);
+			// 		mun(i,j,k,l) = muo(i,j,k,l) + delta_mu(l);
 
-					compn(i,j,k,l) = compo(i,j,k,l) + delta_c(l);
-        		}
-			}
+			// 		compn(i,j,k,l) = compo(i,j,k,l) + delta_c(l);
+      //   		}
+			// }
 			}
 		});
 	}

@@ -140,108 +140,105 @@ void init_phi_cyl_rand(MultiFab& phi_new)
 {	
 	
 	srand(time(0));
-    int count{0};
+  int count{0};
 	
-    Vector<Vector<Vector<long>>> center(cylrand.size(),Vector<Vector<long>>(2,Vector<long>(0,0)));
+  Vector<Vector<Vector<long>>> center(cylrand.size(),Vector<Vector<long>>(2,Vector<long>(0,0)));
 	Vector<Vector<Real>> radi(cylrand.size(),Vector<Real>(0,0.0));
 
 	for(int p =0; p<cylrand.size();p++){
-			int cyl_comp = int(cylrand[p][0]);
-			Real cyl_ppt_rad = cylrand[p][1];
-			Real cyl_vol_frac = cylrand[p][2];
-			Real cyl_shield = cylrand[p][3];
-			Real cyl_spread = cylrand[p][4];
+		int cyl_comp = int(cylrand[p][0]);
+		Real cyl_ppt_rad = cylrand[p][1];
+		Real cyl_vol_frac = cylrand[p][2];
+		Real cyl_shield = cylrand[p][3];
+		Real cyl_spread = cylrand[p][4];
 
-			Real mdev = cyl_spread*cyl_ppt_rad;
-			Real volume_domain = ncellx*ncelly*ncellz;
-			Real volume_per_particle = M_PI*cyl_ppt_rad*cyl_ppt_rad;
+		Real mdev = cyl_spread*cyl_ppt_rad;
+		Real volume_domain = ncellx*ncelly*ncellz;
+		Real volume_per_particle = M_PI*cyl_ppt_rad*cyl_ppt_rad;
 
+		int num_particles = ceil(volume_domain*cyl_vol_frac/volume_per_particle);
 
-			int num_particles = ceil(volume_domain*cyl_vol_frac/volume_per_particle);
+		Print()<<"num particle:"<<num_particles<<"\n";
 
-			Print()<<"num particle:"<<num_particles<<"\n";
+		int part_id{0};
 
-			int part_id{0};
+		center[cyl_comp][0].push_back(long(ncellx*((double)rand())/RAND_MAX));
+		center[cyl_comp][1].push_back(long(ncelly*((double)rand())/RAND_MAX));
+		radi[cyl_comp].push_back(cyl_ppt_rad + (1.0*(((double)rand())/RAND_MAX)-0.5)*mdev);
 
-            center[cyl_comp][0].push_back(long(ncellx*((double)rand())/RAND_MAX));
-			center[cyl_comp][1].push_back(long(ncelly*((double)rand())/RAND_MAX));
-			radi[cyl_comp].push_back(cyl_ppt_rad + (1.0*(((double)rand())/RAND_MAX)-0.5)*mdev);
-
-			while (part_id<num_particles-1){
-                //Print()<<"part:"<<part_id<<"\n";
-				long centx = long(ncellx*((double)rand())/RAND_MAX);
-				long centy = long(ncelly*((double)rand())/RAND_MAX);
-				Real rad = cyl_ppt_rad + (1.0*(((double)rand())/RAND_MAX)-0.5)*mdev;
-
-               // Print()<<"center x:"<<centx<<", center y:"<<centy<<"rad:"<<rad<<"\n";
-               // Print()<<center.size()<<","<<center[cyl_comp].size()<<","<<center[cyl_comp][0].size()<<"\n";
-
-                int overlap=0;
-                
-                if(count!=0){
-			
-                for(int t=0; t<center[cyl_comp][0].size(); t++){
-					if(((center[cyl_comp][0][t]-centx)*(center[cyl_comp][0][t]-centx) + 
-					   (center[cyl_comp][1][t]-centy)*(center[cyl_comp][1][t]-centy)) <= (((cyl_shield+1)*cyl_ppt_rad)*((cyl_shield+1)*cyl_ppt_rad)) ){
+		while (part_id<num_particles-1){
+		Print()<<"part:"<<part_id<<"\n";
+		long centx = long(ncellx*((double)rand())/RAND_MAX);
+		long centy = long(ncelly*((double)rand())/RAND_MAX);
+		Real rad = cyl_ppt_rad + (1.0*(((double)rand())/RAND_MAX)-0.5)*mdev;
+		int overlap=0;
+		Print()<<"after overlap init\n";
 							
-                            overlap=1;
-                            break;
-					}
+		if(count!=0){
+		
+		for(int t=0; t<center[cyl_comp][0].size(); t++){
+			if(((center[cyl_comp][0][t]-centx)*(center[cyl_comp][0][t]-centx) + 
+				(center[cyl_comp][1][t]-centy)*(center[cyl_comp][1][t]-centy)) <= (((cyl_shield+1)*cyl_ppt_rad)*((cyl_shield+1)*cyl_ppt_rad)) ){
+						
+					overlap=1;
+					break;
+				}
+		  }
+		}
+		Print()<<"after cent loop\n";
 
-                    // if(cylrand.size()>0 && cyl_comp!=0){
-                    //     for(int m=0; m<cylrand.size();m++){
-                    //         if(m!=cyl_comp){
-                    //         for(int t=0; t<center[m][0].size(); t++){
-					//             if(((center[m][0][t]-centx)*(center[m][0][t]-centx) + 
-					//                  (center[m][1][t]-centy)*(center[m][1][t]-centy)) <= (((cyl_shield+1)*cyl_ppt_rad)*((cyl_shield+1)*cyl_ppt_rad)) ){
-							
-                    //                     overlap=1;
-                    //                     break;
-					//             }
-                    //         }
-                    //         }
-                    //    	}
-					// }
-                
-                }
-                }
+		if(overlap==0){
+				count++;
+				part_id++;
+				center[cyl_comp][0].push_back(centx);
+				center[cyl_comp][1].push_back(centy);
+				radi[cyl_comp].push_back(rad);
+		}	
+	  Print()<<"after all\n";					
+	}             
+  }
 
-                if(overlap==0){
-                    count++;
-                    part_id++;
-                    center[cyl_comp][0].push_back(centx);
-                    center[cyl_comp][1].push_back(centy);
-					radi[cyl_comp].push_back(rad);
-                }
-                
-			}
+	Print()<<"center size:"<<center.size()<<","<<center[0].size()<<","<<center[0][0].size()<<"\n";
+	Print()<<"radii size:"<<radi.size()<<","<<radi[0].size()<<"\n";
+	Print()<<"cylrand size:"<<cylrand.size()<<"\n";
 
-            
-    }
+
 
 	for (MFIter mfi(phi_new); mfi.isValid(); ++mfi)
 	{
 		const Box& wbx = mfi.validbox();
 		Array4<Real> const& phiNew = phi_new.array(mfi);
 
-		Array3D<long,0,0,0,1,0,30> centr{};		//fix this
+		Array3D<long,0,10,0,1,0,30> centr{};		//fix this
 		for(int a=0; a<nump-1; a++){
 			for(int l=0; l<2; l++){
 				for(int m=0; m<30; m++){
 					centr(a,l,m) = center[a][l][m];
 					//Print()<<"Cent("<<a<<","<<l<<","<<m<<"):"<<center[a][l][m];
 				}
-				Print()<<"\n";
+				//Print()<<"\n";
 			}
 		}
+
+		Array2D<long,0,10,0,30> radii{};		//fix this
+			for(int l=0; l<nump-1; l++){
+				for(int m=0; m<30; m++){
+					radii(l,m) = radi[l][m];
+					//Print()<<"Cent("<<a<<","<<l<<","<<m<<"):"<<center[a][l][m];
+				}
+				Print()<<"\n";
+			}
+
+		int cyl_sz=cylrand.size();
+		int cent_sz=center[0][0].size();
 
 		
 		amrex::ParallelFor(wbx, [=] AMREX_GPU_DEVICE( int i, int j ,int k)
 		{	
 
-			for(int m=0; m<cylrand.size();m++){						//fix this
-                for(int t=0; t<center[m][0].size(); t++){
-					if(((i-center[m][0][t])*(i-center[m][0][t]) + (j-center[m][1][t])*(j-center[m][1][t])) < radi[m][t]*radi[m][t])
+			for(int m=0; m<cyl_sz;m++){						//fix this
+                for(int t=0; t<cent_sz; t++){
+					if(((i-centr(m,0,t))*(i-centr(m,0,t)) + (j-centr(m,1,t))*(j-centr(m,1,t))) < radii(m,t)*radii(m,t))
 				{
 					phiNew(i,j,k,m) = 1.0;
 				}
@@ -257,120 +254,356 @@ void init_phi_cyl_rand(MultiFab& phi_new)
 void init_phi_sph_rand(MultiFab& phi_new)
 {	
 	
-	srand(time(0));
-    int count{0};
+	// srand(time(0));
+  //   int count{0};
 	
-    Vector<Vector<Vector<Real>>> center(sphrand.size(),Vector<Vector<Real>>(3,Vector<Real>(0,0.0)));
-	Vector<Vector<Real>> radi(sphrand.size(),Vector<Real>(0,0.0));
+  //   Vector<Vector<Vector<Real>>> center(sphrand.size(),Vector<Vector<Real>>(3,Vector<Real>(0,0.0)));
+	// Vector<Vector<Real>> radi(sphrand.size(),Vector<Real>(0,0.0));
 
-	for(int p =0; p<sphrand.size();p++){
-			Real sph_comp = sphrand[p][0];
-			Real sph_ppt_rad = sphrand[p][1];
-			Real sph_vol_frac = sphrand[p][2];
-			Real sph_shield = sphrand[p][3];
-			Real sph_spread = sphrand[p][4];
+	// for(int p =0; p<sphrand.size();p++){
+	// 		Real sph_comp = sphrand[p][0];
+	// 		Real sph_ppt_rad = sphrand[p][1];
+	// 		Real sph_vol_frac = sphrand[p][2];
+	// 		Real sph_shield = sphrand[p][3];
+	// 		Real sph_spread = sphrand[p][4];
 
-			Real mdev = sph_spread*sph_ppt_rad;
-			Real volume_domain = ncellx*ncelly*ncellz;
-			Real volume_per_particle = (4.0/3.0)*M_PI*sph_ppt_rad*sph_ppt_rad*sph_ppt_rad;
+	// 		Real mdev = sph_spread*sph_ppt_rad;
+	// 		Real volume_domain = ncellx*ncelly*ncellz;
+	// 		Real volume_per_particle = (4.0/3.0)*M_PI*sph_ppt_rad*sph_ppt_rad*sph_ppt_rad;
 
 
-			int num_particles = ceil(volume_domain*sph_vol_frac/volume_per_particle);
+	// 		int num_particles = ceil(volume_domain*sph_vol_frac/volume_per_particle);
 
-			Print()<<"num particle:"<<num_particles<<"\n";
+	// 		Print()<<"num particle:"<<num_particles<<"\n";
 
-			int part_id{0};
+	// 		int part_id{0};
 
-            center[sph_comp][0].push_back(ncellx*((double)rand())/RAND_MAX);
-			center[sph_comp][1].push_back(ncelly*((double)rand())/RAND_MAX);
-			center[sph_comp][2].push_back(ncellz*((double)rand())/RAND_MAX);
-			radi[sph_comp].push_back(sph_ppt_rad + (1.0*(((double)rand())/RAND_MAX)-0.5)*mdev);
+  //           center[sph_comp][0].push_back(ncellx*((double)rand())/RAND_MAX);
+	// 		center[sph_comp][1].push_back(ncelly*((double)rand())/RAND_MAX);
+	// 		center[sph_comp][2].push_back(ncellz*((double)rand())/RAND_MAX);
+	// 		radi[sph_comp].push_back(sph_ppt_rad + (1.0*(((double)rand())/RAND_MAX)-0.5)*mdev);
 
-			while (part_id<num_particles-1){
-                //Print()<<"part:"<<part_id<<"\n";
-				Real centx = ncellx*((double)rand())/RAND_MAX;
-				Real centy = ncelly*((double)rand())/RAND_MAX;
-				Real centz = ncellz*((double)rand())/RAND_MAX;
-				Real rad = sph_ppt_rad + (1.0*(((double)rand())/RAND_MAX)-0.5)*mdev;
+	// 		while (part_id<num_particles-1){
+  //               //Print()<<"part:"<<part_id<<"\n";
+	// 			Real centx = ncellx*((double)rand())/RAND_MAX;
+	// 			Real centy = ncelly*((double)rand())/RAND_MAX;
+	// 			Real centz = ncellz*((double)rand())/RAND_MAX;
+	// 			Real rad = sph_ppt_rad + (1.0*(((double)rand())/RAND_MAX)-0.5)*mdev;
 
-               // Print()<<"center x:"<<centx<<", center y:"<<centy<<"rad:"<<rad<<"\n";
-               // Print()<<center.size()<<","<<center[cyl_comp].size()<<","<<center[cyl_comp][0].size()<<"\n";
+  //              // Print()<<"center x:"<<centx<<", center y:"<<centy<<"rad:"<<rad<<"\n";
+  //              // Print()<<center.size()<<","<<center[cyl_comp].size()<<","<<center[cyl_comp][0].size()<<"\n";
 
-                int overlap=0;
+  //               int overlap=0;
                 
-                if(count!=0){
+  //               if(count!=0){
 			
-                for(int t=0; t<center[sph_comp][0].size(); t++){
-					if(((center[sph_comp][0][t]-centx)*(center[sph_comp][0][t]-centx) + 
-					   (center[sph_comp][1][t]-centy)*(center[sph_comp][1][t]-centy)+
-					   (center[sph_comp][2][t]-centz)*(center[sph_comp][2][t]-centz)) <= (((sph_shield+1)*sph_ppt_rad)*((sph_shield+1)*sph_ppt_rad)) ){
+  //               for(int t=0; t<center[sph_comp][0].size(); t++){
+	// 				if(((center[sph_comp][0][t]-centx)*(center[sph_comp][0][t]-centx) + 
+	// 				   (center[sph_comp][1][t]-centy)*(center[sph_comp][1][t]-centy)+
+	// 				   (center[sph_comp][2][t]-centz)*(center[sph_comp][2][t]-centz)) <= (((sph_shield+1)*sph_ppt_rad)*((sph_shield+1)*sph_ppt_rad)) ){
 							
-                            overlap=1;
-                            break;
-					   }
+  //                           overlap=1;
+  //                           break;
+	// 				   }
 
-                       if(sphrand.size()>0 && sph_comp!=0){
-                        for(int m=0; m<sphrand.size();m++){
-                            if(m!=sph_comp){
-                            for(int t=0; t<center[m][0].size(); t++){
-					            if(((center[m][0][t]-centx)*(center[m][0][t]-centx) + 
-					                 (center[m][1][t]-centy)*(center[m][1][t]-centy) + 
-									  (center[m][2][t]-centz)*(center[m][2][t]-centz)) <= (((sph_shield+1)*sph_ppt_rad)*((sph_shield+1)*sph_ppt_rad)) ){
+  //                      if(sphrand.size()>0 && sph_comp!=0){
+  //                       for(int m=0; m<sphrand.size();m++){
+  //                           if(m!=sph_comp){
+  //                           for(int t=0; t<center[m][0].size(); t++){
+	// 				            if(((center[m][0][t]-centx)*(center[m][0][t]-centx) + 
+	// 				                 (center[m][1][t]-centy)*(center[m][1][t]-centy) + 
+	// 								  (center[m][2][t]-centz)*(center[m][2][t]-centz)) <= (((sph_shield+1)*sph_ppt_rad)*((sph_shield+1)*sph_ppt_rad)) ){
 							
-                                        overlap=1;
-                                        break;
-					            }
-                            }
-                            }
-                       }
-				}
+  //                                       overlap=1;
+  //                                       break;
+	// 				            }
+  //                           }
+  //                           }
+  //                      }
+	// 			}
                 
-                }
-                }
+  //               }
+  //               }
 
-                if(overlap==0){
-                    count++;
-                    part_id++;
-                    center[sph_comp][0].push_back(centx);
-                    center[sph_comp][1].push_back(centy);
-					center[sph_comp][2].push_back(centz);
-					radi[sph_comp].push_back(rad);
-                }
+  //               if(overlap==0){
+  //                   count++;
+  //                   part_id++;
+  //                   center[sph_comp][0].push_back(centx);
+  //                   center[sph_comp][1].push_back(centy);
+	// 				center[sph_comp][2].push_back(centz);
+	// 				radi[sph_comp].push_back(rad);
+  //               }
                 
-			}
+	// 		}
 
             
+  //   }
+
+	// for (MFIter mfi(phi_new); mfi.isValid(); ++mfi)
+	// {
+	// 	const Box& wbx = mfi.validbox();
+	// 	Array4<Real> const& phiNew = phi_new.array(mfi);
+
+	// 	Array3D<Real,0,0,0,1,0,30> centr{};
+	// 	for(int a=0; a<center.size(); a++){
+	// 		for(int l=0; l<center[0].size(); l++){
+	// 			for(int m=0; m<center[0][0].size(); m++){
+	// 				centr(a,l,m) = center[a][l][m];
+	// 			}
+	// 		}
+	// 	}
+
+	// 	int sp_sz=sphrand.size();
+	// 	int cent_sz=center[0][0].size();
+		
+	// 	amrex::ParallelFor(wbx, [=] AMREX_GPU_DEVICE( int i, int j ,int k)
+	// 	{	
+
+	// 		for(int m=0; m<sp_sz;m++){
+  //               for(int t=0; t<cent_sz; t++){
+	// 				if(((i-center[m][0][t])*(i-center[m][0][t]) + (j-center[m][1][t])*(j-center[m][1][t]) + (k-center[m][2][t])*(k-center[m][2][t])) < radi[m][t]*radi[m][t])
+	// 			{
+	// 				phiNew(i,j,k,m) = 1.0;
+	// 			}
+	// 		} 
+	// 		}
+	// 	});
+		
+	// }
+
+
+	
+    // ------------------------------------------------------------
+    // Particle generation is done on the CPU.
+    // ------------------------------------------------------------
+    std::srand(static_cast<unsigned int>(std::time(nullptr)));
+
+    const int ncomp = static_cast<int>(sphrand.size());
+
+    // Flattened host arrays.
+    // Each particle has:
+    //   center_x[p]
+    //   center_y[p]
+    //   center_z[p]
+    //   radius[p]
+    //   species[p]
+    //
+    // This layout is much easier to transfer to the GPU.
+    std::vector<Real> h_center_x;
+    std::vector<Real> h_center_y;
+    std::vector<Real> h_center_z;
+    std::vector<Real> h_radius;
+    std::vector<int>  h_species;
+
+    // ------------------------------------------------------------
+    // Generate random particles
+    // ------------------------------------------------------------
+    for (int p = 0; p < ncomp; ++p)
+    {
+        // sph_comp should represent a component/species index.
+        const int sph_comp = static_cast<int>(sphrand[p][0]);
+
+        const Real sph_ppt_rad  = sphrand[p][1];
+        const Real sph_vol_frac = sphrand[p][2];
+        const Real sph_shield   = sphrand[p][3];
+        const Real sph_spread   = sphrand[p][4];
+
+        const Real mdev = sph_spread * sph_ppt_rad;
+
+        const Real volume_domain =
+            static_cast<Real>(ncellx) *
+            static_cast<Real>(ncelly) *
+            static_cast<Real>(ncellz);
+
+        const Real volume_per_particle =
+            (4.0 / 3.0) * M_PI *
+            sph_ppt_rad * sph_ppt_rad * sph_ppt_rad;
+
+        const int num_particles =
+            static_cast<int>(
+                std::ceil(volume_domain * sph_vol_frac /
+                          volume_per_particle));
+
+        Print() << "species = " << sph_comp
+                << ", num particles = " << num_particles << "\n";
+
+        // --------------------------------------------------------
+        // Generate particles for this species
+        // --------------------------------------------------------
+        int part_id = 0;
+
+        while (part_id < num_particles)
+        {
+            const Real centx =
+                static_cast<Real>(ncellx) *
+                static_cast<Real>(std::rand()) / RAND_MAX;
+
+            const Real centy =
+                static_cast<Real>(ncelly) *
+                static_cast<Real>(std::rand()) / RAND_MAX;
+
+            const Real centz =
+                static_cast<Real>(ncellz) *
+                static_cast<Real>(std::rand()) / RAND_MAX;
+
+            const Real rad =
+                sph_ppt_rad +
+                (static_cast<Real>(std::rand()) / RAND_MAX - 0.5) *
+                mdev;
+
+            int overlap = 0;
+
+            const Real shield_dist =
+                (sph_shield + 1.0) * sph_ppt_rad;
+
+            const Real shield_dist2 =
+                shield_dist * shield_dist;
+
+            // ----------------------------------------------------
+            // Check overlap with all previously generated particles
+            // ----------------------------------------------------
+            for (std::size_t t = 0; t < h_center_x.size(); ++t)
+            {
+                const Real dx = h_center_x[t] - centx;
+                const Real dy = h_center_y[t] - centy;
+                const Real dz = h_center_z[t] - centz;
+
+                const Real dist2 = dx * dx + dy * dy + dz * dz;
+
+                if (dist2 <= shield_dist2)
+                {
+                    overlap = 1;
+                    break;
+                }
+            }
+
+            // ----------------------------------------------------
+            // Add particle if there is no overlap
+            // ----------------------------------------------------
+            if (!overlap)
+            {
+                h_center_x.push_back(centx);
+                h_center_y.push_back(centy);
+                h_center_z.push_back(centz);
+                h_radius.push_back(rad);
+                h_species.push_back(sph_comp);
+
+                ++part_id;
+            }
+        }
     }
 
-	for (MFIter mfi(phi_new); mfi.isValid(); ++mfi)
-	{
-		const Box& wbx = mfi.validbox();
-		Array4<Real> const& phiNew = phi_new.array(mfi);
+    const int num_particles =
+        static_cast<int>(h_radius.size());
 
-		Array3D<Real,0,0,0,1,0,30> centr{};
-		for(int a=0; a<center.size(); a++){
-			for(int l=0; l<center[0].size(); l++){
-				for(int m=0; m<center[0][0].size(); m++){
-					centr(a,l,m) = center[a][l][m];
-				}
-			}
-		}
+    Print() << "Total particles = "
+            << num_particles << "\n";
 
-		
-		amrex::ParallelFor(wbx, [=] AMREX_GPU_DEVICE( int i, int j ,int k)
-		{	
 
-			for(int m=0; m<sphrand.size();m++){
-                for(int t=0; t<center[m][0].size(); t++){
-					if(((i-center[m][0][t])*(i-center[m][0][t]) + (j-center[m][1][t])*(j-center[m][1][t]) + (k-center[m][2][t])*(k-center[m][2][t])) < radi[m][t]*radi[m][t])
-				{
-					phiNew(i,j,k,m) = 1.0;
-				}
-			}
-			}
-		});
-		
-	}
+    // ------------------------------------------------------------
+    // Allocate device arrays.
+    //
+    // DeviceVector works in both CPU and GPU AMReX builds.
+    // ------------------------------------------------------------
+    amrex::Gpu::DeviceVector<Real> d_center_x(num_particles);
+    amrex::Gpu::DeviceVector<Real> d_center_y(num_particles);
+    amrex::Gpu::DeviceVector<Real> d_center_z(num_particles);
+    amrex::Gpu::DeviceVector<Real> d_radius(num_particles);
+    amrex::Gpu::DeviceVector<int>  d_species(num_particles);
+
+    // ------------------------------------------------------------
+    // Copy particle data from host -> device
+    // ------------------------------------------------------------
+    amrex::Gpu::copy(
+        amrex::Gpu::hostToDevice,
+        h_center_x.begin(),
+        h_center_x.end(),
+        d_center_x.begin());
+
+    amrex::Gpu::copy(
+        amrex::Gpu::hostToDevice,
+        h_center_y.begin(),
+        h_center_y.end(),
+        d_center_y.begin());
+
+    amrex::Gpu::copy(
+        amrex::Gpu::hostToDevice,
+        h_center_z.begin(),
+        h_center_z.end(),
+        d_center_z.begin());
+
+    amrex::Gpu::copy(
+        amrex::Gpu::hostToDevice,
+        h_radius.begin(),
+        h_radius.end(),
+        d_radius.begin());
+
+    amrex::Gpu::copy(
+        amrex::Gpu::hostToDevice,
+        h_species.begin(),
+        h_species.end(),
+        d_species.begin());
+
+
+    // ------------------------------------------------------------
+    // Initialize phi to zero.
+    // ------------------------------------------------------------
+    phi_new.setVal(0.0);
+
+
+    // ------------------------------------------------------------
+    // Get raw device pointers.
+    //
+    // These pointers can safely be captured by the GPU lambda.
+    // ------------------------------------------------------------
+    const Real* center_x = d_center_x.data();
+    const Real* center_y = d_center_y.data();
+    const Real* center_z = d_center_z.data();
+    const Real* radius   = d_radius.data();
+    const int*  species  = d_species.data();
+
+
+    // ------------------------------------------------------------
+    // Fill phi
+    // ------------------------------------------------------------
+    for (MFIter mfi(phi_new); mfi.isValid(); ++mfi)
+    {
+        const Box& box = mfi.validbox();
+
+        Array4<Real> phi = phi_new.array(mfi);
+
+        amrex::ParallelFor(
+            box,
+            [=] AMREX_GPU_DEVICE(int i, int j, int k) noexcept
+            {
+                // Loop over all particles
+                for (int p = 0; p < num_particles; ++p)
+                {
+                    const Real dx =
+                        static_cast<Real>(i) - center_x[p];
+
+                    const Real dy =
+                        static_cast<Real>(j) - center_y[p];
+
+                    const Real dz =
+                        static_cast<Real>(k) - center_z[p];
+
+                    const Real dist2 =
+                        dx * dx + dy * dy + dz * dz;
+
+                    const Real r = radius[p];
+
+                    if (dist2 < r * r)
+                    {
+                        const int comp = species[p];
+
+                        phi(i, j, k, comp) = 1.0;
+                    }
+                }
+            });
+    }
+
+
 }
 
 void init_phi_cube_rand_variants(MultiFab& phi_new){
@@ -539,11 +772,13 @@ void init_phi_cube_rand_variants(MultiFab& phi_new){
 		for(int l=0; l<variant.size(); l++){
 			phas(l) = variant[l];
 		}
+
+		int cent_sz = cube_cent.size();
 			
 		//Print()<<"here3\n";
 		amrex::ParallelFor( wbx, [=] AMREX_GPU_DEVICE( int i, int j ,int k)
 		{	
-			for(int m=0; m< cube_cent.size();m++){
+			for(int m=0; m< cent_sz; m++){
 					
 					#if (AMREX_SPACEDIM==2)
 					if(i>cubes(m,0) && 
@@ -748,11 +983,17 @@ void init_phi_voronoi_2D(MultiFab& phi_new){
     	int gidy1{0};
 		long rand_x, rand_y;
     	int Phase_filled=0;
-		Gpu::AsyncVector<Real> flag(ncellx*ncelly,0.0);
-		Gpu::DeviceVector<Real> phi(ncellx*ncelly,0.0);
-		Gpu::AsyncVector<Real> n(Vnp,0.0);
-		Gpu::AsyncVector<Real> m(Vnp,0.0);
-		Gpu::AsyncVector<Real> phase(Vnp,0.0);
+		// Gpu::AsyncVector<Real> flag(ncellx*ncelly,0.0);
+		// Gpu::DeviceVector<Real> phi(ncellx*ncelly,0.0);
+		// Gpu::AsyncVector<Real> n(Vnp,0.0);
+		// Gpu::AsyncVector<Real> m(Vnp,0.0);
+		// Gpu::AsyncVector<Real> phase(Vnp,0.0);
+
+		amrex::Vector<Real> flag(ncellx*ncelly,0.0);
+		amrex::Vector<Real> phi(ncellx*ncelly,0.0);
+		amrex::Vector<Real> n(Vnp,0.0);
+		amrex::Vector<Real> m(Vnp,0.0);
+		amrex::Vector<Real> phase(Vnp,0.0);
 
 		long limit_x = Vx_hi-Vx_lo;
 		long limit_y = Vy_hi-Vy_lo;
@@ -793,7 +1034,8 @@ void init_phi_voronoi_2D(MultiFab& phi_new){
 
 		Real minimum{0.0};
         int location{0};
-		Gpu::AsyncVector<Real> l(Vnp, 0.0); 
+		//Gpu::AsyncVector<Real> l(Vnp, 0.0);
+			amrex::Vector<Real> l(Vnp, 0.0);
 
 		for (int x = 0; x < ncellx; x++) {
 			for (int y = 0; y < ncelly; y++) {
@@ -821,20 +1063,22 @@ void init_phi_voronoi_2D(MultiFab& phi_new){
 			}
 		}
 
-	Gpu::DeviceVector<Real> ph(phi.size());
-	Gpu::copy(Gpu::hostToDevice, phi.begin(), phi.end(), ph.begin());
-
 	for (MFIter mfi(phi_new); mfi.isValid(); ++mfi) {
-        const Box& wbx = mfi.validbox();
-        Array4<Real> const& phiNew = phi_new.array(mfi);
+    const Box& wbx = mfi.validbox();
+    Array4<Real> const& phiNew = phi_new.array(mfi);
 		int numphase=nump;
 		int ncy=ncelly;
 
-        amrex::ParallelFor(wbx, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
+	Gpu::DeviceVector<Real> ph(phi.size());
+	Gpu::copy(Gpu::hostToDevice, phi.begin(), phi.end(), ph.begin());
+
+	auto const* ph_ptr = ph.data();
+
+    amrex::ParallelFor(wbx, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
             
 		int ind = i*ncy+j;
 		for (int s = 0; s < numphase - 1; s++) {
-			if(ph[ind]==s){
+			if(ph_ptr[ind]==s){
 				phiNew(i,j,k,s)=1.0;
 			}
 			else{
@@ -945,7 +1189,7 @@ void Init_mu (MultiFab& mu_new, MultiFab& phi_new)
 			int val = -1;
 			//Gpu::DeviceVector <Real> flag(numphase,0.0);
 
-			for(int a=0; a<nump-1; a++){
+			for(int a=0; a<numphase-1; a++){
 				if(phiNew(i,j,k,a)==1.0){
 					val=a;
 					//Print()<<"val in one:"<<val<<"\n";
@@ -978,10 +1222,10 @@ void Init_mu (MultiFab& mu_new, MultiFab& phi_new)
 					for(int m=0; m<numcomp-1; m++){
 				
 						if(l==m){
-							sum += 2.0*A_fill(nump-1,l,m)*cfill(nump-1,nump-1,m);
+							sum += 2.0*A_fill(numphase-1,l,m)*cfill(numphase-1,numphase-1,m);
 						}
 						else{
-							sum += A_fill(nump-1,l,m)*cfill(nump-1,nump-1,m);
+							sum += A_fill(numphase-1,l,m)*cfill(numphase-1,numphase-1,m);
 						}
 						//Print()<<"A["<<nump-1<<","<<l<<","<<m<<"]: "<<A_fill(nump-1,l,m)<<"\n";
 					}
@@ -1024,7 +1268,7 @@ void Init_comp(MultiFab& phi_new, MultiFab& comp_new){
 		
 		amrex::ParallelFor( pbx, [=] AMREX_GPU_DEVICE( int i, int j ,int k)
 		{		
-				Real sum{0.0};
+				//Real sum{0.0};
 				int val{0};
 
 				for(int a=0; a<numphase-1; a++){
@@ -1040,7 +1284,7 @@ void Init_comp(MultiFab& phi_new, MultiFab& comp_new){
 
 				if(val==0){
 					for(int l=0; l<numcomp-1; l++){
-						compNew(i,j,k,l) = cfill(nump-1,nump-1,l);;
+						compNew(i,j,k,l) = cfill(numphase-1,numphase-1,l);;
 					}
 				}
 
