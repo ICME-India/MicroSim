@@ -1,0 +1,12 @@
+# Core Scientific Computing
+numpy>=1.20.0
+scipy>=1.7.0
+matplotlib>=3.3.0
+pandas>=1.2.0
+pillow>=8.0.0
+
+# Parallel MPI Execution
+mpi4py>=3.0.0
+
+# Phase-Field Studio Web Dashboard
+flask>=2.0.0

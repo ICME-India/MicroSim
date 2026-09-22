@@ -1,0 +1,18 @@
+# CMake build artifacts and machine-specific cache
+build/
+CMakeCache.txt
+CMakeFiles/
+
+# Python cache & virtual environments
+__pycache__/
+*.pyc
+*.egg-info/
+.venv/
+venv/
+
+# Version control & simulation results
+.git/
+.gitignore
+Testing/
+results/
+results_*/

@@ -1,0 +1,356 @@
+Metadata-Version: 2.1
+Name: mcch-solver
+Version: 1.0.0
+Summary: Generalized Multi-Component Cahn-Hilliard Phase-Field Solver & Studio
+Author: MCCH Team
+License: MIT
+Keywords: phase-field,cahn-hilliard,materials-science,mpi,cuda,spectral-methods
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
+Requires-Dist: numpy >=1.20.0
+Requires-Dist: scipy >=1.7.0
+Requires-Dist: matplotlib >=3.3.0
+Requires-Dist: pandas >=1.2.0
+Requires-Dist: pillow >=8.0.0
+Requires-Dist: flask >=2.0.0
+Provides-Extra: gpu
+Requires-Dist: cupy >=9.0.0 ; extra == 'gpu'
+Provides-Extra: mpi
+Requires-Dist: mpi4py >=3.0.0 ; extra == 'mpi'
+
+# Generalized Multi-Component Cahn-Hilliard Solver (MPI Slab Parallelization)
+
+A high-performance, modular C++17 solver for the **Generalized Multi-Component Cahn-Hilliard (MCCH)** phase-field equations on structured 2D and 3D grids, parallelized using **MPI 1D Slab (Pencil) Domain Decomposition**.
+
+---
+
+## 1. Mathematical Formulation
+
+### 1.1 Free Energy Functional
+For an $N$-component chemical system with local compositions $\mathbf{c}(\mathbf{x}, t) = [c_0, c_1, \dots, c_{N-1}]^T$ subject to the physical constraint:
+$$\sum_{i=0}^{N-1} c_i(\mathbf{x}, t) = 1$$
+
+The total Helmholtz/Gibbs free energy functional is:
+$$F[\mathbf{c}] = \int_{\Omega} \left[ f_0(\mathbf{c}) + \frac{1}{2} \sum_{i,j=0}^{N-1} \kappa_{ij} \nabla c_i \cdot \nabla c_j \right] d\mathbf{x}$$
+
+where:
+- $f_0(\mathbf{c})$ is the bulk homogeneous free energy density.
+- $\kappa_{ij}$ is the symmetric gradient energy tensor.
+
+### 1.2 Chemical Potentials & Projection
+The variational derivative with respect to composition $c_i$ yields the raw chemical potential:
+$$\mu_i = \frac{\delta F}{\delta c_i} = \frac{\partial f_0}{\partial c_i} - \sum_{j=0}^{N-1} \kappa_{ij} \nabla^2 c_j$$
+
+To satisfy the Gibbs-Duhem relation and maintain $\sum_i c_i = 1$, the projected (diffusion) chemical potentials $\tilde{\mu}_i$ are:
+$$\tilde{\mu}_i = \mu_i - \bar{\mu}, \quad \text{where } \bar{\mu} = \frac{1}{N} \sum_{k=0}^{N-1} \mu_k$$
+
+### 1.3 Evolution Equations & Onsager Mobilities
+Mass conservation for each component satisfies the continuity equation:
+$$\frac{\partial c_i}{\partial t} = -\nabla \cdot \mathbf{J}_i$$
+
+The generalized Onsager diffusion fluxes are given by:
+$$\mathbf{J}_i = -\sum_{j=0}^{N-1} M_{ij}(\mathbf{c}) \nabla \tilde{\mu}_j$$
+
+The solver supports two mobility formulations:
+1. **Constant / Isotropic Mobility**: $M_{ij} = M_0 \delta_{ij} \implies \frac{\partial c_i}{\partial t} = M_0 \nabla^2 \tilde{\mu}_i$.
+2. **Degenerate Onsager Mobility**: $M_{ij}(\mathbf{c}) = M_0 (c_i \delta_{ij} - c_i c_j)$, guaranteeing zero flux when $c_i = 0$ and identically satisfying $\sum_i \mathbf{J}_i = \mathbf{0}$.
+
+### 1.4 Thermodynamic Models Implemented
+- **Regular Solution Model** (Calphad / Flory-Huggins / Bragg-Williams):
+  $$f_0(\mathbf{c}) = R T \sum_{i=0}^{N-1} c_i \ln(c_i + \epsilon) + \sum_{i < j} \Omega_{ij} c_i c_j$$
+- **Polynomial Multi-Well Model**:
+  $$f_0(\mathbf{c}) = \sum_{i < j} W_{ij} c_i^2 c_j^2 + \sum_i A_i c_i^2 (1 - c_i)^2$$
+- **Binary Double-Well Model**:
+  $$f_0(c_0) = W c_0^2 (1 - c_0)^2$$
+
+### 1.5 Semi-Implicit Fourier Spectral Solvers (FFTW with MPI)
+In standard explicit time integration (Euler, RK2, RK4), the stiff 4th-order biharmonic operator $-M_0 \sum_j \kappa_{ij} \nabla^4 c_j$ severely restricts the maximum stable time step by the 4th-order CFL condition:
+$$\Delta t \le C \frac{\Delta x^4}{M_0 \kappa}$$
+
+To eliminate this restriction, the library provides **Semi-Implicit Fourier Spectral Solvers** parallelized using **FFTW 3 with MPI**:
+- **Semi-Implicit Euler (Chen & Shen 1998)**:
+  $$\hat{\mathbf{c}}^{n+1}(\mathbf{k}) = \left[ \mathbf{I} + \Delta t M_0 (k^4 \boldsymbol{\kappa} + S k^2 \mathbf{I}) \right]^{-1} \left( \hat{\mathbf{c}}^n(\mathbf{k}) - \Delta t M_0 k^2 (\widehat{\tilde{\boldsymbol{\mu}}}_0^n(\mathbf{k}) - S \hat{\mathbf{c}}^n(\mathbf{k})) \right)$$
+- **Semi-Implicit BDF2 (SBDF2, 2nd-order multi-step)**:
+  $$\hat{\mathbf{c}}^{n+1}(\mathbf{k}) = \left[ 3\mathbf{I} + 2\Delta t M_0 (k^4 \boldsymbol{\kappa} + S k^2 \mathbf{I}) \right]^{-1} \left( 4\hat{\mathbf{c}}^n - \hat{\mathbf{c}}^{n-1} - 2\Delta t M_0 k^2 (2\widehat{\tilde{\boldsymbol{\mu}}}_0^n - \widehat{\tilde{\boldsymbol{\mu}}}_0^{n-1}) + 2\Delta t M_0 S k^2 (2\hat{\mathbf{c}}^n - \hat{\mathbf{c}}^{n-1}) \right)$$
+
+where:
+- $k^2 = k_x^2 + k_y^2 + k_z^2$ is the Fourier wavenumber magnitude.
+- The 4th-order biharmonic term is integrated **implicitly**, guaranteeing unconditional linear stability with respect to the biharmonic operator.
+- The non-linear bulk potential $\tilde{\boldsymbol{\mu}}_0$ is evaluated explicitly in physical space.
+- $S \ge 0$ is an optional Eyre-type convex-concave stabilization parameter.
+- The zeroth Fourier mode ($\mathbf{k} = \mathbf{0}$) satisfies $k^2 = 0$, guaranteeing **exact mass conservation** down to machine precision ($\sim 10^{-16}$).
+
+---
+
+## 2. Slab Parallelization Architecture (MPI)
+
+In **1D slab decomposition**, the computational domain ($N_x \times N_y \times N_z$) is partitioned along the outer coordinate axis ($x$) across $P$ MPI ranks:
+- Each rank owns $N_{x,\text{local}} = \lfloor N_x / P \rfloor + (r < (N_x \pmod P) ? 1 : 0)$ slabs.
+- Global $x$-coordinate range: $[x_{\text{start}}, x_{\text{end}})$.
+- Each rank holds the entire span along $y$ and $z$ ($N_y \times N_z$).
+
+```
+Global Domain [Nx x Ny x Nz]:
++-----------------+-----------------+-----------------+-----------------+
+|   Rank 0 Slab   |   Rank 1 Slab   |   Rank 2 Slab   |   Rank 3 Slab   |
+| [0 .. Nx/4 - 1] | [Nx/4 .. Nx/2-1]| [Nx/2 .. 3Nx/4-1| [3Nx/4 .. Nx-1] |
++-----------------+-----------------+-----------------+-----------------+
+       <--->             <--->             <--->             <--->
+    Ghost Layer       Ghost Layer       Ghost Layer       Ghost Layer
+```
+
+### Advantages of Slab Decomposition
+1. **Contiguous Zero-Copy Memory Layout**: In C/C++ row-major order (`(i * ny + j) * nz + k`), a slice at constant $x$ is contiguous in memory. Ghost buffers can be sent/received directly via `MPI_Isend` / `MPI_Irecv` without pack/unpack buffers!
+2. **Minimal Communication Topology**: Each rank communicates only with its left ($r-1$) and right ($r+1$) neighbors.
+3. **Boundary Conditions**:
+   - **Periodic**: Rank 0 wraps with rank $P-1$.
+   - **Neumann (No-Flux)**: Rank 0 mirrors its left interior boundary; rank $P-1$ mirrors its right interior boundary.
+
+---
+
+## 3. GPU Parallelization Architecture (CUDA + MPI)
+
+The explicit time integrators (**Forward Euler**, **2nd-Order Runge-Kutta / RK2**, and **Classical 4th-Order Runge-Kutta / RK4**) are fully accelerated on NVIDIA GPUs using modern CUDA C++ kernels integrated with MPI slab domain decomposition:
+
+### 3.1 Kernel Pipeline on GPU
+All compute-intensive operations execute entirely within high-throughput GPU threads without round-trip host synchronization during intermediate stages:
+1. **Chemical Potential Kernel (`kernel_compute_chemical_potentials`)**:
+   - Evaluates discrete Laplacians $\nabla^2 c_m$ in 2D/3D.
+   - Evaluates non-linear thermodynamic derivatives $\partial f_0 / \partial c_m$ (Polynomial Multi-Well, Regular Solution / Flory-Huggins, Binary Double-Well).
+   - Forms raw chemical potentials $\mu_m = \partial f_0 / \partial c_m - \sum_n \kappa_{mn} \nabla^2 c_n$.
+   - Projects potentials $\tilde{\mu}_m = \mu_m - \frac{1}{N}\sum_k \mu_k$ enforcing zero net flux.
+2. **Ghost Exchange Handling**:
+   - **Single GPU ($P = 1$)**: Fast in-device boundary kernel (`kernel_apply_x_boundary`) copies boundary slices directly within GPU VRAM with zero PCIe overhead.
+   - **Multi-GPU ($P > 1$)**: Pinned host buffers (`cudaMallocHost`) enable asynchronous high-bandwidth transfers overlapping with non-blocking `MPI_Isend` / `MPI_Irecv`.
+3. **Flux Divergence Kernel (`kernel_compute_flux_divergence`)**:
+   - Fast path for constant isotropic mobility: $M_0 \nabla^2 \tilde{\mu}_m$.
+   - Conservative face-flux formulation for degenerate Onsager mobility $M_{ij} = M_0 (c_i \delta_{ij} - c_i c_j)$.
+4. **Time Stepper Update Kernels**:
+   - **Euler**: `kernel_euler_update` ($c \leftarrow c + \Delta t \cdot \text{RHS}$).
+   - **RK2**: Stage update `kernel_rk_stage_update` and combination `kernel_rk2_combine` ($c \leftarrow c + 0.5 \Delta t (k_1 + k_2)$).
+   - **RK4**: Multi-stage updates and combination `kernel_rk4_combine` ($c \leftarrow c + \frac{\Delta t}{6} (k_1 + 2k_2 + 2k_3 + k_4)$).
+5. **Partition of Unity Kernel (`kernel_normalize_unity`)**:
+   - Enforces $\sum_{m=0}^{N-1} c_m = 1$ locally on GPU at machine precision.
+
+---
+
+## 4. Directory Structure
+
+```
+.
+├── CMakeLists.txt              # CMake build configuration (optional CUDA support)
+├── README.md                   # Full documentation & verification report
+├── include/
+│   ├── CudaCommon.hpp          # CUDA error handling, device enums, POD parameter structs
+│   ├── CudaSolver.hpp          # GPU solver engine, device allocations, kernel interfaces
+│   ├── MPIContext.hpp          # Slab communicator, rank mapping, non-blocking ghost exchange
+│   ├── Grid.hpp                # Structured 2D/3D grid, slab indexing, coordinate transforms
+│   ├── FreeEnergy.hpp          # Free energy models (Regular Solution, Multi-Well, Double-Well)
+│   ├── Mobility.hpp            # Constant, Degenerate Onsager, and Matrix mobility models
+│   ├── Solver.hpp              # MCCH solver engine, chemical potentials, RK2/RK4 & GPU dispatch
+│   ├── FFTWSolver.hpp          # Parallel Semi-Implicit Fourier Spectral solver (FFTW with MPI)
+│   ├── IO.hpp                  # Legacy VTK Structured Points, CSV diagnostics, binary checkpoints
+│   └── Config.hpp              # JSON simulation parameter parser
+├── src/
+│   ├── CudaKernels.cu          # CUDA device kernels for Euler, RK2, RK4, potentials, fluxes
+│   ├── Config.cpp              # Lightweight tokenizer and JSON parser
+│   └── main.cpp                # CLI entry point, simulation loop, GPU detection & profiling
+├── tests/
+│   ├── test_gpu.cpp            # GPU Euler, RK2, RK4 accuracy and energy dissipation test
+│   ├── test_slab_mpi.cpp       # Ghost cell transfer & slab coverage test (1, 2, 4 ranks)
+│   ├── test_mass_conservation.cpp # Discrete mass conservation check (drift < 1e-15)
+│   ├── test_free_energy_decrease.cpp # Thermodynamic consistency test (dF/dt <= 0)
+│   ├── test_multicomponent.cpp # 4-component and 3D simulation verification
+│   └── test_semi_implicit.cpp  # Semi-Implicit Euler & SBDF2 FFTW MPI test (1, 2, 4 ranks)
+├── examples/
+│   ├── gpu_ternary_spinodal.json # GPU accelerated RK4 ternary spinodal benchmark
+│   ├── gpu_explicit_euler.json # GPU accelerated explicit Euler benchmark
+│   ├── binary_spinodal.json    # 2-component spinodal decomposition benchmark
+│   ├── ternary_spinodal.json   # 3-component spinodal decomposition (tri-junctions)
+│   ├── ternary_droplet.json    # 3-component droplet with Neumann (no-flux) BCs
+│   ├── regular_solution_3comp.json # Flory-Huggins with degenerate mobility
+│   ├── 3d_spinodal.json        # 3D multi-component phase separation
+│   ├── semi_implicit_spinodal.json # Semi-implicit Euler benchmark (large dt = 0.1)
+│   └── semi_implicit_bdf2_spinodal.json # Second-order SBDF2 benchmark (dt = 0.1)
+└── python/
+    ├── mcch_solver.py          # Standalone parallel Python/mpi4py & CuPy GPU reference solver
+    ├── plot_diagnostics.py     # Diagnostics plotting (energy dissipation, mass conservation)
+    └── visualize_vtk.py        # VTK 2D slice visualizer & RGB composite phase map renderer
+```
+
+---
+
+## 4. Building and Installation
+
+The solver can be built and installed portably across Linux distributions, macOS (Apple Silicon & Intel), Conda environments, and HPC clusters. For complete step-by-step instructions for all operating systems, see [**`INSTALL.md`**](INSTALL.md).
+
+### 4.1 Quick Start (Automated Installer)
+Use the universal installer script to automatically detect your system environment, compilers, and hardware accelerators:
+
+```bash
+# Standard user installation into ~/.local or active Conda prefix
+./install.sh --test
+
+# Non-root installation using Conda / Mamba:
+./install.sh --conda
+
+# Automated system installation with dependencies (requires sudo):
+./install.sh --system-deps --test
+```
+
+### 4.2 Manual CMake Build & Installation
+```bash
+# Configure, build, test, and install
+cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=$HOME/.local
+cmake --build build -j$(nproc)
+(cd build && ctest --output-on-failure)
+cmake --install build
+```
+
+### 4.3 Containerized Execution (Docker & Apptainer)
+```bash
+# Docker (Web App Studio on port 5000):
+docker build -t mcch-solver .
+docker run -p 5000:5000 --rm -it mcch-solver
+
+# Apptainer / Singularity (HPC Supercomputers):
+apptainer build mcch.sif Apptainer.def
+srun apptainer exec --nv mcch.sif mcch_solver -c examples/ternary_spinodal.json
+```
+
+### 4.4 Verification Test Suite
+The project includes a 12-test MPI/thermodynamic verification suite running across 1, 2, and 4 MPI ranks:
+```bash
+cd build && ctest --output-on-failure
+```
+- `TestSlabMPI_1Rank`, `TestSlabMPI_2Ranks`, `TestSlabMPI_4Ranks`: **Passed** (verifies slab interval coverage and ghost exchange accuracy).
+- `TestMassConservation_2Ranks`: **Passed** (verifies $\Delta \bar{c}_i < 10^{-15}$ and $|\sum c_i - 1| < 10^{-15}$).
+- `TestEnergyDecrease_2Ranks`: **Passed** (verifies monotonic decrease $dF/dt \le 0$).
+- `TestMultiComponent_2Ranks`: **Passed** (verifies 4-component, 3D grids, and regular solution thermodynamics).
+- `TestSemiImplicit_1Rank`, `TestSemiImplicit_2Ranks`, `TestSemiImplicit_4Ranks`: **Passed** (verifies Semi-Implicit Euler, SBDF2, 3D, and large time-step stability $\Delta t = 0.2$ using FFTW MPI).
+- `TestGPU_1Rank`: **Passed** (verifies GPU kernel execution and host fallback).
+- `TestRedlichKister_1Rank`, `TestRedlichKister_2Ranks`: **Passed** (verifies Redlich-Kister CALPHAD thermodynamics).
+
+
+---
+
+## 5. Running Simulations
+
+Execute the compiled solver with `mpirun`:
+
+### 5.1 Ternary Spinodal Decomposition ($N = 3$)
+```bash
+mpirun -np 4 ./build/mcch_solver -c examples/ternary_spinodal.json
+```
+
+### 5.2 Classic Binary Spinodal Decomposition ($N = 2$)
+```bash
+mpirun -np 4 ./build/mcch_solver -c examples/binary_spinodal.json
+```
+
+### 5.3 Droplet Evolution with No-Flux (Neumann) Boundaries
+```bash
+mpirun -np 4 ./build/mcch_solver -c examples/ternary_droplet.json
+```
+
+### 5.4 Regular Solution with Degenerate Mobility
+```bash
+mpirun -np 4 ./build/mcch_solver -c examples/regular_solution_3comp.json
+```
+
+### 5.5 Full 3D Multi-Component Simulation
+```bash
+mpirun -np 4 ./build/mcch_solver -c examples/3d_spinodal.json
+```
+
+### 5.6 Semi-Implicit Fourier Spectral Simulation (Euler, FFTW MPI)
+Run with $\Delta t = 0.1$ (5x larger than explicit RK4 stable limit) with unconditional 4th-order stability:
+```bash
+mpirun -np 4 ./build/mcch_solver -c examples/semi_implicit_spinodal.json
+```
+
+### 5.7 Second-Order Semi-Implicit Simulation (SBDF2, FFTW MPI)
+Run 2nd-order accurate time stepping in Fourier space:
+```bash
+mpirun -np 4 ./build/mcch_solver -c examples/semi_implicit_bdf2_spinodal.json
+```
+
+### 5.8 GPU-Accelerated Simulations (Explicit Euler, RK2, RK4)
+Run high-performance GPU simulations by appending `--gpu` or setting `"device": "gpu"` in the configuration file:
+
+```bash
+# Single-GPU Explicit RK4 Run
+./build/mcch_solver -c examples/gpu_ternary_spinodal.json --gpu
+
+# Single-GPU Explicit Euler Run
+./build/mcch_solver -c examples/gpu_explicit_euler.json --gpu
+
+# Multi-GPU Run with MPI (e.g. 2 GPUs mapped to 2 MPI ranks)
+mpirun -np 2 ./build/mcch_solver -c examples/gpu_ternary_spinodal.json --gpu
+```
+
+---
+
+## 6. Visualization & Post-Processing
+
+### Plot Time Evolution & Diagnostics
+Generate publication-quality plots of total free energy dissipation ($dF/dt \le 0$), discrete mass conservation drift ($\sim 10^{-15}$), and constraint enforcement:
+```bash
+python3 python/plot_diagnostics.py results_ternary_spinodal/history.csv
+```
+
+### Render VTK Phase Maps & RGB Composites
+Visualize any exported `.vtk` file. Passing the rank count will overlay vertical dashed lines indicating the MPI slab partitions:
+```bash
+python3 python/visualize_vtk.py results_ternary_spinodal/solution_02000.vtk 4
+```
+For ternary simulations, the visualizer automatically generates:
+- Individual heatmaps for components $c_0, c_1, c_2$.
+- Combined **RGB composite map** ($R=c_0, G=c_1, B=c_2$), illustrating three separated phase domains and tri-junctions across MPI slab boundaries.
+
+---
+
+## 7. Python Reference Implementation
+A complete standalone reference solver is provided in `python/mcch_solver.py` using `mpi4py` and NumPy with matching slab parallelization:
+```bash
+mpirun -np 4 python3 python/mcch_solver.py -c examples/ternary_spinodal.json
+```
+
+---
+
+## 8. Interactive Cahn-Hilliard Phase-Field Studio (Web App)
+
+A modern, high-performance web dashboard is provided to run, visualize, and analyze multi-component Cahn-Hilliard simulations directly from your browser.
+
+### 8.1 Launching the Web App
+```bash
+python3 run_app.py --port 5000
+```
+Then navigate to `http://localhost:5000` in any web browser.
+
+### 8.2 Key Features
+1. **Interactive Phase Field Visualizer**:
+   - Time scrubber and animation player (play, pause, loop, 1-30 FPS).
+   - Component field selector ($c_0, c_1, c_2, \dots$) and chemical potentials ($\mu_0, \mu_1, \dots$).
+   - **RGB Phase Composite**: Renders $R=c_0, G=c_1, B=c_2$ showing tri-junctions and precipitate boundaries.
+   - **MPI Slab Partition Overlay**: Visualizes 1D pencil domain decomposition boundaries ($r=0, \dots, P-1$) across the domain.
+   - **3D Slice Explorer**: Interactively slice 3D phase volumes across XY, XZ, or YZ planes.
+   - **Interactive 1D Cross-Sections**: Real-time line-cut profile across interfaces along X or Y.
+   - **Mouse Inspection HUD**: Hover over any point to inspect local composition coordinates $(x, y)$ and values.
+
+2. **Simulation Studio**:
+   - One-click benchmark presets: Binary Spinodal, Ternary Spinodal, Droplet Ripening, Regular Solution, 3D Spinodal.
+   - Backend selector: C++ MPI HPC Solver (`build/mcch_solver`) vs Python NumPy/mpi4py Solver.
+   - Configurable MPI ranks (1, 2, 4, 8) and Runge-Kutta 2 / 4 integrators.
+   - Real-time simulation monitoring: Live progress bar, MLUPS performance gauge, and streaming console terminal.
+
+3. **Thermodynamic Verification Dashboard**:
+   - Four interactive synchronized Chart.js diagnostic graphs:
+     - Free energy dissipation $F(t)$ confirming $dF/dt \le 0$.
+     - Dissipation rate $dF/dt$.
+     - Discrete mass conservation drift $\Delta \bar{c}_i(t) \sim 10^{-15}$.
+     - Partition of unity constraint enforcement $\max |\sum c_i - 1|$.
+
+4. **Self-Contained & Air-Gapped Ready**:
+   - Bundled vendor assets (Bootstrap 5, Chart.js 4) with dark and light theme support.
+

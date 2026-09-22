@@ -1,0 +1,28 @@
+{
+  "dim": 2,
+  "nx": 128,
+  "ny": 128,
+  "nz": 1,
+  "dx": 1,
+  "dy": 1,
+  "bc_x": "periodic",
+  "bc_y": "periodic",
+  "num_components": 3,
+  "free_energy_type": "polynomial_multiwell",
+  "mobility_type": "constant",
+  "mobility_val": 1,
+  "integrator": "rk4",
+  "dt": 0.02,
+  "total_steps": 100000,
+  "output_interval": 2000,
+  "diag_interval": 50,
+  "initial_condition": "random",
+  "c_mean": [
+    0.333,
+    0.333,
+    0.334
+  ],
+  "noise_amp": 0.05,
+  "seed": 101,
+  "output_dir": "results_ternary_spinodal"
+}

@@ -1,0 +1,40 @@
+{
+  "dim": 2,
+  "nx": 128,
+  "ny": 128,
+  "nz": 1,
+  "dx": 1.0,
+  "dy": 1.0,
+  "bc_x": "periodic",
+  "bc_y": "periodic",
+  "num_components": 3,
+  "free_energy_type": "polynomial_multiwell",
+  "W": [
+    [0.0, 1.5, 1.5],
+    [1.5, 0.0, 1.5],
+    [1.5, 1.5, 0.0]
+  ],
+  "A": [0.2, 0.2, 0.2],
+  "kappa": [
+    [1.0, 0.0, 0.0],
+    [0.0, 1.0, 0.0],
+    [0.0, 0.0, 1.0]
+  ],
+  "mobility_type": "constant",
+  "mobility": [
+    [1.0, 0.0, 0.0],
+    [0.0, 1.0, 0.0],
+    [0.0, 0.0, 1.0]
+  ],
+  "integrator": "semi_implicit_bdf2",
+  "stabilization": 0.0,
+  "dt": 0.1,
+  "total_steps": 100000,
+  "output_interval": 10000,
+  "diag_interval": 20,
+  "initial_condition": "random",
+  "c_mean": [0.333, 0.333, 0.334],
+  "noise_amp": 0.05,
+  "seed": 101,
+  "output_dir": "results_semi_implicit_bdf2"
+}

@@ -1,0 +1,41 @@
+# CMake build artifacts and caches
+build/
+bin/
+lib/
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+CTestTestfile.cmake
+CPackConfig.cmake
+CPackSourceConfig.cmake
+install_manifest.txt
+Makefile
+*.cmake
+!cmake/*.cmake
+!CMakeLists.txt
+
+# Python build & virtual environments
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+dist/
+.venv/
+venv/
+ENV/
+
+# Simulation test outputs & diagnostics
+Testing/
+results/
+results_*/
+*.vtk
+*.csv
+
+# Editor and OS files
+.DS_Store
+.directory
+*.swp
+*~
+.vscode/
+.idea/

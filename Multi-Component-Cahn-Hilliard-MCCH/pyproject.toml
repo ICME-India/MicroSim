@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mcch-solver"
+version = "1.0.0"
+description = "Generalized Multi-Component Cahn-Hilliard Phase-Field Solver & Studio"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "MIT"}
+authors = [
+    {name = "MCCH Team"}
+]
+keywords = ["phase-field", "cahn-hilliard", "materials-science", "mpi", "cuda", "spectral-methods"]
+dependencies = [
+    "numpy>=1.20.0",
+    "scipy>=1.7.0",
+    "matplotlib>=3.3.0",
+    "pandas>=1.2.0",
+    "pillow>=8.0.0",
+    "flask>=2.0.0",
+]
+
+[project.optional-dependencies]
+mpi = ["mpi4py>=3.0.0"]
+gpu = ["cupy>=9.0.0"]
+
+[project.scripts]
+mcch-studio = "run_app:main"
+mcch-plot = "python.plot_diagnostics:main"
+mcch-visualize = "python.visualize_vtk:main"
+mcch-solver-py = "python.mcch_solver:main"
+
+[tool.setuptools]
+py-modules = ["run_app"]
+
+[tool.setuptools.packages.find]
+include = ["webapp*", "python*"]

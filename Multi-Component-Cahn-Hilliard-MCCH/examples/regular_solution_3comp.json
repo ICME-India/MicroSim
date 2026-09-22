@@ -1,0 +1,31 @@
+{
+  "dim": 2,
+  "nx": 128,
+  "ny": 128,
+  "nz": 1,
+  "dx": 1.0,
+  "dy": 1.0,
+  "bc_x": "periodic",
+  "bc_y": "periodic",
+  "num_components": 3,
+  "free_energy_type": "regular_solution",
+  "RT": 1.0,
+  "omega": [
+    [0.0, 3.6, 3.6],
+    [3.6, 0.0, 3.6],
+    [3.6, 3.6, 0.0]
+  ],
+  "kappa": 1.0,
+  "mobility_type": "degenerate",
+  "mobility_val": 1.0,
+  "integrator": "rk2",
+  "dt": 0.008,
+  "total_steps": 100000,
+  "output_interval": 1000,
+  "diag_interval": 50,
+  "initial_condition": "random",
+  "c_mean": [0.33, 0.33, 0.34],
+  "noise_amp": 0.03,
+  "seed": 2024,
+  "output_dir": "results_regular_solution"
+}

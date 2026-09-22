@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cahn-Hilliard Phase-Field Studio</title>
+  
+  <!-- Vendor CSS -->
+  <link rel="stylesheet" href="/static/vendor/bootstrap.min.css">
+  
+  <!-- Custom Scientific Theme CSS -->
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+  <!-- Top Navigation Bar -->
+  <header class="navbar-custom">
+    <div class="container-fluid d-flex align-items-center justify-content-between flex-wrap gap-2">
+      <div class="d-flex align-items-center gap-2">
+        <span style="font-size: 1.6rem;">⚛️</span>
+        <span class="brand-title">Cahn-Hilliard Phase-Field Studio</span>
+        <span class="brand-badge">MPI Slab C++17 & Python</span>
+      </div>
+
+      <div class="d-flex align-items-center gap-3">
+        <!-- Active Run Selector -->
+        <div class="d-flex align-items-center gap-2">
+          <label class="form-label-custom mb-0 text-nowrap">Active Run:</label>
+          <select id="globalRunSelector" class="form-select-custom form-select-sm" style="min-width: 220px;">
+            <option value="" disabled selected>Loading runs...</option>
+          </select>
+        </div>
+
+        <!-- Simulation Status Pill -->
+        <div id="statusPill" class="status-pill status-idle">
+          <span class="status-dot"></span>
+          <span id="statusPillText">Idle</span>
+        </div>
+
+        <!-- Theme Switcher -->
+        <button id="themeToggleBtn" class="btn-ctrl" title="Toggle Theme">
+          🌓
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <div class="container-fluid px-4 py-3">
+
+    <!-- Navigation Tabs -->
+    <ul class="nav nav-tabs nav-tabs-custom mb-3" id="appTabs" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="tab-btn-visualizer" data-bs-toggle="tab" data-bs-target="#tab-visualizer" type="button" role="tab">
+          🎨 Phase Field Visualizer
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tab-btn-studio" data-bs-toggle="tab" data-bs-target="#tab-studio" type="button" role="tab">
+          ⚡ Simulation Studio
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tab-btn-diagnostics" data-bs-toggle="tab" data-bs-target="#tab-diagnostics" type="button" role="tab">
+          📈 Thermodynamics & Diagnostics
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="tab-btn-theory" data-bs-toggle="tab" data-bs-target="#tab-theory" type="button" role="tab">
+          📖 Theory & Physics
+        </button>
+      </li>
+    </ul>
+
+    <!-- Tab Content -->
+    <div class="tab-content" id="appTabsContent">
+
+      <!-- ========================================== -->
+      <!-- TAB 1: VISUALIZER                          -->
+      <!-- ========================================== -->
+      <div class="tab-pane fade show active" id="tab-visualizer" role="tabpanel">
+
+        <!-- Timeline Scrubber & Player Bar -->
+        <div class="timeline-card mb-3">
+          <div class="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-2">
+            <div class="d-flex align-items-center gap-2">
+              <button id="btnPlayPause" class="btn-ctrl" style="min-width: 80px;">▶ Play</button>
+              <button id="btnStepBack" class="btn-ctrl" title="Step Back">⏮ Prev</button>
+              <button id="btnStepForward" class="btn-ctrl" title="Step Forward">Next ⏭</button>
+              <button id="btnLoop" class="btn-ctrl" title="Loop Toggle">🔁 Loop: On</button>
+              
+              <div class="d-flex align-items-center gap-1 ms-2">
+                <span class="form-label-custom mb-0">Speed:</span>
+                <select id="playbackFps" class="form-select-custom form-select-sm" style="width: 85px;">
+                  <option value="2">2 fps</option>
+                  <option value="5">5 fps</option>
+                  <option value="10" selected>10 fps</option>
+                  <option value="20">20 fps</option>
+                  <option value="30">30 fps</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Frame / Time Readout -->
+            <div class="d-flex align-items-center gap-3">
+              <span class="badge bg-secondary font-monospace" id="frameCounter">Frame 0 / 0</span>
+              <span class="badge bg-primary font-monospace" id="timeCounter">Time t = 0.000</span>
+              <span class="badge bg-dark border border-secondary font-monospace" id="stepCounter">Step: 0</span>
+            </div>
+          </div>
+
+          <!-- Slider -->
+          <input type="range" class="time-scrubber" id="timeScrubber" min="0" max="0" value="0" step="1">
+        </div>
+
+        <div class="row g-3">
+          <!-- Left: Visualizer Canvas / View -->
+          <div class="col-lg-8">
+            <div class="card-custom">
+              <div class="card-header-custom flex-wrap gap-2">
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                  <span class="form-label-custom mb-0">Field:</span>
+                  <div class="btn-group btn-group-sm" id="componentButtonGroup" role="group">
+                    <!-- Dynamic component buttons inserted here -->
+                  </div>
+                </div>
+
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                  <span class="form-label-custom mb-0">Colormap:</span>
+                  <select id="colormapSelector" class="form-select-custom form-select-sm" style="width: 120px;">
+                    <option value="viridis" selected>Viridis</option>
+                    <option value="plasma">Plasma</option>
+                    <option value="inferno">Inferno</option>
+                    <option value="coolwarm">Coolwarm</option>
+                    <option value="turbo">Turbo</option>
+                    <option value="jet">Jet</option>
+                    <option value="cividis">Cividis</option>
+                  </select>
+
+                  <div class="form-check form-check-inline mb-0 ms-2">
+                    <input class="form-check-input" type="checkbox" id="overlaySlabsCheck" checked>
+                    <label class="form-check-label text-nowrap" for="overlaySlabsCheck" style="font-size: 0.85rem;">MPI Slabs</label>
+                  </div>
+                  <input type="number" id="overlaySlabsCount" class="form-control-custom form-control-sm" style="width: 50px;" value="4" min="1" max="16" title="Number of MPI ranks for slab overlay">
+                </div>
+              </div>
+
+              <div class="card-body p-2 position-relative">
+                <!-- 3D Slice Controls (Shown only for 3D simulations) -->
+                <div id="controls3D" class="d-none bg-dark border border-secondary p-2 rounded mb-2 d-flex align-items-center gap-3 flex-wrap">
+                  <span class="badge bg-info">3D Domain</span>
+                  <div class="d-flex align-items-center gap-1">
+                    <span class="form-label-custom mb-0">Plane:</span>
+                    <select id="plane3DSelector" class="form-select-custom form-select-sm" style="width: 80px;">
+                      <option value="xy" selected>XY</option>
+                      <option value="xz">XZ</option>
+                      <option value="yz">YZ</option>
+                    </select>
+                  </div>
+                  <div class="d-flex align-items-center gap-2 flex-grow-1">
+                    <span class="form-label-custom mb-0 text-nowrap" id="slice3DLabel">Z Slice:</span>
+                    <input type="range" class="form-range" id="slice3DSlider" min="0" max="0" value="0">
+                    <span class="badge bg-secondary font-monospace" id="slice3DPos">0</span>
+                  </div>
+                </div>
+
+                <!-- Main Viewer Frame -->
+                <div class="viewer-wrapper" id="viewerContainer">
+                  <img id="viewerImage" class="viewer-image" src="" alt="Phase Field Solution">
+                  
+                  <!-- HUD overlay with local values -->
+                  <div class="viewer-hud" id="viewerHud">
+                    <div id="hudCoords">Coords: (x: --, y: --)</div>
+                    <div id="hudValues">Hover over domain to inspect concentrations</div>
+                  </div>
+                </div>
+
+                <!-- Colorbar Scale Footbar -->
+                <div class="d-flex align-items-center justify-content-between px-2 pt-2" style="font-size: 0.8rem; font-family: var(--font-mono);">
+                  <span id="scaleMin">Min: 0.0000</span>
+                  <span id="scaleField" class="badge bg-secondary">Field: c0</span>
+                  <span id="scaleMax">Max: 1.0000</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: 1D Line Cut Profile & Frame Meta -->
+          <div class="col-lg-4">
+            <!-- 1D Cross-Section Card -->
+            <div class="card-custom mb-3">
+              <div class="card-header-custom">
+                <span>📊 1D Concentration Cross-Section</span>
+                <span class="badge bg-secondary" id="lineCutBadge">Cut: Y = 64</span>
+              </div>
+              <div class="card-body p-3">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                  <span class="form-label-custom mb-0">Axis:</span>
+                  <div class="btn-group btn-group-sm" role="group">
+                    <button type="button" class="btn-ctrl active" id="btnCutX" title="Horizontal slice across X (fixed Y)">Cut X (Fixed Y)</button>
+                    <button type="button" class="btn-ctrl" id="btnCutY" title="Vertical slice across Y (fixed X)">Cut Y (Fixed X)</button>
+                  </div>
+                </div>
+
+                <div class="d-flex align-items-center gap-2 mb-3">
+                  <span class="form-label-custom mb-0" id="lineCutSliderLabel">Fixed Y:</span>
+                  <input type="range" class="form-range" id="lineCutSlider" min="0" max="127" value="64">
+                  <span class="badge bg-secondary font-monospace" id="lineCutPos">64</span>
+                </div>
+
+                <!-- Chart Canvas for 1D Profile -->
+                <div style="height: 200px; position: relative;">
+                  <canvas id="lineCutChart"></canvas>
+                </div>
+              </div>
+            </div>
+
+            <!-- Run Metadata & Export Card -->
+            <div class="card-custom">
+              <div class="card-header-custom">
+                <span>ℹ️ Simulation Metadata</span>
+              </div>
+              <div class="card-body p-3" style="font-size: 0.88rem;">
+                <table class="table table-sm table-borderless text-light mb-3" style="font-family: var(--font-mono);">
+                  <tbody>
+                    <tr><td class="text-secondary">Grid:</td><td id="metaGrid" class="text-end">--</td></tr>
+                    <tr><td class="text-secondary">Components:</td><td id="metaComponents" class="text-end">--</td></tr>
+                    <tr><td class="text-secondary">Model:</td><td id="metaModel" class="text-end">--</td></tr>
+                    <tr><td class="text-secondary">Integrator:</td><td id="metaIntegrator" class="text-end">--</td></tr>
+                    <tr><td class="text-secondary">dt:</td><td id="metaDt" class="text-end">--</td></tr>
+                    <tr><td class="text-secondary">Frames:</td><td id="metaFrames" class="text-end">--</td></tr>
+                  </tbody>
+                </table>
+
+                <div class="d-grid gap-2">
+                  <button id="btnDownloadVtk" class="btn-ctrl text-center">📥 Download Current VTK</button>
+                  <button id="btnDownloadPng" class="btn-ctrl text-center">🖼️ Export Frame PNG</button>
+                  <button id="btnDownloadCsv" class="btn-ctrl text-center">📄 Download History CSV</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ========================================== -->
+      <!-- TAB 2: SIMULATION STUDIO                   -->
+      <!-- ========================================== -->
+      <div class="tab-pane fade" id="tab-studio" role="tabpanel">
+
+        <!-- Presets Selection Bar -->
+        <div class="card-custom mb-3">
+          <div class="card-header-custom">
+            <span>⚡ Select Simulation Benchmark Preset</span>
+            <span class="text-secondary" style="font-size: 0.82rem;">Click any card to load pre-configured parameters</span>
+          </div>
+          <div class="card-body p-3">
+            <div class="row g-2" id="presetCardsContainer">
+              <!-- Dynamically populated preset cards -->
+            </div>
+          </div>
+        </div>
+
+        <div class="row g-3">
+          <!-- Configuration Form -->
+          <div class="col-lg-7">
+            <div class="card-custom">
+              <div class="card-header-custom">
+                <span>⚙️ Simulation Parameters</span>
+                <button id="btnResetConfig" class="btn-ctrl btn-sm">Reset</button>
+              </div>
+              <div class="card-body p-3">
+                <form id="simulationConfigForm">
+
+                  <!-- Execution & Backend Settings -->
+                  <h6 class="text-info mb-2">🚀 Solver Execution</h6>
+                  <div class="row g-2 mb-3">
+                    <div class="col-md-4">
+                      <label class="form-label-custom">Solver Backend</label>
+                      <select id="cfgBackend" class="form-select-custom w-100">
+                        <option value="cpp" selected>C++ MPI HPC Solver (mcch_solver)</option>
+                        <option value="python">Python NumPy / mpi4py Solver</option>
+                      </select>
+                    </div>
+                    <div class="col-md-3">
+                      <label class="form-label-custom">Compute Device</label>
+                      <select id="cfgDevice" class="form-select-custom w-100">
+                        <option value="cpu" selected>CPU (Host)</option>
+                        <option value="gpu">GPU (CUDA)</option>
+                      </select>
+                    </div>
+                    <div class="col-md-2">
+                      <label class="form-label-custom">MPI Ranks</label>
+                      <select id="cfgMpiRanks" class="form-select-custom w-100">
+                        <option value="1">1 Rank</option>
+                        <option value="2" selected>2 Ranks</option>
+                        <option value="4">4 Ranks</option>
+                        <option value="8">8 Ranks</option>
+                      </select>
+                    </div>
+                    <div class="col-md-3">
+                      <label class="form-label-custom">Integrator</label>
+                      <select id="cfgIntegrator" class="form-select-custom w-100">
+                        <option value="euler">Explicit Euler (1st-order)</option>
+                        <option value="rk2" selected>Runge-Kutta 2 (Heun)</option>
+                        <option value="rk4">Runge-Kutta 4 (Classic)</option>
+                        <option value="semi_implicit">Semi-Implicit Euler</option>
+                        <option value="semi_implicit_bdf2">Semi-Implicit BDF2</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <!-- Grid & Domain Settings -->
+                  <h6 class="text-info mb-2">📐 Grid & Domain</h6>
+                  <div class="row g-2 mb-3">
+                    <div class="col-md-3">
+                      <label class="form-label-custom">Dimension</label>
+                      <select id="cfgDim" class="form-select-custom w-100">
+                        <option value="2" selected>2D Grid</option>
+                        <option value="3">3D Grid</option>
+                      </select>
+                    </div>
+                    <div class="col-md-3">
+                      <label class="form-label-custom">Grid Nx</label>
+                      <input type="number" id="cfgNx" class="form-control-custom w-100" value="128" min="16" max="512">
+                    </div>
+                    <div class="col-md-3">
+                      <label class="form-label-custom">Grid Ny</label>
+                      <input type="number" id="cfgNy" class="form-control-custom w-100" value="128" min="16" max="512">
+                    </div>
+                    <div class="col-md-3">
+                      <label class="form-label-custom">Grid Nz (3D)</label>
+                      <input type="number" id="cfgNz" class="form-control-custom w-100" value="1" min="1" max="256">
+                    </div>
+                  </div>
+
+                  <div class="row g-2 mb-3">
+                    <div class="col-md-3">
+                      <label class="form-label-custom">Boundary X</label>
+                      <select id="cfgBcX" class="form-select-custom w-100">
+                        <option value="periodic" selected>Periodic</option>
+                        <option value="neumann">Neumann (No-Flux)</option>
+                      </select>
+                    </div>
+                    <div class="col-md-3">
+                      <label class="form-label-custom">Boundary Y</label>
+                      <select id="cfgBcY" class="form-select-custom w-100">
+                        <option value="periodic" selected>Periodic</option>
+                        <option value="neumann">Neumann (No-Flux)</option>
+                      </select>
+                    </div>
+                    <div class="col-md-3">
+                      <label class="form-label-custom">Grid Spacing dx</label>
+                      <input type="number" step="0.1" id="cfgDx" class="form-control-custom w-100" value="1.0">
+                    </div>
+                    <div class="col-md-3">
+                      <label class="form-label-custom">Grid Spacing dy</label>
+                      <input type="number" step="0.1" id="cfgDy" class="form-control-custom w-100" value="1.0">
+                    </div>
+                  </div>
+
+                  <!-- Thermodynamics & Physics -->
+                  <h6 class="text-info mb-2">🧪 Thermodynamics & Mobility</h6>
+                  <div class="row g-2 mb-3">
+                    <div class="col-md-4">
+                      <label class="form-label-custom">Free Energy Model</label>
+                      <select id="cfgFreeEnergy" class="form-select-custom w-100">
+                        <option value="polynomial_multiwell" selected>Polynomial Multi-Well</option>
+                        <option value="binary_double_well">Binary Double-Well</option>
+                        <option value="regular_solution">Regular Solution (Flory-Huggins)</option>
+                      </select>
+                    </div>
+                    <div class="col-md-2">
+                      <label class="form-label-custom">Components</label>
+                      <input type="number" id="cfgNumComp" class="form-control-custom w-100" value="3" min="2" max="6">
+                    </div>
+                    <div class="col-md-3">
+                      <label class="form-label-custom">Mobility Model</label>
+                      <select id="cfgMobilityType" class="form-select-custom w-100">
+                        <option value="constant" selected>Constant (M0)</option>
+                        <option value="degenerate">Degenerate Onsager</option>
+                      </select>
+                    </div>
+                    <div class="col-md-3">
+                      <label class="form-label-custom">Mobility M0</label>
+                      <input type="number" step="0.1" id="cfgMobilityVal" class="form-control-custom w-100" value="1.0">
+                    </div>
+                  </div>
+
+                  <!-- Stepping & Intervals -->
+                  <h6 class="text-info mb-2">⏱️ Time Stepping</h6>
+                  <div class="row g-2 mb-3">
+                    <div class="col-md-3">
+                      <label class="form-label-custom">Time Step dt</label>
+                      <input type="number" step="0.001" id="cfgDt" class="form-control-custom w-100" value="0.01">
+                    </div>
+                    <div class="col-md-3">
+                      <label class="form-label-custom">Total Steps</label>
+                      <input type="number" id="cfgTotalSteps" class="form-control-custom w-100" value="2000" min="50">
+                    </div>
+                    <div class="col-md-3">
+                      <label class="form-label-custom">VTK Output Intv</label>
+                      <input type="number" id="cfgOutputInterval" class="form-control-custom w-100" value="200" min="10">
+                    </div>
+                    <div class="col-md-3">
+                      <label class="form-label-custom">Diag Interval</label>
+                      <input type="number" id="cfgDiagInterval" class="form-control-custom w-100" value="50" min="10">
+                    </div>
+                  </div>
+
+                  <!-- Initial Condition -->
+                  <h6 class="text-info mb-2">🌱 Initial Condition</h6>
+                  <div class="row g-2 mb-3">
+                    <div class="col-md-4">
+                      <label class="form-label-custom">IC Type</label>
+                      <select id="cfgInitialCondition" class="form-select-custom w-100">
+                        <option value="random" selected>Random Spinodal Noise</option>
+                        <option value="droplet">Circular / Spherical Droplet</option>
+                      </select>
+                    </div>
+                    <div class="col-md-4">
+                      <label class="form-label-custom">Mean Comp c_mean</label>
+                      <input type="text" id="cfgCMean" class="form-control-custom w-100" value="0.333, 0.333, 0.334">
+                    </div>
+                    <div class="col-md-4">
+                      <label class="form-label-custom">Noise Amp / Seed</label>
+                      <div class="d-flex gap-1">
+                        <input type="number" step="0.01" id="cfgNoiseAmp" class="form-control-custom" value="0.05" style="width: 50%;">
+                        <input type="number" id="cfgSeed" class="form-control-custom" value="42" style="width: 50%;">
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Run Directory Name -->
+                  <div class="mb-3">
+                    <label class="form-label-custom">Output Directory Name</label>
+                    <input type="text" id="cfgOutputDir" class="form-control-custom w-100" value="results_custom_run">
+                  </div>
+
+                  <!-- Control Buttons -->
+                  <div class="d-flex gap-2">
+                    <button type="button" id="btnStartSim" class="btn-primary-custom flex-grow-1">
+                      🚀 Launch Simulation
+                    </button>
+                    <button type="button" id="btnStopSim" class="btn-danger-custom" disabled>
+                      ⏹️ Stop Simulation
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Column: Live Progress & Console Log -->
+          <div class="col-lg-5">
+            <!-- Progress Card -->
+            <div class="card-custom mb-3">
+              <div class="card-header-custom">
+                <span>📡 Real-Time Simulation Monitor</span>
+                <span id="simStateBadge" class="badge bg-secondary">IDLE</span>
+              </div>
+              <div class="card-body p-3">
+                <div class="progress mb-3" style="height: 14px; background: var(--bg-input);">
+                  <div id="simProgressBar" class="progress-bar progress-bar-striped progress-bar-animated bg-info" role="progressbar" style="width: 0%;">0%</div>
+                </div>
+
+                <div class="row g-2 mb-2">
+                  <div class="col-6">
+                    <div class="kpi-card p-2 text-center">
+                      <div class="kpi-title">Current Step</div>
+                      <div class="kpi-value" style="font-size: 1.15rem;" id="liveStep">0 / 0</div>
+                    </div>
+                  </div>
+                  <div class="col-6">
+                    <div class="kpi-card p-2 text-center">
+                      <div class="kpi-title">Sim Time</div>
+                      <div class="kpi-value" style="font-size: 1.15rem;" id="liveTime">0.0000</div>
+                    </div>
+                  </div>
+                  <div class="col-6">
+                    <div class="kpi-card p-2 text-center">
+                      <div class="kpi-title">Free Energy F</div>
+                      <div class="kpi-value" style="font-size: 1.15rem;" id="liveEnergy">--</div>
+                    </div>
+                  </div>
+                  <div class="col-6">
+                    <div class="kpi-card p-2 text-center">
+                      <div class="kpi-title">Performance</div>
+                      <div class="kpi-value" style="font-size: 1.15rem;" id="liveMlups">-- MLUPS</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Terminal Output Box -->
+            <div class="card-custom">
+              <div class="card-header-custom">
+                <span>💻 Terminal Console Log</span>
+                <button id="btnClearLogs" class="btn-ctrl btn-sm">Clear</button>
+              </div>
+              <div class="card-body p-2">
+                <div class="console-box" id="consoleLogBox">MCCH Studio initialized. Ready to launch simulation.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ========================================== -->
+      <!-- TAB 3: DIAGNOSTICS                         -->
+      <!-- ========================================== -->
+      <div class="tab-pane fade" id="tab-diagnostics" role="tabpanel">
+
+        <!-- Top Summary Cards -->
+        <div class="row g-3 mb-3">
+          <div class="col-md-3">
+            <div class="kpi-card">
+              <div class="kpi-title">Total Free Energy F(t)</div>
+              <div class="kpi-value" id="diagInitialF">--</div>
+              <div class="kpi-sub" id="diagFinalF">Final: --</div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="kpi-card">
+              <div class="kpi-title">Thermodynamic Dissipation</div>
+              <div class="kpi-value text-success" id="diagPctDrop">--%</div>
+              <div class="kpi-sub" id="diagDissipCheck">dF/dt ≤ 0 Verified</div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="kpi-card">
+              <div class="kpi-title">Discrete Mass Drift</div>
+              <div class="kpi-value text-info" id="diagMaxDrift">--</div>
+              <div class="kpi-sub">Machine Precision ~10⁻¹⁵</div>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="kpi-card">
+              <div class="kpi-title">Partition of Unity Error</div>
+              <div class="kpi-value text-warning" id="diagUnityDev">--</div>
+              <div class="kpi-sub">Max |∑ cᵢ - 1|</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Four Diagnostic Charts -->
+        <div class="row g-3">
+          <div class="col-lg-6">
+            <div class="card-custom">
+              <div class="card-header-custom">
+                <span>📉 Total Free Energy F(t)</span>
+                <span class="badge bg-primary">Monotonic Decrease</span>
+              </div>
+              <div class="card-body p-3">
+                <div style="height: 260px; position: relative;">
+                  <canvas id="chartFreeEnergy"></canvas>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-lg-6">
+            <div class="card-custom">
+              <div class="card-header-custom">
+                <span>⚡ Rate of Energy Dissipation dF/dt</span>
+                <span class="badge bg-danger">dF/dt ≤ 0</span>
+              </div>
+              <div class="card-body p-3">
+                <div style="height: 260px; position: relative;">
+                  <canvas id="chartDfDt"></canvas>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-lg-6">
+            <div class="card-custom">
+              <div class="card-header-custom">
+                <span>⚖️ Discrete Mass Conservation Drift</span>
+                <span class="badge bg-success">Δc̄ᵢ = c̄ᵢ(t) - c̄ᵢ(0)</span>
+              </div>
+              <div class="card-body p-3">
+                <div style="height: 260px; position: relative;">
+                  <canvas id="chartMassDrift"></canvas>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-lg-6">
+            <div class="card-custom">
+              <div class="card-header-custom">
+                <span>🔒 Partition of Unity Constraint</span>
+                <span class="badge bg-warning text-dark">Max |∑ cᵢ - 1|</span>
+              </div>
+              <div class="card-body p-3">
+                <div style="height: 260px; position: relative;">
+                  <canvas id="chartUnityDev"></canvas>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ========================================== -->
+      <!-- TAB 4: THEORY & DOCUMENTATION             -->
+      <!-- ========================================== -->
+      <div class="tab-pane fade" id="tab-theory" role="tabpanel">
+        <div class="card-custom mb-3">
+          <div class="card-header-custom">
+            <span>📖 Generalized Multi-Component Cahn-Hilliard (MCCH) Theory</span>
+          </div>
+          <div class="card-body p-4" style="line-height: 1.65;">
+            <h5>1. Governing Equations</h5>
+            <p>
+              The Generalized Multi-Component Cahn-Hilliard model describes isothermal phase separation and diffuse interface evolution in $N$-component systems subject to the partition of unity constraint:
+            </p>
+            <div class="math-block">
+              ∑_{i=0}^{N-1} c_i(x, t) = 1
+            </div>
+
+            <p>
+              The total Helmholtz / Gibbs free energy functional is defined as the sum of homogeneous bulk free energy density $f_0(\mathbf{c})$ and interface gradient energy:
+            </p>
+            <div class="math-block">
+              F[\mathbf{c}] = ∫_Ω [ f_0(\mathbf{c}) + ½ ∑_{i,j=0}^{N-1} κ_{ij} ∇c_i · ∇c_j ] dΩ
+            </div>
+
+            <h5>2. Variational Chemical Potentials & Projection</h5>
+            <p>
+              The variational derivative yields raw chemical potentials $\mu_i$:
+            </p>
+            <div class="math-block">
+              μ_i = δF/δc_i = ∂f_0/∂c_i - ∑_{j=0}^{N-1} κ_{ij} ∇²c_j
+            </div>
+            <p>
+              To enforce the Gibbs-Duhem relation and maintain $\sum c_i = 1$, the projected diffusion chemical potentials are computed by removing the mean chemical potential:
+            </p>
+            <div class="math-block">
+              μ̃_i = μ_i - μ̄,   where μ̄ = (1 / N) ∑_{k=0}^{N-1} μ_k
+            </div>
+
+            <h5>3. Onsager Mobilities & Evolution</h5>
+            <p>
+              Mass conservation follows the continuity equation:
+            </p>
+            <div class="math-block">
+              ∂c_i/∂t = -∇ · J_i = ∇ · [ ∑_j M_{ij}(\mathbf{c}) ∇μ̃_j ]
+            </div>
+            <ul>
+              <li><strong>Constant Mobility:</strong> $M_{ij} = M_0 \delta_{ij} \implies \partial c_i / \partial t = M_0 \nabla^2 \tilde{\mu}_i$.</li>
+              <li><strong>Degenerate Onsager Mobility:</strong> $M_{ij}(\mathbf{c}) = M_0 (c_i \delta_{ij} - c_i c_j)$, guaranteeing zero flux when $c_i = 0$ and satisfying $\sum_i \mathbf{J}_i = \mathbf{0}$.</li>
+            </ul>
+
+            <h5>4. Slab Domain Decomposition Architecture (MPI)</h5>
+            <p>
+              In 1D slab decomposition, the computational domain ($N_x \times N_y \times N_z$) is partitioned along the primary $x$-axis among $P$ MPI ranks:
+            </p>
+            <div class="math-block">
+              Global Domain [Nx x Ny x Nz]:<br>
+              | Rank 0 Slab [0 .. Nx/4-1] | Rank 1 Slab [Nx/4 .. Nx/2-1] | Rank 2 Slab [Nx/2 .. 3Nx/4-1] | Rank 3 Slab [3Nx/4 .. Nx-1] |<br>
+              Contiguous memory slices in row-major C/C++ allow direct zero-copy MPI_Isend / MPI_Irecv ghost exchange!
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Vendor Scripts -->
+  <script src="/static/vendor/bootstrap.bundle.min.js"></script>
+  <script src="/static/vendor/chart.umd.min.js"></script>
+
+  <!-- Application Logic Scripts -->
+  <script src="/static/js/charts.js"></script>
+  <script src="/static/js/viewer.js"></script>
+  <script src="/static/js/app.js"></script>
+</body>
+</html>

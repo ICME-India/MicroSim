@@ -1,0 +1,35 @@
+{
+  "dim": 2,
+  "nx": 128,
+  "ny": 128,
+  "nz": 1,
+  "dx": 1.0,
+  "dy": 1.0,
+  "bc_x": "neumann",
+  "bc_y": "neumann",
+  "num_components": 3,
+  "free_energy_type": "polynomial_multiwell",
+  "W": [
+    [0.0, 2.0, 2.0],
+    [2.0, 0.0, 1.5],
+    [2.0, 1.5, 0.0]
+  ],
+  "A": [0.1, 0.1, 0.1],
+  "kappa": 1.0,
+  "mobility_type": "constant",
+  "mobility": [
+    [1.0, 0.0, 0.0],
+    [0.0, 1.0, 0.0],
+    [0.0, 0.0, 1.0]
+  ],
+  "integrator": "rk2",
+  "dt": 0.01,
+  "total_steps": 1000,
+  "output_interval": 100,
+  "diag_interval": 50,
+  "initial_condition": "droplet",
+  "droplet_comp": 0,
+  "droplet_radius": 28.0,
+  "droplet_diffuse_width": 2.5,
+  "output_dir": "results_ternary_droplet"
+}

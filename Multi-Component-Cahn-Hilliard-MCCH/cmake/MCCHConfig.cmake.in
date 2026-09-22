@@ -1,0 +1,13 @@
+@PACKAGE_INIT@
+
+include(CMakeFindDependencyMacro)
+
+find_dependency(MPI REQUIRED)
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}")
+find_dependency(FFTW3 REQUIRED COMPONENTS MPI)
+
+if(EXISTS "${CMAKE_CURRENT_LIST_DIR}/MCCHTargets.cmake")
+    include("${CMAKE_CURRENT_LIST_DIR}/MCCHTargets.cmake")
+endif()
+
+check_required_components(MCCH)

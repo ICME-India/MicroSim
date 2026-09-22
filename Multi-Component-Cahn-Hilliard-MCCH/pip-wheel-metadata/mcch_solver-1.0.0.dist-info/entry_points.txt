@@ -1,0 +1,5 @@
+[console_scripts]
+mcch-plot = python.plot_diagnostics:main
+mcch-solver-py = python.mcch_solver:main
+mcch-studio = run_app:main
+mcch-visualize = python.visualize_vtk:main

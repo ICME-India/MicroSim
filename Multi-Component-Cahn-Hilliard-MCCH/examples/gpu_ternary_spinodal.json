@@ -1,0 +1,40 @@
+{
+  "dim": 2,
+  "nx": 256,
+  "ny": 256,
+  "nz": 1,
+  "dx": 1.0,
+  "dy": 1.0,
+  "bc_x": "periodic",
+  "bc_y": "periodic",
+  "num_components": 3,
+  "device": "gpu",
+  "free_energy_type": "polynomial_multiwell",
+  "W": [
+    [0.0, 1.5, 1.5],
+    [1.5, 0.0, 1.5],
+    [1.5, 1.5, 0.0]
+  ],
+  "A": [0.2, 0.2, 0.2],
+  "kappa": [
+    [1.0, 0.0, 0.0],
+    [0.0, 1.0, 0.0],
+    [0.0, 0.0, 1.0]
+  ],
+  "mobility_type": "constant",
+  "mobility": [
+    [1.0, 0.0, 0.0],
+    [0.0, 1.0, 0.0],
+    [0.0, 0.0, 1.0]
+  ],
+  "integrator": "rk4",
+  "dt": 0.02,
+  "total_steps": 2000,
+  "output_interval": 200,
+  "diag_interval": 20,
+  "initial_condition": "random",
+  "c_mean": [0.333, 0.333, 0.334],
+  "noise_amp": 0.05,
+  "seed": 101,
+  "output_dir": "results_gpu_rk4"
+}
