@@ -1,186 +1,152 @@
-# Build KKS_FD_CUDA_MPI
-SHELL = /bin/sh
-NPROCS = 1
+SHELL ?= /bin/sh
+NPROCS ?= 1
 
-HPCSDK_VERSION ?= 23.3
+# ------------------------------------------------------------------------------
+# Toolchains (Spack injects wrappers)
+# ------------------------------------------------------------------------------
+MPICC ?= mpicc
+MPILD ?= mpicc
+H5CC  ?= h5pcc
+NVCC  ?= nvcc
 
-NVHPC_ROOT       ?= /opt/nvidia
-NVHPC_HOME       ?= ${NVHPC_ROOT}/hpc_sdk/Linux_x86_64/${HPCSDK_VERSION}
-NVHPC_CUDA_HOME  ?= ${NVHPC_HOME}/cuda
-MPI_HOME         ?= ${NVHPC_HOME}/comm_libs/openmpi4/openmpi-4.0.5
-HDF5_HOME        ?= /opt/spack/opt/spack/linux-ubuntu22.04-skylake_avx512/gcc-11.4.0/hdf5-1.14.4-3-bqhpg7nw6szqeigw5dmlvhhmrspezu7h
-CUFFT_LIB        ?= ${NVHPC_HOME}/math_libs/lib64
-CUFFT_INC        ?= ${NVHPC_HOME}/math_libs/include/cufftmp
-NVSHMEM_LIB      ?= ${NVHPC_HOME}/math_libs/12.0/lib64/compat/nvshmem_2.6.0-1
-GSL_HOME         ?= /opt/spack/opt/spack/linux-ubuntu22.04-skylake_avx512/gcc-11.4.0/gsl-2.7.1-wwnnm54dtynjeyuzdt24v7dfbgy4kjhv
+# ------------------------------------------------------------------------------
+# Feature toggles (Spack variants)
+# ------------------------------------------------------------------------------
+ENABLE_HDF5     ?= 1
+ENABLE_CUFFTMP  ?= 1
+ENABLE_NVSHMEM  ?= 1
 
-# Arguments
-INPUT = Input_austenite_ferrite.in
-FILLING = Filling.in
-OUTPUT = Output
-ENABLE_HDF5 = 1
-ENABLE_CUFFTMP=1
+# ------------------------------------------------------------------------------
+# Directories
+# ------------------------------------------------------------------------------
+SOLVERLOOP ?= solverloop
+FUNCTIONS  ?= functions
+TDBS       ?= tdbs
 
-# Compilers
-MPICC = $(PREP) ${MPI_HOME}/bin/mpicxx
-MPILD = $(PREP) ${MPI_HOME}/bin/mpicxx
-ifeq ($(ENABLE_HDF5), 1)
-H5CC  = $(PREP) ${MPI_HOME}/bin/mpicxx
-HDF5FLAGS = -I${HDF5_HOME}/include -L${HDF5_HOME}/lib -lhdf5
-else
-H5CC  = $(PREP) ${MPI_HOME}/bin/mpicxx
-HDF5FLAGS = 
-endif
-NVCC = $(PREP) ${NVHPC_CUDA_HOME}/bin/nvcc
+# ------------------------------------------------------------------------------
+# Flags (Spack-controlled)
+# ------------------------------------------------------------------------------
+CPPFLAGS  ?=
+CFLAGS    ?=
+CXXFLAGS  ?=
+NVCCFLAGS ?=
+LDFLAGS   ?=
+LIBS      ?=
 
-# Flags
-CFLAGS = -lm 
-GSLFLAGS = -I${GSL_HOME}/include -L${GSL_HOME}/lib -lgsl -lgslcblas
-MPICFLAGS = -I${MPI_HOME}/include --diag_suppress declared_but_not_referenced --diag_suppress set_but_not_used
-CUDACFLAGS = -I${NVHPC_CUDA_HOME}/include
+CPPFLAGS += -I$(SOLVERLOOP) -I$(FUNCTIONS) -I$(TDBS)
 
-GENCODE_SM70    := -gencode arch=compute_70,code=\"sm_70,compute_70\"
-GENCODE_FLAGS   := $(GENCODE_SM70)
+# ------------------------------------------------------------------------------
+# CUDA architecture (Spack sets cuda_arch)
+# ------------------------------------------------------------------------------
+CUDA_ARCH ?= sm_70
+NVCCFLAGS += -Xcompiler -fPIC -gencode arch=compute_$(CUDA_ARCH),code=sm_$(CUDA_ARCH)
 
-NVCCFLAGS = -Xcompiler -march=native -x cu $(GENCODE_FLAGS)
+# ------------------------------------------------------------------------------
+# Libraries (Spack resolves paths)
+# ------------------------------------------------------------------------------
+LIBS += -lm -lgsl -lgslcblas
 
-ifeq ($(ENABLE_CUFFTMP), 1)
-CUDALDFLAGS = -L${NVHPC_CUDA_HOME}/lib64 -L${CUFFT_LIB} -lcudart -lm -lcufftMp
-else
-CUDALDFLAGS = -L${NVHPC_CUDA_HOME}/lib64 -lcudart -lm
-endif
-MPILDFLAGS = -L${MPI_HOME}/lib
-
-# Description of binaries
-KKS_OUT = ./microsim_kks_fd_cuda_mpi
-SOLVERLOOP = ./solverloop
-FUNCTIONS = ./functions
-TDBS =./tdbs
-
-ifeq ($(ENABLE_CUFFTMP), 1)
-INCFLAGS = -I$(SOLVERLOOP) -I$(FUNCTIONS) -I$(TDBS) -I${CUFFT_INC} -I${MPI_HOME}/include
-else
-INCFLAGS = -I$(SOLVERLOOP) -I$(FUNCTIONS) -I$(TDBS) -I${MPI_HOME}/include
+ifeq ($(ENABLE_HDF5),1)
+  CPPFLAGS += -DENABLE_HDF5=1
+  LIBS     += -lhdf5
 endif
 
-host_objects = $(SOLVERLOOP)/obj/fileWriter.o $(FUNCTIONS)/defines.h $(FUNCTIONS)/obj/utilityFunctions.o $(FUNCTIONS)/obj/initialize_variables.o $(FUNCTIONS)/obj/filling.o $(FUNCTIONS)/obj/reading_input_parameters.o $(FUNCTIONS)/obj/fill_domain.o $(FUNCTIONS)/obj/read_boundary_conditions.o $(FUNCTIONS)/obj/calc_bn.o MicroSim_KKS_FD_CUDA_MPI.o Makefile
+ifeq ($(ENABLE_CUFFTMP),1)
+  CPPFLAGS += -DENABLE_CUFFTMP=1
+  LIBS     += -lcufftMp
+else
+  LIBS     += -lcufft
+endif
 
-device_objects = $(TDBS)/obj/Thermo.o $(FUNCTIONS)/obj/functionF.o $(FUNCTIONS)/obj/functionH.o $(FUNCTIONS)/obj/functionTau.o $(FUNCTIONS)/obj/functionW_02.o $(FUNCTIONS)/obj/anisotropy_01.o $(FUNCTIONS)/obj/functionA_01.o $(FUNCTIONS)/obj/functionA_02.o $(FUNCTIONS)/obj/matrix.o $(SOLVERLOOP)/obj/utilityKernels.o $(SOLVERLOOP)/obj/boundary.o $(SOLVERLOOP)/obj/calcPhaseComp.o $(SOLVERLOOP)/obj/smooth.o $(SOLVERLOOP)/obj/computeDrivingForce.o $(FUNCTIONS)/obj/error_checks.o $(SOLVERLOOP)/obj/computeElastic.o $(SOLVERLOOP)/obj/updateComposition.o $(SOLVERLOOP)/obj/updatePhi.o
+ifeq ($(ENABLE_NVSHMEM),1)
+  CPPFLAGS += -DENABLE_NVSHMEM=1
+  LIBS     += -lnvshmem
+endif
 
-# Commands
-build: $(KKS_OUT)
+LIBS += -lcudart
 
-$(TDBS)/obj/Thermo.o: $(TDBS)/Thermo.cu $(TDBS)/Thermo.cuh Makefile
-	$(NVCC) -dc $(TDBS)/Thermo.cu -o $(TDBS)/obj/Thermo.o $(INCFLAGS) $(NVCCFLAGS) $(CUDALDFLAGS) $(CUDACFLAGS)
+# ------------------------------------------------------------------------------
+# Output
+# ------------------------------------------------------------------------------
+TARGET = microsim_kks_fd_cuda_mpi
 
-$(SOLVERLOOP)/obj/fileWriter.o: $(SOLVERLOOP)/fileWriter.c $(SOLVERLOOP)/fileWriter.h $(FUNCTIONS)/structures.h $(FUNCTIONS)/defines.h Makefile
-	$(H5CC) $(MPICFLAGS) $(CFLAGS) $(CUDACFLAGS) $(INCFLAGS) $(HDF5FLAGS) -DENABLE_HDF5=$(ENABLE_HDF5) -c $(SOLVERLOOP)/fileWriter.c -o $(SOLVERLOOP)/obj/fileWriter.o
+# ------------------------------------------------------------------------------
+# Objects
+# ------------------------------------------------------------------------------
+HOST_OBJS = \
+  $(SOLVERLOOP)/obj/fileWriter.o \
+  $(FUNCTIONS)/obj/utilityFunctions.o \
+  $(FUNCTIONS)/obj/initialize_variables.o \
+  $(FUNCTIONS)/obj/filling.o \
+  $(FUNCTIONS)/obj/reading_input_parameters.o \
+  $(FUNCTIONS)/obj/fill_domain.o \
+  $(FUNCTIONS)/obj/read_boundary_conditions.o \
+  $(FUNCTIONS)/obj/calc_bn.o \
+  MicroSim_KKS_FD_CUDA_MPI.o
 
-$(FUNCTIONS)/obj/utilityFunctions.o: $(FUNCTIONS)/utilityFunctions.c $(FUNCTIONS)/utilityFunctions.h $(TDBS)/Thermo.cu $(FUNCTIONS)/structures.h $(FUNCTIONS)/defines.h Makefile
-	$(MPICC) $(MPICFLAGS) $(CFLAGS) $(CUDACFLAGS) $(INCFLAGS) -c $(FUNCTIONS)/utilityFunctions.c -o $(FUNCTIONS)/obj/utilityFunctions.o
+DEVICE_OBJS = \
+  $(TDBS)/obj/Thermo.o \
+  $(FUNCTIONS)/obj/functionF.o \
+  $(FUNCTIONS)/obj/functionH.o \
+  $(FUNCTIONS)/obj/functionTau.o \
+  $(FUNCTIONS)/obj/functionW_02.o \
+  $(FUNCTIONS)/obj/anisotropy_01.o \
+  $(FUNCTIONS)/obj/functionA_01.o \
+  $(FUNCTIONS)/obj/functionA_02.o \
+  $(FUNCTIONS)/obj/matrix.o \
+  $(SOLVERLOOP)/obj/utilityKernels.o \
+  $(SOLVERLOOP)/obj/boundary.o \
+  $(SOLVERLOOP)/obj/calcPhaseComp.o \
+  $(SOLVERLOOP)/obj/smooth.o \
+  $(SOLVERLOOP)/obj/computeDrivingForce.o \
+  $(SOLVERLOOP)/obj/computeElastic.o \
+  $(SOLVERLOOP)/obj/updateComposition.o \
+  $(SOLVERLOOP)/obj/updatePhi.o \
+  $(FUNCTIONS)/obj/error_checks.o
 
-$(FUNCTIONS)/obj/functionF.o: $(FUNCTIONS)/functionF.cu $(FUNCTIONS)/functionF.cuh $(FUNCTIONS)/utilityFunctions.c $(FUNCTIONS)/structures.h $(FUNCTIONS)/defines.h Makefile
-	$(NVCC) -dc $(FUNCTIONS)/functionF.cu -o $(FUNCTIONS)/obj/functionF.o $(INCFLAGS) $(NVCCFLAGS) $(CUDALDFLAGS) $(CUDACFLAGS) $(CFLAGS) $(GSLFLAGS)
+# ------------------------------------------------------------------------------
+# Build rules
+# ------------------------------------------------------------------------------
+all: $(TARGET)
 
-$(FUNCTIONS)/obj/initialize_variables.o: $(FUNCTIONS)/initialize_variables.c $(FUNCTIONS)/initialize_variables.h $(FUNCTIONS)/utilityFunctions.c $(FUNCTIONS)/structures.h $(FUNCTIONS)/defines.h Makefile
-	$(MPICC) $(MPICFLAGS) $(CFLAGS) $(CUDACFLAGS) $(INCFLAGS) -c $(FUNCTIONS)/initialize_variables.c -o $(FUNCTIONS)/obj/initialize_variables.o
+%.o: %.cu
+	$(NVCC) -dc $< -o $@ $(CPPFLAGS) $(NVCCFLAGS)
 
-$(FUNCTIONS)/obj/box_iterator.o: $(FUNCTIONS)/box_iterator.cpp $(FUNCTIONS)/box_iterator.hpp Makefile
-	$(NVCC) $(CFLAGS) $(CUDACFLAGS) $(INCFLAGS) -DENABLE_CUFFTMP=$(ENABLE_CUFFTMP) -dc $(FUNCTIONS)/box_iterator.cpp -o $(FUNCTIONS)/obj/box_iterator.o
+%.o: %.c
+	$(MPICC) -c $< -o $@ $(CPPFLAGS) $(CFLAGS)
 
-$(FUNCTIONS)/obj/calc_bn.o: $(FUNCTIONS)/calc_bn.c $(FUNCTIONS)/calc_bn.h $(FUNCTIONS)/structures.h $(FUNCTIONS)/defines.h Makefile
-	$(MPICC) $(MPICFLAGS) $(CFLAGS) $(CUDACFLAGS) $(INCFLAGS) -DENABLE_CUFFTMP=$(ENABLE_CUFFTMP) -c $(FUNCTIONS)/calc_bn.c -o $(FUNCTIONS)/obj/calc_bn.o
+MicroSim_KKS_FD_CUDA_MPI.o: microsim_kks_fd_cuda_mpi.c
+	$(MPICC) -c $< -o $@ $(CPPFLAGS) $(CFLAGS)
 
-$(FUNCTIONS)/obj/error_checks.o: $(FUNCTIONS)/error_checks.cpp $(FUNCTIONS)/error_checks.hpp Makefile
-	$(NVCC) $(CFLAGS) $(CUDACFLAGS) $(INCFLAGS) -DENABLE_CUFFTMP=$(ENABLE_CUFFTMP) -dc $(FUNCTIONS)/error_checks.cpp -o $(FUNCTIONS)/obj/error_checks.o
+# Device link
+device_link.o: $(DEVICE_OBJS)
+	$(NVCC) -dlink $^ -o $@
 
-$(FUNCTIONS)/obj/filling.o: $(FUNCTIONS)/filling.c $(FUNCTIONS)/filling.h $(FUNCTIONS)/utilityFunctions.c $(FUNCTIONS)/structures.h $(FUNCTIONS)/defines.h Makefile
-	$(MPICC) $(MPICFLAGS) $(CFLAGS) $(CUDACFLAGS) $(INCFLAGS) -c $(FUNCTIONS)/filling.c -o $(FUNCTIONS)/obj/filling.o
+# Final link
+$(TARGET): $(HOST_OBJS) $(DEVICE_OBJS) device_link.o
+	$(H5CC) $^ $(LDFLAGS) $(LIBS) -o $@
 
-$(FUNCTIONS)/obj/reading_input_parameters.o: $(FUNCTIONS)/reading_input_parameters.c $(FUNCTIONS)/inputReader.h $(FUNCTIONS)/structures.h $(FUNCTIONS)/defines.h $(FUNCTIONS)/utilityFunctions.c Makefile
-	$(MPICC) $(MPICFLAGS) $(MPILDFLAGS) $(CFLAGS) $(CUDACFLAGS) $(INCFLAGS) -c $(FUNCTIONS)/reading_input_parameters.c -o $(FUNCTIONS)/obj/reading_input_parameters.o
+# ------------------------------------------------------------------------------
+# Install (Spack requirement)
+# ------------------------------------------------------------------------------
+PREFIX ?= /usr/local
+BINDIR ?= $(PREFIX)/bin
 
-$(FUNCTIONS)/obj/fill_domain.o: $(FUNCTIONS)/fill_domain.c $(FUNCTIONS)/inputReader.h $(FUNCTIONS)/structures.h $(FUNCTIONS)/defines.h $(FUNCTIONS)/utilityFunctions.c Makefile
-	$(MPICC) $(MPICFLAGS) $(CFLAGS) $(CUDACFLAGS) $(INCFLAGS) -c $(FUNCTIONS)/fill_domain.c -o $(FUNCTIONS)/obj/fill_domain.o
+install: $(TARGET)
+	mkdir -p $(DESTDIR)$(BINDIR)
+	cp $(TARGET) $(DESTDIR)$(BINDIR)/
 
-$(FUNCTIONS)/obj/read_boundary_conditions.o: $(FUNCTIONS)/read_boundary_conditions.c $(FUNCTIONS)/inputReader.h $(FUNCTIONS)/structures.h $(FUNCTIONS)/defines.h $(FUNCTIONS)/utilityFunctions.c Makefile
-	$(MPICC) $(MPICFLAGS) $(CFLAGS) $(CUDACFLAGS) $(INCFLAGS) -c $(FUNCTIONS)/read_boundary_conditions.c -o $(FUNCTIONS)/obj/read_boundary_conditions.o
-
-$(FUNCTIONS)/obj/matrix.o: $(FUNCTIONS)/matrix.cu $(FUNCTIONS)/matrix.cuh $(FUNCTIONS)/structures.h $(FUNCTIONS)/defines.h Makefile
-	$(NVCC) -dc $(FUNCTIONS)/matrix.cu -o $(FUNCTIONS)/obj/matrix.o $(INCFLAGS) $(NVCCFLAGS) $(CUDALDFLAGS) $(CUDACFLAGS)
-
-$(SOLVERLOOP)/obj/utilityKernels.o: $(SOLVERLOOP)/utilityKernels.cu $(SOLVERLOOP)/utilityKernels.cuh $(FUNCTIONS)/structures.h $(FUNCTIONS)/defines.h Makefile
-	$(NVCC) -dc $(SOLVERLOOP)/utilityKernels.cu -o $(SOLVERLOOP)/obj/utilityKernels.o $(INCFLAGS) $(NVCCFLAGS) $(CUDALDFLAGS) $(CUDACFLAGS)
-
-$(FUNCTIONS)/obj/functionTau.o: $(FUNCTIONS)/functionTau.cu $(FUNCTIONS)/functionTau.cuh Makefile
-	$(NVCC) -dc $(FUNCTIONS)/functionTau.cu -o $(FUNCTIONS)/obj/functionTau.o $(INCFLAGS) $(NVCCFLAGS) $(CUDALDFLAGS) $(CUDACFLAGS)
-
-$(FUNCTIONS)/obj/functionH.o: $(FUNCTIONS)/functionH.cu $(FUNCTIONS)/functionH.cuh Makefile
-	$(NVCC) -dc $(FUNCTIONS)/functionH.cu -o $(FUNCTIONS)/obj/functionH.o $(INCFLAGS) $(NVCCFLAGS) $(CUDALDFLAGS) $(CUDACFLAGS)
-
-$(FUNCTIONS)/obj/functionW_02.o: $(FUNCTIONS)/functionW_02.cu $(FUNCTIONS)/functionW_02.cuh Makefile
-	$(NVCC) -dc $(FUNCTIONS)/functionW_02.cu -o $(FUNCTIONS)/obj/functionW_02.o $(INCFLAGS) $(NVCCFLAGS) $(CUDALDFLAGS) $(CUDACFLAGS)
-
-$(FUNCTIONS)/obj/anisotropy_01.o: $(FUNCTIONS)/anisotropy_01.cu $(FUNCTIONS)/anisotropy_01.cuh Makefile
-	$(NVCC) -dc $(FUNCTIONS)/anisotropy_01.cu -o $(FUNCTIONS)/obj/anisotropy_01.o $(INCFLAGS) $(NVCCFLAGS) $(CUDALDFLAGS) $(CUDACFLAGS)
-
-$(FUNCTIONS)/obj/functionA_01.o: $(FUNCTIONS)/functionA_01.cu $(FUNCTIONS)/functionA_01.cuh Makefile
-	$(NVCC) -dc $(FUNCTIONS)/functionA_01.cu -o $(FUNCTIONS)/obj/functionA_01.o $(INCFLAGS) $(NVCCFLAGS) $(CUDALDFLAGS) $(CUDACFLAGS)
-
-$(FUNCTIONS)/obj/functionA_02.o: $(FUNCTIONS)/functionA_02.cu $(FUNCTIONS)/functionA_02.cuh Makefile
-	$(NVCC) -dc $(FUNCTIONS)/functionA_02.cu -o $(FUNCTIONS)/obj/functionA_02.o $(INCFLAGS) $(NVCCFLAGS) $(CUDALDFLAGS) $(CUDACFLAGS)
-
-MicroSim_KKS_FD_CUDA_MPI.o: ./microsim_kks_fd_cuda_mpi.c Makefile
-	$(MPICC) $(MPICFLAGS) $(CFLAGS) $(GSLFLAGS) $(CUDACFLAGS) $(INCFLAGS) -DENABLE_HDF5=$(ENABLE_HDF5) -DENABLE_CUFFTMP=$(ENABLE_CUFFTMP) -c ./microsim_kks_fd_cuda_mpi.c -o ./MicroSim_KKS_FD_CUDA_MPI.o $(CUDALDFLAGS)
-
-$(SOLVERLOOP)/obj/boundary.o: $(SOLVERLOOP)/boundary.cu $(SOLVERLOOP)/boundary.cuh $(FUNCTIONS)/structures.h $(FUNCTIONS)/defines.h Makefile
-	$(NVCC) -dc $(SOLVERLOOP)/boundary.cu -o $(SOLVERLOOP)/obj/boundary.o $(INCFLAGS) $(NVCCFLAGS) $(CUDALDFLAGS)
-
-$(SOLVERLOOP)/obj/calcPhaseComp.o: $(SOLVERLOOP)/calcPhaseComp.cu $(SOLVERLOOP)/calcPhaseComp.cuh $(TDBS)/Thermo.cu $(FUNCTIONS)/structures.h $(FUNCTIONS)/defines.h Makefile
-	$(NVCC) -dc $(SOLVERLOOP)/calcPhaseComp.cu -o $(SOLVERLOOP)/obj/calcPhaseComp.o $(INCFLAGS) $(NVCCFLAGS) $(CUDALDFLAGS) $(CUDACFLAGS)
-
-$(SOLVERLOOP)/obj/smooth.o: $(SOLVERLOOP)/smooth.cu $(SOLVERLOOP)/smooth.cuh $(TDBS)/Thermo.cu $(FUNCTIONS)/structures.h $(FUNCTIONS)/defines.h Makefile
-	$(NVCC) -dc $(SOLVERLOOP)/smooth.cu -o $(SOLVERLOOP)/obj/smooth.o $(INCFLAGS) $(NVCCFLAGS) $(CUDALDFLAGS) $(CUDACFLAGS)
-
-$(SOLVERLOOP)/obj/computeDrivingForce.o: $(SOLVERLOOP)/computeDrivingForce.cu $(SOLVERLOOP)/computeDrivingForce.cuh $(TDBS)/Thermo.cu $(FUNCTIONS)/structures.h $(FUNCTIONS)/defines.h Makefile
-	$(NVCC) -dc $(SOLVERLOOP)/computeDrivingForce.cu -o $(SOLVERLOOP)/obj/computeDrivingForce.o $(INCFLAGS) $(NVCCFLAGS) $(CUDALDFLAGS) $(CUDACFLAGS)
-
-$(SOLVERLOOP)/obj/computeElastic.o: $(SOLVERLOOP)/computeElastic.cu $(SOLVERLOOP)/computeElastic.cuh $(TDBS)/Thermo.cu $(FUNCTIONS)/structures.h $(FUNCTIONS)/defines.h Makefile
-	$(NVCC) -DENABLE_CUFFTMP=$(ENABLE_CUFFTMP) -dc $(SOLVERLOOP)/computeElastic.cu -o $(SOLVERLOOP)/obj/computeElastic.o $(INCFLAGS) $(NVCCFLAGS) $(CUDALDFLAGS) $(CUDACFLAGS) -std=c++17
-
-$(SOLVERLOOP)/obj/updateComposition.o: $(SOLVERLOOP)/updateComposition.cu $(SOLVERLOOP)/updateComposition.cuh $(TDBS)/Thermo.cu $(FUNCTIONS)/structures.h $(FUNCTIONS)/defines.h Makefile
-	$(NVCC) -dc $(SOLVERLOOP)/updateComposition.cu -o $(SOLVERLOOP)/obj/updateComposition.o $(INCFLAGS) $(NVCCFLAGS) $(CUDALDFLAGS) $(CUDACFLAGS)
-
-$(SOLVERLOOP)/obj/updatePhi.o: $(SOLVERLOOP)/updatePhi.cu $(SOLVERLOOP)/updatePhi.cuh $(TDBS)/Thermo.cu $(FUNCTIONS)/structures.h $(FUNCTIONS)/defines.h Makefile
-	$(NVCC) -dc $(SOLVERLOOP)/updatePhi.cu -o $(SOLVERLOOP)/obj/updatePhi.o $(INCFLAGS) $(NVCCFLAGS) $(CUDALDFLAGS) $(CUDACFLAGS)
-
-link: $(device_objects) $(FUNCTIONS)/defines.h
-	$(NVCC) $(GENCODE_FLAGS) -dlink ./MicroSim_KKS_FD_CUDA_MPI.o $(device_objects) -o $(SOLVERLOOP)/obj/deviceCode.o
-
-$(KKS_OUT): $(host_objects) link
-	$(H5CC) ./MicroSim_KKS_FD_CUDA_MPI.o $(SOLVERLOOP)/obj/*.o $(FUNCTIONS)/obj/*.o $(TDBS)/obj/Thermo.o $(CUDALDFLAGS) $(CUDACFLAGS) $(MPILDFLAGS) $(CFLAGS) $(GSLFLAGS) $(HDF5FLAGS) -o $(KKS_OUT)
-	rm -rf MicroSim_KKS_FD_CUDA_MPI.o $(SOLVERLOOP)/obj/fileWriter.o $(SOLVERLOOP)/obj/computeElastic.o $(FUNCTIONS)/obj/error_checks.o
-thermo: $(INPUT)
-	python GEdata_writer.py $(INPUT)
-
-write_xdmf: write_xdmf.c $(FUNCTIONS)/structures.h $(FUNCTIONS)/reading_input_parameters.c $(SOLVERLOOP)/fileWriter.c $(INPUT) Makefile
-	$(H5CC) $(INCFLAGS) $(CFLAGS) -I${NVHPC_CUDA_HOME}/include -L${NVHPC_CUDA_HOME}/lib64 -lcudart -DTHERMO=0 write_xdmf.c -o write_xdmf --diag_suppress declared_but_not_referenced
-
-reconstruct: reconstruct.c $(FUNCTIONS)/structures.h $(FUNCTIONS)/reading_input_parameters.c $(SOLVERLOOP)/fileWriter.c $(INPUT) Makefile
-	$(MPICC) $(INCFLAGS) $(CFLAGS)  --diag_suppress declared_but_not_referenced -I${NVHPC_CUDA_HOME}/include -L${NVHPC_CUDA_HOME}/lib64 -lcudart -DTHERMO=0 reconstruct.c -o reconstruct
-
+# ------------------------------------------------------------------------------
+# Run helpers (not used by Spack)
+# ------------------------------------------------------------------------------
 run:
-	LD_LIBRARY_PATH="${NVSHMEM_LIB}:${CUFFT_LIB}:${NVHPC_CUDA_HOME}/lib64:${LD_LIBRARY_PATH}" ${MPI_HOME}/bin/mpiexec -n $(NPROCS) $(KKS_OUT) $(INPUT) $(FILLING) $(OUTPUT)
+	mpirun -n $(NPROCS) ./$(TARGET) $(INPUT) $(FILLING) $(OUTPUT)
 
-profile:
-	LD_LIBRARY_PATH="${NVSHMEM_LIB}:${CUFFT_LIB}:${NVHPC_CUDA_HOME}/lib64:${LD_LIBRARY_PATH}" nvprof  --profile-child-processes mpiexec -n $(NPROCS) $(KKS_OUT) $(INPUT) $(FILLING) $(OUTPUT)
-
-memcheck:
-	LD_LIBRARY_PATH="${NVSHMEM_LIB}:${CUFFT_LIB}:${NVHPC_CUDA_HOME}/lib64:${LD_LIBRARY_PATH}" compute-sanitizer --target-processes all mpiexec -n $(NPROCS) $(KKS_OUT) $(INPUT) $(FILLING) $(OUTPUT)
-
-clear:
-	rm -rf DATA/ *.bd */*.bd
-
-.PHONY: clean
+# ------------------------------------------------------------------------------
+# Cleanup
+# ------------------------------------------------------------------------------
 clean:
-	rm -rf $(SOLVERLOOP)/obj/*.o $(FUNCTIONS)/obj/*.o $(KKS_OUT) *.o $(TDBS)/obj/*.o *.out
+	rm -rf $(SOLVERLOOP)/obj/*.o $(FUNCTIONS)/obj/*.o \
+	       $(TDBS)/obj/*.o *.o $(TARGET)
+
+.PHONY: all install run clean
