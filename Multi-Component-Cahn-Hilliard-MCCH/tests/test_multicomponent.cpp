@@ -121,9 +121,9 @@ int main(int argc, char* argv[]) {
 
         // Constant mobility matrix for multicomponent system
         std::vector<std::vector<double>> M = {
-            {1.2, 0.1, 0.0},
-            {0.1, 0.9, 0.1},
-            {0.0, 0.1, 1.1}
+            {1.1, 0.1, 0.1},
+            {0.1, 1.1, 0.1},
+            {0.1, 0.1, 1.1}
         };
         auto mob = std::make_shared<mcch::ConstantMobility>(n_comp, M);
 

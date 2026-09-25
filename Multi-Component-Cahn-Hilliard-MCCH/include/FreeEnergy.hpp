@@ -42,6 +42,10 @@ public:
         return n_comp;
     }
 
+    double get_RT() const { return RT; }
+    double get_eps() const { return eps; }
+    const std::vector<std::vector<double>>& get_omega() const { return omega; }
+
     double density(const std::vector<double>& c) const override {
         double f = 0.0;
         // Ideal mixing entropy term
@@ -97,6 +101,9 @@ public:
         return n_comp;
     }
 
+    const std::vector<std::vector<double>>& get_W() const { return W; }
+    const std::vector<double>& get_A() const { return A; }
+
     double density(const std::vector<double>& c) const override {
         double f = 0.0;
         for (int i = 0; i < n_comp; ++i) {
@@ -144,6 +151,9 @@ public:
     int num_components() const override {
         return 2;
     }
+
+    double get_barrier() const { return W; }
+    double get_W() const { return W; }
 
     double density(const std::vector<double>& c) const override {
         double c0 = c[0];

@@ -708,17 +708,17 @@ CudaSolver::CudaSolver(const MPIContext& mpi_ctx, const Grid& grid_in, int num_c
     // Free Energy Type
     if (auto reg = dynamic_cast<RegularSolution*>(fe.get())) {
         params.fe_type = CUDA_FE_REGULAR_SOLUTION;
-        params.RT = 1.0;
-        params.eps = 1e-12;
+        params.RT = reg->get_RT();
+        params.eps = reg->get_eps();
     } else if (auto bin = dynamic_cast<BinaryDoubleWell*>(fe.get())) {
         params.fe_type = CUDA_FE_BINARY_DOUBLE_WELL;
-        params.W_binary = 1.0;
+        params.W_binary = bin->get_barrier();
     } else {
         params.fe_type = CUDA_FE_POLYNOMIAL_MULTIWELL;
     }
 
     // Mobility Type
-    if (mob->type() == MobilityType::CONSTANT) {
+    if (mob->is_constant()) {
         params.mob_type = CUDA_MOB_CONSTANT;
         params.M0 = static_cast<ConstantMobility*>(mob.get())->value();
     } else {
@@ -751,15 +751,34 @@ CudaSolver::CudaSolver(const MPIContext& mpi_ctx, const Grid& grid_in, int num_c
 
     // Upload thermodynamic parameters
     if (auto poly = dynamic_cast<PolynomialMultiWell*>(fe.get())) {
-        // Multi-well barrier matrix W
-        std::vector<double> flat_W(n_comp * n_comp, 1.5);
-        for (int i = 0; i < n_comp; ++i) flat_W[i * n_comp + i] = 0.0;
-        std::vector<double> vec_A(n_comp, 0.2);
+        const auto& W_mat = poly->get_W();
+        const auto& A_vec = poly->get_A();
+        std::vector<double> flat_W(n_comp * n_comp, 0.0);
+        for (int i = 0; i < n_comp; ++i) {
+            for (int j = 0; j < n_comp; ++j) {
+                if (i < (int)W_mat.size() && j < (int)W_mat[i].size()) {
+                    flat_W[i * n_comp + j] = W_mat[i][j];
+                }
+            }
+        }
+        std::vector<double> vec_A(n_comp, 0.0);
+        for (int i = 0; i < n_comp; ++i) {
+            if (i < (int)A_vec.size()) {
+                vec_A[i] = A_vec[i];
+            }
+        }
         CUDA_CHECK(cudaMemcpy(d_W, flat_W.data(), n_comp * n_comp * sizeof(double), cudaMemcpyHostToDevice));
         CUDA_CHECK(cudaMemcpy(d_A, vec_A.data(), n_comp * sizeof(double), cudaMemcpyHostToDevice));
     } else if (auto reg = dynamic_cast<RegularSolution*>(fe.get())) {
-        std::vector<double> flat_omega(n_comp * n_comp, 3.6);
-        for (int i = 0; i < n_comp; ++i) flat_omega[i * n_comp + i] = 0.0;
+        const auto& omega_mat = reg->get_omega();
+        std::vector<double> flat_omega(n_comp * n_comp, 0.0);
+        for (int i = 0; i < n_comp; ++i) {
+            for (int j = 0; j < n_comp; ++j) {
+                if (i < (int)omega_mat.size() && j < (int)omega_mat[i].size()) {
+                    flat_omega[i * n_comp + j] = omega_mat[i][j];
+                }
+            }
+        }
         CUDA_CHECK(cudaMemcpy(d_omega, flat_omega.data(), n_comp * n_comp * sizeof(double), cudaMemcpyHostToDevice));
     }
 }

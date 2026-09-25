@@ -261,9 +261,9 @@ int main(int argc, char* argv[]) {
         };
         auto fe = std::make_shared<mcch::PolynomialMultiWell>(n_comp, W);
         std::vector<std::vector<double>> M = {
-            {1.0, 0.1, 0.0},
+            {1.0, 0.1, 0.1},
             {0.1, 1.0, 0.1},
-            {0.0, 0.1, 1.0}
+            {0.1, 0.1, 1.0}
         };
         auto mob = std::make_shared<mcch::ConstantMobility>(n_comp, M);
 
@@ -286,7 +286,9 @@ int main(int argc, char* argv[]) {
         mcch::Diagnostics d_final = solver.compute_diagnostics(dt);
         for (int m = 0; m < n_comp; ++m) {
             double drift = std::abs(d_final.average_composition[m] - d0.average_composition[m]);
-            (void)drift;
+            if (rank == 0) {
+                std::cout << "[Test 6] Component " << m << " drift: " << drift << "\n";
+            }
             assert(drift < 1e-12);
         }
         assert(d_final.max_unity_deviation < 1e-12);
