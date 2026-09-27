@@ -3,9 +3,15 @@ SDIR=solverloop
 TDIR=tdbs
 CC=mpicc
 HC=h5pcc
-CFLAGS=-I. -I$(HOME)/gsl_2_7/include/ -I/usr/local/cuda/include/ -I/usr/include/hdf5/openmpi/
 
-LDIR =-L/usr/local/cuda/lib64/  -L$(HOME)/gsl_2_7/lib/
+# Override these variables to match your system's library installation paths.
+# Defaults attempt auto-detection via standard tool wrappers.
+CUDA_HOME    ?= /usr/local/cuda
+GSL_ROOT_DIR ?= $(shell gsl-config --prefix 2>/dev/null)
+HDF5_INC_DIR ?= $(shell pkg-config --variable=includedir hdf5 2>/dev/null)
+
+CFLAGS=-I. -I$(GSL_ROOT_DIR)/include -I$(CUDA_HOME)/include -I$(HDF5_INC_DIR)
+LDIR =-L$(CUDA_HOME)/lib64 -L$(GSL_ROOT_DIR)/lib
 
 _FUNCTION_DEPS = global_vars.h CL_global_vars.h CL_initialize_variables.h      \
                  CL_device_kernel_build.h CL_buffer_allocation.h CL_create_kernel_args.h  \

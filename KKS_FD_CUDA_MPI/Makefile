@@ -4,15 +4,21 @@ NPROCS = 1
 
 HPCSDK_VERSION ?= 23.3
 
-NVHPC_ROOT       ?= /opt/nvidia
-NVHPC_HOME       ?= ${NVHPC_ROOT}/hpc_sdk/Linux_x86_64/${HPCSDK_VERSION}
+NVHPC_ROOT       ?= /opt/nvidia/hpc_sdk
+NVHPC_HOME       ?= ${NVHPC_ROOT}/Linux_x86_64/${HPCSDK_VERSION}
 NVHPC_CUDA_HOME  ?= ${NVHPC_HOME}/cuda
 MPI_HOME         ?= ${NVHPC_HOME}/comm_libs/openmpi4/openmpi-4.0.5
-HDF5_HOME        ?= /opt/spack/opt/spack/linux-ubuntu22.04-skylake_avx512/gcc-11.4.0/hdf5-1.14.4-3-bqhpg7nw6szqeigw5dmlvhhmrspezu7h
+# Set HDF5_HOME to the root of your HDF5 installation (e.g. /opt/hdf5 or
+# the output of "spack location -i hdf5").  Example:
+#   make HDF5_HOME=/opt/hdf5
+HDF5_HOME        ?=
 CUFFT_LIB        ?= ${NVHPC_HOME}/math_libs/lib64
 CUFFT_INC        ?= ${NVHPC_HOME}/math_libs/include/cufftmp
 NVSHMEM_LIB      ?= ${NVHPC_HOME}/math_libs/12.0/lib64/compat/nvshmem_2.6.0-1
-GSL_HOME         ?= /opt/spack/opt/spack/linux-ubuntu22.04-skylake_avx512/gcc-11.4.0/gsl-2.7.1-wwnnm54dtynjeyuzdt24v7dfbgy4kjhv
+# Set GSL_HOME to the root of your GSL installation (e.g. /usr or
+# the output of "gsl-config --prefix").  Example:
+#   make GSL_HOME=/usr/local
+GSL_HOME         ?=
 
 # Arguments
 INPUT = Input_austenite_ferrite.in
