@@ -1,28 +1,57 @@
-SHELL = /bin/sh
-NVCC = nvcc   
-COMPOPS = -Xptxas -O3
-#COMPOPS = -Xptxas -g  
-ARCH = -arch=sm_70 
-LIBS =  -lcufft -lcuda -lcudart
-#INCS =  -I/usr/local/cuda-11.2/samples/common/inc
-HEADERS = functions/global_vars.h
+SHELL ?= /bin/sh
 
-SRCDIR = .
-BINDIR = DATA
+# Compilers (Spack injects these)
+NVCC ?= nvcc
+
+# Flags (Spack-friendly)
+NVCCFLAGS ?=
+CUDA_ARCH ?=
+CPPFLAGS  ?=
+LDFLAGS   ?=
+LIBS      ?=
+
+# Optimisation (can be overridden by Spack)
+NVCCFLAGS += -Xptxas -O3
+
+# CUDA architecture (Spack can pass this)
+CUDA_ARCH ?= -arch=sm_70
+
+# CUDA libraries (Spack provides correct paths via wrappers)
+LIBS += -lcufft -lcudart -lcuda
+
+# Directories
+SRCDIR ?= .
+BINDIR ?= DATA
+
+# Sources
 SRCFILES = $(SRCDIR)/KKS_cuFFT.cu
+HEADERS  = functions/global_vars.h
+
+TARGET = microsim_kks_cufft
+
 all: build
 
-build: build_dir $(HEADERS)
-	$(NVCC) $(COMPOPS) $(ARCH) $(SRCFILES) -o microsim_kks_cufft $(LIBS)
+build: $(TARGET)
 
+$(TARGET): $(SRCFILES) $(HEADERS)
+	$(NVCC) $(NVCCFLAGS) $(CUDA_ARCH) $(CPPFLAGS) $< -o $@ $(LDFLAGS) $(LIBS)
+
+# Install support for Spack
+PREFIX ?= /usr/local
+BINDIR_INSTALL ?= $(PREFIX)/bin
+
+install: $(TARGET)
+	mkdir -p $(DESTDIR)$(BINDIR_INSTALL)
+	cp $(TARGET) $(DESTDIR)$(BINDIR_INSTALL)/
+
+# Optional runtime data directory
 build_dir:
 	mkdir -p $(BINDIR)
 
-clear:
-	-\rm $(BINDIR)/*.*
-
 clean:
-	-\rm *microsim_kks_cufft
-	-\rm -r $(BINDIR)
-#	@\rm -f job.*.*
-## End of the makefile
+	rm -f $(TARGET)
+
+distclean: clean
+	rm -rf $(BINDIR)
+
+.PHONY: all build install clean distclean
